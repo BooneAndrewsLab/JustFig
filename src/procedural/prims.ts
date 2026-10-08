@@ -94,11 +94,12 @@ const KAPPA = 0.5522847498;
 
 /**
  * Circular arc from angle a0 to a1 (radians, clockwise on screen from +x)
- * as path nodes with cubic handles, at most 90° per segment.
+ * as path nodes with cubic handles, at most 45° per segment (so handles
+ * stay within 3.5% of the radius).
  */
 export function arcNodes(cx: number, cy: number, r: number, a0: number, a1: number): PathNode[] {
   const span = a1 - a0;
-  const n = Math.max(1, Math.ceil(Math.abs(span) / (Math.PI / 2) - 1e-9));
+  const n = Math.max(1, Math.ceil(Math.abs(span) / (Math.PI / 4) - 1e-9));
   const step = span / n;
   const k = (4 / 3) * Math.tan(step / 4) * r;
   const at = (a: number) => ({ x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) });

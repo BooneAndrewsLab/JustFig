@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
+<path d="M40.5 150A109.5 109.5 0 1 0 259.5 150A109.5 109.5 0 1 0 40.5 150Z" fill="none" stroke="#52606d" stroke-width="1.32"/>
+<g transform="translate(230.67 111)"><text xml:space="preserve"><tspan x="0" y="4.74" font-family="Arimo" font-size="5.6" fill="#1f2933">500</tspan></text></g>
+<g transform="translate(209.64 211.63)"><text xml:space="preserve"><tspan x="0" y="4.74" font-family="Arimo" font-size="5.6" fill="#1f2933">1,000</tspan></text></g>
+<g transform="translate(109.71 233.72)"><text xml:space="preserve"><tspan x="0" y="4.74" font-family="Arimo" font-size="5.6" fill="#1f2933">1,500</tspan></text></g>
+<g transform="translate(50.35 150.34)"><text xml:space="preserve"><tspan x="0" y="4.74" font-family="Arimo" font-size="5.6" fill="#1f2933">2,000</tspan></text></g>
+<g transform="translate(103.92 63.14)"><text xml:space="preserve"><tspan x="0" y="4.74" font-family="Arimo" font-size="5.6" fill="#1f2933">2,500</tspan></text></g>
+<path d="M244.82 109.78L241.14 111.34M224.06 221.59L221.18 218.81M113.02 246.13L114.45 242.4M47.06 153.49L51.06 153.36M106.59 56.6L108.27 60.22" fill="none" stroke="#52606d" stroke-width="0.5"/>
+<path d="M82.89 236.53L70.76 233.35C52.89 216.35 40.95 194.07 36.71 169.77C32.47 145.48 36.15 120.47 47.21 98.42C58.27 76.38 76.13 58.48 98.14 47.36L103.1 57.18C83.19 67.23 67.05 83.42 57.05 103.36C47.04 123.29 43.71 145.91 47.55 167.88C51.38 189.85 62.18 210.01 78.34 225.37Z" fill="#0072b2" stroke="#004682" stroke-width="0.4" stroke-linejoin="round"/>
+<path d="M248.36 198.12L247.71 210.64C234.69 231.62 215.26 247.85 192.3 256.94C169.34 266.02 144.06 267.47 120.21 261.08L123.06 250.45C144.63 256.23 167.49 254.92 188.26 246.71C209.02 238.49 226.59 223.81 238.37 204.84Z" fill="#e69f00" stroke="#b47000" stroke-width="0.4" stroke-linejoin="round"/>
+<path d="M186.43 46.74L198.95 45.94C221.96 56.76 240.74 74.91 252.34 97.54L242.55 102.56C232.06 82.09 215.08 65.68 194.26 55.89Z" fill="#56b4e9" stroke="#1d85b8" stroke-width="0.4" stroke-linejoin="round"/>
+<path d="M252.06 110.32L258.63 112.24C259.08 113.56 259.51 114.88 259.92 116.21L249.41 119.44C249.04 118.24 248.65 117.04 248.24 115.86ZM100.62 52.27L108.69 42.67C113.89 40.67 119.22 39.05 124.65 37.83L127.08 48.56C122.17 49.67 117.34 51.13 112.65 52.94Z" fill="#009e73" stroke="#007049" stroke-width="0.4" stroke-linejoin="round"/>
+<path d="M241.93 80.91C245.01 85 247.8 89.29 250.3 93.75L240.71 99.13C238.45 95.09 235.92 91.22 233.14 87.52Z" fill="#9aa5b1" stroke="#6d7883" stroke-width="0.4" stroke-linejoin="round"/>
+<g transform="translate(234 53.58)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">lacZα</tspan></text></g>
+<g transform="translate(256.17 79.1)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">MCS</tspan></text></g>
+<g transform="translate(269.36 105.99)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">lac promoter</tspan></text></g>
+<g transform="translate(203.9 258.82)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">ori</tspan></text></g>
+<g transform="translate(56.06 30.37)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">AmpR promoter</tspan></text></g>
+<g transform="translate(4.92 134.68)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">AmpR</tspan></text></g>
+<path d="M225.67 63.4L233 57.08M246.33 87.19L255.17 82.6M258.63 112.24L268.36 109.49M197.62 254.68L202.9 262.32M111.1 41.78L106.46 33.87M35.53 138.99L25.37 138.18" fill="none" stroke="#7d8996" stroke-width="0.4"/>
+<g transform="translate(132.26 137.12)"><text xml:space="preserve"><tspan x="0" y="9.48" font-family="Arimo" font-size="11.2" font-weight="bold" fill="#1f2933">pUC19</tspan></text></g>
+<g transform="translate(131.47 152.52)"><text xml:space="preserve"><tspan x="0" y="8.06" font-family="Arimo" font-size="9.52" fill="#1f2933">2,686 bp</tspan></text></g>
+</svg>

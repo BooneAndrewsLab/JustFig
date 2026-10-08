@@ -14,39 +14,51 @@ import { layoutText } from '@/core/text/layout';
 import type { PathPrim, Prim, TextPrim } from './prims';
 import { getKind, proceduralPrims } from './registry';
 
+/** Layouts of label texts, which repeat a lot (plate labels, tick labels). */
+const metrics = new Map<string, { base: Text; w: number; h: number; baseline: number }>();
+
+export const textKey = (t: TextPrim): string =>
+  `${t.text}|${String(t.size)}|${t.bold === true ? 'b' : ''}${t.italic === true ? 'i' : ''}|${t.color}|${t.anchor}`;
+
+function labelLayout(t: TextPrim) {
+  const key = textKey(t);
+  let m = metrics.get(key);
+  if (!m) {
+    const base: Text = {
+      id: '' as Id,
+      type: 'text',
+      frame: frame(0, 0, 0, 0),
+      opacity: 1,
+      runs: [
+        [
+          {
+            text: t.text,
+            font: 'arimo',
+            size: t.size,
+            ...(t.bold === true ? { bold: true } : {}),
+            ...(t.italic === true ? { italic: true } : {}),
+            color: { hex: t.color },
+          },
+        ],
+      ],
+      align: t.anchor === 'start' ? 'left' : t.anchor === 'end' ? 'right' : 'center',
+      lineHeight: 1,
+      autoWidth: true,
+    };
+    const l = layoutText(base);
+    m = { base, w: l.width, h: l.height, baseline: l.lines[0]?.baseline ?? 0 };
+    if (metrics.size > 5000) metrics.clear();
+    metrics.set(key, m);
+  }
+  return m;
+}
+
 /** A text primitive as a Text object, frame-local, laid out and rotated about its anchor. */
 export function textPrimObj(t: TextPrim): Text {
-  const base: Text = {
-    id: '' as Id,
-    type: 'text',
-    frame: frame(0, 0, 0, 0),
-    opacity: 1,
-    runs: [
-      [
-        {
-          text: t.text,
-          font: 'arimo',
-          size: t.size,
-          ...(t.bold === true ? { bold: true } : {}),
-          ...(t.italic === true ? { italic: true } : {}),
-          color: { hex: t.color },
-        },
-      ],
-    ],
-    align: t.anchor === 'start' ? 'left' : t.anchor === 'end' ? 'right' : 'center',
-    lineHeight: 1,
-    autoWidth: true,
-  };
-  const l = layoutText(base);
-  const first = l.lines[0];
-  const x = t.x - l.width * (t.anchor === 'start' ? 0 : t.anchor === 'end' ? 1 : 0.5);
-  const y =
-    t.baseline === 'top'
-      ? t.y
-      : t.baseline === 'middle'
-        ? t.y - l.height / 2
-        : t.y - (first?.baseline ?? 0);
-  const placed: Text = { ...base, frame: frame(x, y, l.width, l.height) };
+  const m = labelLayout(t);
+  const x = t.x - m.w * (t.anchor === 'start' ? 0 : t.anchor === 'end' ? 1 : 0.5);
+  const y = t.baseline === 'top' ? t.y : t.baseline === 'middle' ? t.y - m.h / 2 : t.y - m.baseline;
+  const placed: Text = { ...m.base, frame: frame(x, y, m.w, m.h) };
   return t.rotation ? (rotateObj(placed, { x: t.x, y: t.y }, t.rotation) as Text) : placed;
 }
 

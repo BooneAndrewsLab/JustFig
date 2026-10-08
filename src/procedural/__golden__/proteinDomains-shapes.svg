@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 70">
+<path d="M17.05 32.75H302.95A2.25 2.25 0 0 1 305.2 35V35A2.25 2.25 0 0 1 302.95 37.25H17.05A2.25 2.25 0 0 1 14.8 35V35A2.25 2.25 0 0 1 17.05 32.75Z" fill="#9aa5b1"/>
+<path d="M92.24 35C92.24 39.97 76.85 44 57.88 44C38.9 44 23.51 39.97 23.51 35C23.51 30.03 38.9 26 57.88 26C76.85 26 92.24 30.03 92.24 35Z" fill="#56b4e9" stroke="#097cae" stroke-width="0.5" stroke-linejoin="round"/>
+<path d="M110.63 35L116.93 26L202.1 26L208.4 35L202.1 44L116.93 44Z" fill="#d55e00" stroke="#972200" stroke-width="0.5" stroke-linejoin="round"/>
+<g transform="translate(54.63 30.5)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" font-weight="bold" fill="#ffffff">A</tspan></text></g>
+<g transform="translate(156.27 30.5)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" font-weight="bold" fill="#ffffff">B</tspan></text></g>
+<g transform="translate(7.02 31)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" font-weight="bold" fill="#1f2933">N</tspan></text></g>
+<g transform="translate(307.2 31)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" font-weight="bold" fill="#1f2933">C</tspan></text></g>
+</svg>

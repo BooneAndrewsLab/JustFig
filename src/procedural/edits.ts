@@ -72,7 +72,13 @@ export function setParams(pageId: Id, id: Id, label: string, fn: (p: Params) => 
     if (!r)
       throw new EditError('This object was made by a newer version and cannot be edited here.');
     const next = fixed(r.kind, { ...fn(r.params) });
-    return { ...o, kindVersion: r.kind.version, params: next };
+    // Closing or opening a simple two-node path swaps it for the kind's default shape.
+    const toggled = next['closed'] !== r.params['closed'];
+    const reshape =
+      toggled && r.kind.defaultPath && (o.path === undefined || o.path.length <= 2)
+        ? { path: r.kind.defaultPath(o.frame.w, o.frame.h, next['closed'] === true) }
+        : {};
+    return { ...o, kindVersion: r.kind.version, params: next, ...reshape };
   });
 }
 

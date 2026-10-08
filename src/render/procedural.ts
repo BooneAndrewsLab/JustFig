@@ -8,7 +8,7 @@ import type { Procedural, Swatch } from '@/core/model/types';
 import { layoutText } from '@/core/text/layout';
 import { type Prim, primData } from '@/procedural/prims';
 import { getKind, proceduralPrims, resolveProcedural } from '@/procedural/registry';
-import { textPrimObj } from '@/procedural/shapes';
+import { textKey, textPrimObj } from '@/procedural/shapes';
 import { pathData } from './path';
 import { type SvgNode, el, num } from './svgNode';
 import { type TextMode, textNodes } from './textNodes';
@@ -19,6 +19,8 @@ function matrixAttr(f: Procedural['frame']): string | undefined {
     .map((v) => String(Math.round(v * 10000) / 10000))
     .join(' ')})`;
 }
+
+const glyphs = new Map<string, SvgNode[]>();
 
 export function primNodes(
   prims: readonly Prim[],
@@ -43,7 +45,14 @@ export function primNodes(
     }
     if (p.text.trim() === '') continue;
     const t = textPrimObj(p);
-    const nodes = textNodes(layoutText(t), mode, { palette });
+    // A label's glyphs depend only on its text and style: drawn once, then placed.
+    const key = `${textKey(p)}|${mode}`;
+    let nodes = glyphs.get(key);
+    if (!nodes) {
+      nodes = textNodes(layoutText(t), mode, { palette });
+      if (glyphs.size > 5000) glyphs.clear();
+      glyphs.set(key, nodes);
+    }
     if (nodes.length > 0) out.push(el('g', { transform: matrixAttr(t.frame) }, nodes));
   }
   return out;

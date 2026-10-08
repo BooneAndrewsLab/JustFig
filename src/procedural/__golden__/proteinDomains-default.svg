@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 70">
+<path d="M17.05 23.15H302.95A2.25 2.25 0 0 1 305.2 25.4V25.4A2.25 2.25 0 0 1 302.95 27.65H17.05A2.25 2.25 0 0 1 14.8 25.4V25.4A2.25 2.25 0 0 1 17.05 23.15Z" fill="#9aa5b1"/>
+<path d="M48.76 16.4H67.48A5.4 5.4 0 0 1 72.88 21.8V29A5.4 5.4 0 0 1 67.48 34.4H48.76A5.4 5.4 0 0 1 43.36 29V21.8A5.4 5.4 0 0 1 48.76 16.4Z" fill="#0072b2" stroke="#003d79" stroke-width="0.5" stroke-linejoin="round"/>
+<path d="M87.48 16.4H125.56A5.4 5.4 0 0 1 130.96 21.8V29A5.4 5.4 0 0 1 125.56 34.4H87.48A5.4 5.4 0 0 1 82.08 29V21.8A5.4 5.4 0 0 1 87.48 16.4Z" fill="#e69f00" stroke="#ab6700" stroke-width="0.5" stroke-linejoin="round"/>
+<path d="M145 16.4H266.48V34.4H145Z" fill="#009e73" stroke="#006741" stroke-width="0.5" stroke-linejoin="round"/>
+<g transform="translate(49.36 20.9)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" font-weight="bold" fill="#ffffff">SH3</tspan></text></g>
+<g transform="translate(97.76 20.9)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" font-weight="bold" fill="#ffffff">SH2</tspan></text></g>
+<g transform="translate(190.98 20.9)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" font-weight="bold" fill="#ffffff">Kinase</tspan></text></g>
+<g transform="translate(7.02 21.4)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" font-weight="bold" fill="#1f2933">N</tspan></text></g>
+<g transform="translate(307.2 21.4)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" font-weight="bold" fill="#1f2933">C</tspan></text></g>
+<g transform="translate(12.91 44.6)"><text xml:space="preserve"><tspan x="0" y="5.76" font-family="Arimo" font-size="6.8" fill="#1f2933">1</tspan></text></g>
+<g transform="translate(57.04 44.6)"><text xml:space="preserve"><tspan x="0" y="5.76" font-family="Arimo" font-size="6.8" fill="#1f2933">100</tspan></text></g>
+<g transform="translate(105.44 44.6)"><text xml:space="preserve"><tspan x="0" y="5.76" font-family="Arimo" font-size="6.8" fill="#1f2933">200</tspan></text></g>
+<g transform="translate(153.84 44.6)"><text xml:space="preserve"><tspan x="0" y="5.76" font-family="Arimo" font-size="6.8" fill="#1f2933">300</tspan></text></g>
+<g transform="translate(202.24 44.6)"><text xml:space="preserve"><tspan x="0" y="5.76" font-family="Arimo" font-size="6.8" fill="#1f2933">400</tspan></text></g>
+<g transform="translate(250.64 44.6)"><text xml:space="preserve"><tspan x="0" y="5.76" font-family="Arimo" font-size="6.8" fill="#1f2933">500</tspan></text></g>
+<g transform="translate(299.04 44.6)"><text xml:space="preserve"><tspan x="0" y="5.76" font-family="Arimo" font-size="6.8" fill="#1f2933">600</tspan></text></g>
+<path d="M14.8 39.2L305.2 39.2M14.8 39.2L14.8 42.4M62.72 39.2L62.72 42.4M111.12 39.2L111.12 42.4M159.52 39.2L159.52 42.4M207.92 39.2L207.92 42.4M256.32 39.2L256.32 42.4M304.72 39.2L304.72 42.4" fill="none" stroke="#9aa5b1" stroke-width="0.5"/>
+</svg>

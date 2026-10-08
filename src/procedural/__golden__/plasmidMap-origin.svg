@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
+<path d="M40.5 150A109.5 109.5 0 1 0 259.5 150A109.5 109.5 0 1 0 40.5 150Z" fill="none" stroke="#52606d" stroke-width="1.32"/>
+<g transform="translate(210.88 81.65)"><text xml:space="preserve"><tspan x="0" y="4.74" font-family="Arimo" font-size="5.6" fill="#1f2933">500</tspan></text></g>
+<g transform="translate(235.69 147.2)"><text xml:space="preserve"><tspan x="0" y="4.74" font-family="Arimo" font-size="5.6" fill="#1f2933">1,000</tspan></text></g>
+<g transform="translate(208.54 212.75)"><text xml:space="preserve"><tspan x="0" y="4.74" font-family="Arimo" font-size="5.6" fill="#1f2933">1,500</tspan></text></g>
+<g transform="translate(142.99 239.9)"><text xml:space="preserve"><tspan x="0" y="4.74" font-family="Arimo" font-size="5.6" fill="#1f2933">2,000</tspan></text></g>
+<g transform="translate(77.44 212.75)"><text xml:space="preserve"><tspan x="0" y="4.74" font-family="Arimo" font-size="5.6" fill="#1f2933">2,500</tspan></text></g>
+<g transform="translate(50.29 147.2)"><text xml:space="preserve"><tspan x="0" y="4.74" font-family="Arimo" font-size="5.6" fill="#1f2933">3,000</tspan></text></g>
+<g transform="translate(77.44 81.65)"><text xml:space="preserve"><tspan x="0" y="4.74" font-family="Arimo" font-size="5.6" fill="#1f2933">3,500</tspan></text></g>
+<path d="M222.83 77.17L220 80M253 150L249 150M222.83 222.83L220 220M150 253L150 249M77.17 222.83L80 220M47 150L51 150M77.17 77.17L80 80" fill="none" stroke="#52606d" stroke-width="0.5"/>
+<path d="M114.29 40.68C133.7 34.35 154.44 33.29 174.39 37.62L183.84 45.86L172.06 48.37C154.01 44.45 135.26 45.41 117.71 51.14Z" fill="#0072b2" stroke="#004682" stroke-width="0.4" stroke-linejoin="round"/>
+<path d="M259.5 149.83L264.44 161.35C262.84 177.5 257.83 193.13 249.76 207.21C241.69 221.29 230.72 233.5 217.6 243.04L211.13 234.14C223 225.51 232.92 214.47 240.22 201.74C247.52 189.01 252.04 174.87 253.49 160.27Z" fill="#cc79a7" stroke="#9b4d7a" stroke-width="0.4" stroke-linejoin="round"/>
+<g transform="translate(262.79 202.44)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">rev</tspan></text></g>
+<g transform="translate(116.76 23.1)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">across ori</tspan></text></g>
+<path d="M252.51 202.13L261.79 205.94M149.91 35L148.1 26.6" fill="none" stroke="#7d8996" stroke-width="0.4"/>
+<g transform="translate(132.26 137.12)"><text xml:space="preserve"><tspan x="0" y="9.48" font-family="Arimo" font-size="11.2" font-weight="bold" fill="#1f2933">pUC19</tspan></text></g>
+<g transform="translate(131.47 152.52)"><text xml:space="preserve"><tspan x="0" y="8.06" font-family="Arimo" font-size="9.52" fill="#1f2933">4,000 bp</tspan></text></g>
+</svg>

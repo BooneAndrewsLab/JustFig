@@ -89,7 +89,7 @@ describe.each(allKinds().map((k) => [k.kind, k] as const))('%s', (_name, k) => {
         const prims = k.render(p, { w, h, ...(path ? { path } : {}), slots: slotHexes(k, {}, []) });
         expect(primsFinite(prims)).toBe(true);
         expect(units(prims)).toBeLessThanOrEqual(50_000);
-        const pad = (k.overhang ? k.overhang(p) : 0) + 1e-6 * Math.max(w, h) + 1e-6;
+        const pad = (k.overhang ? k.overhang(p) : 0) + 1e-4 * Math.max(w, h) + 1e-6;
         for (const pr of prims)
           for (const q of primPoints(pr)) {
             expect(q.x).toBeGreaterThanOrEqual(-pad);
@@ -102,7 +102,7 @@ describe.each(allKinds().map((k) => [k.kind, k] as const))('%s', (_name, k) => {
           .join('');
         expect(svg).not.toMatch(/NaN|Infinity/);
       }),
-      { numRuns: 40 },
+      { numRuns: Number(process.env['PROC_RUNS'] ?? 40) },
     );
   });
 

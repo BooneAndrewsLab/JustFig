@@ -27,7 +27,9 @@ export interface WellPlateParams {
 }
 
 export const gridOf = (format: unknown): { rows: number; cols: number } =>
-  PLATE_FORMATS[(String(format) in PLATE_FORMATS ? String(format) : '96') as PlateFormat];
+  PLATE_FORMATS[
+    (Object.hasOwn(PLATE_FORMATS, String(format)) ? String(format) : '96') as PlateFormat
+  ];
 
 export const wellId = (row: number, col: number): string => `${rowLabel(row)}${String(col + 1)}`;
 

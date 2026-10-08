@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
+<path d="M12 150L288 150" fill="none" stroke="#52606d" stroke-width="1.65"/>
+<g transform="translate(17.49 166.55)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">lacZα</tspan></text></g>
+<g transform="translate(23.75 134.7)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">MCS</tspan></text></g>
+<g transform="translate(16.86 174.6)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">lac promoter</tspan></text></g>
+<g transform="translate(61.49 166.55)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">ori</tspan></text></g>
+<g transform="translate(96.83 166.55)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">AmpR</tspan></text></g>
+<g transform="translate(104.07 174.6)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">AmpR promoter</tspan></text></g>
+<path d="M26.12 152.75L33.57 152.75L33.57 163.75L26.12 163.75L18.67 158.25Z" fill="#56b4e9" stroke="#1d85b8" stroke-width="0.4" stroke-linejoin="round"/>
+<path d="M30.22 144.5L32.84 144.5L32.84 155.5L30.22 155.5Z" fill="#9aa5b1" stroke="#6d7883" stroke-width="0.4" stroke-linejoin="round"/>
+<path d="M36.31 152.75L37.02 152.75L37.02 163.75L36.31 163.75L35.6 158.25ZM128.77 152.75L131.19 152.75L131.19 163.75L128.77 163.75L126.36 158.25Z" fill="#009e73" stroke="#007049" stroke-width="0.4" stroke-linejoin="round"/>
+<path d="M60.64 152.75L78.93 152.75L78.93 163.75L60.64 163.75L51.84 158.25Z" fill="#e69f00" stroke="#b47000" stroke-width="0.4" stroke-linejoin="round"/>
+<path d="M95.55 152.75L126.36 152.75L126.36 163.75L95.55 163.75L86.75 158.25Z" fill="#0072b2" stroke="#004682" stroke-width="0.4" stroke-linejoin="round"/>
+<g transform="translate(10.44 174.2)"><text xml:space="preserve"><tspan x="0" y="4.74" font-family="Arimo" font-size="5.6" fill="#1f2933">0</tspan></text></g>
+<g transform="translate(50.99 174.2)"><text xml:space="preserve"><tspan x="0" y="4.74" font-family="Arimo" font-size="5.6" fill="#1f2933">1,000</tspan></text></g>
+<g transform="translate(96.99 174.2)"><text xml:space="preserve"><tspan x="0" y="4.74" font-family="Arimo" font-size="5.6" fill="#1f2933">2,000</tspan></text></g>
+<g transform="translate(142.99 174.2)"><text xml:space="preserve"><tspan x="0" y="4.74" font-family="Arimo" font-size="5.6" fill="#1f2933">3,000</tspan></text></g>
+<g transform="translate(188.99 174.2)"><text xml:space="preserve"><tspan x="0" y="4.74" font-family="Arimo" font-size="5.6" fill="#1f2933">4,000</tspan></text></g>
+<g transform="translate(234.99 174.2)"><text xml:space="preserve"><tspan x="0" y="4.74" font-family="Arimo" font-size="5.6" fill="#1f2933">5,000</tspan></text></g>
+<g transform="translate(280.99 174.2)"><text xml:space="preserve"><tspan x="0" y="4.74" font-family="Arimo" font-size="5.6" fill="#1f2933">6,000</tspan></text></g>
+<path d="M12 170L12 172.8M58 170L58 172.8M104 170L104 172.8M150 170L150 172.8M196 170L196 172.8M242 170L242 172.8M288 170L288 172.8" fill="none" stroke="#52606d" stroke-width="0.5"/>
+<g transform="translate(12 3.68)"><text xml:space="preserve"><tspan x="0" y="6.82" font-family="Arimo" font-size="8.05" font-weight="bold" fill="#1f2933">pLinear · 6,000 bp</tspan></text></g>
+</svg>

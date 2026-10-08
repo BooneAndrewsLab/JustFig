@@ -4,12 +4,13 @@
  * file (never a kept handle); autosave keeps a copy in IndexedDB.
  */
 import { BRAND } from '@/brand';
-import { addObjects, deleteObjects } from '@/core/edits/edits';
+import { addObjects, allIds, deleteObjects } from '@/core/edits/edits';
+import { boundsOf } from '@/core/geometry/transform';
 import { cloneObjects } from '@/core/model/clone';
 import { createDoc, createText, defaultRun, frame } from '@/core/model/factory';
 import type { Id } from '@/core/model/ids';
 import { objectAssets } from '@/core/model/tree';
-import type { Assets, Obj } from '@/core/model/types';
+import type { Assets, Obj, Swatch } from '@/core/model/types';
 import { fitText } from '@/core/text/layout';
 import { exportPdf } from '@/export/pdf';
 import { exportPng, exportTiff } from '@/export/raster';
@@ -17,9 +18,17 @@ import { exportSvg } from '@/export/svg';
 import type { IconEntry } from '@/icons/manifest';
 import { HttpIconLibrary, type IconLibrary } from '@/icons/library';
 import { importFile } from '@/io/import';
-import { JfigError, readFragment, readJfig, writeFragment, writeJfig } from '@/io/jfig';
+import {
+  type Fragment,
+  JfigError,
+  readFragment,
+  readJfig,
+  writeFragment,
+  writeJfig,
+} from '@/io/jfig';
 import { convertObjects, createProcedural } from '@/procedural/edits';
 import { getKind } from '@/procedural/registry';
+import { figureWithSnapshots, withSnapshots } from '@/procedural/snapshot';
 import { getStorage } from '@/io/storage';
 
 import { analytics } from '../analytics';
@@ -92,7 +101,14 @@ export async function openFile(file: File): Promise<void> {
       await importToCanvas(file);
       return;
     }
-    const saved = readJfig(await file.text());
+    const text = await file.text();
+    // A fragment (objects from a sibling app or a copy) is added to the page, not opened.
+    const frag = readFragment(text);
+    if (frag) {
+      importFragment(frag, { at: viewCenter() });
+      return;
+    }
+    const saved = readJfig(text);
     await saver?.flush();
     store.load(saved, { hasFile: true });
     analytics.track('file', 'open');
@@ -103,7 +119,11 @@ export async function openFile(file: File): Promise<void> {
 
 export function saveFile(): void {
   const f = figure(store.getState());
-  download(writeJfig(f, APP), `${safeName(f.doc.title)}${BRAND.fileExt}`, BRAND.mime);
+  download(
+    writeJfig(figureWithSnapshots(f), APP),
+    `${safeName(f.doc.title)}${BRAND.fileExt}`,
+    BRAND.mime,
+  );
   store.markDownloaded();
   analytics.track('file', 'download');
 }
@@ -196,17 +216,20 @@ export function convertSelection(): void {
 
 let internalClipboard: string | null = null;
 
-function fragmentOf(objs: readonly Obj[], assets: Assets): string {
+function fragmentOf(objs: readonly Obj[], assets: Assets, palette: readonly Swatch[]): string {
+  // Snapshots let an app that does not know a procedural kind still show it.
+  const snap = withSnapshots(objs, palette);
+  const all = { ...assets, ...snap.assets };
   const used: Record<string, Assets[string]> = {};
-  for (const o of objs) for (const h of objectAssets(o)) if (assets[h]) used[h] = assets[h];
-  return writeFragment({ objects: objs, assets: used });
+  for (const o of snap.objs) for (const h of objectAssets(o)) if (all[h]) used[h] = all[h];
+  return writeFragment({ objects: snap.objs, assets: used });
 }
 
 export function copySelection(cut = false): string | null {
   const s = store.getState();
   const objs = selectedObjects(s);
   if (objs.length === 0) return null;
-  const text = fragmentOf(objs, figure(s).assets);
+  const text = fragmentOf(objs, figure(s).assets, figure(s).doc.palette);
   internalClipboard = text;
   void navigator.clipboard.writeText(text).catch(() => undefined);
   if (cut)
@@ -227,17 +250,44 @@ export function pasteText(text: string | null, offset = 10): boolean {
   try {
     const frag = readFragment(source);
     if (!frag) return false;
-    const objs = cloneObjects(frag.objects, offset, offset);
-    store.edit({
-      ...addObjects(currentPage(store.getState()).id, objs, frag.assets),
-      label: 'Paste',
-    });
+    // Copied from this figure: next to the original. From elsewhere: in the middle of the view.
+    const here = new Set(allIds(currentPage(store.getState())));
+    const local = frag.objects.some((o) => here.has(o.id));
+    const objs = importFragment(frag, local ? { offset } : { at: viewCenter() });
     internalClipboard = writeFragment({ objects: objs, assets: frag.assets });
     return true;
   } catch (e: unknown) {
     store.notify(e instanceof JfigError ? e.message : 'Could not paste that.', 'error');
     return true;
   }
+}
+
+/**
+ * Adds a fragment's objects to the page (note 05): fresh ids, offset from
+ * where they were copied, or centred on `at` when they come from another
+ * app or a file.
+ */
+export function importFragment(
+  frag: Fragment,
+  place: { offset: number } | { at: { x: number; y: number } },
+): Obj[] {
+  let dx = 0;
+  let dy = 0;
+  if ('offset' in place) {
+    dx = place.offset;
+    dy = place.offset;
+  } else if (frag.objects.length > 0) {
+    const b = boundsOf(frag.objects);
+    dx = place.at.x - (b.x + b.w / 2);
+    dy = place.at.y - (b.y + b.h / 2);
+  }
+  const objs = cloneObjects(frag.objects, dx, dy);
+  store.edit({
+    ...addObjects(currentPage(store.getState()).id, objs, frag.assets),
+    label: 'Paste',
+  });
+  if (objs.some((o) => o.type === 'procedural')) analytics.track('procedural', 'fragment-paste');
+  return objs;
 }
 
 export function duplicateSelection(): void {
