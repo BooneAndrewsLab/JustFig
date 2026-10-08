@@ -24,7 +24,7 @@ export const BRAND = Object.freeze({
    * Base URL of the icon library inside the deployed site (`public/lib/<version>/`);
    * the version is the one pinned in icons.lock.json (src/icons/lock.test.ts checks).
    */
-  iconLibraryPath: 'lib/1.1.0/',
+  iconLibraryPath: 'lib/1.2.0/',
 } as const);
 
 export type Brand = typeof BRAND;

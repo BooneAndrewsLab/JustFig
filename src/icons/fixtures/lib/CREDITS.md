@@ -1,6 +1,6 @@
 # Icon credits (test fixture)
 
-A subset of the justfig-icons 1.1.0 release, for unit tests.
+A subset of the justfig-icons 1.2.0 release, for unit tests.
 
 - Amplicons: Bioicons, Michael-Swift, MIT, https://github.com/duerrsimon/bioicons/blob/d29e766ea7580b8063c4f47b29e872db40a4d979/static/icons/mit/Molecular_Biology/Michael-Swift/amplicons.svg
 - Aortic dissection: Bioicons, Kathryn Kananen, MIT, https://github.com/duerrsimon/bioicons/blob/d29e766ea7580b8063c4f47b29e872db40a4d979/static/icons/mit/Human_physiology/Kathryn_Kananen/aortic_dissection.svg

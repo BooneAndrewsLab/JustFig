@@ -112,8 +112,8 @@ IndexedDB name `justfig` are permanent and separate, so a rename never breaks a 
 
 The library is built in a separate repository, `justfig-icons` (for now a local sibling
 checkout, `../justfig-icons`; not yet published). It fetches openly licensed sources at pinned
-commits, normalises every icon, and builds a versioned release: v1.1.0 holds 2,875 icons from
-the house set (39, CC0), Health Icons (748, CC0) and Bioicons (2,088: CC BY 3.0/4.0, CC0, MIT,
+commits, normalises every icon, and builds a versioned release: v1.2.0 holds 2,869 icons from
+the house set (39, CC0), Health Icons (742, CC0) and Bioicons (2,088: CC BY 3.0/4.0, CC0, MIT,
 and 26 CC BY-SA). Its `REPORT.md` has the counts per source and licence and the rejection
 log; its README the pipeline.
 
