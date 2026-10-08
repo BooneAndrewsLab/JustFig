@@ -18,6 +18,8 @@ import type { IconEntry } from '@/icons/manifest';
 import { HttpIconLibrary, type IconLibrary } from '@/icons/library';
 import { importFile } from '@/io/import';
 import { JfigError, readFragment, readJfig, writeFragment, writeJfig } from '@/io/jfig';
+import { convertObjects, createProcedural } from '@/procedural/edits';
+import { getKind } from '@/procedural/registry';
 import { getStorage } from '@/io/storage';
 
 import { analytics } from '../analytics';
@@ -167,6 +169,27 @@ export async function placeIcon(entry: IconEntry, at?: { x: number; y: number })
   } catch (e: unknown) {
     store.notify(e instanceof Error ? e.message : 'Could not place that icon.', 'error');
   }
+}
+
+// --- procedural objects ------------------------------------------------------------
+
+/** Places a new object of a procedural kind, centred on `at` (default: the view centre). */
+export function placeProcedural(kind: string, at?: { x: number; y: number }): void {
+  const k = getKind(kind);
+  if (!k) return;
+  const obj = createProcedural(k, at ?? viewCenter());
+  store.edit({
+    ...addObjects(currentPage(store.getState()).id, [obj]),
+    label: `Add ${k.title.toLowerCase()}`,
+  });
+  analytics.track('procedural', 'place');
+}
+
+/** "Convert to shapes" on every procedural object selected. */
+export function convertSelection(): void {
+  const s = store.getState();
+  if (store.edit(convertObjects(currentPage(s).id, selectedObjects(s), figure(s).doc.palette)))
+    analytics.track('procedural', 'convert');
 }
 
 // --- clipboard ------------------------------------------------------------------

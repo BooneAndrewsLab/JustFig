@@ -32,11 +32,11 @@ import { type Guide, snapBox, snapPoint } from '@/core/snapping/snap';
 import { fitText } from '@/core/text/layout';
 import { pathData } from '@/render/path';
 
-import { getLibrary, importToCanvas, placeIcon } from '../state/session';
+import { getLibrary, importToCanvas, placeIcon, placeProcedural } from '../state/session';
 import { type View, currentPage, figure, selectedObjects, store } from '../state/store';
 import { useAppState } from '../state/useAppState';
 import { PagesBar } from '../panels/PagesBar';
-import { ICON_DRAG_TYPE, fitPage, zoomAt } from './view';
+import { ICON_DRAG_TYPE, KIND_DRAG_TYPE, fitPage, zoomAt } from './view';
 import { PageView } from './PageView';
 import { Ruler } from './Rulers';
 import { TextEditor } from './TextEditor';
@@ -538,12 +538,21 @@ export function Canvas() {
   });
 
   const onDragOver = (e: React.DragEvent) => {
-    if (e.dataTransfer.types.includes(ICON_DRAG_TYPE) || e.dataTransfer.types.includes('Files'))
+    if (
+      e.dataTransfer.types.includes(ICON_DRAG_TYPE) ||
+      e.dataTransfer.types.includes(KIND_DRAG_TYPE) ||
+      e.dataTransfer.types.includes('Files')
+    )
       e.preventDefault();
   };
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const at = toPage(e);
+    const kind = e.dataTransfer.getData(KIND_DRAG_TYPE);
+    if (kind) {
+      placeProcedural(kind, at);
+      return;
+    }
     const iconId = e.dataTransfer.getData(ICON_DRAG_TYPE);
     if (iconId) {
       void getLibrary()

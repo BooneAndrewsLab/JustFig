@@ -42,6 +42,7 @@ import { formatLength, fromUnit, toUnit } from '@/core/units';
 import { type AppState, currentPage, figure, selectedObjects, store } from '../state/store';
 import { useAppState } from '../state/useAppState';
 import { ColorInput } from './ColorInput';
+import { PathKindsSection, ProceduralSection } from './ProceduralInspector';
 
 const HEAD_LABEL: Record<HeadKind, string> = {
   none: 'None',
@@ -562,6 +563,8 @@ function SelectionInspector({ s, sel }: { s: AppState; sel: readonly Obj[] }) {
       {one?.type === 'icon' && <IconSection s={s} icon={one} />}
       {one?.type === 'panel' && <PanelSection s={s} panel={one} />}
       {one?.type === 'image' && <ImageSection s={s} image={one} />}
+      {one?.type === 'procedural' && <ProceduralSection s={s} obj={one} />}
+      {one?.type === 'path' && <PathKindsSection s={s} path={one} />}
     </>
   );
 }

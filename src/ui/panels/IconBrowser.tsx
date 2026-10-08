@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import type { IconEntry, LibraryManifest } from '@/icons/manifest';
 
 import { ICON_DRAG_TYPE } from '../canvas/view';
+import { ObjectsShelf } from './ObjectsShelf';
 import { getLibrary, placeIcon } from '../state/session';
 
 const TILE = 48;
@@ -137,6 +138,7 @@ export function IconBrowser({ onCredits }: { onCredits: () => void }) {
   const icons = result.icons;
   return (
     <aside className="icons-panel" aria-label="Icons">
+      <ObjectsShelf />
       <header>
         <input
           type="search"

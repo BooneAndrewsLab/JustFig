@@ -1,0 +1,412 @@
+{
+  "format": "justfig-fragment",
+  "schemaVersion": 1,
+  "objects": [
+    {
+      "id": "o_30ea4171d1b9bba3",
+      "type": "procedural",
+      "name": "SYNPBR322",
+      "frame": { "x": 0, "y": 0, "w": 320, "h": 320, "rotation": 0 },
+      "opacity": 1,
+      "kind": "plasmidMap",
+      "kindVersion": 1,
+      "params": {
+        "name": "SYNPBR322",
+        "length": 4361,
+        "topology": "circular",
+        "features": [
+          {
+            "name": "misc_binding",
+            "start": 24,
+            "end": 27,
+            "strand": 1,
+            "type": "misc_binding",
+            "color": "#5fb3a1"
+          },
+          {
+            "name": "regulatory",
+            "start": 27,
+            "end": 33,
+            "strand": -1,
+            "type": "regulatory",
+            "color": "#e1b45c"
+          },
+          {
+            "name": "misc_binding",
+            "start": 39,
+            "end": 42,
+            "strand": 1,
+            "type": "misc_binding",
+            "color": "#5fb3a1"
+          },
+          {
+            "name": "regulatory",
+            "start": 43,
+            "end": 49,
+            "strand": 1,
+            "type": "regulatory",
+            "color": "#e1b45c"
+          },
+          {
+            "name": "misc_binding",
+            "start": 53,
+            "end": 56,
+            "strand": 1,
+            "type": "misc_binding",
+            "color": "#5fb3a1"
+          },
+          {
+            "name": "misc_binding",
+            "start": 67,
+            "end": 70,
+            "strand": 1,
+            "type": "misc_binding",
+            "color": "#5fb3a1"
+          },
+          {
+            "name": "misc_binding",
+            "start": 80,
+            "end": 83,
+            "strand": 1,
+            "type": "misc_binding",
+            "color": "#5fb3a1"
+          },
+          {
+            "name": "tet",
+            "start": 86,
+            "end": 1276,
+            "strand": 1,
+            "type": "gene",
+            "color": "#7fb069"
+          },
+          {
+            "name": "tetracycline resistance protein",
+            "start": 86,
+            "end": 1276,
+            "strand": 1,
+            "type": "CDS",
+            "color": "#6f9bd1"
+          },
+          {
+            "name": "misc_feature",
+            "start": 141,
+            "end": 142,
+            "strand": -1,
+            "type": "misc_feature",
+            "color": "#8fa3b1"
+          },
+          {
+            "name": "misc_feature",
+            "start": 146,
+            "end": 147,
+            "strand": 1,
+            "type": "misc_feature",
+            "color": "#8fa3b1"
+          },
+          {
+            "name": "misc_binding",
+            "start": 411,
+            "end": 414,
+            "strand": 1,
+            "type": "misc_binding",
+            "color": "#5fb3a1"
+          },
+          {
+            "name": "misc_difference",
+            "start": 426,
+            "end": 426,
+            "strand": 1,
+            "type": "misc_difference",
+            "color": "#9aa5b1"
+          },
+          {
+            "name": "misc_binding",
+            "start": 469,
+            "end": 472,
+            "strand": 1,
+            "type": "misc_binding",
+            "color": "#5fb3a1"
+          },
+          {
+            "name": "old_sequence",
+            "start": 526,
+            "end": 528,
+            "strand": 1,
+            "type": "old_sequence",
+            "color": "#9aa5b1"
+          },
+          {
+            "name": "repeat_region",
+            "start": 1515,
+            "end": 1519,
+            "strand": -1,
+            "type": "repeat_region",
+            "color": "#b5a27a"
+          },
+          {
+            "name": "misc_feature",
+            "start": 1636,
+            "end": 1762,
+            "strand": 1,
+            "type": "misc_feature",
+            "color": "#8fa3b1"
+          },
+          {
+            "name": "repeat_region",
+            "start": 1788,
+            "end": 1792,
+            "strand": -1,
+            "type": "repeat_region",
+            "color": "#b5a27a"
+          },
+          {
+            "name": "misc_difference",
+            "start": 1891,
+            "end": 1892,
+            "strand": 1,
+            "type": "misc_difference",
+            "color": "#9aa5b1"
+          },
+          {
+            "name": "old_sequence",
+            "start": 1892,
+            "end": 1893,
+            "strand": 1,
+            "type": "old_sequence",
+            "color": "#9aa5b1"
+          },
+          {
+            "name": "regulatory",
+            "start": 1905,
+            "end": 1910,
+            "strand": 1,
+            "type": "regulatory",
+            "color": "#e1b45c"
+          },
+          {
+            "name": "regulatory",
+            "start": 1905,
+            "end": 1909,
+            "strand": 1,
+            "type": "regulatory",
+            "color": "#e1b45c"
+          },
+          {
+            "name": "misc_difference",
+            "start": 1913,
+            "end": 1914,
+            "strand": 1,
+            "type": "misc_difference",
+            "color": "#9aa5b1"
+          },
+          {
+            "name": "old_sequence",
+            "start": 1914,
+            "end": 1915,
+            "strand": 1,
+            "type": "old_sequence",
+            "color": "#9aa5b1"
+          },
+          {
+            "name": "ROP protein",
+            "start": 1915,
+            "end": 2106,
+            "strand": 1,
+            "type": "CDS",
+            "color": "#6f9bd1"
+          },
+          {
+            "name": "misc_feature",
+            "start": 2011,
+            "end": 2167,
+            "strand": 1,
+            "type": "misc_feature",
+            "color": "#8fa3b1"
+          },
+          {
+            "name": "repeat_region",
+            "start": 2245,
+            "end": 2249,
+            "strand": -1,
+            "type": "repeat_region",
+            "color": "#b5a27a"
+          },
+          {
+            "name": "misc_feature",
+            "start": 2351,
+            "end": 2414,
+            "strand": -1,
+            "type": "misc_feature",
+            "color": "#8fa3b1"
+          },
+          {
+            "name": "misc_binding",
+            "start": 2439,
+            "end": 2447,
+            "strand": 1,
+            "type": "misc_binding",
+            "color": "#5fb3a1"
+          },
+          {
+            "name": "rep_origin",
+            "start": 2535,
+            "end": 2535,
+            "strand": 1,
+            "type": "rep_origin",
+            "color": "#a88bd6"
+          },
+          {
+            "name": "old_sequence",
+            "start": 2729,
+            "end": 2730,
+            "strand": 1,
+            "type": "old_sequence",
+            "color": "#9aa5b1"
+          },
+          {
+            "name": "old_sequence",
+            "start": 2729,
+            "end": 2729,
+            "strand": 1,
+            "type": "old_sequence",
+            "color": "#9aa5b1"
+          },
+          {
+            "name": "old_sequence",
+            "start": 2730,
+            "end": 2730,
+            "strand": 1,
+            "type": "old_sequence",
+            "color": "#9aa5b1"
+          },
+          {
+            "name": "mobile_element",
+            "start": 3148,
+            "end": 4361,
+            "strand": 1,
+            "type": "mobile_element",
+            "color": "#9aa5b1"
+          },
+          {
+            "name": "repeat_region",
+            "start": 3148,
+            "end": 3185,
+            "strand": 1,
+            "type": "repeat_region",
+            "color": "#b5a27a"
+          },
+          {
+            "name": "bla",
+            "start": 3293,
+            "end": 4153,
+            "strand": -1,
+            "type": "gene",
+            "color": "#7fb069"
+          },
+          {
+            "name": "beta-lactamase",
+            "start": 3293,
+            "end": 4153,
+            "strand": -1,
+            "type": "CDS",
+            "color": "#6f9bd1"
+          },
+          {
+            "name": "beta-lactamase",
+            "start": 3296,
+            "end": 4084,
+            "strand": -1,
+            "type": "mat_peptide",
+            "color": "#9aa5b1"
+          },
+          {
+            "name": "sig_peptide",
+            "start": 4085,
+            "end": 4153,
+            "strand": -1,
+            "type": "sig_peptide",
+            "color": "#89b8e0"
+          },
+          {
+            "name": "regulatory",
+            "start": 4161,
+            "end": 4165,
+            "strand": -1,
+            "type": "regulatory",
+            "color": "#e1b45c"
+          },
+          {
+            "name": "regulatory",
+            "start": 4188,
+            "end": 4194,
+            "strand": -1,
+            "type": "regulatory",
+            "color": "#e1b45c"
+          },
+          {
+            "name": "misc_binding",
+            "start": 4268,
+            "end": 4271,
+            "strand": -1,
+            "type": "misc_binding",
+            "color": "#5fb3a1"
+          },
+          {
+            "name": "misc_binding",
+            "start": 4280,
+            "end": 4283,
+            "strand": -1,
+            "type": "misc_binding",
+            "color": "#5fb3a1"
+          },
+          {
+            "name": "misc_binding",
+            "start": 4285,
+            "end": 4288,
+            "strand": -1,
+            "type": "misc_binding",
+            "color": "#5fb3a1"
+          },
+          {
+            "name": "misc_binding",
+            "start": 4296,
+            "end": 4299,
+            "strand": -1,
+            "type": "misc_binding",
+            "color": "#5fb3a1"
+          },
+          {
+            "name": "misc_binding",
+            "start": 4311,
+            "end": 4314,
+            "strand": -1,
+            "type": "misc_binding",
+            "color": "#5fb3a1"
+          },
+          {
+            "name": "misc_binding",
+            "start": 4317,
+            "end": 4320,
+            "strand": -1,
+            "type": "misc_binding",
+            "color": "#5fb3a1"
+          },
+          {
+            "name": "misc_binding",
+            "start": 4331,
+            "end": 4334,
+            "strand": -1,
+            "type": "misc_binding",
+            "color": "#5fb3a1"
+          }
+        ],
+        "showName": true,
+        "showLength": true,
+        "showTicks": true,
+        "showLabels": true
+      },
+      "slots": {}
+    }
+  ],
+  "assets": {}
+}

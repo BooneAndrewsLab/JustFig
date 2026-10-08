@@ -57,6 +57,8 @@ export const EVENTS = {
   file: ['open', 'download', 'import-svg', 'import-image'],
   tool: ['rect', 'ellipse', 'line', 'pen', 'arrow', 'text', 'panel'],
   icon: ['place'],
+  /** Kind names are app vocabulary, not figure content. */
+  procedural: ['place', 'convert', 'from-path', 'fragment-paste'],
   export: ['svg', 'pdf', 'png', 'tiff'],
   attribution: ['open', 'copy', 'add-text'],
 } as const satisfies Readonly<Record<string, readonly string[]>>;

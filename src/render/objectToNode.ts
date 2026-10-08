@@ -17,16 +17,18 @@ import type {
   Swatch,
   Text,
 } from '@/core/model/types';
-import { FAMILY_NAME, getFont } from '@/core/text/fonts';
-import { type TextLayout, layoutText } from '@/core/text/layout';
+import { layoutText } from '@/core/text/layout';
 import { panelLabels } from '@/core/model/panels';
 
 import { endDirections, headLength, headShape, inset, shortened } from './arrows';
 import { iconNode, imageNode, svgImportNode } from './assets';
 import { pathData } from './path';
+import { proceduralNodes } from './procedural';
 import { type AttrValue, type SvgNode, el, num } from './svgNode';
 
-export type TextMode = 'outline' | 'text';
+import { type TextMode, textNodes } from './textNodes';
+
+export { type TextMode, textNodes };
 
 export interface RenderCtx {
   readonly palette: readonly Swatch[];
@@ -65,52 +67,6 @@ function transformOf(o: Obj): string | undefined {
   if (isPlain(f)) return f.x === 0 && f.y === 0 ? undefined : `translate(${num(f.x)} ${num(f.y)})`;
   const m = frameMatrix(f);
   return `matrix(${m.map((v) => String(Math.round(v * 10000) / 10000)).join(' ')})`;
-}
-
-/** Text segments as SvgNodes, in frame-local coordinates. */
-export function textNodes(
-  layout: TextLayout,
-  mode: TextMode,
-  ctx: Pick<RenderCtx, 'palette'>,
-): SvgNode[] {
-  const out: SvgNode[] = [];
-  if (mode === 'outline') {
-    for (const line of layout.lines)
-      for (const s of line.segments) {
-        if (s.text.trim() === '') continue;
-        const font = getFont(s.run.font, {
-          bold: s.run.bold === true,
-          italic: s.run.italic === true,
-        });
-        const d = font
-          .getPath(s.text, s.x, s.y, s.size, { kerning: false, features: {} })
-          .toPathData(2);
-        if (d !== '') out.push(el('path', { d, fill: resolvePaint(s.run.color, ctx.palette) }));
-      }
-    return out;
-  }
-  const spans: SvgNode[] = [];
-  for (const line of layout.lines)
-    for (const s of line.segments) {
-      if (s.text.trim() === '') continue;
-      spans.push(
-        el(
-          'tspan',
-          {
-            x: s.x,
-            y: s.y,
-            'font-family': FAMILY_NAME[s.run.font],
-            'font-size': s.size,
-            'font-weight': s.run.bold === true ? 'bold' : undefined,
-            'font-style': s.run.italic === true ? 'italic' : undefined,
-            fill: resolvePaint(s.run.color, ctx.palette),
-          },
-          [s.text],
-        ),
-      );
-    }
-  if (spans.length > 0) out.push(el('text', { 'xml:space': 'preserve' }, spans));
-  return out;
 }
 
 function arrowNodes(a: Arrow, ctx: RenderCtx): SvgNode[] {
@@ -275,9 +231,14 @@ function content(o: Obj, ctx: RenderCtx): SvgNode[] {
       if (a?.kind === 'svgImport') return [svgImportNode(a.svg, w, h)];
       return [placeholder(w, h)];
     }
-    case 'procedural':
-    case 'embedded': {
+    case 'procedural': {
+      const nodes = proceduralNodes(o, ctx.textMode, ctx.screen, ctx.palette);
+      if (nodes) return nodes;
       const a = o.snapshot === undefined ? undefined : ctx.assets[o.snapshot];
+      return a?.kind === 'svgImport' ? [svgImportNode(a.svg, w, h)] : [placeholder(w, h)];
+    }
+    case 'embedded': {
+      const a = ctx.assets[o.snapshot];
       return a?.kind === 'svgImport' ? [svgImportNode(a.svg, w, h)] : [placeholder(w, h)];
     }
     case 'group':

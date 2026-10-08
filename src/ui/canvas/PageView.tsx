@@ -10,13 +10,15 @@ import type { Figure, Page } from '@/core/model/types';
 import { objectToNode, renderCtx } from '@/render/objectToNode';
 import { type SvgNode, nodeToSvgString } from '@/render/svgNode';
 
-const inner = new WeakMap<SvgNode, string>();
+// Keyed on the children array: a moved procedural object keeps its content
+// array (only the transform changes), so it is not serialised again.
+const inner = new WeakMap<SvgNode['children'], string>();
 
 function innerHtml(n: SvgNode): string {
-  let s = inner.get(n);
+  let s = inner.get(n.children);
   if (s === undefined) {
     s = n.children.map((c) => nodeToSvgString(c)).join('');
-    inner.set(n, s);
+    inner.set(n.children, s);
   }
   return s;
 }

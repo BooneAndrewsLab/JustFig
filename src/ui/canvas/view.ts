@@ -5,6 +5,8 @@ import { type View, store } from '../state/store';
 
 /** The drag-and-drop type an icon tile carries (its library id). */
 export const ICON_DRAG_TYPE = 'application/x-figure-icon';
+/** A procedural kind dragged from the Objects shelf. */
+export const KIND_DRAG_TYPE = 'application/x-figure-kind';
 
 export function zoomAt(v: View, sx: number, sy: number, zoom: number): void {
   const z = Math.min(16, Math.max(0.1, zoom));

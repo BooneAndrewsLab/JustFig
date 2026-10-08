@@ -1,8 +1,9 @@
 /**
  * Moving, scaling, rotating and flipping objects (note 02). Group and
  * panel children are in page coordinates, so transforms recurse; a
- * group's frame is then recomputed from its children. Paths and arrows
- * bake a scale into their nodes; everything else scales its frame.
+ * group's frame is then recomputed from its children. Paths, arrows and
+ * path-following procedural objects bake a scale into their nodes;
+ * everything else scales its frame.
  */
 import type { Frame, Obj, PathNode, Vec2 } from '../model/types';
 import { localise } from '../model/factory';
@@ -69,6 +70,8 @@ export function scaleObj(o: Obj, anchor: Vec2, sx: number, sy: number): Obj {
   };
   if (o.type === 'path' || o.type === 'arrow')
     return { ...o, frame, nodes: scaleNodes(o.nodes, kx, ky) };
+  // A path-following procedural object keeps its stroke and unit sizes: only its path scales.
+  if (o.type === 'procedural' && o.path) return { ...o, frame, path: scaleNodes(o.path, kx, ky) };
   if (o.type === 'panel') {
     // A panel is a frame: its contents keep their size, and move with its top-left.
     return {
