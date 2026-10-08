@@ -38,6 +38,7 @@ describe('import', () => {
     expect(svg).not.toMatch(/script|onload|onclick|foreignObject|<image|http:\/\/x|https:\/\/x/);
     expect(svg).toContain('fill="#ff0000"');
     expect(r.warnings.length).toBeGreaterThan(0);
-    expect([r.w, r.h]).toEqual([300, 150]);
+    // Cropped to the 10×10 drawing (note 12), in points.
+    expect([r.w, r.h]).toEqual([7.5, 7.5]);
   });
 });

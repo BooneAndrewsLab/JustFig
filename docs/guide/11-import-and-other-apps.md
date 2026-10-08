@@ -7,6 +7,17 @@
 - A **PNG or JPEG** is kept as a picture at its original quality. A very large image is scaled down to at most about 106 mm on its longer side when it is placed; resize it afterwards as you like.
 - An **SVG** stays vector, so it remains sharp at any size and in every export. JustFig cleans it as it imports it, removing anything that is not plain drawing, such as scripts. If something had to be changed, a warning appears in the status line.
 
+### Plots from matplotlib and R
+
+SVG plots saved from matplotlib (`savefig("plot.svg")`) or R (`ggsave("plot.svg")`, or the `svg()` device) are tidied up as they are imported:
+
+- The white page behind the plot is removed, so the plot sits directly on your figure. A coloured background is kept.
+- Empty margins around the plot are trimmed, so the placed size is the size of the drawing.
+- Axis labels, tick labels and titles that matplotlib saved as letter shapes become real text again, and text split into separate words or letters is joined back into whole labels.
+- Unnecessary grouping inside the file is removed. The plot looks the same.
+
+Labels rebuilt from matplotlib's letter shapes use the font matplotlib used (DejaVu Sans). If your computer does not have it, a similar font is shown. Mathematical labels (written between `$` signs in matplotlib) keep their letter shapes. Plots from R's `svg()` device keep their letter shapes too, because that device does not save which letters they are; save with `ggsave()` or the svglite package to get real text.
+
 Imported pictures can be moved, resized, rotated and faded like anything else. In the Inspector they have an **Image** or **Imported SVG** section with a **Credit** field. Type who made the picture and the credit goes into the figure's credit line (see [Exporting](12-export.md)). Pictures with no credit typed are not mentioned in the credit line, so add one if you do not own the image.
 
 **Open…** also accepts these files: if you choose an SVG or a picture instead of a `.jfig` file, it is imported onto the page.

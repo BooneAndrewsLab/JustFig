@@ -2,7 +2,7 @@
  * Importing SVG, PNG and JPEG files (note 02): each becomes an embedded
  * asset (the file stays self-contained) and an `image` object. SVGs go
  * through the same sanitiser as icons, so they stay vector in every
- * export; rasters keep their bytes.
+ * export, and are tidied up as plots (note 12); rasters keep their bytes.
  */
 import type { Asset } from '@/core/model/types';
 import { el, nodeToSvgString } from '@/render/svgNode';
@@ -61,8 +61,13 @@ function base64(bytes: Uint8Array): string {
   return btoa(s);
 }
 
-export function importSvgText(text: string, name: string): Imported {
-  const s = sanitizeSvg(text);
+/**
+ * An SVG file as an `svgImport` asset. `plot` (the default) also cleans it
+ * up as a plot from matplotlib, R and the like (note 12): background gone,
+ * split labels merged, transforms baked, cropped to the drawing.
+ */
+export function importSvgText(text: string, name: string, { plot = true } = {}): Imported {
+  const s = sanitizeSvg(text, { plot });
   const svg = nodeToSvgString(
     el('svg', { xmlns: 'http://www.w3.org/2000/svg', ...s.root.attrs }, s.root.children),
   );

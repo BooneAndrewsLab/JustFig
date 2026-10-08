@@ -6,15 +6,23 @@
  *
  * - Elements outside the allow-list are dropped with their content
  *   (script, foreignObject, image, filter, mask, clipPath, …) and logged.
- * - `<style>` rules (simple tag, .class and #id selectors) and `style=`
- *   are resolved into presentation attributes.
+ * - `<style>` rules (tag, .class, #id, `*` and descendant selectors) and
+ *   `style=` are resolved into presentation attributes; the `font`
+ *   shorthand is expanded and `inherit` means "not set".
  * - `<use>` is inlined (as a <g> with its x/y translate); `<defs>` dropped.
  * - Gradient paints become their average stop colour.
  * - Event handlers, ids, classes, external references and unknown
  *   attributes are dropped; `currentColor` becomes black.
+ * - With `plot: true` (file imports, note 12) matplotlib's glyph-outline
+ *   labels are rebuilt as text first and the result is cleaned up as a plot
+ *   afterwards (`plotCleanup.ts`): transforms baked, background dropped,
+ *   split text merged, viewBox cropped.
  */
-import { type SvgNode, el, walkNodes } from '@/render/svgNode';
+import { type SvgNode, el, nodeToSvgString, walkNodes } from '@/render/svgNode';
 import { parseXml } from '@/render/xml';
+
+import { markGlyphRuns, rebuildGlyphRuns } from './glyphText';
+import { cleanupPlot } from './plotCleanup';
 
 export interface SanitizedSvg {
   /** `<svg viewBox>` root with only allowed content. */
@@ -77,9 +85,42 @@ const GEOMETRY: Readonly<Record<string, readonly string[]>> = {
 
 const KEEP_DATA = ['data-slot', 'data-tone', 'data-part'];
 
+interface Compound {
+  readonly tag?: string;
+  readonly id?: string;
+  readonly classes: readonly string[];
+}
+
 interface CssRule {
-  readonly sel: string;
+  /** Compound selectors joined by descendant combinators, outermost first. */
+  readonly sel: readonly Compound[];
   readonly decls: Readonly<Record<string, string>>;
+}
+
+/** `font: [style] [weight] size[/line-height] family` → longhands. */
+function expandFont(decls: Record<string, string>): Record<string, string> {
+  const font = decls['font'];
+  if (font === undefined) return decls;
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(decls)) {
+    if (k !== 'font') {
+      out[k] = v;
+      continue;
+    }
+    const m =
+      /^\s*((?:(?:normal|italic|oblique|bold|bolder|lighter|small-caps|[1-9]00)\s+)*)([\d.]+(?:px|pt|em|%)?)(?:\/\S+)?\s+(.+)$/i.exec(
+        font,
+      );
+    if (!m) continue;
+    const words = (m[1] ?? '').toLowerCase().split(/\s+/);
+    const style = words.find((w) => w === 'italic' || w === 'oblique');
+    const weight = words.find((w) => /^(bold|bolder|lighter|[1-9]00)$/.test(w));
+    out['font-style'] = style ?? 'normal';
+    out['font-weight'] = weight ?? 'normal';
+    out['font-size'] = m[2] ?? '';
+    out['font-family'] = (m[3] ?? '').trim();
+  }
+  return out;
 }
 
 export function parseDecls(s: string): Record<string, string> {
@@ -97,29 +138,60 @@ export function parseDecls(s: string): Record<string, string> {
   return out;
 }
 
+function parseCompound(s: string): Compound | null {
+  if (s === '*') return { classes: [] };
+  const m = /^([a-zA-Z][\w-]*|\*)?((?:[.#][\w-]+)*)$/.exec(s);
+  if (!m || s === '') return null;
+  const parts = (m[2] ?? '').match(/[.#][\w-]+/g) ?? [];
+  const id = parts.find((p) => p.startsWith('#'))?.slice(1);
+  return {
+    ...(m[1] && m[1] !== '*' ? { tag: m[1] } : {}),
+    ...(id !== undefined ? { id } : {}),
+    classes: parts.filter((p) => p.startsWith('.')).map((p) => p.slice(1)),
+  };
+}
+
 function parseCss(css: string): CssRule[] {
   const rules: CssRule[] = [];
   const clean = css.replace(/\/\*[\s\S]*?\*\//g, '');
   const re = /([^{}]+)\{([^}]*)\}/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(clean)) !== null) {
-    const decls = parseDecls(m[2] ?? '');
+    const decls = expandFont(parseDecls(m[2] ?? ''));
     for (const sel of (m[1] ?? '').split(',')) {
-      const s = sel.trim();
-      if (/^([a-zA-Z]+|\.[\w-]+|#[\w-]+)$/.test(s)) rules.push({ sel: s, decls });
+      // Descendant combinators only; child/sibling combinators and pseudo-classes are skipped.
+      const words = sel.trim().split(/\s+/);
+      const parts = words.map(parseCompound).filter((p) => p !== null);
+      if (parts.length > 0 && parts.length === words.length) rules.push({ sel: parts, decls });
     }
   }
   return rules;
 }
 
-function matches(sel: string, n: SvgNode): boolean {
+function matchesCompound(c: Compound, n: SvgNode): boolean {
   const a = n.attrs;
-  if (sel.startsWith('.'))
-    return String(a['class'] ?? '')
-      .split(/\s+/)
-      .includes(sel.slice(1));
-  if (sel.startsWith('#')) return a['id'] === sel.slice(1);
-  return n.tag === sel;
+  if (c.tag !== undefined && n.tag !== c.tag) return false;
+  if (c.id !== undefined && a['id'] !== c.id) return false;
+  const cls = String(a['class'] ?? '').split(/\s+/);
+  return c.classes.every((k) => cls.includes(k));
+}
+
+/** Whether `n`, below `ancestors` (outermost first), matches the rule's selector. */
+function matches(sel: readonly Compound[], n: SvgNode, ancestors: readonly SvgNode[]): boolean {
+  const last = sel[sel.length - 1];
+  if (!last || !matchesCompound(last, n)) return false;
+  let i = ancestors.length - 1;
+  for (let j = sel.length - 2; j >= 0; j--) {
+    const c = sel[j];
+    if (!c) return false;
+    for (; i >= 0; i--) {
+      const a = ancestors[i];
+      if (a && matchesCompound(c, a)) break;
+    }
+    if (i < 0) return false;
+    i--;
+  }
+  return true;
 }
 
 const NAMED: Readonly<Record<string, string>> = {
@@ -212,10 +284,15 @@ function length(v: unknown): number | null {
   return n * (k[unit] ?? 1);
 }
 
-export function sanitizeSvg(text: string): SanitizedSvg {
+export interface SanitizeOptions {
+  /** Clean the result up as an imported plot (note 12). */
+  readonly plot?: boolean;
+}
+
+export function sanitizeSvg(text: string, opts: SanitizeOptions = {}): SanitizedSvg {
   let parsed: SvgNode;
   try {
-    parsed = parseXml(text);
+    parsed = parseXml(opts.plot === true ? markGlyphRuns(text) : text);
   } catch (e: unknown) {
     throw new SvgImportError(
       `This is not a readable SVG file (${e instanceof Error ? e.message : 'parse error'}).`,
@@ -233,18 +310,27 @@ export function sanitizeSvg(text: string): SanitizedSvg {
       css.push(...parseCss(n.children.filter((c) => typeof c === 'string').join('')));
   }
   const gradients = gradientColors(parsed, ids);
+  // Glyph references resolve through `ids`, which still holds the original defs.
+  if (opts.plot === true) parsed = rebuildGlyphRuns(parsed, ids);
 
   /** Element → its own presentation values (attr < CSS < style=). */
-  const own = (n: SvgNode): Record<string, string> => {
+  const own = (n: SvgNode, ancestors: readonly SvgNode[]): Record<string, string> => {
     const out: Record<string, string> = {};
     for (const [k, v] of Object.entries(n.attrs))
       if (PRESENTATION_SET.has(k) && v !== undefined) out[k] = String(v);
-    for (const r of css) if (matches(r.sel, n)) Object.assign(out, r.decls);
-    Object.assign(out, parseDecls(String(n.attrs['style'] ?? '')));
-    return out;
+    for (const r of css) if (matches(r.sel, n, ancestors)) Object.assign(out, r.decls);
+    Object.assign(out, expandFont(parseDecls(String(n.attrs['style'] ?? ''))));
+    return Object.fromEntries(
+      Object.entries(out).filter(([, v]) => v.trim().toLowerCase() !== 'inherit'),
+    );
   };
 
-  const clean = (n: SvgNode, depth: number, useDepth: number): SvgNode | null => {
+  const clean = (
+    n: SvgNode,
+    depth: number,
+    useDepth: number,
+    ancestors: readonly SvgNode[] = [],
+  ): SvgNode | null => {
     const tag = n.tag.includes(':') ? '' : n.tag;
     if (depth > 64) return null;
     if (tag === 'use') {
@@ -258,6 +344,7 @@ export function sanitizeSvg(text: string): SanitizedSvg {
         target.tag === 'symbol' ? { ...target, tag: 'g' } : target,
         depth + 1,
         useDepth + 1,
+        [...ancestors, n],
       );
       if (!inner) return null;
       const x = Number(n.attrs['x'] ?? 0) || 0;
@@ -265,7 +352,7 @@ export function sanitizeSvg(text: string): SanitizedSvg {
       const t = [n.attrs['transform'], x || y ? `translate(${String(x)} ${String(y)})` : undefined]
         .filter((s) => s !== undefined)
         .join(' ');
-      return el('g', { ...pres(n), ...(t ? { transform: t } : {}) }, [inner]);
+      return el('g', { ...pres(n, ancestors), ...(t ? { transform: t } : {}) }, [inner]);
     }
     if (!(CONTAINERS.has(tag) || SHAPES.has(tag) || TEXT.has(tag))) {
       if (!DROP_SILENT.has(tag) && tag !== '')
@@ -279,7 +366,7 @@ export function sanitizeSvg(text: string): SanitizedSvg {
     }
     const tr = n.attrs['transform'];
     if (typeof tr === 'string' && tag !== 'svg') attrs['transform'] = tr;
-    Object.assign(attrs, pres(n));
+    Object.assign(attrs, pres(n, ancestors));
     for (const k of KEEP_DATA) {
       const v = n.attrs[k];
       if (v !== undefined) attrs[k] = String(v);
@@ -290,7 +377,7 @@ export function sanitizeSvg(text: string): SanitizedSvg {
         if (TEXT.has(tag)) children.push(c);
         continue;
       }
-      const k = clean(c, depth + 1, useDepth);
+      const k = clean(c, depth + 1, useDepth, [...ancestors, n]);
       if (k) children.push(k);
     }
     if (tag === 'svg' && depth > 0) {
@@ -306,9 +393,9 @@ export function sanitizeSvg(text: string): SanitizedSvg {
     return el(tag === 'a' || tag === 'switch' ? 'g' : tag, attrs, children);
   };
 
-  const pres = (n: SvgNode): Record<string, string> => {
+  const pres = (n: SvgNode, ancestors: readonly SvgNode[]): Record<string, string> => {
     const out: Record<string, string> = {};
-    for (const [k, raw] of Object.entries(own(n))) {
+    for (const [k, raw] of Object.entries(own(n, ancestors))) {
       if (!PRESENTATION_SET.has(k)) continue;
       if (k === 'fill' || k === 'stroke') {
         const c = normalizeColor(raw, gradients);
@@ -341,8 +428,13 @@ export function sanitizeSvg(text: string): SanitizedSvg {
   const body = clean(parsed, 0, 0);
   const root = el(
     'svg',
-    { viewBox: viewBox.map(String).join(' '), ...pres(parsed) },
+    { viewBox: viewBox.map(String).join(' '), ...pres(parsed, []) },
     body ? body.children : [],
   );
+  if (opts.plot === true) {
+    // Sanitised once more, so the stored SVG is exactly what rendering will parse it into.
+    const tidy = sanitizeSvg(nodeToSvgString(cleanupPlot(root, viewBox).root));
+    return { root: tidy.root, viewBox: tidy.viewBox, warnings: [...warnings] };
+  }
   return { root, viewBox, warnings: [...warnings] };
 }

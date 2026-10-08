@@ -84,7 +84,8 @@ export async function readBarelySigSvg(
   const first = graphs[0] as { title?: unknown } | undefined;
   const title = typeof first?.title === 'string' && first.title !== '' ? first.title : fileName;
 
-  const imp = importSvgText(text, fileName);
+  // Drawn exactly as BarelySig made it, at its physical size: no plot clean-up or cropping.
+  const imp = importSvgText(text, fileName, { plot: false });
   const root = /<svg\b[^>]*>/.exec(text)?.[0] ?? '';
   const w = lengthPt(/\swidth="([^"]+)"/.exec(root)?.[1]) ?? imp.w;
   const h = lengthPt(/\sheight="([^"]+)"/.exec(root)?.[1]) ?? imp.h;
