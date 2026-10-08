@@ -8,6 +8,7 @@
  */
 import { type Edit, EditError } from '@/core/edits/edits';
 import { History } from '@/core/history/history';
+import type { PlotSizing } from '@/core/edits/plotSize';
 import { reconcileBindings } from '@/core/model/binding';
 import { createDoc } from '@/core/model/factory';
 import type { Id } from '@/core/model/ids';
@@ -48,6 +49,8 @@ export interface AppState {
   readonly view: View;
   readonly units: Unit;
   readonly snap: boolean;
+  /** Resizing an imported plot keeps its text and line sizes (note 17); remembered per browser. */
+  readonly plotSizing: PlotSizing;
   /** Editor-only colour-vision preview; never exported. */
   readonly vision: Vision;
   /** The user's changed shortcuts (note 09), action id → binding; remembered per browser. */
@@ -60,6 +63,8 @@ export interface AppState {
 }
 
 export const NOTICE_MS = 5000;
+/** Edits with one coalesce key this close together are one undo step. */
+const COALESCE_MS = 600_000;
 
 export const figure = (s: AppState): Figure => s.history.present;
 
@@ -95,6 +100,14 @@ function initialUnits(): Unit {
   }
 }
 
+function initialPlotSizing(): PlotSizing {
+  try {
+    return globalThis.localStorage.getItem('plotSizing') === 'scale' ? 'scale' : 'keep';
+  } catch {
+    return 'keep';
+  }
+}
+
 export class AppStore {
   private state: AppState;
   private readonly listeners = new Set<() => void>();
@@ -110,6 +123,7 @@ export class AppStore {
       view: { zoom: 1, x: 40, y: 40 },
       units: initialUnits(),
       snap: true,
+      plotSizing: initialPlotSizing(),
       vision: 'normal',
       keyBindings: loadCustomBindings(),
       editingText: null,
@@ -140,12 +154,17 @@ export class AppStore {
     const coalesce =
       opts.coalesce === undefined
         ? undefined
-        : { follows: opts.coalesce, key: opts.coalesce, withinMs: 600_000 };
+        : { follows: opts.coalesce, key: opts.coalesce, withinMs: COALESCE_MS };
     const history = this.state.history.push(next, e.label, Date.now(), coalesce);
     const selection =
       opts.keepSelection === true || e.select === undefined ? this.state.selection : e.select;
     this.set({ history, ...this.fix(history.present, selection) });
     return true;
+  }
+
+  /** The figure an open run of edits with this coalesce key started from, if one is open. */
+  runStart(key: string): Figure | undefined {
+    return this.state.history.runStart(key, Date.now(), COALESCE_MS);
   }
 
   /** Ends any open gesture, so the next change is a step of its own. */
@@ -219,6 +238,15 @@ export class AppStore {
 
   setSnap(snap: boolean): void {
     this.set({ snap });
+  }
+
+  setPlotSizing(plotSizing: PlotSizing): void {
+    try {
+      globalThis.localStorage.setItem('plotSizing', plotSizing);
+    } catch {
+      // A remembered preference only.
+    }
+    this.set({ plotSizing });
   }
 
   /** Moves an action to a key, or (null) back to its default. */

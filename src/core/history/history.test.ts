@@ -203,6 +203,19 @@ describe('History coalescing', () => {
     // A fifth would be over the limit of four.
     expect(h.push('ACGTA', 'Insert 1 base', 50, { ...typed(4, 5), limit: 4 }).size).toBe(2);
   });
+
+  it('tells an open run where it started, so a change can be recomputed from there', () => {
+    const w = { follows: 'w', key: 'w' };
+    const h = History.create('a', { at: 0 })
+      .push('b', 'W', 10)
+      .push('c', 'W', 20, w)
+      .push('d', 'W', 30, w);
+    expect(h.runStart('w', 40)).toBe('b');
+    expect(h.runStart('h', 40)).toBeUndefined();
+    expect(h.runStart('w', 40, 5)).toBeUndefined();
+    expect(h.seal().runStart('w', 40)).toBeUndefined();
+    expect(h.undo().runStart('w', 40)).toBeUndefined();
+  });
 });
 
 describe('History records', () => {

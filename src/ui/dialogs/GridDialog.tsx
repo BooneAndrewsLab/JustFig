@@ -43,6 +43,7 @@ export function GridDialog({ onClose }: { onClose: () => void }) {
         page.id,
         sel.map((o) => o.id),
         { ...shape, gutter: gutterPt, hAlign, vAlign, fitWidth, letterRoom },
+        store.getState().plotSizing,
       ),
     );
     if (done) analytics.track('arrange', 'grid');

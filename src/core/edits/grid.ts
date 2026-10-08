@@ -12,6 +12,7 @@ import type { Id } from '../model/ids';
 import { ROW_TOLERANCE, inReadingOrder } from '../model/panels';
 import type { Obj, Page, Panel, PanelLabelStyle } from '../model/types';
 import { type Edit, EditError, resizeOne, withPage } from './edits';
+import { type PlotSizing, keepPlotText } from './plotSize';
 
 export type GridHAlign = 'left' | 'center' | 'right';
 export type GridVAlign = 'top' | 'middle' | 'bottom';
@@ -145,18 +146,25 @@ function place(o: Obj, from: Box, to: Box): Obj {
  * order of where they are now, so the letters follow the rough arrangement
  * on the page. Locked objects, and objects inside groups, are left alone.
  */
-export function arrangeInGrid(pageId: Id, ids: readonly Id[], opts: GridOptions): Edit {
+export function arrangeInGrid(
+  pageId: Id,
+  ids: readonly Id[],
+  opts: GridOptions,
+  plots: PlotSizing = 'scale',
+): Edit {
   const result: Id[] = [];
   return {
     label: 'Arrange in grid',
     get select() {
       return result;
     },
-    apply: (f) =>
-      withPage(f, pageId, (p) => {
+    apply: (f) => {
+      const next = withPage(f, pageId, (p) => {
         result.length = 0;
         return arrangePage(p, ids, opts, letterBand(f.doc.panelLabelStyle), result);
-      }),
+      });
+      return plots === 'keep' ? keepPlotText(f, next, pageId) : next;
+    },
   };
 }
 

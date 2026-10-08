@@ -23,8 +23,8 @@ whole selection at once, including the labels and strokes _inside_ imported SVG 
   Undo is free: an edit returns the whole `Figure`, assets included.
 - **Units.** Sizes and widths are points on the page. An image maps its viewBox onto its frame,
   so a plot has `k = √((w/vw)·(h/vh))` points per user unit; each element's own transforms
-  (`scaleOf` of the accumulated matrix) are divided out too. Resizing a plot afterwards still
-  scales its text (issue 3 changes that).
+  (`scaleOf` of the accumulated matrix) are divided out too. Resizing a plot no longer scales its
+  text (issue 3, note 17).
 - **Roles** (`src/io/svg/plotRoles.ts`, `plotParts`), from geometry of the stored asset only:
   - stroke `tick`: a short (≤ 8 % of the plot) axis-aligned straight line that shares its range
     with at least one other of the same orientation, with one end on a long perpendicular edge
@@ -68,7 +68,7 @@ label)` for the Inspector fields (labels "Font", "Font size", "Line width"; typi
   shapes alone. **Same text and lines** is a plain button, reached with Tab; no shortcut, so no
   `KEY_ACTIONS` entry. e2e: `plot-styles.spec.ts` (keyboard, undo, export, axe).
 - **Not handled:** labels drawn as outlines (R's `svg()` device, mathtext) have no font to set;
-  R `svg()` strokes are still classified. Text that grows past the plot's viewBox is drawn but
-  not counted in the object's bounds. Roles are guesses from geometry: a long straight data line
+  R `svg()` strokes are still classified. Text that grows past the plot's viewBox now grows
+  the viewBox and the frame (issue 30, note 17). Roles are guesses from geometry: a long straight data line
   counts as an axis line, and tick labels on axes without ticks (ggplot2 `theme_minimal`) are
   "other plot text".

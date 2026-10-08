@@ -35,7 +35,7 @@ A click on something that sits on a panel selects that object. A click on the pa
 
 A selected object has a box with eight square handles and a round rotate handle above it.
 
-- Drag a **square handle** to resize. Corner handles change width and height together. Icons and images always keep their proportions; for anything else hold **Shift** to keep them.
+- Drag a **square handle** to resize. Corner handles change width and height together. Icons and images always keep their proportions; for anything else hold **Shift** to keep them. An imported plot keeps its text and line sizes while only its axes and data grow or shrink ([Import](11-import-and-other-apps.md)), unless you switch that off in the Inspector.
 - Drag the **round handle** to rotate. Hold **Shift** to turn in 15° steps.
 - For exact values, type into **X**, **Y**, **W**, **H** and **Rotate °** in the Inspector. The **Opacity %** field fades the object.
 - **Flip H** and **Flip V** in the Inspector mirror the object.

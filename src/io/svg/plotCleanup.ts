@@ -929,6 +929,81 @@ export function contentBounds(root: SvgNode, vb: ViewBox): Box | null {
   return box;
 }
 
+/** A drawn leaf of a plot: its path of child indices, its ancestors' matrix and its box. */
+export interface DrawnLeaf {
+  readonly path: readonly number[];
+  readonly node: SvgNode;
+  /** The accumulated transform of its ancestors (not its own). */
+  readonly parent: Matrix;
+  /** [x0, y0, x1, y1] in root user units, as cropping measures it (strokes padded). */
+  readonly box: readonly [number, number, number, number];
+  /** How far the box is padded for its stroke, root user units. */
+  readonly pad: number;
+}
+
+const GROUPS = new Set(['g', 'svg', 'a', 'switch']);
+
+/** Every leaf that draws something, with its box (ancestor transforms included). */
+export function drawnLeaves(
+  root: SvgNode,
+  vb: ViewBox,
+  only?: (n: SvgNode) => boolean,
+): DrawnLeaf[] {
+  const out: DrawnLeaf[] = [];
+  const visit = (n: SvgNode, inh: Inherited, path: readonly number[], m: Matrix): void => {
+    n.children.forEach((c, i) => {
+      if (typeof c === 'string') return;
+      const here = inherit(inh, c.attrs);
+      const p = [...path, i];
+      if (GROUPS.has(c.tag)) {
+        visit(c, here, p, multiply(m, ownTransform(c)));
+        return;
+      }
+      if (only && !only(c)) return;
+      const b = leafBox(c, here, vb);
+      if (!b?.every(Number.isFinite)) return;
+      const corners = [
+        apply(m, b[0], b[1]),
+        apply(m, b[2], b[1]),
+        apply(m, b[0], b[3]),
+        apply(m, b[2], b[3]),
+      ];
+      const xs = corners.map((q) => q[0]);
+      const ys = corners.map((q) => q[1]);
+      const stroked = c.tag !== 'text' && get(here, 'stroke') !== 'none';
+      out.push({
+        path: p,
+        node: c,
+        parent: m,
+        box: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)],
+        pad: stroked
+          ? (len(get(here, 'stroke-width')) ?? 1) * scaleOf(multiply(m, ownTransform(c)))
+          : 0,
+      });
+    });
+  };
+  visit(root, inherit(ROOT_INHERITED, root.attrs), [], IDENTITY);
+  return out;
+}
+
+/**
+ * The viewBox grown to hold every label (issue 30): restyled or fixed-size
+ * text can reach past the margins the plot was cropped to. Never shrinks.
+ */
+export function viewBoxAroundText(root: SvgNode, vb: ViewBox): ViewBox {
+  let [x0, y0, x1, y1] = [vb[0], vb[1], vb[0] + vb[2], vb[1] + vb[3]];
+  // Past an edge by more than rounding (cropping rounds boxes out to 0.01).
+  const TOL = 0.05;
+  for (const l of drawnLeaves(root, vb, (n) => n.tag === 'text')) {
+    if (l.box[0] < vb[0] - TOL) x0 = Math.min(x0, Math.floor(l.box[0] * 100) / 100);
+    if (l.box[1] < vb[1] - TOL) y0 = Math.min(y0, Math.floor(l.box[1] * 100) / 100);
+    if (l.box[2] > vb[0] + vb[2] + TOL) x1 = Math.max(x1, Math.ceil(l.box[2] * 100) / 100);
+    if (l.box[3] > vb[1] + vb[3] + TOL) y1 = Math.max(y1, Math.ceil(l.box[3] * 100) / 100);
+  }
+  if (x0 === vb[0] && y0 === vb[1] && x1 === vb[0] + vb[2] && y1 === vb[1] + vb[3]) return vb;
+  return [x0, y0, Number(fmt(x1 - x0)), Number(fmt(y1 - y0))];
+}
+
 function crop(root: SvgNode, vb: ViewBox): ViewBox {
   const b = contentBounds(root, vb);
   if (!b) return vb;

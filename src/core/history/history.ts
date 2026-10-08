@@ -366,6 +366,18 @@ export class History<T> {
   }
 
   /**
+   * The state an open run of changes with this key started from (what undo
+   * returns to), or undefined when a change with that key would start a new
+   * step. Lets a run recompute each change from its start, as a drag does.
+   */
+  runStart(key: string, at: number = Date.now(), withinMs = DEFAULT_COALESCE_MS): T | undefined {
+    const last = this.past[this.past.length - 1];
+    if (last === undefined || this.future.length > 0 || last.name !== undefined) return undefined;
+    if (last.coalesceKey !== key || at - last.at > withinMs) return undefined;
+    return last.state;
+  }
+
+  /**
    * The history with `next` folded into the last step, or null when this
    * change does not continue a run and has to become a step of its own.
    */

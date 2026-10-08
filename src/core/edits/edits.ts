@@ -30,6 +30,7 @@ import type {
   PanelLabelStyle,
 } from '../model/types';
 import { fitText } from '../text/layout';
+import { type PlotSizing, keepPlotText } from './plotSize';
 
 export interface Edit {
   readonly label: string;
@@ -222,9 +223,27 @@ export function resizeOne(o: Obj, from: Box, to: Box): Obj {
     : t;
 }
 
-/** Scales the selection's bounds `from` onto `to` (resize handles). */
-export function resizeObjects(pageId: Id, ids: readonly Id[], from: Box, to: Box): Edit {
-  return transformEach(pageId, ids, 'Resize', (o) => resizeOne(o, from, to));
+/** A resize that keeps imported plots' text and line sizes (`keep`, note 17) or scales them. */
+function sizingPlots(e: Edit, pageId: Id, plots: PlotSizing): Edit {
+  return plots === 'keep' ? { ...e, apply: (f) => keepPlotText(f, e.apply(f), pageId) } : e;
+}
+
+/**
+ * Scales the selection's bounds `from` onto `to` (resize handles, W and H).
+ * With `plots: 'keep'` imported plots keep their text and line sizes.
+ */
+export function resizeObjects(
+  pageId: Id,
+  ids: readonly Id[],
+  from: Box,
+  to: Box,
+  plots: PlotSizing = 'scale',
+): Edit {
+  return sizingPlots(
+    transformEach(pageId, ids, 'Resize', (o) => resizeOne(o, from, to)),
+    pageId,
+    plots,
+  );
 }
 
 /**
@@ -237,6 +256,7 @@ export function matchSize(
   pageId: Id,
   objs: readonly Obj[],
   size: { readonly w?: number; readonly h?: number },
+  plots: PlotSizing = 'scale',
 ): Edit {
   const boxes = new Map<Id, Box>();
   for (const o of objs) {
@@ -252,10 +272,14 @@ export function matchSize(
       : size.w !== undefined
         ? 'Match width'
         : 'Match height';
-  return transformEach(pageId, [...boxes.keys()], label, (o) => {
-    const to = boxes.get(o.id);
-    return to ? resizeOne(o, objBounds(o), to) : o;
-  });
+  return sizingPlots(
+    transformEach(pageId, [...boxes.keys()], label, (o) => {
+      const to = boxes.get(o.id);
+      return to ? resizeOne(o, objBounds(o), to) : o;
+    }),
+    pageId,
+    plots,
+  );
 }
 
 export function rotateObjects(

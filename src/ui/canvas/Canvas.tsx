@@ -13,6 +13,7 @@ import {
   resizeObjects,
   rotateObjects,
 } from '@/core/edits/edits';
+import type { PlotSizing } from '@/core/edits/plotSize';
 import { type Box, center, frameBounds } from '@/core/geometry/matrix';
 import { boundsOf, objBounds } from '@/core/geometry/transform';
 import {
@@ -47,6 +48,9 @@ const SNAP_PX = 6;
 const HANDLE = 8;
 
 type Handle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
+/** A resize step slower than this (ms, edit to screen) twice in a row stops redrawing plots until release. */
+const LIVE_PLOT_MS = 24;
+
 const HANDLES: readonly Handle[] = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
 
 type Gesture =
@@ -60,6 +64,11 @@ type Gesture =
       box: Box;
       key: string;
       aspect: boolean;
+      plots: PlotSizing;
+      /** Plots are redrawn at every step; false once that got too slow (redrawn on release). */
+      live: boolean;
+      slow: number;
+      to?: Box;
     }
   | { kind: 'rotate'; c: Vec2; a0: number; fig: Figure; ids: Id[]; key: string }
   | { kind: 'marquee'; start: Vec2; add: boolean }
@@ -190,11 +199,25 @@ export function Canvas() {
   const v = s.view;
   const ref = useRef<HTMLDivElement>(null);
   const gesture = useRef<Gesture | null>(null);
+  /** When the current resize step started, to time it once it is on screen. */
+  const resizeStep = useRef<number | null>(null);
   const [overlay, setOverlay] = useState<Overlay>({});
   const [size, setSize] = useState({ w: 800, h: 600 });
   const [pen, setPen] = useState<PathNode[]>([]);
   const [space, setSpace] = useState(false);
   const fitted = useRef<string | null>(null);
+
+  // A resize step that kept plot text took this long to reach the screen: redrawing a large
+  // plot at every step would stutter, so after two slow ones it is scaled until release.
+  useLayoutEffect(() => {
+    const t0 = resizeStep.current;
+    const g = gesture.current;
+    if (t0 === null) return;
+    resizeStep.current = null;
+    if (g?.kind !== 'resize' || g.plots !== 'keep' || !g.live) return;
+    const slow = performance.now() - t0 > LIVE_PLOT_MS ? g.slow + 1 : 0;
+    gesture.current = { ...g, slow, live: slow < 2 };
+  });
 
   // Track the canvas size (rulers, fit to page).
   useLayoutEffect(() => {
@@ -316,6 +339,9 @@ export function Canvas() {
             box,
             key,
             aspect,
+            plots: s.plotSizing,
+            live: true,
+            slow: 0,
           };
         }
         return;
@@ -412,7 +438,10 @@ export function Canvas() {
       case 'resize': {
         const q = s.snap ? snapP(p, new Set(g.ids)) : { p, guides: [] };
         const to = resizedBox(g.box, g.handle, q.p, g.aspect || e.shiftKey);
-        store.edit(resizeObjects(page.id, g.ids, g.box, to), {
+        const keep = g.plots === 'keep' && g.live;
+        gesture.current = { ...g, to };
+        resizeStep.current = keep ? performance.now() : null;
+        store.edit(resizeObjects(page.id, g.ids, g.box, to, keep ? 'keep' : 'scale'), {
           coalesce: g.key,
           from: g.fig,
           keepSelection: true,
@@ -473,6 +502,12 @@ export function Canvas() {
     ref.current?.releasePointerCapture(e.pointerId);
     const p = toPage(e);
     if (!g) return;
+    if (g.kind === 'resize' && g.plots === 'keep' && !g.live && g.to)
+      store.edit(resizeObjects(page.id, g.ids, g.box, g.to, 'keep'), {
+        coalesce: g.key,
+        from: g.fig,
+        keepSelection: true,
+      });
     if (g.kind === 'move' || g.kind === 'resize' || g.kind === 'rotate') store.seal();
     if (g.kind === 'marquee') {
       const box = normBox(g.start, p);

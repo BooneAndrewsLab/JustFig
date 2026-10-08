@@ -21,6 +21,8 @@ Text inside an imported plot or drawing is shown in the built-in font closest to
 
 To change the fonts, text sizes or line widths inside imported plots, for example to make every tick label in several plots 7 pt, select them and use **Text and lines** in the Inspector ([The Inspector](06-inspector.md)). **Same text and lines** makes the other selected plots look like the first one.
 
+Resizing an imported plot (SVG or PDF) changes the size of its axes and data, not of its text: an 8 pt axis label stays 8 pt, lines keep their width and tick marks their length, whether you drag a handle, type W and H in the Inspector, use Same width or Arrange in grid. Tick labels follow their ticks, axis titles stay centred on their axis, a legend keeps its corner, and data markers keep their shape. To scale a plot like a picture instead, text and all, switch off **Keep plot text and line sizes** in the Inspector. For a very large plot (thousands of points) the plot is scaled while you drag and redrawn when you let go.
+
 ### PDF plots
 
 Plots saved as PDF from matplotlib (`savefig("plot.pdf")`), R (`pdf()`, `cairo_pdf()` or `ggsave("plot.pdf")`), GraphPad Prism and similar programs can be imported like SVG plots. Everything happens in your browser; the file is not uploaded anywhere.

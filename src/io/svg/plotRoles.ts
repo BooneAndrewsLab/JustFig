@@ -65,12 +65,16 @@ export interface PlotText extends Part {
   /** Font size in root user units. */
   readonly size: number;
   readonly font: FontId;
+  /** A tick label's tick: where it meets its axis, root user units. */
+  readonly tick?: readonly [number, number];
 }
 
 export interface PlotStroke extends Part {
   readonly role: StrokeRole;
   /** Stroke width in root user units. */
   readonly width: number;
+  /** A tick's end on its axis (the other end is free), root user units. */
+  readonly base?: readonly [number, number];
 }
 
 export interface PlotParts {
@@ -350,8 +354,8 @@ export function plotParts(
       box: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)] as const,
     };
   });
-  /** Tick labels, and which edge of each faces its tick. */
-  const tickLabels = new Map<number, Keep>();
+  /** Tick labels, which edge of each faces its tick, and the tick's base. */
+  const tickLabels = new Map<number, { keep: Keep; base: [number, number] }>();
   for (const t of ticks) {
     const dx = t.free[0] - t.base[0];
     const dy = t.free[1] - t.base[1];
@@ -386,26 +390,35 @@ export function plotParts(
         }
       }
     });
-    if (best >= 0) tickLabels.set(best, keep);
+    if (best >= 0) tickLabels.set(best, { keep, base: t.base });
   }
 
+  const bases = new Map(ticks.map((t) => [t.leaf, t.base]));
   return {
-    texts: texts.map((l, i) => ({
-      path: l.path,
-      node: l.node,
-      scale: scaleOf(l.m),
-      role: tickLabels.has(i) ? 'tick' : 'label',
-      keep: tickLabels.get(i) ?? 'baseline',
-      size: boxes[i]?.size ?? 16,
-      font: bundledFont(l.inh['font-family']),
-    })),
-    strokes: stroked.map((l) => ({
-      path: l.path,
-      node: l.node,
-      scale: scaleOf(l.m),
-      role: roles.get(l) ?? 'data',
-      width: (len(l.inh['stroke-width']) ?? 1) * scaleOf(l.m),
-    })),
+    texts: texts.map((l, i): PlotText => {
+      const tl = tickLabels.get(i);
+      return {
+        path: l.path,
+        node: l.node,
+        scale: scaleOf(l.m),
+        role: tickLabels.has(i) ? 'tick' : 'label',
+        keep: tl?.keep ?? 'baseline',
+        ...(tl ? { tick: tl.base } : {}),
+        size: boxes[i]?.size ?? 16,
+        font: bundledFont(l.inh['font-family']),
+      };
+    }),
+    strokes: stroked.map((l): PlotStroke => {
+      const base = bases.get(l);
+      return {
+        path: l.path,
+        node: l.node,
+        scale: scaleOf(l.m),
+        role: roles.get(l) ?? 'data',
+        width: (len(l.inh['stroke-width']) ?? 1) * scaleOf(l.m),
+        ...(base ? { base } : {}),
+      };
+    }),
   };
 }
 
@@ -448,7 +461,10 @@ function shiftY(n: SvgNode, dy: number): SvgNode {
   );
 }
 
-function replaceAt(root: SvgNode, edits: ReadonlyMap<string, (n: SvgNode) => SvgNode>): SvgNode {
+export function replaceAt(
+  root: SvgNode,
+  edits: ReadonlyMap<string, (n: SvgNode) => SvgNode>,
+): SvgNode {
   const visit = (n: SvgNode, path: string): SvgNode => {
     const children = n.children.map((c, i) => {
       if (typeof c === 'string') return c;

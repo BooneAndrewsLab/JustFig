@@ -339,14 +339,26 @@ function SelectionInspector({
   const styled = sel.filter((o): o is Extract<Obj, { style: ShapeStyle }> => 'style' in o);
   const first = styled[0];
   const pageBox = { x: 0, y: 0, w: page.size.w, h: page.size.h };
+  const hasPlot = styleTargets(sel).some((o) => plotOf(o, fig.assets) !== null);
 
   const setBox = (patch: Partial<typeof box>, field: string) => {
     const to = { ...box, ...patch };
-    const e =
-      to.w !== box.w || to.h !== box.h
-        ? resizeObjects(page.id, ids, box, to)
-        : moveObjects(page.id, ids, to.x - box.x, to.y - box.y);
-    store.edit(e, { coalesce: key(field, ids), keepSelection: true });
+    const k = key(field, ids);
+    if (to.w !== box.w || to.h !== box.h) {
+      // Typing "120" passes through 1 and 12: a plot keeping its text is redrawn from the
+      // start of the field's run each time, so no step in between leaves a trace.
+      const from = hasPlot && s.plotSizing === 'keep' ? store.runStart(k) : undefined;
+      const fromPage = from?.doc.pages.find((p) => p.id === page.id);
+      const was = fromPage ? ids.map((id) => findObj(fromPage, id)) : [];
+      const ok = was.every((o): o is Obj => o !== undefined) && was.length > 0;
+      const start = ok ? boundsOf(was) : box;
+      const e = resizeObjects(page.id, ids, start, { ...start, ...patch }, s.plotSizing);
+      store.edit(e, { coalesce: k, keepSelection: true, ...(ok && from ? { from } : {}) });
+    } else
+      store.edit(moveObjects(page.id, ids, to.x - box.x, to.y - box.y), {
+        coalesce: k,
+        keepSelection: true,
+      });
   };
 
   return (
@@ -416,6 +428,20 @@ function SelectionInspector({
         <p className="note" style={{ margin: '4px 0' }}>
           {formatLength(box.w, u)} × {formatLength(box.h, u)} {u}
         </p>
+        {hasPlot && (
+          <div className="row">
+            <label title="Resizing an imported plot scales its axes and data only: its text, line widths and tick lengths stay as they are (remembered in this browser)">
+              <input
+                type="checkbox"
+                checked={s.plotSizing === 'keep'}
+                onChange={(e) => {
+                  store.setPlotSizing(e.target.checked ? 'keep' : 'scale');
+                }}
+              />{' '}
+              Keep plot text and line sizes
+            </label>
+          </div>
+        )}
         <div className="row" style={{ flexWrap: 'wrap' }}>
           <button
             type="button"
@@ -462,10 +488,15 @@ function SelectionInspector({
                 onClick={() => {
                   const ref = objBounds(refObj);
                   store.edit(
-                    matchSize(page.id, sel, {
-                      ...(dims.includes('w') ? { w: ref.w } : {}),
-                      ...(dims.includes('h') ? { h: ref.h } : {}),
-                    }),
+                    matchSize(
+                      page.id,
+                      sel,
+                      {
+                        ...(dims.includes('w') ? { w: ref.w } : {}),
+                        ...(dims.includes('h') ? { h: ref.h } : {}),
+                      },
+                      s.plotSizing,
+                    ),
                     { keepSelection: true },
                   );
                 }}

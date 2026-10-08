@@ -16,16 +16,16 @@ import {
   type PlotText,
   type StrokeRole,
   type TextRole,
-  plotParts,
   restylePlot,
 } from '@/io/svg/plotRoles';
+import { viewBoxAroundText } from '@/io/svg/plotCleanup';
 import { parsedSvg } from '@/render/assets';
-import { el, nodeToSvgString } from '@/render/svgNode';
 
 import type { Id } from '../model/ids';
-import { findObj, hasChildren, usedAssets } from '../model/tree';
-import type { Asset, Assets, FontId, Obj, Run } from '../model/types';
+import { findObj, hasChildren } from '../model/tree';
+import type { Asset, Assets, FontId, Frame, Obj, Run } from '../model/types';
 import { type Edit, updateObjects } from './edits';
+import { growFrame, partsOf, plotSvg, swapAssets } from './plotSize';
 
 export type TextTarget = 'all' | TextRole;
 export type LineTarget = 'all' | StrokeRole;
@@ -62,19 +62,6 @@ export interface Plot {
   readonly asset: Extract<Asset, { kind: 'svgImport' }>;
   readonly parts: PlotParts;
   readonly k: number;
-}
-
-const partsCache = new Map<string, PlotParts>();
-
-function partsOf(svg: string): PlotParts {
-  let p = partsCache.get(svg);
-  if (!p) {
-    const s = parsedSvg(svg);
-    p = plotParts(s.root, s.viewBox);
-    if (partsCache.size > 200) partsCache.clear();
-    partsCache.set(svg, p);
-  }
-  return p;
 }
 
 /** The plot an object shows, if it is an imported SVG or PDF. */
@@ -237,6 +224,7 @@ function styleEdit(
       const added: Record<string, Asset> = {};
       const replaced = new Set<string>();
       const nextHash = new Map<Id, string>();
+      const nextFrame = new Map<Id, Frame>();
       const changes = new Map<Id, ObjChange>();
       const page = f.doc.pages.find((p) => p.id === pageId);
       for (const t of targets) {
@@ -253,10 +241,10 @@ function styleEdit(
           ...(c.plotStroke ? { stroke: (st: PlotStroke) => c.plotStroke?.(st) ?? null } : {}),
         });
         if (root === s.root) continue;
-        const svg = nodeToSvgString(
-          el('svg', { xmlns: 'http://www.w3.org/2000/svg', ...root.attrs }, root.children),
-        );
-        const asset: Asset = { ...plot.asset, svg };
+        // Labels made larger than the margins keep the object's bounds around them (issue 30).
+        const vb = viewBoxAroundText(root, s.viewBox);
+        if (vb !== s.viewBox) nextFrame.set(o.id, growFrame(o.frame, s.viewBox, vb));
+        const asset: Asset = { ...plot.asset, svg: plotSvg(root, vb) };
         const hash = hashAsset(asset);
         added[hash] = asset;
         replaced.add(plot.hash);
@@ -270,17 +258,11 @@ function styleEdit(
         if ('style' in o && c.strokeWidth !== undefined)
           return { ...o, style: { ...o.style, strokeWidth: c.strokeWidth } };
         const h = nextHash.get(o.id);
-        if (o.type === 'image' && h !== undefined) return { ...o, asset: h };
+        if (o.type === 'image' && h !== undefined)
+          return { ...o, asset: h, frame: nextFrame.get(o.id) ?? o.frame };
         return o;
       }).apply(f);
-      if (nextHash.size === 0) return next;
-      const used = usedAssets(next.doc);
-      const assets = Object.fromEntries(
-        Object.entries({ ...next.assets, ...added }).filter(
-          ([h]) => !replaced.has(h) || used.has(h),
-        ),
-      );
-      return { ...next, assets };
+      return nextHash.size === 0 ? next : swapAssets(next, added, replaced);
     },
   };
 }

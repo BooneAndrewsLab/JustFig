@@ -111,3 +111,11 @@ export function fmt(v: number): string {
 
 export const matrixString = (m: Matrix): string =>
   `matrix(${m.map((v, i) => (i < 4 ? String(Math.round(v * 1e6) / 1e6) : fmt(v))).join(' ')})`;
+
+/** The inverse matrix (identity for a singular one). */
+export function invert(m: Matrix): Matrix {
+  const det = determinant(m);
+  if (Math.abs(det) < EPS) return IDENTITY;
+  const [a, b, c, d, e, f] = m;
+  return [d / det, -b / det, -c / det, a / det, (c * f - d * e) / det, (b * e - a * f) / det];
+}
