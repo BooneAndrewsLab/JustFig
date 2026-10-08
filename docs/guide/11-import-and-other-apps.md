@@ -2,10 +2,11 @@
 
 ## Import…
 
-**Import…** in the top bar places a picture on the page. Choose an SVG, PNG or JPEG file. You can also drag a file from your computer onto the canvas to drop it where you want it, or paste an image from the clipboard (Ctrl+V).
+**Import…** in the top bar places a picture on the page. Choose an SVG, PDF, PNG or JPEG file. You can also drag a file from your computer onto the canvas to drop it where you want it, or paste an image from the clipboard (Ctrl+V).
 
 - A **PNG or JPEG** is kept as a picture at its original quality. A very large image is scaled down to at most about 106 mm on its longer side when it is placed; resize it afterwards as you like.
 - An **SVG** stays vector, so it remains sharp at any size and in every export. JustFig cleans it as it imports it, removing anything that is not plain drawing, such as scripts. If something had to be changed, a warning appears in the status line.
+- A **PDF** page is turned into the same kind of vector drawing as an SVG, so its lines, shapes and text stay sharp (see "PDF plots" below).
 
 ### Plots from matplotlib and R
 
@@ -18,9 +19,21 @@ SVG plots saved from matplotlib (`savefig("plot.svg")`) or R (`ggsave("plot.svg"
 
 Labels rebuilt from matplotlib's letter shapes use the font matplotlib used (DejaVu Sans). If your computer does not have it, a similar font is shown. Mathematical labels (written between `$` signs in matplotlib) keep their letter shapes. Plots from R's `svg()` device keep their letter shapes too, because that device does not save which letters they are; save with `ggsave()` or the svglite package to get real text.
 
+### PDF plots
+
+Plots saved as PDF from matplotlib (`savefig("plot.pdf")`), R (`pdf()`, `cairo_pdf()` or `ggsave("plot.pdf")`), GraphPad Prism and similar programs can be imported like SVG plots. Everything happens in your browser; the file is not uploaded anywhere.
+
+- **Several pages:** if the PDF has more than one page, the **Choose a PDF page** dialog opens. It lists the pages with their sizes and shows a preview of the selected one. Use the arrow keys or click to pick a page, then choose **Import page**. **Cancel** (or Escape) imports nothing.
+- **What is kept:** lines, shapes, colours, transparency, line widths and dash patterns. Parts of the plot that the PDF hides outside the plotting area (a line running past the axis limits, for example) are cut off as they are in the PDF.
+- **Text** stays real text in the font the PDF names (for example DejaVu Sans for matplotlib, Helvetica or Arial for R and Prism). If your computer does not have that font, a similar one is shown. Text the PDF saved without saying which letters it is (some PDFs store only the letter shapes) is kept as letter shapes, so it looks right but cannot be edited as text; the status line says so.
+- The same tidying as for SVG plots happens afterwards: the white page is removed, empty margins are trimmed and text split into pieces is joined.
+- **Pictures inside the PDF:** small pictures made of flat blocks of colour, such as a heatmap from matplotlib's `imshow`, become coloured rectangles. Other pictures (photos, smooth colour gradients and large images) cannot be part of an imported drawing and are left out; the status line says so. Import such a picture as a PNG or JPEG instead.
+- **Approximations:** gradient fills become grey, and a clipping area that is not a rectangle is treated as the rectangle around it. The status line tells you when either happened.
+- PDFs protected by a password cannot be imported.
+
 Imported pictures can be moved, resized, rotated and faded like anything else. In the Inspector they have an **Image** or **Imported SVG** section with a **Credit** field. Type who made the picture and the credit goes into the figure's credit line (see [Exporting](12-export.md)). Pictures with no credit typed are not mentioned in the credit line, so add one if you do not own the image.
 
-**Open…** also accepts these files: if you choose an SVG or a picture instead of a `.jfig` file, it is imported onto the page.
+**Open…** also accepts these files: if you choose an SVG, a PDF or a picture instead of a `.jfig` file, it is imported onto the page.
 
 ## Copy and paste between figures and apps
 

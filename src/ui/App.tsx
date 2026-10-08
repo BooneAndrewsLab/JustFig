@@ -14,6 +14,7 @@ import { GridDialog } from './dialogs/GridDialog';
 import { GuideDialog } from './dialogs/GuideDialog';
 import { RecentDialog } from './dialogs/RecentDialog';
 import { KeyBindingsDialog } from './dialogs/KeyBindingsDialog';
+import { PdfPageDialog } from './dialogs/PdfPageDialog';
 import { IconBrowser } from './panels/IconBrowser';
 import { Inspector } from './panels/Inspector';
 import { LayersPanel } from './panels/LayersPanel';
@@ -23,6 +24,7 @@ import { onCopy, onKeyDown, onPaste } from './shortcuts';
 import { importToCanvas, newFigure, openFile, saveFile } from './state/session';
 import { currentPage, figure, selectedObjects, store } from './state/store';
 import { useAppState } from './state/useAppState';
+import { usePdfPageRequest } from './state/pdfPagePicker';
 
 type DialogId =
   'recent' | 'export' | 'attribution' | 'credits' | 'gallery' | 'keys' | 'guide' | 'grid' | null;
@@ -37,6 +39,7 @@ export function App() {
   const s = useAppState();
   const fig = figure(s);
   const [dialog, setDialog] = useState<DialogId>(null);
+  const pdfPage = usePdfPageRequest();
   const openInput = useRef<HTMLInputElement>(null);
   const importInput = useRef<HTMLInputElement>(null);
 
@@ -279,7 +282,7 @@ export function App() {
           type="file"
           hidden
           data-testid="import-input"
-          accept=".svg,.png,.jpg,.jpeg,image/svg+xml,image/png,image/jpeg"
+          accept=".svg,.pdf,.png,.jpg,.jpeg,image/svg+xml,application/pdf,image/png,image/jpeg"
           onChange={(e) => {
             const f = e.target.files?.[0];
             if (f) void importToCanvas(f);
@@ -365,6 +368,7 @@ export function App() {
           }}
         />
       )}
+      {pdfPage && <PdfPageDialog key={pdfPage.fileName} request={pdfPage} />}
       {dialog === 'credits' && (
         <CreditsDialog
           onClose={() => {

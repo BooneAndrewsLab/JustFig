@@ -34,6 +34,7 @@ import { type FigureSummary, getStorage } from '@/io/storage';
 
 import { analytics } from '../analytics';
 import { Autosaver } from './autosave';
+import { choosePdfPage } from './pdfPagePicker';
 import { currentPage, figure, selectedObjects, store } from './store';
 import { renderThumbnail } from './thumbnail';
 
@@ -264,7 +265,8 @@ export async function importToCanvas(file: File, at?: { x: number; y: number }):
   try {
     const c = at ?? viewCenter();
     if (await importBarelySig(file, c)) return;
-    const imp = await importFile(file);
+    const imp = await importFile(file, { choosePdfPage: choosePdfPage(file.name) });
+    if (!imp) return; // a page choice was cancelled
     const obj: Obj = {
       id: '' as Id,
       type: 'image',
@@ -275,7 +277,14 @@ export async function importToCanvas(file: File, at?: { x: number; y: number }):
     const [placed] = cloneObjects([obj]);
     if (!placed) return;
     store.edit(addObjects(currentPage(store.getState()).id, [placed], { [imp.hash]: imp.asset }));
-    analytics.track('file', imp.asset.kind === 'svgImport' ? 'import-svg' : 'import-image');
+    analytics.track(
+      'file',
+      imp.asset.kind !== 'svgImport'
+        ? 'import-image'
+        : /\.pdf$/i.test(file.name) || file.type === 'application/pdf'
+          ? 'import-pdf'
+          : 'import-svg',
+    );
     if (imp.warnings.length > 0)
       store.notify(`Imported with changes: ${imp.warnings.join(' ')}`, 'warning');
   } catch (e: unknown) {

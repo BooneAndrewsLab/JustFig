@@ -54,7 +54,7 @@ export default defineConfig({
         // shards and search index (~3 MB), so browsing and search work
         // offline. The library's SVGs and sprite sheets (~80 MB) are cached
         // as they are first used instead (below).
-        globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,ttf,json}'],
+        globPatterns: ['**/*.{js,mjs,css,html,svg,png,webmanifest,ttf,json}'],
         globIgnores: ['lib/*/svg/**', 'lib/*/thumbs/**', 'lib/*/LICENSES/**'],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         navigateFallback: `${base}index.html`,

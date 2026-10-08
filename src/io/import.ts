@@ -1,8 +1,9 @@
 /**
- * Importing SVG, PNG and JPEG files (note 02): each becomes an embedded
+ * Importing SVG, PDF, PNG and JPEG files (note 02): each becomes an embedded
  * asset (the file stays self-contained) and an `image` object. SVGs go
  * through the same sanitiser as icons, so they stay vector in every
- * export, and are tidied up as plots (note 12); rasters keep their bytes.
+ * export, and are tidied up as plots (note 12); a PDF page is converted to
+ * SVG first and then takes the same path (note 13); rasters keep their bytes.
  */
 import type { Asset } from '@/core/model/types';
 import { el, nodeToSvgString } from '@/render/svgNode';
@@ -79,7 +80,7 @@ export function importSvgText(text: string, name: string, { plot = true } = {}):
 
 export function importRaster(bytes: Uint8Array, name: string): Imported {
   const info = imageSize(bytes);
-  if (!info) throw new SvgImportError('Only PNG and JPEG images can be imported.');
+  if (!info) throw new SvgImportError('Only SVG, PDF, PNG and JPEG files can be imported.');
   const asset: Asset = {
     kind: 'image',
     mime: info.mime,
@@ -94,9 +95,63 @@ export function importRaster(bytes: Uint8Array, name: string): Imported {
   };
 }
 
-export async function importFile(file: File): Promise<Imported> {
+export interface PdfPageChoice {
+  readonly number: number;
+  /** Points. */
+  readonly width: number;
+  readonly height: number;
+}
+
+/** Asks which page of a multi-page PDF to import; null cancels. */
+export type ChoosePdfPage = (
+  pages: readonly PdfPageChoice[],
+  preview: (number: number) => Promise<Imported>,
+) => Promise<number | null>;
+
+export const isPdf = (bytes: Uint8Array): boolean =>
+  bytes.length > 4 &&
+  bytes[0] === 0x25 &&
+  bytes[1] === 0x50 &&
+  bytes[2] === 0x44 &&
+  bytes[3] === 0x46;
+
+/**
+ * A PDF page as an `svgImport` asset, cleaned up as a plot like an SVG
+ * file (note 13). pdf.js is loaded here, on first use, not with the app.
+ * A file with several pages asks `choosePage` which one; without it, or
+ * for one page, the first is taken. Null when the choice is cancelled.
+ */
+export async function importPdf(
+  bytes: Uint8Array,
+  name: string,
+  choosePage?: ChoosePdfPage,
+): Promise<Imported | null> {
+  const { openPdf } = await import('./pdf/loadPdf');
+  const pdf = await openPdf(bytes);
+  try {
+    const convert = async (n: number): Promise<Imported> => {
+      const page = await pdf.pageSvg(n);
+      const label = pdf.pages.length > 1 ? `${name} (page ${String(n)})` : name;
+      const imp = importSvgText(page.svg, label);
+      return { ...imp, warnings: [...page.warnings, ...imp.warnings] };
+    };
+    if (pdf.pages.length === 0) throw new SvgImportError('This PDF has no pages.');
+    const n = pdf.pages.length > 1 && choosePage ? await choosePage(pdf.pages, convert) : 1;
+    return n === null ? null : await convert(n);
+  } finally {
+    await pdf.close();
+  }
+}
+
+export async function importFile(
+  file: File,
+  opts: { choosePdfPage?: ChoosePdfPage } = {},
+): Promise<Imported | null> {
   const lower = file.name.toLowerCase();
   if (file.type === 'image/svg+xml' || lower.endsWith('.svg'))
     return importSvgText(await file.text(), file.name);
-  return importRaster(new Uint8Array(await file.arrayBuffer()), file.name);
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  if (file.type === 'application/pdf' || lower.endsWith('.pdf') || isPdf(bytes))
+    return importPdf(bytes, file.name, opts.choosePdfPage);
+  return importRaster(bytes, file.name);
 }

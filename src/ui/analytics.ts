@@ -54,7 +54,7 @@ export const EVENTS = {
   /** Once per visit: `start` (the version). */
   app: ['start'],
   history: ['undo', 'redo'],
-  file: ['open', 'open-recent', 'download', 'import-svg', 'import-image'],
+  file: ['open', 'open-recent', 'download', 'import-svg', 'import-pdf', 'import-image'],
   tool: ['rect', 'ellipse', 'line', 'pen', 'arrow', 'text', 'panel'],
   icon: ['place'],
   /** Kind names are app vocabulary, not figure content. */
