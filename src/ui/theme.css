@@ -387,6 +387,41 @@ button.link {
   width: 64px;
 }
 
+.note {
+  color: var(--ink-2);
+  margin: 4px 0;
+}
+
+.note.warn {
+  color: var(--warning);
+}
+
+.swatch-list {
+  list-style: none;
+  margin: 0 0 6px;
+  padding: 0;
+}
+
+.swatch-list input[type='text'] {
+  flex: 1;
+}
+
+.swatch.linked {
+  border-radius: 50%;
+}
+
+.swatch.linked[aria-pressed='true'] {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.swatch-sep {
+  width: 1px;
+  height: 14px;
+  background: var(--rule-strong);
+  margin: 0 2px;
+}
+
 .muted {
   color: var(--ink-2);
   flex: 1;

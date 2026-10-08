@@ -20,6 +20,9 @@ import { analytics } from '../analytics';
 export type ToolId =
   'select' | 'rect' | 'ellipse' | 'line' | 'pen' | 'arrow' | 'text' | 'panel' | 'hand';
 
+/** How the canvas shows colours: as they are, or as a colour-vision deficiency sees them (note 07). */
+export type Vision = 'normal' | 'deuteranopia' | 'protanopia' | 'tritanopia' | 'greyscale';
+
 export interface View {
   /** Screen pixels per point. */
   readonly zoom: number;
@@ -44,6 +47,8 @@ export interface AppState {
   readonly view: View;
   readonly units: Unit;
   readonly snap: boolean;
+  /** Editor-only colour-vision preview; never exported. */
+  readonly vision: Vision;
   /** The text object being edited in the overlay, if any. */
   readonly editingText: Id | null;
   readonly notice: Notice | null;
@@ -102,6 +107,7 @@ export class AppStore {
       view: { zoom: 1, x: 40, y: 40 },
       units: initialUnits(),
       snap: true,
+      vision: 'normal',
       editingText: null,
       notice: null,
       downloaded: null,
@@ -209,6 +215,10 @@ export class AppStore {
 
   setSnap(snap: boolean): void {
     this.set({ snap });
+  }
+
+  setVision(vision: Vision): void {
+    this.set({ vision });
   }
 
   editText(id: Id | null): void {

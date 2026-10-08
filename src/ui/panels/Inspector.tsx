@@ -43,6 +43,7 @@ import { formatLength, fromUnit, toUnit } from '@/core/units';
 import { type AppState, currentPage, figure, selectedObjects, store } from '../state/store';
 import { useAppState } from '../state/useAppState';
 import { ColorInput } from './ColorInput';
+import { PaletteSection } from './PaletteSection';
 import { PathKindsSection, ProceduralSection } from './ProceduralInspector';
 
 const HEAD_LABEL: Record<HeadKind, string> = {
@@ -295,6 +296,7 @@ function PageInspector({ s }: { s: AppState }) {
           />
         </div>
       </Section>
+      <PaletteSection s={s} />
     </>
   );
 }

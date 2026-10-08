@@ -1,4 +1,8 @@
-/** A colour control: the native picker, Okabe-Ito quick swatches and, where allowed, "none". */
+/**
+ * A colour control: the native picker, the figure's swatches (choosing one
+ * links the colour to it, note 07), Okabe-Ito quick colours and, where
+ * allowed, "none".
+ */
 import { OKABE_ITO, resolvePaint } from '@/core/color/color';
 import type { Paint, Swatch } from '@/core/model/types';
 
@@ -25,6 +29,24 @@ export function ColorInput({ label, value, palette, onChange, allowNone = false 
         }}
       />
       <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+        {palette.map((sw) => {
+          const linked = value !== null && 'swatch' in value && value.swatch === sw.id;
+          return (
+            <button
+              key={sw.id}
+              type="button"
+              className="swatch linked"
+              title={`${sw.name} (linked: follows the swatch)`}
+              aria-label={`${label} swatch ${sw.name}`}
+              aria-pressed={linked}
+              style={{ background: sw.hex, width: 14, height: 14 }}
+              onClick={() => {
+                onChange({ swatch: sw.id });
+              }}
+            />
+          );
+        })}
+        {palette.length > 0 && <span className="swatch-sep" aria-hidden="true" />}
         {OKABE_ITO.concat(['#ffffff']).map((c) => (
           <button
             key={c}

@@ -143,6 +143,35 @@ function pickTarget(target: EventTarget | null, page: Page): Id | null {
   return pick?.id ?? null;
 }
 
+/**
+ * Colour-vision preview filters (note 07), editor-only: Machado et al.
+ * (2009) matrices at full severity, applied in linear RGB (the filter
+ * default), and a greyscale for print.
+ */
+const CVD: Readonly<Record<string, string>> = {
+  protanopia:
+    '0.152286 1.052583 -0.204868 0 0 0.114503 0.786281 0.099216 0 0 -0.003882 -0.048116 1.051998 0 0 0 0 0 1 0',
+  deuteranopia:
+    '0.367322 0.860646 -0.227968 0 0 0.280085 0.672501 0.047413 0 0 -0.01182 0.04294 0.968881 0 0 0 0 0 1 0',
+  tritanopia:
+    '1.255528 -0.076749 -0.178779 0 0 -0.078411 0.930809 0.147602 0 0 0.004733 0.691367 0.3039 0 0 0 0 0 1 0',
+};
+
+function VisionFilters() {
+  return (
+    <defs>
+      {Object.entries(CVD).map(([id, m]) => (
+        <filter key={id} id={`vision-${id}`}>
+          <feColorMatrix type="matrix" values={m} />
+        </filter>
+      ))}
+      <filter id="vision-greyscale">
+        <feColorMatrix type="saturate" values="0" />
+      </filter>
+    </defs>
+  );
+}
+
 /** The object under a screen point an arrow end may attach to (note 06). */
 function bindTargetAt(x: number, y: number, page: Page): Obj | undefined {
   for (const el of document.elementsFromPoint(x, y)) {
@@ -616,6 +645,7 @@ export function Canvas() {
         onDrop={onDrop}
       >
         <svg role="img" aria-label="Figure canvas">
+          <VisionFilters />
           <g transform={`translate(${String(v.x)} ${String(v.y)}) scale(${String(v.zoom)})`}>
             <rect
               x={2 / v.zoom}
@@ -624,7 +654,12 @@ export function Canvas() {
               height={page.size.h}
               fill="rgb(0 0 0 / 12%)"
             />
-            <PageView page={page} figure={fig} />
+            <g
+              data-testid="vision"
+              filter={s.vision === 'normal' ? undefined : `url(#vision-${s.vision})`}
+            >
+              <PageView page={page} figure={fig} />
+            </g>
             {/* The page edge stays visible over a page-sized object. */}
             <rect
               data-testid="page"
