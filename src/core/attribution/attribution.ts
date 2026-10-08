@@ -3,8 +3,8 @@
  * licence list come from the `meta` of every asset a figure (or a page)
  * uses.
  */
-import { objectAssets, usedAssets } from '../model/tree';
-import type { Assets, Doc, IconMeta, Page } from '../model/types';
+import { docObjects, objectAssets, pageObjects, usedAssets } from '../model/tree';
+import type { Assets, Doc, IconMeta, Obj, Page } from '../model/types';
 
 export interface CreditItem {
   readonly hash: string;
@@ -16,7 +16,37 @@ export interface CreditItem {
   readonly licenseUrl?: string;
   readonly originalUrl?: string;
   readonly shareAlike: boolean;
+  /**
+   * Recoloured in this figure. CC BY and CC BY-SA require saying so, so the
+   * credit line adds "modified" for those licences.
+   */
+  readonly modified?: 'all' | 'some';
 }
+
+/** Licences whose credit must state modifications (CC BY, CC BY-SA). */
+export const needsModifiedNote = (spdx: string): boolean => /^CC-BY-(SA-)?\d/.test(spdx);
+
+/**
+ * Icon assets recoloured somewhere in these objects: 'all' when every use
+ * is recoloured, 'some' when only some are.
+ */
+export function recolouredAssets(objs: Iterable<Obj>): Map<string, 'all' | 'some'> {
+  const uses = new Map<string, { n: number; recoloured: number }>();
+  for (const o of objs) {
+    if (o.type !== 'icon') continue;
+    const u = uses.get(o.asset) ?? { n: 0, recoloured: 0 };
+    u.n += 1;
+    if (Object.keys(o.slots).length > 0) u.recoloured += 1;
+    uses.set(o.asset, u);
+  }
+  const out = new Map<string, 'all' | 'some'>();
+  for (const [h, u] of uses)
+    if (u.recoloured > 0) out.set(h, u.recoloured === u.n ? 'all' : 'some');
+  return out;
+}
+
+const modifiedOf = (m: 'all' | 'some' | undefined): { modified?: 'all' | 'some' } =>
+  m === undefined ? {} : { modified: m };
 
 /** SPDX id → how a credit line writes it. */
 export function licenseLabel(spdx: string): string {
@@ -33,7 +63,11 @@ export function pageAssets(page: Page): Set<string> {
   return out;
 }
 
-export function creditItems(hashes: Iterable<string>, assets: Assets): CreditItem[] {
+export function creditItems(
+  hashes: Iterable<string>,
+  assets: Assets,
+  recoloured: ReadonlyMap<string, 'all' | 'some'> = new Map(),
+): CreditItem[] {
   const out: CreditItem[] = [];
   for (const h of [...hashes].sort()) {
     const a = assets[h];
@@ -50,6 +84,7 @@ export function creditItems(hashes: Iterable<string>, assets: Assets): CreditIte
         licenseUrl: m.licenseUrl,
         originalUrl: m.originalUrl,
         shareAlike: m.shareAlike,
+        ...modifiedOf(recoloured.get(h)),
       });
     } else if (a.meta.credit !== undefined && a.meta.credit.trim() !== '') {
       out.push({
@@ -63,6 +98,28 @@ export function creditItems(hashes: Iterable<string>, assets: Assets): CreditIte
     }
   }
   return out;
+}
+
+/**
+ * The licences of some items, each once, sorted; a CC BY / BY-SA licence
+ * carries "modified" when its icons were recoloured ("some modified" when
+ * only some of them were).
+ */
+function licenceLabels(items: readonly CreditItem[]): string[] {
+  const by = new Map<string, CreditItem[]>();
+  for (const i of items) by.set(i.license, [...(by.get(i.license) ?? []), i]);
+  const out: string[] = [];
+  for (const [spdx, list] of by) {
+    let label = licenseLabel(spdx);
+    if (needsModifiedNote(spdx)) {
+      const all = list.every((i) => i.modified === 'all');
+      const any = list.some((i) => i.modified !== undefined);
+      if (all) label += ', modified';
+      else if (any) label += ', some modified';
+    }
+    out.push(label);
+  }
+  return out.sort();
 }
 
 /**
@@ -82,14 +139,14 @@ export function creditLine(items: readonly CreditItem[], appName: string): strin
       const authored = list.filter((i) => i.author !== undefined);
       const anon = list.filter((i) => i.author === undefined);
       const bits: string[] = [];
-      const byAuthor = new Map<string, Set<string>>();
+      const byAuthor = new Map<string, CreditItem[]>();
       for (const i of authored) {
         const k = i.author ?? '';
-        byAuthor.set(k, (byAuthor.get(k) ?? new Set()).add(licenseLabel(i.license)));
+        byAuthor.set(k, [...(byAuthor.get(k) ?? []), i]);
       }
-      for (const [a, ls] of [...byAuthor.entries()].sort(([x], [y]) => x.localeCompare(y)))
-        bits.push(`${a} (${[...ls].sort().join(', ')})`);
-      const anonLicenses = [...new Set(anon.map((i) => licenseLabel(i.license)))].sort();
+      for (const [a, list] of [...byAuthor.entries()].sort(([x], [y]) => x.localeCompare(y)))
+        bits.push(`${a} (${licenceLabels(list).join(', ')})`);
+      const anonLicenses = licenceLabels(anon);
       if (bits.length === 0) return `${source} (${anonLicenses.join(', ')})`;
       if (anonLicenses.length > 0) bits.push(`others (${anonLicenses.join(', ')})`);
       return `${source}: ${bits.join(', ')}`;
@@ -101,4 +158,7 @@ export function creditLine(items: readonly CreditItem[], appName: string): strin
 }
 
 export const docCreditItems = (doc: Doc, assets: Assets): CreditItem[] =>
-  creditItems(usedAssets(doc), assets);
+  creditItems(usedAssets(doc), assets, recolouredAssets(docObjects(doc)));
+
+export const pageCreditItems = (page: Page, assets: Assets): CreditItem[] =>
+  creditItems(pageAssets(page), assets, recolouredAssets(pageObjects(page)));

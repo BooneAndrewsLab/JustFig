@@ -4,7 +4,7 @@
  * SvgNode in the export subset.
  */
 import { BRAND } from '@/brand';
-import { creditItems, creditLine, pageAssets } from '@/core/attribution/attribution';
+import { creditLine, pageCreditItems } from '@/core/attribution/attribution';
 import { createText, defaultRun } from '@/core/model/factory';
 import type { Figure, FontId, Page } from '@/core/model/types';
 import { FAMILY_FALLBACK, FAMILY_NAME } from '@/core/text/fonts';
@@ -34,7 +34,7 @@ export interface ExportRoot {
 }
 
 export function pageCredit(figure: Figure, page: Page): string {
-  return creditLine(creditItems(pageAssets(page), figure.assets), BRAND.name);
+  return creditLine(pageCreditItems(page, figure.assets), BRAND.name);
 }
 
 function footerNode(
