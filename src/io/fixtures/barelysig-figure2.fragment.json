@@ -1,0 +1,209 @@
+{
+  "format": "justfig-fragment",
+  "schemaVersion": 1,
+  "assets": {
+    "he5cc9655aef3f5b66b59b5767a": {
+      "kind": "svgImport",
+      "meta": { "name": "figure2.svg", "height": 170.07874015748033, "width": 198.42519685039372 },
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 198.43 170.08\" font-family=\"Arial, Arimo, &quot;Liberation Sans&quot;, Helvetica, sans-serif\"><line x1=\"16.79\" y1=\"11.15\" x2=\"16.79\" y2=\"153.03\" stroke=\"#201e1d\" stroke-width=\"0.75\" stroke-linecap=\"butt\"/><line x1=\"16.79\" y1=\"153.03\" x2=\"193.43\" y2=\"153.03\" stroke=\"#201e1d\" stroke-width=\"0.75\" stroke-linecap=\"butt\"/><line x1=\"16.79\" y1=\"153.03\" x2=\"13.79\" y2=\"153.03\" stroke=\"#201e1d\" stroke-width=\"0.75\" stroke-linecap=\"butt\"/><text x=\"10.79\" y=\"155.9\" font-size=\"7\" text-anchor=\"end\" fill=\"#201e1d\">0</text><line x1=\"16.79\" y1=\"124.65\" x2=\"13.79\" y2=\"124.65\" stroke=\"#201e1d\" stroke-width=\"0.75\" stroke-linecap=\"butt\"/><text x=\"10.79\" y=\"127.52\" font-size=\"7\" text-anchor=\"end\" fill=\"#201e1d\">5</text><line x1=\"16.79\" y1=\"96.28\" x2=\"13.79\" y2=\"96.28\" stroke=\"#201e1d\" stroke-width=\"0.75\" stroke-linecap=\"butt\"/><text x=\"10.79\" y=\"99.15\" font-size=\"7\" text-anchor=\"end\" fill=\"#201e1d\">10</text><line x1=\"16.79\" y1=\"67.9\" x2=\"13.79\" y2=\"67.9\" stroke=\"#201e1d\" stroke-width=\"0.75\" stroke-linecap=\"butt\"/><text x=\"10.79\" y=\"70.77\" font-size=\"7\" text-anchor=\"end\" fill=\"#201e1d\">15</text><line x1=\"16.79\" y1=\"39.53\" x2=\"13.79\" y2=\"39.53\" stroke=\"#201e1d\" stroke-width=\"0.75\" stroke-linecap=\"butt\"/><text x=\"10.79\" y=\"42.4\" font-size=\"7\" text-anchor=\"end\" fill=\"#201e1d\">20</text><line x1=\"16.79\" y1=\"11.15\" x2=\"13.79\" y2=\"11.15\" stroke=\"#201e1d\" stroke-width=\"0.75\" stroke-linecap=\"butt\"/><text x=\"10.79\" y=\"14.02\" font-size=\"7\" text-anchor=\"end\" fill=\"#201e1d\">25</text><line x1=\"60.95\" y1=\"153.03\" x2=\"60.95\" y2=\"156.03\" stroke=\"#201e1d\" stroke-width=\"0.75\" stroke-linecap=\"butt\"/><text x=\"60.95\" y=\"165.37\" font-size=\"7\" text-anchor=\"middle\" fill=\"#201e1d\">WT</text><line x1=\"149.27\" y1=\"153.03\" x2=\"149.27\" y2=\"156.03\" stroke=\"#201e1d\" stroke-width=\"0.75\" stroke-linecap=\"butt\"/><text x=\"149.27\" y=\"165.37\" font-size=\"7\" text-anchor=\"middle\" fill=\"#201e1d\">KO</text><rect x=\"33.57\" y=\"90.6\" width=\"54.76\" height=\"62.42\" fill=\"#8dc0dc\" stroke=\"#0173b2\" stroke-width=\"0.75\"/><circle cx=\"60.95\" cy=\"96.28\" r=\"2\" fill=\"#0173b2\" fill-opacity=\"0.8\" stroke=\"#01517d\" stroke-width=\"0.4\"/><circle cx=\"60.95\" cy=\"90.6\" r=\"2\" fill=\"#0173b2\" fill-opacity=\"0.8\" stroke=\"#01517d\" stroke-width=\"0.4\"/><circle cx=\"60.95\" cy=\"84.93\" r=\"2\" fill=\"#0173b2\" fill-opacity=\"0.8\" stroke=\"#01517d\" stroke-width=\"0.4\"/><line x1=\"60.95\" y1=\"90.6\" x2=\"60.95\" y2=\"84.93\" stroke=\"#201e1d\" stroke-width=\"0.75\" stroke-linecap=\"butt\"/><line x1=\"47.26\" y1=\"84.93\" x2=\"74.64\" y2=\"84.93\" stroke=\"#201e1d\" stroke-width=\"0.75\" stroke-linecap=\"butt\"/><rect x=\"121.89\" y=\"28.18\" width=\"54.76\" height=\"124.85\" fill=\"#f0cd8f\" stroke=\"#de8f05\" stroke-width=\"0.75\"/><circle cx=\"149.27\" cy=\"39.53\" r=\"2\" fill=\"#de8f05\" fill-opacity=\"0.8\" stroke=\"#9b6404\" stroke-width=\"0.4\"/><circle cx=\"149.27\" cy=\"28.18\" r=\"2\" fill=\"#de8f05\" fill-opacity=\"0.8\" stroke=\"#9b6404\" stroke-width=\"0.4\"/><circle cx=\"149.27\" cy=\"16.83\" r=\"2\" fill=\"#de8f05\" fill-opacity=\"0.8\" stroke=\"#9b6404\" stroke-width=\"0.4\"/><line x1=\"149.27\" y1=\"28.18\" x2=\"149.27\" y2=\"16.83\" stroke=\"#201e1d\" stroke-width=\"0.75\" stroke-linecap=\"butt\"/><line x1=\"135.58\" y1=\"16.83\" x2=\"162.95\" y2=\"16.83\" stroke=\"#201e1d\" stroke-width=\"0.75\" stroke-linecap=\"butt\"/><path d=\"M71.54 13.83V10.83H138.67V13.83\" fill=\"none\" stroke=\"#201e1d\" stroke-width=\"0.75\" stroke-linejoin=\"miter\"/><text x=\"105.11\" y=\"9.33\" font-size=\"7\" text-anchor=\"middle\" fill=\"#201e1d\">**</text></svg>"
+    }
+  },
+  "objects": [
+    {
+      "id": "o_7b0b1b4250b79a32",
+      "type": "embedded",
+      "name": "Figure 2",
+      "frame": {
+        "h": 170.07874015748033,
+        "rotation": 0,
+        "w": 198.42519685039372,
+        "x": 100.78740157480314,
+        "y": 64.96062992125984
+      },
+      "opacity": 1,
+      "snapshot": "he5cc9655aef3f5b66b59b5767a",
+      "source": {
+        "format": "bsig",
+        "app": "BarelySig",
+        "payload": {
+          "format": "barelysig",
+          "schemaVersion": 1,
+          "app": "1.0.0",
+          "engine": { "packages": {}, "r": "4.6.0", "webr": "0.6.0" },
+          "project": {
+            "id": "p_40bbb76da0b4ba34",
+            "name": "Figure 2",
+            "analyses": [
+              {
+                "id": "a_t",
+                "kind": "t-test",
+                "input": {
+                  "kind": "table",
+                  "dataSets": ["ds_a2a94733b947abe1", "ds_47c93e06114dbd91"],
+                  "table": "t_c81205e726f17a68"
+                },
+                "options": { "paired": false, "tails": "two", "welch": false },
+                "title": "t"
+              }
+            ],
+            "exports": [],
+            "graphs": [
+              {
+                "format": { "bracketLabels": "stars", "hiddenBrackets": [], "showNs": true },
+                "id": "g_1",
+                "analyses": ["a_t"],
+                "dataSets": null,
+                "plot": { "kind": "bars", "error": "sd", "points": true },
+                "size": { "height": 60, "width": 70 },
+                "source": { "kind": "table", "table": "t_c81205e726f17a68" },
+                "theme": {
+                  "kind": "fixed",
+                  "theme": {
+                    "name": "modern",
+                    "bandOpacity": 0.18,
+                    "barEdge": null,
+                    "barLighten": 0.55,
+                    "barWidth": 0.62,
+                    "capWidth": 0.5,
+                    "font": {
+                      "axisTitle": 8,
+                      "bracket": 7,
+                      "family": "Arial, Arimo, \"Liberation Sans\", Helvetica, sans-serif",
+                      "legend": 7,
+                      "tick": 7,
+                      "title": 8
+                    },
+                    "ink": "#201e1d",
+                    "lines": {
+                      "axis": 0.75,
+                      "barEdge": 0.75,
+                      "bracket": 0.75,
+                      "error": 0.75,
+                      "fit": 1,
+                      "pointEdge": 0.4,
+                      "tick": 0.75,
+                      "tickLength": 3
+                    },
+                    "palette": [
+                      "#0173b2",
+                      "#de8f05",
+                      "#029e73",
+                      "#d55e00",
+                      "#cc78bc",
+                      "#ca9161",
+                      "#fbafe4",
+                      "#949494",
+                      "#ece133",
+                      "#56b4e9"
+                    ],
+                    "pointColor": null,
+                    "pointDarken": 0.3,
+                    "pointOpacity": 0.8,
+                    "pointSize": 4,
+                    "spines": "left-bottom",
+                    "ticks": "out"
+                  }
+                },
+                "title": "Figure 2"
+              }
+            ],
+            "layouts": [],
+            "tables": [
+              {
+                "format": { "kind": "replicates", "count": 1 },
+                "id": "t_c81205e726f17a68",
+                "type": "column",
+                "dataSets": [
+                  {
+                    "id": "ds_a2a94733b947abe1",
+                    "excluded": [],
+                    "subcolumns": [[10, 11, 12]],
+                    "title": "WT"
+                  },
+                  {
+                    "id": "ds_47c93e06114dbd91",
+                    "excluded": [],
+                    "subcolumns": [[20, 22, 24]],
+                    "title": "KO"
+                  }
+                ],
+                "rows": [
+                  { "id": "r_5cee287b547c6589", "title": null },
+                  { "id": "r_737da6acb0b60f78", "title": null },
+                  { "id": "r_7bd51146270cbd74", "title": null }
+                ],
+                "title": "Viability"
+              }
+            ]
+          },
+          "results": {
+            "a_t": {
+              "inputHash": "h2",
+              "ok": true,
+              "value": {
+                "a": { "id": "ds_a2a94733b947abe1" },
+                "b": { "id": "ds_47c93e06114dbd91" },
+                "p": 0.0012
+              }
+            },
+            "g_1/summary": {
+              "inputHash": "h1",
+              "ok": true,
+              "value": {
+                "cells": [
+                  {
+                    "id": "ds_a2a94733b947abe1",
+                    "ciLower": null,
+                    "ciUpper": null,
+                    "cv": null,
+                    "dropped": null,
+                    "from": "values",
+                    "geomean": null,
+                    "kde": null,
+                    "max": 12,
+                    "mean": 11,
+                    "median": 11,
+                    "min": 10,
+                    "n": 3,
+                    "q1": null,
+                    "q3": null,
+                    "range": null,
+                    "sd": 1,
+                    "sem": 0.58,
+                    "sum": null,
+                    "title": "WT",
+                    "whiskers": null
+                  },
+                  {
+                    "id": "ds_47c93e06114dbd91",
+                    "ciLower": null,
+                    "ciUpper": null,
+                    "cv": null,
+                    "dropped": null,
+                    "from": "values",
+                    "geomean": null,
+                    "kde": null,
+                    "max": 26,
+                    "mean": 22,
+                    "median": 22,
+                    "min": 20,
+                    "n": 3,
+                    "q1": null,
+                    "q3": null,
+                    "range": null,
+                    "sd": 2,
+                    "sem": 0.58,
+                    "sum": null,
+                    "title": "KO",
+                    "whiskers": null
+                  }
+                ],
+                "warnings": []
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

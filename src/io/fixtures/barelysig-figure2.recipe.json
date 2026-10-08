@@ -1,0 +1,178 @@
+{
+  "format": "barelysig",
+  "schemaVersion": 1,
+  "app": "1.0.0",
+  "engine": { "webr": "0.6.0", "r": "4.6.0", "packages": {} },
+  "project": {
+    "id": "p_40bbb76da0b4ba34",
+    "name": "Figure 2",
+    "tables": [
+      {
+        "id": "t_c81205e726f17a68",
+        "type": "column",
+        "title": "Viability",
+        "format": { "kind": "replicates", "count": 1 },
+        "rows": [
+          { "id": "r_5cee287b547c6589", "title": null },
+          { "id": "r_737da6acb0b60f78", "title": null },
+          { "id": "r_7bd51146270cbd74", "title": null }
+        ],
+        "dataSets": [
+          {
+            "id": "ds_a2a94733b947abe1",
+            "title": "WT",
+            "subcolumns": [[10, 11, 12]],
+            "excluded": []
+          },
+          {
+            "id": "ds_47c93e06114dbd91",
+            "title": "KO",
+            "subcolumns": [[20, 22, 24]],
+            "excluded": []
+          }
+        ]
+      }
+    ],
+    "analyses": [
+      {
+        "id": "a_t",
+        "title": "t",
+        "kind": "t-test",
+        "options": { "paired": false, "welch": false, "tails": "two" },
+        "input": {
+          "kind": "table",
+          "table": "t_c81205e726f17a68",
+          "dataSets": ["ds_a2a94733b947abe1", "ds_47c93e06114dbd91"]
+        }
+      }
+    ],
+    "graphs": [
+      {
+        "id": "g_1",
+        "title": "Figure 2",
+        "source": { "kind": "table", "table": "t_c81205e726f17a68" },
+        "dataSets": null,
+        "analyses": ["a_t"],
+        "plot": { "kind": "bars", "error": "sd", "points": true },
+        "size": { "width": 70, "height": 60 },
+        "theme": {
+          "kind": "fixed",
+          "theme": {
+            "name": "modern",
+            "font": {
+              "family": "Arial, Arimo, \"Liberation Sans\", Helvetica, sans-serif",
+              "tick": 7,
+              "axisTitle": 8,
+              "title": 8,
+              "bracket": 7,
+              "legend": 7
+            },
+            "lines": {
+              "axis": 0.75,
+              "tick": 0.75,
+              "tickLength": 3,
+              "error": 0.75,
+              "barEdge": 0.75,
+              "bracket": 0.75,
+              "pointEdge": 0.4,
+              "fit": 1
+            },
+            "ink": "#201e1d",
+            "palette": [
+              "#0173b2",
+              "#de8f05",
+              "#029e73",
+              "#d55e00",
+              "#cc78bc",
+              "#ca9161",
+              "#fbafe4",
+              "#949494",
+              "#ece133",
+              "#56b4e9"
+            ],
+            "spines": "left-bottom",
+            "ticks": "out",
+            "barLighten": 0.55,
+            "barEdge": null,
+            "pointOpacity": 0.8,
+            "pointDarken": 0.3,
+            "pointColor": null,
+            "pointSize": 4,
+            "barWidth": 0.62,
+            "capWidth": 0.5,
+            "bandOpacity": 0.18
+          }
+        },
+        "format": { "bracketLabels": "stars", "showNs": true, "hiddenBrackets": [] }
+      }
+    ],
+    "layouts": [],
+    "exports": []
+  },
+  "results": {
+    "a_t": {
+      "inputHash": "h2",
+      "ok": true,
+      "value": {
+        "p": 0.0012,
+        "a": { "id": "ds_a2a94733b947abe1" },
+        "b": { "id": "ds_47c93e06114dbd91" }
+      }
+    },
+    "g_1/summary": {
+      "inputHash": "h1",
+      "ok": true,
+      "value": {
+        "cells": [
+          {
+            "id": "ds_a2a94733b947abe1",
+            "title": "WT",
+            "from": "values",
+            "n": 3,
+            "dropped": null,
+            "min": 10,
+            "q1": null,
+            "median": 11,
+            "q3": null,
+            "max": 12,
+            "range": null,
+            "mean": 11,
+            "sd": 1,
+            "sem": 0.58,
+            "ciLower": null,
+            "ciUpper": null,
+            "cv": null,
+            "geomean": null,
+            "sum": null,
+            "whiskers": null,
+            "kde": null
+          },
+          {
+            "id": "ds_47c93e06114dbd91",
+            "title": "KO",
+            "from": "values",
+            "n": 3,
+            "dropped": null,
+            "min": 20,
+            "q1": null,
+            "median": 22,
+            "q3": null,
+            "max": 26,
+            "range": null,
+            "mean": 22,
+            "sd": 2,
+            "sem": 0.58,
+            "ciLower": null,
+            "ciUpper": null,
+            "cv": null,
+            "geomean": null,
+            "sum": null,
+            "whiskers": null,
+            "kde": null
+          }
+        ],
+        "warnings": []
+      }
+    }
+  }
+}

@@ -138,7 +138,7 @@ export function App() {
           </button>
           <button
             type="button"
-            title="Import an SVG, PNG or JPEG"
+            title="Import an SVG, PNG or JPEG (a BarelySig SVG keeps its graph data)"
             onClick={() => importInput.current?.click()}
           >
             Import…

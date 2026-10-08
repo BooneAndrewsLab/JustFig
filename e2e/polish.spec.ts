@@ -118,3 +118,19 @@ test('a shortcut moved in Keyboard shortcuts works at once and after a reload', 
   await page.getByRole('button', { name: 'All back to their defaults' }).click();
   await expect(dialog.locator('[data-action="tool-rect"] kbd')).toHaveText('R');
 });
+
+test('a BarelySig SVG imports as its graph, at its size, with its recipe', async ({ page }) => {
+  await page
+    .getByTestId('import-input')
+    .setInputFiles(new URL('../src/io/fixtures/barelysig-figure2.svg', import.meta.url).pathname);
+  await expect(page.locator('.side').getByRole('region', { name: 'From BarelySig' })).toBeVisible();
+  await expect(page.locator('.layers .item .name', { hasText: 'Figure 2' })).toBeVisible();
+  // 70 mm × 60 mm, as BarelySig drew it.
+  expect(Number(await field(page, 'W').inputValue())).toBeCloseTo(70, 0);
+  expect(Number(await field(page, 'H').inputValue())).toBeCloseTo(60, 0);
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Download .bsig for BarelySig' }).click(),
+  ]);
+  expect(download.suggestedFilename()).toBe('Figure 2.bsig');
+});

@@ -17,6 +17,7 @@ import { exportPng, exportTiff } from '@/export/raster';
 import { exportSvg } from '@/export/svg';
 import type { IconEntry } from '@/icons/manifest';
 import { HttpIconLibrary, type IconLibrary } from '@/icons/library';
+import { isBarelySigSvg, readBarelySigSvg } from '@/io/barelysig';
 import { importFile } from '@/io/import';
 import {
   type Fragment,
@@ -143,10 +144,31 @@ export function viewCenter(): { x: number; y: number } {
   return { x: (w / 2 - s.view.x) / s.view.zoom, y: (h / 2 - s.view.y) / s.view.zoom };
 }
 
+/** A BarelySig SVG with its data becomes an editable-in-BarelySig embedded object (note 05). */
+async function importBarelySig(file: File, at: { x: number; y: number }): Promise<boolean> {
+  if (!file.name.toLowerCase().endsWith('.svg') && file.type !== 'image/svg+xml') return false;
+  const text = await file.text();
+  if (!isBarelySigSvg(text)) return false;
+  try {
+    const imp = await readBarelySigSvg(text, file.name, at);
+    store.edit({
+      ...addObjects(currentPage(store.getState()).id, [imp.obj], imp.assets),
+      label: 'Import BarelySig graph',
+    });
+    analytics.track('embedded', 'import', 'BarelySig');
+    return true;
+  } catch (e: unknown) {
+    // Exported without its data: place it as an ordinary picture, and say so.
+    store.notify(e instanceof Error ? e.message : 'Could not read the BarelySig data.', 'warning');
+    return false;
+  }
+}
+
 export async function importToCanvas(file: File, at?: { x: number; y: number }): Promise<void> {
   try {
-    const imp = await importFile(file);
     const c = at ?? viewCenter();
+    if (await importBarelySig(file, c)) return;
+    const imp = await importFile(file);
     const obj: Obj = {
       id: '' as Id,
       type: 'image',

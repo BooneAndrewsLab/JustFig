@@ -38,9 +38,11 @@ import {
   type TextAlign,
 } from '@/core/model/types';
 import { PAGE_PRESETS, presetSize } from '@/core/presets/pages';
+import { recipeFile } from '@/io/barelysig';
 import { formatLength, fromUnit, toUnit } from '@/core/units';
 
 import { type AppState, currentPage, figure, selectedObjects, store } from '../state/store';
+import { download, safeName } from '../state/session';
 import { useAppState } from '../state/useAppState';
 import { ColorInput } from './ColorInput';
 import { PaletteSection } from './PaletteSection';
@@ -566,9 +568,34 @@ function SelectionInspector({ s, sel }: { s: AppState; sel: readonly Obj[] }) {
       {one?.type === 'icon' && <IconSection s={s} icon={one} />}
       {one?.type === 'panel' && <PanelSection s={s} panel={one} />}
       {one?.type === 'image' && <ImageSection s={s} image={one} />}
+      {one?.type === 'embedded' && <EmbeddedSection obj={one} />}
       {one?.type === 'procedural' && <ProceduralSection s={s} obj={one} />}
       {one?.type === 'path' && <PathKindsSection s={s} path={one} />}
     </>
+  );
+}
+
+function EmbeddedSection({ obj }: { obj: Extract<Obj, { type: 'embedded' }> }) {
+  const bsig = recipeFile(obj);
+  return (
+    <Section title={`From ${obj.source.app}`}>
+      <p className="note">
+        Drawn from the picture {obj.source.app} made, at its own size. To change the graph, edit it
+        in {obj.source.app} and import it again.
+      </p>
+      {bsig !== null && (
+        <div className="row">
+          <button
+            type="button"
+            onClick={() => {
+              download(bsig, `${safeName(obj.name ?? 'graph')}.bsig`, 'application/json');
+            }}
+          >
+            Download .bsig for BarelySig
+          </button>
+        </div>
+      )}
+    </Section>
   );
 }
 
