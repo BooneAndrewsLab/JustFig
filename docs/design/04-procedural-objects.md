@@ -111,11 +111,11 @@ colours moves in about 0.01 ms per step and regenerates (resize) in about 30 ms 
 (`e2e/procedural.spec.ts`, headless, software rendering): dragging the full plate gave a median
 frame of 16.7 ms (p95 16.8–33 ms) and no long tasks in Chromium, 17.1 ms (p95 17.1 ms) in
 Firefox; the bilayer 16.7 / 17.1 ms. A scripted mouse move took 51–83 ms round trip (varying run to run) for the
-plate and 18–33 ms for the bilayer, most of it rasterising (no long tasks). This is not a 60 fps
+plate and 18–33 ms for the bilayer, with no main-thread long tasks, so the time is probably rasterising. This is not a 60 fps
 claim for a mid-range laptop, which was not measured.
 
-Because regeneration stays well under a frame for the sizes the plan names, the plan's debounced
-regeneration and worker are not built. If a kind ever gets slower, debounce in `proceduralPrims`
+Regeneration happens only on resize or a params change and takes one or two frames at the sizes
+the plan names, so the plan's debounced regeneration and worker are not built. If a kind ever gets slower, debounce in `proceduralPrims`
 first.
 
 ## Tests
