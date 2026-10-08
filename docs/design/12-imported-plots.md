@@ -48,9 +48,10 @@ Sans, sans-serif`, bold), `rotate(θ x y)` when rotated. Mathtext (`$…$`, scal
   fonts are loaded. Tick labels are many em apart and anything between two pieces (a tick,
   a marker) breaks the run, so labels do not fuse. The merged label keeps the first piece's
   position and so may shift by the width estimate's error; that is the price of one
-  editable string instead of per-glyph positions.
+  editable string instead of per-glyph positions. Rendering then maps every label to Arimo,
+  Tinos or Cousine and lays it out with our fonts (note 14); the asset keeps the plot's names.
 - **Cropping:** the viewBox becomes the union of drawn boxes (control-point hulls for paths,
-  padded by the stroke width, text boxes from the width estimate ×1.1 and −1 em/+0.3 em
+  padded by the stroke width, text boxes from the width estimate in the bundled font the label is drawn in (note 14) ×1.1 and −1 em/+0.3 em
   around the baseline), intersected with the original viewBox (what lay outside was never
   shown), so the placed size is the drawing's. Nothing drawn: unchanged.
 - **Tests:** real matplotlib 3.11 output (`fonttype` path and none) and ggplot2 via cairo

@@ -36,7 +36,7 @@ account, figures never leave the computer. Design notes: `docs/design/`.
   exported pages, `vector-effect`, `baseline-shift`, `dominant-baseline`.
   Arrowheads are path geometry; sub/sup are tspans with explicit x/y/size.
 - **Text layout** is ours (opentype.js on `public/fonts/*.ttf`), never the
-  browser's: every run is placed with explicit x/y, kerning off.
+  browser's: every run is placed with explicit x/y, kerning off; imported SVG text too (note 14).
 - **Units:** the model is in points (1/72 in); the UI shows mm or inches.
 - **Resizing paths/arrows bakes the scale into the points**; icons and
   images scale by transform.

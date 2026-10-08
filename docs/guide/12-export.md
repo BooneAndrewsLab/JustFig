@@ -19,7 +19,7 @@ For a journal, send the PDF if they take one, or a TIFF at the dpi they specify.
 
 **Transparent background** (PNG and TIFF) leaves the page colour out. Without it the page background, white unless you changed it, is drawn.
 
-**Outline text** (PDF and SVG) turns every letter into a drawn shape. The file then looks the same everywhere without needing fonts, but the text can no longer be edited or searched. Without it the text stays real text in the three built-in fonts (embedded in PDFs). PNG and TIFF always show text exactly as on screen.
+**Outline text** (PDF and SVG) turns every letter into a drawn shape. The file then looks the same everywhere without needing fonts, but the text can no longer be edited or searched. Without it the text stays real text in the three built-in fonts (embedded in PDFs). Both apply to text inside imported plots too. PNG and TIFF always show text exactly as on screen.
 
 **All pages** (PDF, only when the figure has more than one page) puts every page in one PDF. SVG, PNG and TIFF export the current page.
 

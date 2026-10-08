@@ -5,7 +5,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import { addObjects } from '@/core/edits/edits';
 import { createDoc } from '@/core/model/factory';
@@ -13,9 +13,12 @@ import { docObjects } from '@/core/model/tree';
 import type { Embedded, Figure } from '@/core/model/types';
 import { objectToNode, renderCtx } from '@/render/objectToNode';
 import { nodeToSvgString } from '@/render/svgNode';
+import { loadTestFonts } from '@/test/fonts';
 
 import { BSIG_FORMAT, isBarelySigSvg, readBarelySigSvg, recipeFile } from './barelysig';
 import { readFragment, readJfig, writeFragment, writeJfig } from './jfig';
+
+beforeAll(loadTestFonts);
 
 const SVG = readFileSync(new URL('./fixtures/barelysig-figure2.svg', import.meta.url), 'utf8');
 const FRAGMENT_URL = new URL('./fixtures/barelysig-figure2.fragment.json', import.meta.url);

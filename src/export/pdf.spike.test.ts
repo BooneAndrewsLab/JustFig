@@ -4,11 +4,17 @@
  * regression test: the torture fixture through jsPDF + svg2pdf, checked
  * with pdf-lib.
  */
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { inflateSync } from 'node:zlib';
 import { PDFDocument, PDFName, PDFDict, PDFRawStream } from 'pdf-lib';
 import { beforeAll, describe, expect, it } from 'vitest';
 
+import { addObjects } from '@/core/edits/edits';
+import { createDoc, frame } from '@/core/model/factory';
+import type { Id } from '@/core/model/ids';
+import type { Figure } from '@/core/model/types';
+import { importSvgText } from '@/io/import';
 import { loadTestFonts } from '@/test/fonts';
 import { stubDom } from '@/test/domStubs';
 
@@ -123,5 +129,45 @@ describe('PDF export (svg2pdf spike)', () => {
     const { pdf } = await pdfOf('outline');
     expect(inspect(pdf).fonts).toEqual([]);
     expect(inspect(pdf).images).toBe(1);
+  });
+
+  it('draws text inside an imported plot in the bundled fonts, or as outlines (note 14)', async () => {
+    // matplotlib with svg.fonttype none: 'DejaVu Sans', …, sans-serif.
+    const svg = readFileSync(
+      join(process.cwd(), 'src/io/svg/fixtures/matplotlib-text.svg'),
+      'utf8',
+    );
+    const imp = importSvgText(svg, 'plot.svg');
+    const doc = createDoc();
+    const page = doc.pages[0];
+    if (!page) throw new Error('no page');
+    const obj = {
+      id: 'o_plot' as Id,
+      type: 'image' as const,
+      frame: frame(20, 20, imp.w, imp.h),
+      opacity: 1,
+      asset: imp.hash,
+    };
+    const fig: Figure = addObjects(page.id, [obj], { [imp.hash]: imp.asset }).apply({
+      doc,
+      assets: {},
+    });
+    const asText = await exportPdf(
+      fig,
+      fig.doc.pages,
+      { textMode: 'text', footer: false, background: true },
+      '0',
+    );
+    const used = fontsUsed(asText);
+    expect(used.length).toBeGreaterThan(0);
+    expect(used.every((f) => f.includes('Arimo'))).toBe(true);
+    const outlined = await exportPdf(
+      fig,
+      fig.doc.pages,
+      { textMode: 'outline', footer: false, background: true },
+      '0',
+    );
+    expect(inspect(await PDFDocument.load(outlined)).fonts).toEqual([]);
+    expect(contentStreams(outlined).join('\n')).not.toMatch(/\bT[jJ]\b/);
   });
 });

@@ -39,7 +39,7 @@ scaling text, issue 3) sees no difference between the two.
 - **Text:** each show-text run becomes `<text transform="matrix(…)" font-size="1">`, which plot
   cleanup turns into x/y, font size and `rotate()`. Family, weight and style come from the font
   name (subset prefix and `MT`/`PS` suffixes dropped, then `fontFromPsName` from note 12) and
-  pdf.js's bold/italic flags. A run is split where the PDF leaves a gap over 0.3 em (TJ
+  pdf.js's bold/italic flags; rendering maps them to the bundled fonts (note 14). A run is split where the PDF leaves a gap over 0.3 em (TJ
   offsets; a gap over 0.15 em becomes a space), and a run that starts exactly where the
   previous one ended on the same baseline, with nothing drawn in between, is joined to it
   using the PDF's own advance widths (matplotlib

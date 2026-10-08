@@ -228,18 +228,22 @@ function content(o: Obj, ctx: RenderCtx): SvgNode[] {
     case 'image': {
       const a = ctx.assets[o.asset];
       if (a?.kind === 'image') return [imageNode(a, w, h)];
-      if (a?.kind === 'svgImport') return [svgImportNode(a.svg, w, h)];
+      if (a?.kind === 'svgImport') return [svgImportNode(a.svg, w, h, ctx.textMode)];
       return [placeholder(w, h)];
     }
     case 'procedural': {
       const nodes = proceduralNodes(o, ctx.textMode, ctx.screen, ctx.palette);
       if (nodes) return nodes;
       const a = o.snapshot === undefined ? undefined : ctx.assets[o.snapshot];
-      return a?.kind === 'svgImport' ? [svgImportNode(a.svg, w, h)] : [placeholder(w, h)];
+      return a?.kind === 'svgImport'
+        ? [svgImportNode(a.svg, w, h, ctx.textMode)]
+        : [placeholder(w, h)];
     }
     case 'embedded': {
       const a = ctx.assets[o.snapshot];
-      return a?.kind === 'svgImport' ? [svgImportNode(a.svg, w, h)] : [placeholder(w, h)];
+      return a?.kind === 'svgImport'
+        ? [svgImportNode(a.svg, w, h, ctx.textMode)]
+        : [placeholder(w, h)];
     }
     case 'group':
     case 'panel':

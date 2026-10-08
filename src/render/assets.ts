@@ -9,7 +9,9 @@ import { resolvePaint, rgbToOklch, parseHex, shiftLightness } from '@/core/color
 import type { Asset, Paint, SlotDef, Swatch } from '@/core/model/types';
 import { type SanitizedSvg, sanitizeSvg } from '@/io/svg/sanitize';
 
+import { layoutImportedTexts } from './importedText';
 import { type SvgNode, el, num } from './svgNode';
+import type { TextMode } from './textNodes';
 
 const parsed = new Map<string, SanitizedSvg>();
 
@@ -88,13 +90,12 @@ function fitted(
   w: number,
   h: number,
   children: readonly (SvgNode | string)[],
+  root: SvgNode = s.root,
 ): SvgNode {
   const [vx, vy, vw, vh] = s.viewBox;
   const sx = w / vw;
   const sy = h / vh;
-  const rootAttrs = Object.fromEntries(
-    Object.entries(s.root.attrs).filter(([k]) => k !== 'viewBox'),
-  );
+  const rootAttrs = Object.fromEntries(Object.entries(root.attrs).filter(([k]) => k !== 'viewBox'));
   return el(
     'g',
     {
@@ -129,9 +130,19 @@ export function iconNode(
   return fitted(s, w, h, kids);
 }
 
-export function svgImportNode(svg: string, w: number, h: number): SvgNode {
+const laidOut: Record<TextMode, Map<string, SvgNode>> = { outline: new Map(), text: new Map() };
+
+/** An imported SVG with its text laid out in the bundled fonts (note 14), cached per mode. */
+export function svgImportNode(svg: string, w: number, h: number, mode: TextMode): SvgNode {
   const s = parsedSvg(svg);
-  return fitted(s, w, h, s.root.children);
+  const cache = laidOut[mode];
+  let root = cache.get(svg);
+  if (!root) {
+    root = layoutImportedTexts(s.root, mode);
+    if (cache.size > 500) cache.clear();
+    cache.set(svg, root);
+  }
+  return fitted(s, w, h, root.children, root);
 }
 
 export function imageNode(asset: Extract<Asset, { kind: 'image' }>, w: number, h: number): SvgNode {

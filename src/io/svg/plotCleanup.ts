@@ -34,6 +34,7 @@ import {
   scaleOf,
 } from './matrix';
 import { parsePath, pathPoints, pathRect, pathString, transformPath } from './pathData';
+import { bundledFont, isBold } from './plotFonts';
 
 export type ViewBox = readonly [number, number, number, number];
 
@@ -80,14 +81,14 @@ function pruned(a: SvgNode['attrs'], parent: Inherited): Record<string, string |
 }
 
 /** A length in user units (unitless, px or pt), or null. */
-function len(v: string | number | undefined): number | null {
+export function len(v: string | number | undefined): number | null {
   if (v === undefined) return null;
   const m = /^\s*([-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?)\s*(px|pt)?\s*$/i.exec(String(v));
   if (!m) return null;
   return Number(m[1]) * (m[2]?.toLowerCase() === 'pt' ? 4 / 3 : 1);
 }
 
-const numList = (v: string | number | undefined): number[] | null => {
+export const numList = (v: string | number | undefined): number[] | null => {
   if (v === undefined) return [];
   const parts = String(v)
     .trim()
@@ -546,11 +547,12 @@ function leafBox(n: SvgNode, inh: Inherited, vb: ViewBox): Box | null {
       )
       .join('');
     const w =
+      // Measured as drawn: in the bundled font the family maps to (note 14).
       approxTextWidth(
         text,
         fs,
-        get(inh, 'font-family'),
-        /bold|[6-9]00/.test(get(inh, 'font-weight')),
+        bundledFont(get(inh, 'font-family')),
+        isBold(get(inh, 'font-weight')),
       ) * 1.1;
     const x = numList(n.attrs['x'])?.[0] ?? 0;
     const y = numList(n.attrs['y'])?.[0] ?? 0;

@@ -56,6 +56,9 @@ Text renders in one of two modes:
   default too, with the TTFs registered in jsPDF (`addFont`), so the PDF has real, searchable text
   with embedded fonts. Both dialogs offer "Outline text".
 
+Text inside imported SVGs and PDFs is laid out the same way, in the bundled font closest to the
+one it names (note 14).
+
 ## Formats
 
 | Format | How                                                                                                                                                                                                                                                                      |
