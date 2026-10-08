@@ -778,3 +778,46 @@ button.link {
 .wellmap-legend .swatch {
   display: inline-block;
 }
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.tabs [aria-selected='true'] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.gallery-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.gallery-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+  text-align: left;
+  padding: 6px;
+}
+
+.gallery-card img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: contain;
+  background: var(--ground);
+  border-radius: 3px;
+}
+
+.gallery-card span {
+  color: var(--ink-2);
+  font-size: 12px;
+}

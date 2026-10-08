@@ -10,7 +10,7 @@ import { cloneObjects } from '@/core/model/clone';
 import { createDoc, createText, defaultRun, frame } from '@/core/model/factory';
 import type { Id } from '@/core/model/ids';
 import { objectAssets } from '@/core/model/tree';
-import type { Assets, Obj, Swatch } from '@/core/model/types';
+import type { Assets, Figure, Obj, Swatch } from '@/core/model/types';
 import { fitText } from '@/core/text/layout';
 import { exportPdf } from '@/export/pdf';
 import { exportPng, exportTiff } from '@/export/raster';
@@ -93,6 +93,12 @@ export async function startSession(): Promise<void> {
 export function newFigure(): void {
   void saver?.flush();
   store.load({ doc: createDoc(), assets: {} });
+}
+
+/** A new figure from a gallery entry (note 08). */
+export function openGallery(e: { build: () => Figure }): void {
+  void saver?.flush();
+  store.load(e.build());
 }
 
 export async function openFile(file: File): Promise<void> {

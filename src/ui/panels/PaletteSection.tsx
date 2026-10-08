@@ -17,6 +17,7 @@ import {
   unlinkColours,
 } from '@/palette/recolor';
 
+import { analytics } from '../analytics';
 import { type AppState, type Vision, figure, store } from '../state/store';
 
 const VISIONS: readonly { id: Vision; label: string }[] = [
@@ -117,7 +118,9 @@ export function PaletteSection({ s }: { s: AppState }) {
           type="button"
           disabled={!chosen}
           onClick={() => {
-            if (chosen) store.edit(applyPalette(chosen));
+            if (!chosen) return;
+            store.edit(applyPalette(chosen));
+            analytics.track('palette', 'apply', chosen.id);
           }}
         >
           Apply to figure
@@ -137,6 +140,7 @@ export function PaletteSection({ s }: { s: AppState }) {
           title={`Make each of the figure’s ${String(fixedColours)} colours a swatch`}
           onClick={() => {
             store.edit(linkColours());
+            analytics.track('palette', 'link');
           }}
         >
           Link colours

@@ -67,3 +67,29 @@ test('an arrow drawn between two objects follows them, and detaches when dragged
   await expect(page.getByTestId('bound-end')).toHaveCount(0);
   await expect(page.getByTestId('bound-start')).toBeVisible();
 });
+
+test('a gallery example opens as a new figure, and a palette recolours it', async ({ page }) => {
+  await page.getByRole('button', { name: 'Templates…' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Templates and examples' });
+  await expect(dialog.locator('.gallery-card')).toHaveCount(3);
+  await dialog.getByRole('tab', { name: 'Examples' }).click();
+  await dialog.locator('[data-entry="signalling-pathway"]').click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByLabel('Figure title')).toHaveValue('Signalling pathway');
+  await expect(page.locator('.layers .item .name', { hasText: 'Arrow' })).toHaveCount(5);
+  const ligand = page.getByLabel('Colour of Ligand');
+  await expect(ligand).toHaveValue('#e69f00');
+  await page.locator('#palette-choice').selectOption('tol-bright');
+  await page.getByRole('button', { name: 'Apply to figure' }).click();
+  await expect(ligand).toHaveValue('#4477aa');
+  // Colour-vision preview is on screen only.
+  await page.getByLabel('Preview as').selectOption('deuteranopia');
+  await expect(page.getByTestId('vision')).toHaveAttribute('filter', 'url(#vision-deuteranopia)');
+  if (process.env['E2E_OUT'])
+    await page.screenshot({
+      path: `${process.env['E2E_OUT']}/gallery-${test.info().project.name}.png`,
+    });
+  await page.locator('#vision').blur();
+  await page.keyboard.press('Control+z');
+  await expect(ligand).toHaveValue('#e69f00');
+});

@@ -9,6 +9,7 @@ import { canvasSize, fitPage, zoomAt } from './canvas/view';
 import { AttributionDialog } from './dialogs/AttributionDialog';
 import { CreditsDialog } from './dialogs/CreditsDialog';
 import { ExportDialog } from './dialogs/ExportDialog';
+import { GalleryDialog } from './dialogs/GalleryDialog';
 import { IconBrowser } from './panels/IconBrowser';
 import { Inspector } from './panels/Inspector';
 import { LayersPanel } from './panels/LayersPanel';
@@ -18,7 +19,7 @@ import { importToCanvas, newFigure, openFile, saveFile } from './state/session';
 import { currentPage, figure, store } from './state/store';
 import { useAppState } from './state/useAppState';
 
-type DialogId = 'export' | 'attribution' | 'credits' | null;
+type DialogId = 'export' | 'attribution' | 'credits' | 'gallery' | null;
 
 export function App() {
   const s = useAppState();
@@ -105,6 +106,15 @@ export function App() {
             }}
           >
             New
+          </button>
+          <button
+            type="button"
+            title="Start from a template or an example"
+            onClick={() => {
+              setDialog('gallery');
+            }}
+          >
+            Templates…
           </button>
           <button
             type="button"
@@ -261,6 +271,14 @@ export function App() {
           }}
           onCredits={() => {
             setDialog('credits');
+          }}
+        />
+      )}
+      {dialog === 'gallery' && (
+        <GalleryDialog
+          unsaved={unsaved}
+          onClose={() => {
+            setDialog(null);
           }}
         />
       )}

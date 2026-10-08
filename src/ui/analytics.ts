@@ -61,6 +61,14 @@ export const EVENTS = {
   procedural: ['place', 'convert', 'from-path', 'fragment-paste'],
   export: ['svg', 'pdf', 'png', 'tiff'],
   attribution: ['open', 'copy', 'add-text'],
+  /** The entry id (app vocabulary) as the name. */
+  gallery: ['open'],
+  /** The built-in palette id as the name. */
+  palette: ['apply', 'link'],
+  keys: ['change', 'reset'],
+  /** The guide page id as the name. */
+  guide: ['open'],
+  embedded: ['import'],
 } as const satisfies Readonly<Record<string, readonly string[]>>;
 
 export type EventCategory = keyof typeof EVENTS;
