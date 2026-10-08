@@ -1,0 +1,358 @@
+{
+ "category": "molecules",
+ "icons": [
+  {
+   "id": "antibody",
+   "title": "Antibody (IgG)",
+   "tags": [
+    "igg",
+    "immunoglobulin",
+    "antibody",
+    "immunology"
+   ],
+   "category": "molecules",
+   "hash": "h8503358af447ce3d6be319816a",
+   "svg": "svg/h8503358af447ce3d6be319816a.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Heavy chain",
+     "default": "#0072b2"
+    },
+    {
+     "id": "s2",
+     "label": "Light chain",
+     "default": "#56b4e9"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "antibody",
+    "title": "Antibody (IgG)",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#antibody",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "hi-dna",
+   "title": "DNA",
+   "tags": [
+    "dna",
+    "genetics",
+    "helix"
+   ],
+   "category": "molecules",
+   "hash": "h781c95c008520283bebccd1d4e",
+   "svg": "svg/h781c95c008520283bebccd1d4e.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Colour",
+     "default": "#333333"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "hi-dna",
+    "title": "DNA",
+    "source": "Health Icons",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/resolvetosavelives/healthicons/blob/36887b268d2cb61f8d91622ad459bdf07910c2b0/public/icons/svg/filled/dna.svg",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "dna-helix",
+   "title": "DNA double helix",
+   "tags": [
+    "dna",
+    "helix",
+    "gene",
+    "nucleic acid"
+   ],
+   "category": "molecules",
+   "hash": "h58d32f7461e26ebf153348ab23",
+   "svg": "svg/h58d32f7461e26ebf153348ab23.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Strand 1",
+     "default": "#0072b2"
+    },
+    {
+     "id": "s2",
+     "label": "Strand 2",
+     "default": "#e69f00"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "dna-helix",
+    "title": "DNA double helix",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#dna-helix",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "enzyme",
+   "title": "Enzyme",
+   "tags": [
+    "enzyme",
+    "catalysis",
+    "active site",
+    "protein"
+   ],
+   "category": "molecules",
+   "hash": "hd9e90188b74599294c4fa0266e",
+   "svg": "svg/hd9e90188b74599294c4fa0266e.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Enzyme",
+     "default": "#cc79a7"
+    },
+    {
+     "id": "s2",
+     "label": "Substrate",
+     "default": "#f0e442"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "enzyme",
+    "title": "Enzyme",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#enzyme",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "ligand",
+   "title": "Ligand",
+   "tags": [
+    "ligand",
+    "small molecule",
+    "drug",
+    "agonist"
+   ],
+   "category": "molecules",
+   "hash": "h1d84db972a579f6c2188480c3a",
+   "svg": "svg/h1d84db972a579f6c2188480c3a.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Ligand",
+     "default": "#d55e00"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "ligand",
+    "title": "Ligand",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#ligand",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "lipid-bilayer",
+   "title": "Lipid bilayer",
+   "tags": [
+    "membrane",
+    "phospholipid",
+    "bilayer"
+   ],
+   "category": "molecules",
+   "hash": "h2a96e71a6c691a6196cfc35ad7",
+   "svg": "svg/h2a96e71a6c691a6196cfc35ad7.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Heads",
+     "default": "#e69f00"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "lipid-bilayer",
+    "title": "Lipid bilayer",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#lipid-bilayer",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "receptor",
+   "title": "Membrane receptor",
+   "tags": [
+    "receptor",
+    "gpcr",
+    "membrane",
+    "signalling"
+   ],
+   "category": "molecules",
+   "hash": "he59e03e9d09dad705cd0793d9f",
+   "svg": "svg/he59e03e9d09dad705cd0793d9f.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Receptor",
+     "default": "#009e73"
+    },
+    {
+     "id": "s2",
+     "label": "Membrane",
+     "default": "#f5e0b8"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "receptor",
+    "title": "Membrane receptor",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#receptor",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "protein",
+   "title": "Protein (globular)",
+   "tags": [
+    "protein",
+    "enzyme",
+    "molecule"
+   ],
+   "category": "molecules",
+   "hash": "hf88487042b0ed8fb90e141d3ef",
+   "svg": "svg/hf88487042b0ed8fb90e141d3ef.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Protein",
+     "default": "#0072b2"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "protein",
+    "title": "Protein (globular)",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#protein",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "rna-strand",
+   "title": "RNA strand",
+   "tags": [
+    "rna",
+    "mrna",
+    "transcript",
+    "nucleic acid"
+   ],
+   "category": "molecules",
+   "hash": "hb64d6a4826cc6b91462081a2d3",
+   "svg": "svg/hb64d6a4826cc6b91462081a2d3.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Strand",
+     "default": "#d55e00"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "rna-strand",
+    "title": "RNA strand",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#rna-strand",
+    "shareAlike": false
+   }
+  }
+ ]
+}

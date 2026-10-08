@@ -13,6 +13,7 @@
   "include": [
     "vite.config.ts",
     "src/brand.ts",
+    "src/core/model/hash.ts",
     "eslint.config.js",
     "scripts/**/*.ts",
     "playwright.config.ts",

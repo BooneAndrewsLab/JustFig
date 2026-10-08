@@ -1,0 +1,704 @@
+{
+ "category": "lab",
+ "icons": [
+  {
+   "id": "beaker",
+   "title": "Beaker",
+   "tags": [
+    "glass",
+    "liquid",
+    "buffer"
+   ],
+   "category": "lab",
+   "hash": "hd7eba03fc43d74c79a453d6468",
+   "svg": "svg/hd7eba03fc43d74c79a453d6468.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Liquid",
+     "default": "#56b4e9"
+    },
+    {
+     "id": "s2",
+     "label": "Vessel",
+     "default": "#e4f1fb"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "beaker",
+    "title": "Beaker",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#beaker",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "culture-flask",
+   "title": "Cell culture flask",
+   "tags": [
+    "t75",
+    "flask",
+    "culture",
+    "cells"
+   ],
+   "category": "lab",
+   "hash": "h69dbe329fab15210635cc3639a",
+   "svg": "svg/h69dbe329fab15210635cc3639a.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Liquid",
+     "default": "#cc79a7"
+    },
+    {
+     "id": "s2",
+     "label": "Vessel",
+     "default": "#e4f1fb"
+    },
+    {
+     "id": "s3",
+     "label": "Cap",
+     "default": "#0072b2"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "culture-flask",
+    "title": "Cell culture flask",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#culture-flask",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "conical-tube",
+   "title": "Conical tube (15/50 ml)",
+   "tags": [
+    "falcon",
+    "tube",
+    "centrifuge"
+   ],
+   "category": "lab",
+   "hash": "h5356400721a9412b68e11edcc8",
+   "svg": "svg/h5356400721a9412b68e11edcc8.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Liquid",
+     "default": "#56b4e9"
+    },
+    {
+     "id": "s2",
+     "label": "Vessel",
+     "default": "#e4f1fb"
+    },
+    {
+     "id": "s3",
+     "label": "Cap",
+     "default": "#0072b2"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "conical-tube",
+    "title": "Conical tube (15/50 ml)",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#conical-tube",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "cryovial",
+   "title": "Cryovial",
+   "tags": [
+    "vial",
+    "freezer",
+    "liquid nitrogen",
+    "storage"
+   ],
+   "category": "lab",
+   "hash": "h52fb5ddbf9716e62c072621bf3",
+   "svg": "svg/h52fb5ddbf9716e62c072621bf3.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Liquid",
+     "default": "#56b4e9"
+    },
+    {
+     "id": "s2",
+     "label": "Vessel",
+     "default": "#e4f1fb"
+    },
+    {
+     "id": "s3",
+     "label": "Cap",
+     "default": "#d55e00"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "cryovial",
+    "title": "Cryovial",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#cryovial",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "cuvette",
+   "title": "Cuvette",
+   "tags": [
+    "spectrophotometer",
+    "absorbance",
+    "od600"
+   ],
+   "category": "lab",
+   "hash": "h5ceda3a4917f6c4c28a18b1edb",
+   "svg": "svg/h5ceda3a4917f6c4c28a18b1edb.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Liquid",
+     "default": "#f0e442"
+    },
+    {
+     "id": "s2",
+     "label": "Vessel",
+     "default": "#e4f1fb"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "cuvette",
+    "title": "Cuvette",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#cuvette",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "erlenmeyer-flask",
+   "title": "Erlenmeyer flask",
+   "tags": [
+    "flask",
+    "conical",
+    "culture"
+   ],
+   "category": "lab",
+   "hash": "h66dfdc4831d2a02f39c646671c",
+   "svg": "svg/h66dfdc4831d2a02f39c646671c.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Liquid",
+     "default": "#009e73"
+    },
+    {
+     "id": "s2",
+     "label": "Vessel",
+     "default": "#e4f1fb"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "erlenmeyer-flask",
+    "title": "Erlenmeyer flask",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#erlenmeyer-flask",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "media-bottle",
+   "title": "Media bottle",
+   "tags": [
+    "bottle",
+    "medium",
+    "reagent"
+   ],
+   "category": "lab",
+   "hash": "h13e0b7af22bf6564d40318a75b",
+   "svg": "svg/h13e0b7af22bf6564d40318a75b.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Liquid",
+     "default": "#cc79a7"
+    },
+    {
+     "id": "s2",
+     "label": "Vessel",
+     "default": "#e4f1fb"
+    },
+    {
+     "id": "s3",
+     "label": "Cap",
+     "default": "#0072b2"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "media-bottle",
+    "title": "Media bottle",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#media-bottle",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "microcentrifuge-tube",
+   "title": "Microcentrifuge tube",
+   "tags": [
+    "eppendorf",
+    "tube",
+    "1.5 ml"
+   ],
+   "category": "lab",
+   "hash": "hf5c12664a9f79b3c55a3584d85",
+   "svg": "svg/hf5c12664a9f79b3c55a3584d85.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Liquid",
+     "default": "#56b4e9"
+    },
+    {
+     "id": "s2",
+     "label": "Vessel",
+     "default": "#e4f1fb"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "microcentrifuge-tube",
+    "title": "Microcentrifuge tube",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#microcentrifuge-tube",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "hi-microscope",
+   "title": "Microscope",
+   "tags": [
+    "microscopy",
+    "imaging",
+    "lab"
+   ],
+   "category": "lab",
+   "hash": "h5b5e174a6653a813a8299f6c64",
+   "svg": "svg/h5b5e174a6653a813a8299f6c64.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Colour",
+     "default": "#333333"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "hi-microscope",
+    "title": "Microscope",
+    "source": "Health Icons",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/resolvetosavelives/healthicons/blob/36887b268d2cb61f8d91622ad459bdf07910c2b0/public/icons/svg/filled/microscope.svg",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "microscope-slide",
+   "title": "Microscope slide",
+   "tags": [
+    "slide",
+    "coverslip",
+    "specimen"
+   ],
+   "category": "lab",
+   "hash": "h5e9514836e6d44e1539fadb756",
+   "svg": "svg/h5e9514836e6d44e1539fadb756.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Specimen",
+     "default": "#cc79a7"
+    },
+    {
+     "id": "s2",
+     "label": "Vessel",
+     "default": "#e4f1fb"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "microscope-slide",
+    "title": "Microscope slide",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#microscope-slide",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "well-plate",
+   "title": "Multi-well plate",
+   "tags": [
+    "96-well",
+    "plate",
+    "assay",
+    "microplate"
+   ],
+   "category": "lab",
+   "hash": "ha79b17526f2016b08331bbb796",
+   "svg": "svg/ha79b17526f2016b08331bbb796.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Wells",
+     "default": "#56b4e9"
+    },
+    {
+     "id": "s2",
+     "label": "Plate",
+     "default": "#e4e7eb"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "well-plate",
+    "title": "Multi-well plate",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#well-plate",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "petri-dish",
+   "title": "Petri dish",
+   "tags": [
+    "agar",
+    "plate",
+    "colonies",
+    "culture"
+   ],
+   "category": "lab",
+   "hash": "h4a05a7e8b5ac51b370ee4f76e5",
+   "svg": "svg/h4a05a7e8b5ac51b370ee4f76e5.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Agar",
+     "default": "#f5e6a8"
+    },
+    {
+     "id": "s2",
+     "label": "Colonies",
+     "default": "#e69f00"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "petri-dish",
+    "title": "Petri dish",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#petri-dish",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "pipette",
+   "title": "Pipette",
+   "tags": [
+    "micropipette",
+    "pipetting",
+    "gilson"
+   ],
+   "category": "lab",
+   "hash": "h0e35545076c592e08085b43807",
+   "svg": "svg/h0e35545076c592e08085b43807.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Body",
+     "default": "#56b4e9"
+    },
+    {
+     "id": "s2",
+     "label": "Tip",
+     "default": "#f2f4f6"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "pipette",
+    "title": "Pipette",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#pipette",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "pipette-tip",
+   "title": "Pipette tip",
+   "tags": [
+    "tip",
+    "pipetting"
+   ],
+   "category": "lab",
+   "hash": "h4850dba82c52c28bf3e2dd0414",
+   "svg": "svg/h4850dba82c52c28bf3e2dd0414.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Tip",
+     "default": "#f0e442"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "pipette-tip",
+    "title": "Pipette tip",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#pipette-tip",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "hi-syringe",
+   "title": "Syringe",
+   "tags": [
+    "injection",
+    "needle",
+    "dose"
+   ],
+   "category": "lab",
+   "hash": "hffc9e2f67402fbd8281c5d347c",
+   "svg": "svg/hffc9e2f67402fbd8281c5d347c.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Colour",
+     "default": "#333333"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "hi-syringe",
+    "title": "Syringe",
+    "source": "Health Icons",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/resolvetosavelives/healthicons/blob/36887b268d2cb61f8d91622ad459bdf07910c2b0/public/icons/svg/filled/syringe.svg",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "test-tube",
+   "title": "Test tube",
+   "tags": [
+    "tube",
+    "glass",
+    "sample"
+   ],
+   "category": "lab",
+   "hash": "hb0a9353cf8b55d8e0c1ef05ca2",
+   "svg": "svg/hb0a9353cf8b55d8e0c1ef05ca2.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Liquid",
+     "default": "#56b4e9"
+    },
+    {
+     "id": "s2",
+     "label": "Vessel",
+     "default": "#e4f1fb"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "test-tube",
+    "title": "Test tube",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#test-tube",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "hi-test-tubes",
+   "title": "Test tubes",
+   "tags": [
+    "tubes",
+    "rack",
+    "samples"
+   ],
+   "category": "lab",
+   "hash": "h804dd30a7ea6735931c6ab4df9",
+   "svg": "svg/h804dd30a7ea6735931c6ab4df9.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Colour",
+     "default": "#333333"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "hi-test-tubes",
+    "title": "Test tubes",
+    "source": "Health Icons",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/resolvetosavelives/healthicons/blob/36887b268d2cb61f8d91622ad459bdf07910c2b0/public/icons/svg/filled/test-tubes.svg",
+    "shareAlike": false
+   }
+  }
+ ]
+}

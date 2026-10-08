@@ -1,0 +1,522 @@
+{
+ "category": "cells",
+ "icons": [
+  {
+   "id": "animal-cell",
+   "title": "Animal cell",
+   "tags": [
+    "cell",
+    "eukaryote",
+    "nucleus",
+    "mammalian"
+   ],
+   "category": "cells",
+   "hash": "hb0012f2b10130c6b16813f1a3c",
+   "svg": "svg/hb0012f2b10130c6b16813f1a3c.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Cytoplasm",
+     "default": "#fbd3c0"
+    },
+    {
+     "id": "s2",
+     "label": "Nucleus",
+     "default": "#8e6fb4"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "animal-cell",
+    "title": "Animal cell",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#animal-cell",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "hi-bacteria",
+   "title": "Bacteria",
+   "tags": [
+    "microbe",
+    "germ",
+    "infection"
+   ],
+   "category": "cells",
+   "hash": "ha6012b59ef08f96512126965e9",
+   "svg": "svg/ha6012b59ef08f96512126965e9.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Colour",
+     "default": "#333333"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "hi-bacteria",
+    "title": "Bacteria",
+    "source": "Health Icons",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/resolvetosavelives/healthicons/blob/36887b268d2cb61f8d91622ad459bdf07910c2b0/public/icons/svg/filled/bacteria.svg",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "bacterium-coccus",
+   "title": "Bacteria (cocci)",
+   "tags": [
+    "coccus",
+    "staphylococcus",
+    "prokaryote",
+    "microbe"
+   ],
+   "category": "cells",
+   "hash": "h06f878a9be39d1003e3a66a18a",
+   "svg": "svg/h06f878a9be39d1003e3a66a18a.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Cells",
+     "default": "#cc79a7"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "bacterium-coccus",
+    "title": "Bacteria (cocci)",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#bacterium-coccus",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "bacterium-rod",
+   "title": "Bacterium (rod)",
+   "tags": [
+    "bacillus",
+    "e. coli",
+    "prokaryote",
+    "microbe"
+   ],
+   "category": "cells",
+   "hash": "hcced32341290e7fc8615142e8b",
+   "svg": "svg/hcced32341290e7fc8615142e8b.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Cell",
+     "default": "#009e73"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "bacterium-rod",
+    "title": "Bacterium (rod)",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#bacterium-rod",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "hi-blood-cells",
+   "title": "Blood cells",
+   "tags": [
+    "blood",
+    "erythrocyte",
+    "leukocyte"
+   ],
+   "category": "cells",
+   "hash": "h1dddc9471e13dabd9fe64fe421",
+   "svg": "svg/h1dddc9471e13dabd9fe64fe421.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Colour",
+     "default": "#333333"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "hi-blood-cells",
+    "title": "Blood cells",
+    "source": "Health Icons",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/resolvetosavelives/healthicons/blob/36887b268d2cb61f8d91622ad459bdf07910c2b0/public/icons/svg/filled/blood-cells.svg",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "hi-cell-nuclei",
+   "title": "Cell nuclei",
+   "tags": [
+    "nucleus",
+    "cells",
+    "tissue"
+   ],
+   "category": "cells",
+   "hash": "h3b90bbe0ab246f437c00c9e417",
+   "svg": "svg/h3b90bbe0ab246f437c00c9e417.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Colour",
+     "default": "#333333"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "hi-cell-nuclei",
+    "title": "Cell nuclei",
+    "source": "Health Icons",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/resolvetosavelives/healthicons/blob/36887b268d2cb61f8d91622ad459bdf07910c2b0/public/icons/svg/filled/cell-nuclei.svg",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "golgi",
+   "title": "Golgi apparatus",
+   "tags": [
+    "organelle",
+    "cisternae",
+    "secretion"
+   ],
+   "category": "cells",
+   "hash": "hc0a6576d70294fe41eed417ab9",
+   "svg": "svg/hc0a6576d70294fe41eed417ab9.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Cisternae",
+     "default": "#e0a3d0"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "golgi",
+    "title": "Golgi apparatus",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#golgi",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "mitochondrion",
+   "title": "Mitochondrion",
+   "tags": [
+    "mitochondria",
+    "organelle",
+    "atp",
+    "cristae"
+   ],
+   "category": "cells",
+   "hash": "hce785e33e489ced45fddd8a57b",
+   "svg": "svg/hce785e33e489ced45fddd8a57b.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Outer membrane",
+     "default": "#e69f00"
+    },
+    {
+     "id": "s2",
+     "label": "Matrix",
+     "default": "#fbe3b5"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "mitochondrion",
+    "title": "Mitochondrion",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#mitochondrion",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "neuron",
+   "title": "Neuron",
+   "tags": [
+    "nerve",
+    "axon",
+    "dendrite",
+    "brain"
+   ],
+   "category": "cells",
+   "hash": "h3e7db7a5c878064f90d1db1254",
+   "svg": "svg/h3e7db7a5c878064f90d1db1254.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Soma",
+     "default": "#f6a6b2"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "neuron",
+    "title": "Neuron",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#neuron",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "nucleus",
+   "title": "Nucleus",
+   "tags": [
+    "organelle",
+    "chromatin",
+    "nucleolus",
+    "dna"
+   ],
+   "category": "cells",
+   "hash": "hf53787da6b2a660b90a5475ca4",
+   "svg": "svg/hf53787da6b2a660b90a5475ca4.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Nucleus",
+     "default": "#8e6fb4"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "nucleus",
+    "title": "Nucleus",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#nucleus",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "red-blood-cell",
+   "title": "Red blood cell",
+   "tags": [
+    "erythrocyte",
+    "rbc",
+    "blood"
+   ],
+   "category": "cells",
+   "hash": "hb97e21219db3b4b2ef75f5b344",
+   "svg": "svg/hb97e21219db3b4b2ef75f5b344.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Cell",
+     "default": "#d64545"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "red-blood-cell",
+    "title": "Red blood cell",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#red-blood-cell",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "vesicle",
+   "title": "Vesicle",
+   "tags": [
+    "exosome",
+    "liposome",
+    "organelle",
+    "transport"
+   ],
+   "category": "cells",
+   "hash": "h583164b45e1c802d88ca13bdc7",
+   "svg": "svg/h583164b45e1c802d88ca13bdc7.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Lumen",
+     "default": "#d9f0e8"
+    },
+    {
+     "id": "s2",
+     "label": "Membrane",
+     "default": "#009e73"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "vesicle",
+    "title": "Vesicle",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#vesicle",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "hi-virus",
+   "title": "Virus",
+   "tags": [
+    "virus",
+    "pathogen",
+    "infection"
+   ],
+   "category": "cells",
+   "hash": "hf205eff0ee4f189da43169fd99",
+   "svg": "svg/hf205eff0ee4f189da43169fd99.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Colour",
+     "default": "#333333"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "hi-virus",
+    "title": "Virus",
+    "source": "Health Icons",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/resolvetosavelives/healthicons/blob/36887b268d2cb61f8d91622ad459bdf07910c2b0/public/icons/svg/filled/virus.svg",
+    "shareAlike": false
+   }
+  },
+  {
+   "id": "yeast",
+   "title": "Yeast (budding)",
+   "tags": [
+    "saccharomyces",
+    "fungus",
+    "budding",
+    "cerevisiae"
+   ],
+   "category": "cells",
+   "hash": "h6de4a3ed46ea88502bf63a9fb7",
+   "svg": "svg/h6de4a3ed46ea88502bf63a9fb7.svg",
+   "slots": [
+    {
+     "id": "s1",
+     "label": "Cell",
+     "default": "#f3d58a"
+    },
+    {
+     "id": "outline",
+     "label": "Outline",
+     "default": "#1f2933"
+    }
+   ],
+   "recolor": "slots",
+   "meta": {
+    "library": "stub",
+    "libraryVersion": "0.1.0",
+    "id": "yeast",
+    "title": "Yeast (budding)",
+    "source": "House icons",
+    "author": "JustFig contributors",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "originalUrl": "https://github.com/BooneAndrewsLab/JustFig/blob/main/scripts/icons/make-stub-library.ts#yeast",
+    "shareAlike": false
+   }
+  }
+ ]
+}

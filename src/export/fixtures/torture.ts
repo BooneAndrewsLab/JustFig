@@ -21,10 +21,9 @@ import type {
   ShapeStyle,
   Text,
 } from '@/core/model/types';
-import { contentHash } from '@/core/model/hash';
 import { mmToPt } from '@/core/units';
 import { fitText } from '@/core/text/layout';
-import { canonical } from '@/io/jfig';
+import { hashAsset } from '@/io/assets';
 
 export const TORTURE_ICON_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
@@ -78,7 +77,7 @@ const SVGIMPORT: Asset = {
   meta: { name: 'shapes.svg', width: 60, height: 40 },
 };
 
-export const assetHash = (a: Asset): string => contentHash(JSON.stringify(canonical(a)));
+const assetHash = hashAsset;
 
 export function buildTorture(): Figure {
   let n = 0;
