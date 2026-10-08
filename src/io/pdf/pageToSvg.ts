@@ -9,8 +9,9 @@
  *   similarity; otherwise the element keeps `matrix()` and plot cleanup
  *   decides (a stroked path under a non-uniform scale keeps it).
  * - Clipping is geometric, because the export subset has no `clipPath`:
- *   rectangular clips (what plots use) are exact; any other clip is
- *   approximated by its bounding box. Subpaths inside the clip are kept as
+ *   a rectangular clip (what plots use) is a box; any other clip shape (a
+ *   polar plot's circle, a rotated rectangle) is also a `Region`
+ *   (`../svg/clipRegion`, issue 25). Subpaths inside the clip are kept as
  *   they are, outside ones dropped, straddling ones flattened and cut.
  * - Text becomes `<text>` with the font's family, weight and style, one
  *   element per run, split where the PDF leaves a gap of more than
@@ -23,9 +24,12 @@
  *   bar) becomes filled rectangles; any other is written as an `<image>`
  *   whose `href` is `pdf-image:N`, N indexing the returned pixels, which the
  *   caller encodes as PNG (issue 24); import then places it as a picture of
- *   its own under the plot. A rectangular clip crops its pixels. Image
- *   masks and shadings are left out, pattern paints become grey; each is
- *   reported in the warnings.
+ *   its own under the plot. A rectangular clip crops its pixels; pixels
+ *   outside any other clip become see-through. Image masks are left out
+ *   and tiling patterns (hatching) become grey, each reported in the warnings.
+ * - Shadings (`sh`, and shading patterns as fills; issue 25): axial and
+ *   radial ones become bands of flat colour, mesh ones (matplotlib's Gouraud
+ *   shading) flat triangles grouped by colour, cut to the clip like paths.
  *
  * Pure: pdf.js is not imported here (it is loaded lazily in `loadPdf.ts`),
  * so the operator codes come in with the input.
@@ -43,8 +47,19 @@ import {
   multiply,
   scaleOf,
 } from '../svg/matrix';
+import {
+  type Pt,
+  type Region,
+  clipLines,
+  clipRing as clipRingToRegion,
+  curveSteps,
+  makeRegion,
+  ringsInside,
+  segmentSpans,
+} from '../svg/clipRegion';
 import { fontFromPsName } from '../svg/glyphText';
 import { pathRect } from '../svg/pathData';
+import { type Shading, averageColour, rasterMesh, readShading, shadingBands } from './shading';
 import { ADVANCE_ATTR } from '../svg/plotCleanup';
 import type { Pixels } from '../png';
 
@@ -91,6 +106,8 @@ export interface PdfPageInput {
   readonly glyphPath: (font: PdfFont, fontChar: string) => ArrayLike<number> | null;
   /** A decoded image XObject by id; null when it is not available as pixels. */
   readonly image?: (id: string) => PdfImage | null;
+  /** A shading's pdf.js IR (`['RadialAxial', …]`, `['Mesh', …]`) by pattern id. */
+  readonly pattern?: (id: string) => unknown;
 }
 
 /**
@@ -134,6 +151,8 @@ export const MIN_BLOCK_AREA = 4;
 export const MAX_PICTURE_PIXELS = 2048 * 2048;
 /** …nor are those that need more rectangles than this (photographs, smooth gradients). */
 export const MAX_IMAGE_RECTS = 4000;
+/** A clip shape of more points than this (text outlines…) is taken as its box. */
+export const MAX_CLIP_POINTS = 20000;
 /** Segments a straddling curve is cut into before clipping. */
 const CURVE_STEPS = 16;
 const TOL = 1e-3;
@@ -153,6 +172,12 @@ interface State {
   dash: readonly number[];
   dashPhase: number;
   clip: Box | null;
+  /** Clip shapes that are not rectangles (all inside `clip`, which is their box). */
+  regions: readonly Region[];
+  /** The space shading patterns are in: the page's, or a form XObject's. */
+  baseCtm: Matrix;
+  /** A shading as the fill, in the space `m` maps to the page (`fill` is then its average colour). */
+  fillShading: { sh: Shading; m: Matrix } | null;
   font: PdfFont | null;
   fontSize: number;
   charSpacing: number;
@@ -272,8 +297,11 @@ const intersect = (a: Box, b: Box): Box => [
   Math.min(a[3], b[3]),
 ];
 
-/** A subpath as a polyline (curves cut into straight steps); `closed` when it ends in Z. */
-function polyline(sub: readonly Seg[]): { pts: [number, number][]; closed: boolean } {
+/**
+ * A subpath as a polyline (curves cut into straight steps: `CURVE_STEPS`, or
+ * by their size when `fine`); `closed` when it ends in Z.
+ */
+function polyline(sub: readonly Seg[], fine = false): { pts: [number, number][]; closed: boolean } {
   const pts: [number, number][] = [];
   let closed = false;
   for (const s of sub) {
@@ -286,8 +314,18 @@ function polyline(sub: readonly Seg[]): { pts: [number, number][]; closed: boole
       continue;
     }
     const [x0, y0] = pts[pts.length - 1] ?? [0, 0];
-    for (let k = 1; k <= CURVE_STEPS; k++) {
-      const t = k / CURVE_STEPS;
+    let steps = CURVE_STEPS;
+    if (fine) {
+      let len = 0;
+      for (let i = 0, px = x0, py = y0; i < s.p.length; i += 2) {
+        len += Math.hypot((s.p[i] ?? 0) - px, (s.p[i + 1] ?? 0) - py);
+        px = s.p[i] ?? 0;
+        py = s.p[i + 1] ?? 0;
+      }
+      steps = curveSteps(len);
+    }
+    for (let k = 1; k <= steps; k++) {
+      const t = k / steps;
       const u = 1 - t;
       if (s.c === 'C') {
         const [ax, ay, bx, by, cx, cy] = s.p;
@@ -387,6 +425,61 @@ const polyToSegs = (pts: readonly [number, number][], close: boolean): Seg[] => 
   ...pts.map((p, i): Seg => ({ c: i === 0 ? 'M' : 'L', p })),
   ...(close ? [{ c: 'Z' } as Seg] : []),
 ];
+
+/** Strokes this close (px) to a clip shape's edge count as inside (a grid circle on the rim). */
+const LINE_TOL = 0.5;
+/** Fills this close to it are kept whole. */
+const FILL_TOL = 0.1;
+
+const boxRing = (b: Box): Pt[] => [
+  [b[0], b[1]],
+  [b[2], b[1]],
+  [b[2], b[3]],
+  [b[0], b[3]],
+];
+const ringSegs = (ring: readonly Pt[], close: boolean): Seg[] =>
+  polyToSegs(
+    ring.map((p): [number, number] => [p[0], p[1]]),
+    close,
+  );
+
+/** Fill subpaths cut to clip shapes, ring by ring (each keeps its winding, so the fill rule holds). */
+function cutFill(subs: readonly Seg[][], regions: readonly Region[]): Seg[] {
+  const kept: Seg[] = [];
+  for (const sub of subs) {
+    const b = segsBox(sub);
+    if (!b || regions.some((r) => disjoint(b, r.box))) continue;
+    const ring = polyline(sub, true).pts;
+    if (regions.every((r) => ringsInside([ring], r, FILL_TOL))) {
+      kept.push(...sub);
+      continue;
+    }
+    let rings: Pt[][] = [ring];
+    for (const r of regions) rings = rings.flatMap((x) => clipRingToRegion(x, r));
+    for (const x of rings) kept.push(...ringSegs(x, true));
+  }
+  return kept;
+}
+
+/** Stroke subpaths cut to clip shapes: whole when inside, else the pieces inside. */
+function cutStroke(subs: readonly Seg[][], regions: readonly Region[]): Seg[] {
+  const kept: Seg[] = [];
+  for (const sub of subs) {
+    const b = segsBox(sub);
+    if (!b || regions.some((r) => disjoint(b, r.box))) continue;
+    const { pts, closed } = polyline(sub, true);
+    const first = pts[0];
+    if (closed && first) pts.push(first);
+    if (regions.every((r) => ringsInside([pts], r, LINE_TOL))) {
+      kept.push(...sub);
+      continue;
+    }
+    let pieces: Pt[][] = [pts];
+    for (const r of regions) pieces = pieces.flatMap((x) => clipLines(x, r, LINE_TOL));
+    for (const x of pieces) kept.push(...ringSegs(x, false));
+  }
+  return kept;
+}
 
 /** Glyphs whose text is unknown: nothing, U+FFFD, private use or control codes. */
 export function unmappable(unicode: string): boolean {
@@ -553,6 +646,47 @@ export function cropPixels(px: Pixels, x0: number, y0: number, x1: number, y1: n
   return { width: w, height: y1 - y0, channels: ch, data: out };
 }
 
+/**
+ * Pixels whose centre is outside any of the regions made see-through; `m`
+ * maps the picture's unit square (rows down) to the regions' space. The
+ * pixels unchanged when all are inside, null when none is.
+ */
+export function maskPixels(px: Pixels, m: Matrix, regions: readonly Region[]): Pixels | null {
+  const { width: w, height: h, channels: ch } = px;
+  const out = new Uint8Array(w * h * 4);
+  let kept = 0;
+  for (let y = 0; y < h; y++) {
+    const v = (y + 0.5) / h;
+    const a = apply(m, 0, v);
+    const b = apply(m, 1, v);
+    // The row's centre line inside every region, as intervals of u.
+    let spans: [number, number][] = [[0, 1]];
+    for (const r of regions) {
+      const next: [number, number][] = [];
+      for (const [s0, s1] of segmentSpans(a, b, r))
+        for (const [p0, p1] of spans) {
+          const lo = Math.max(s0, p0);
+          const hi = Math.min(s1, p1);
+          if (lo < hi) next.push([lo, hi]);
+        }
+      spans = next;
+    }
+    for (let x = 0; x < w; x++) {
+      const u = (x + 0.5) / w;
+      const i = (y * w + x) * ch;
+      const o = (y * w + x) * 4;
+      out[o] = px.data[i] ?? 0;
+      out[o + 1] = px.data[i + 1] ?? 0;
+      out[o + 2] = px.data[i + 2] ?? 0;
+      const visible = spans.some(([lo, hi]) => u >= lo && u <= hi);
+      out[o + 3] = visible ? (ch === 4 ? (px.data[i + 3] ?? 255) : 255) : 0;
+      if (visible) kept++;
+    }
+  }
+  if (kept === 0) return null;
+  return kept === w * h ? px : { width: w, height: h, channels: 4, data: out };
+}
+
 /** The pixels averaged over k × k blocks (a partial block at the edges averages what it has). */
 export function reducePixels(px: Pixels, k: number): Pixels {
   const ch = px.channels;
@@ -609,6 +743,9 @@ function fresh(viewport: Matrix): State {
     dash: [],
     dashPhase: 0,
     clip: null,
+    regions: [],
+    baseCtm: viewport,
+    fillShading: null,
     font: null,
     fontSize: 0,
     charSpacing: 0,
@@ -641,7 +778,7 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
   const images: Pixels[] = [];
   const stack: State[] = [];
   let st = fresh(input.viewport);
-  let pendingClip = false;
+  let pendingClip: 'nonzero' | 'evenodd' | null = null;
   /** The last `<text>` written, so a run that continues it can join it. */
   let lastText: { at: number; tm: Matrix; attrs: string; end: [number, number]; s: string } | null =
     null;
@@ -691,7 +828,16 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
     if (!box) return;
     const clip = st.clip;
     if (clip && disjoint(box, clip)) return;
-    if (!clip || inside(box, clip)) {
+    const regions = st.regions;
+    if (fill && st.fillShading) {
+      shade(st.fillShading.sh, st.fillShading.m, subpaths(segs), evenOdd);
+      if (!stroke) return;
+      fill = false;
+    }
+    const whole =
+      (!clip || inside(box, clip)) &&
+      regions.every((r) => ringsInside([boxRing(box)], r, FILL_TOL));
+    if (whole) {
       if (isSimilarity(ctm) || !stroke) {
         out.push(`<path d="${segsToD(segs)}" ${paintAttrs(fill, stroke, evenOdd, IDENTITY)}/>`);
       } else {
@@ -705,37 +851,104 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
     }
     // Straddles the clip: keep whole subpaths inside, drop outside ones, cut the rest.
     const subs = subpaths(segs);
+    const boxed = !clip || inside(box, clip);
     if (fill) {
-      const kept: Seg[] = [];
-      for (const sub of subs) {
-        const b = segsBox(sub);
-        if (!b || disjoint(b, clip)) continue;
-        if (inside(b, clip)) kept.push(...sub);
-        else {
-          const ring = clipRing(polyline(sub).pts, clip);
-          if (ring.length >= 3) kept.push(...polyToSegs(ring, true));
+      let kept: Seg[] = [];
+      if (boxed) kept = segs.slice();
+      else
+        for (const sub of subs) {
+          const b = segsBox(sub);
+          if (!b || disjoint(b, clip)) continue;
+          if (inside(b, clip)) kept.push(...sub);
+          else {
+            const ring = clipRing(polyline(sub).pts, clip);
+            if (ring.length >= 3) kept.push(...polyToSegs(ring, true));
+          }
         }
-      }
+      if (regions.length > 0) kept = cutFill(subpaths(kept), regions);
       if (kept.length > 0)
         out.push(`<path d="${segsToD(kept)}" ${paintAttrs(true, false, evenOdd, IDENTITY)}/>`);
     }
     if (stroke) {
-      const kept: Seg[] = [];
-      for (const sub of subs) {
-        const b = segsBox(sub);
-        if (!b || disjoint(b, clip)) continue;
-        if (inside(b, clip)) {
-          kept.push(...sub);
-          continue;
+      let kept: Seg[] = [];
+      if (boxed) kept = segs.slice();
+      else
+        for (const sub of subs) {
+          const b = segsBox(sub);
+          if (!b || disjoint(b, clip)) continue;
+          if (inside(b, clip)) {
+            kept.push(...sub);
+            continue;
+          }
+          const { pts, closed } = polyline(sub);
+          const first = pts[0];
+          if (closed && first) pts.push(first);
+          for (const piece of clipPolyline(pts, clip)) kept.push(...polyToSegs(piece, false));
         }
-        const { pts, closed } = polyline(sub);
-        const first = pts[0];
-        if (closed && first) pts.push(first);
-        for (const piece of clipPolyline(pts, clip)) kept.push(...polyToSegs(piece, false));
-      }
+      if (regions.length > 0) kept = cutStroke(subpaths(kept), regions);
       if (kept.length > 0)
         out.push(`<path d="${segsToD(kept)}" ${paintAttrs(false, true, false, IDENTITY)}/>`);
     }
+  };
+
+  /**
+   * A shading painted under the current clip (and inside `shape`, the
+   * subpaths of a path it fills): its bands, each cut like a filled path.
+   */
+  const shade = (sh: Shading, m: Matrix, shape: readonly Seg[][] | null, evenOdd: boolean) => {
+    if (!isFinite(determinant(m)) || determinant(m) === 0) return;
+    let clip: Box = st.clip ?? [0, 0, input.width, input.height];
+    const regions = [...st.regions];
+    const narrow = (rings: Pt[][], eo: boolean, b: Box) => {
+      if (rings.length === 1 && pathRect(ringSegs(rings[0] ?? [], true)) !== null) {
+        clip = intersect(clip, b);
+        return;
+      }
+      const r = makeRegion(rings, eo);
+      if (r) {
+        regions.push(r);
+        clip = intersect(clip, r.box);
+      } else clip = [0, 0, 0, 0];
+    };
+    if (shape) {
+      const b = segsBox(shape.flat());
+      if (!b) return;
+      narrow(
+        shape.map((sub) => polyline(sub, true).pts),
+        evenOdd,
+        b,
+      );
+    }
+    if (sh.bbox) {
+      const ring = boxRing(sh.bbox).map(([x, y]) => apply(m, x, y));
+      const b = segsBox(ringSegs(ring, true));
+      if (b) narrow([ring], false, b);
+    }
+    if (clip[2] <= clip[0] || clip[3] <= clip[1]) return;
+    stack.push(st);
+    st = { ...st, clip, regions, fillShading: null };
+    if (sh.kind === 'mesh') {
+      // Smooth in two directions: a picture, cropped and masked like any other.
+      const r = rasterMesh(sh, m, clip);
+      if (r) {
+        const [x0, y0, x1, y1] = r.box;
+        st.ctm = [x1 - x0, 0, 0, y0 - y1, x0, y1];
+        picture({ width: r.px.width, height: r.px.height, kind: 3, data: r.px.data });
+      }
+      st = stack.pop() ?? st;
+      return;
+    }
+    const bands = shadingBands(sh, m, clip, st.fillAlpha >= 1);
+    for (const band of bands) {
+      st.fill = band.colour;
+      const ops: number[] = [];
+      for (const ring of band.rings) {
+        ring.forEach(([x, y], i) => ops.push(i === 0 ? 0 : 1, x, y));
+        ops.push(4);
+      }
+      paint(ops, IDENTITY, true, false, band.evenOdd);
+    }
+    st = stack.pop() ?? st;
   };
 
   /**
@@ -751,12 +964,14 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
     }
     // Unit square with y down (row 0 at the top) → SVG units.
     let m = multiply(st.ctm, [1, 0, 0, -1, 0, 1]);
-    const corners = [apply(m, 0, 0), apply(m, 1, 0), apply(m, 0, 1), apply(m, 1, 1)];
+    const corners = [apply(m, 0, 0), apply(m, 1, 0), apply(m, 1, 1), apply(m, 0, 1)];
     const xs = corners.map((c) => c[0]);
     const ys = corners.map((c) => c[1]);
     const box: Box = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
     const clip = st.clip;
     if (clip && disjoint(box, clip)) return;
+    // Clip shapes the picture is not inside of: its pixels outside become see-through.
+    const masks = st.regions.filter((r) => !ringsInside([corners], r));
     if (clip && !inside(box, clip)) {
       if (isAxisAligned(m) && determinant(m) !== 0) {
         const inv = invert(m);
@@ -778,7 +993,15 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
           y0 / px.height,
         ]);
         px = cropPixels(px, x0, y0, x1, y1);
-      } else warnings.add('A rotated picture under a clipping shape was kept whole.');
+      } else {
+        const r = makeRegion([boxRing(clip)], false);
+        if (r) masks.push(r);
+      }
+    }
+    if (masks.length > 0) {
+      const masked = maskPixels(px, m, masks);
+      if (!masked) return;
+      px = masked;
     }
     if (px.width * px.height > MAX_PICTURE_PIXELS) {
       px = reducePixels(px, Math.ceil(Math.sqrt((px.width * px.height) / MAX_PICTURE_PIXELS)));
@@ -791,17 +1014,30 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
     images.push(px);
   };
 
-  /** A clip path (user space under the CTM) → the new clip box. */
-  const setClip = (data: ArrayLike<number>) => {
+  /**
+   * A clip path (user space under the CTM) → the new clip: a box for a
+   * rectangle, else also a clip shape (its box narrows the clip box).
+   */
+  const setClip = (data: ArrayLike<number>, evenOdd: boolean) => {
     const segs = drawOpsToSegs(data, st.ctm);
     const box = segsBox(segs);
     if (!box) {
       st.clip = [0, 0, 0, 0];
       return;
     }
-    const isRect = isAxisAligned(st.ctm) && pathRect(segs) !== null;
-    if (!isRect)
-      warnings.add('A clipping shape that is not a rectangle was approximated by a rectangle.');
+    if (!(isAxisAligned(st.ctm) && pathRect(segs) !== null)) {
+      const rings = subpaths(segs).map((sub) => polyline(sub, true).pts);
+      if (rings.reduce((n, r) => n + r.length, 0) > MAX_CLIP_POINTS)
+        warnings.add('A very detailed clipping shape was approximated by a rectangle.');
+      else {
+        const region = makeRegion(rings, evenOdd);
+        if (!region) {
+          st.clip = [0, 0, 0, 0];
+          return;
+        }
+        st.regions = [...st.regions, region];
+      }
+    }
     st.clip = st.clip ? intersect(st.clip, box) : box;
   };
 
@@ -991,24 +1227,28 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
           st = { ...st };
           const m = mat(args[0]);
           if (m) st.ctm = multiply(st.ctm, m);
+          st.baseCtm = st.ctm;
           const bb = args[1];
-          if (bb && typeof bb === 'object' && 'length' in bb && isAxisAligned(st.ctm)) {
+          if (bb && typeof bb === 'object' && 'length' in bb) {
             const [x0, y0, x1, y1] = Array.from(bb as ArrayLike<number>);
-            setClip([
-              0,
-              num(x0),
-              num(y0),
-              1,
-              num(x1),
-              num(y0),
-              1,
-              num(x1),
-              num(y1),
-              1,
-              num(x0),
-              num(y1),
-              4,
-            ]);
+            setClip(
+              [
+                0,
+                num(x0),
+                num(y0),
+                1,
+                num(x1),
+                num(y0),
+                1,
+                num(x1),
+                num(y1),
+                1,
+                num(x0),
+                num(y1),
+                4,
+              ],
+              false,
+            );
           }
           break;
         }
@@ -1057,39 +1297,55 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
           }
           break;
         case 'setFillRGBColor':
-          if (!st.colourLocked) st.fill = typeof args[0] === 'string' ? args[0] : '#000000';
+          if (!st.colourLocked) {
+            st.fill = typeof args[0] === 'string' ? args[0] : '#000000';
+            st.fillShading = null;
+          }
           break;
         case 'setStrokeRGBColor':
           if (!st.colourLocked) st.stroke = typeof args[0] === 'string' ? args[0] : '#000000';
           break;
         case 'setFillTransparent':
-          if (!st.colourLocked) st.fill = 'none';
+          if (!st.colourLocked) {
+            st.fill = 'none';
+            st.fillShading = null;
+          }
           break;
         case 'setStrokeTransparent':
           if (!st.colourLocked) st.stroke = 'none';
           break;
         case 'setFillColorN':
-          if (!st.colourLocked) {
-            st.fill = '#808080';
-            warnings.add('Pattern and gradient fills became grey.');
+        case 'setStrokeColorN': {
+          if (st.colourLocked) break;
+          const fills = op === 'setFillColorN';
+          // ['Shading', id, matrix]: the pattern's space is the page's (or form's) own.
+          const sh =
+            args[0] === 'Shading' && typeof args[1] === 'string'
+              ? readShading(input.pattern?.(args[1]))
+              : null;
+          if (!sh) warnings.add('Hatching and other pattern fills became grey.');
+          const colour = sh ? averageColour(sh) : '#808080';
+          if (fills) {
+            st.fill = colour;
+            st.fillShading = sh ? { sh, m: multiply(st.baseCtm, mat(args[2]) ?? IDENTITY) } : null;
+          } else {
+            st.stroke = colour;
+            if (sh) warnings.add('Gradient lines became their average colour.');
           }
           break;
-        case 'setStrokeColorN':
-          if (!st.colourLocked) {
-            st.stroke = '#808080';
-            warnings.add('Pattern and gradient fills became grey.');
-          }
-          break;
+        }
         case 'clip':
+          pendingClip = 'nonzero';
+          break;
         case 'eoClip':
-          pendingClip = true;
+          pendingClip = 'evenodd';
           break;
         case 'constructPath': {
           const paintOp = name[num(args[0], -1)] ?? '';
           const data = (Array.isArray(args[1]) ? args[1][0] : null) as ArrayLike<number> | null;
           const path = data ?? [];
           const isClip = pendingClip;
-          pendingClip = false;
+          pendingClip = null;
           switch (paintOp) {
             case 'stroke':
             case 'closeStroke':
@@ -1113,7 +1369,7 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
             default:
               break;
           }
-          if (isClip) setClip(path);
+          if (isClip) setClip(path, isClip === 'evenodd');
           break;
         }
         case 'beginText':
@@ -1191,7 +1447,7 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
           }
           for (const [colour, alpha, data] of rects) {
             stack.push(st);
-            st = { ...st, fill: colour, fillAlpha: alpha * st.fillAlpha };
+            st = { ...st, fill: colour, fillShading: null, fillAlpha: alpha * st.fillAlpha };
             paint(data, st.ctm, true, false, false);
             st = stack.pop() ?? st;
           }
@@ -1206,9 +1462,12 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
         case 'paintImageMaskXObjectRepeat':
           warnings.add('Stencil masks (pictures in one colour) were left out.');
           break;
-        case 'shadingFill':
-          warnings.add('Gradient shadings were left out.');
+        case 'shadingFill': {
+          const sh = typeof args[0] === 'string' ? readShading(input.pattern?.(args[0])) : null;
+          if (sh) shade(sh, st.ctm, null, false);
+          else warnings.add('A gradient that could not be read was left out.');
           break;
+        }
         default:
           break;
       }

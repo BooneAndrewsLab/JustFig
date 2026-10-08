@@ -66,6 +66,8 @@ const FIXTURES = [
   'r-cairo',
   'matplotlib-images',
   'r-raster',
+  'matplotlib-shading',
+  'r-gradient',
 ] as const;
 
 describe('real plots', () => {
@@ -321,8 +323,17 @@ describe('pictures (issue 24)', () => {
       ['constructPath', [OPS.endPath, [rect(0, 0, 30, 100)], null]],
       ...draw([28, 28, -14, 14, 30, 10]),
     ]);
-    expect(turned.images).toHaveLength(1);
-    expect(turned.warnings).toEqual(['A rotated picture under a clipping shape was kept whole.']);
+    // Turned: kept whole, its pixels outside the clip see-through (issue 25).
+    expect(turned.warnings).toEqual([]);
+    const t = turned.images[0];
+    if (!t) throw new Error('no picture');
+    expect([t.width, t.height, t.channels]).toEqual([40, 20, 4]);
+    for (let y = 0; y < 20; y++)
+      for (let x = 0; x < 40; x++) {
+        const [u, v] = [(x + 0.5) / 40, 1 - (y + 0.5) / 20];
+        const px = 28 * u - 14 * v + 30; // page x of the pixel's centre
+        if (Math.abs(px - 30) > 0.01) expect(t.data[(y * 40 + x) * 4 + 3]).toBe(px < 30 ? 255 : 0);
+      }
   });
 
   it('reads 1-bit grey images and reduces huge ones', () => {
@@ -363,7 +374,6 @@ describe('handmade PDF features', () => {
         c,
       ).toBe(true);
     expect(imp.warnings).toEqual([
-      'A clipping shape that is not a rectangle was approximated by a rectangle.',
       'Text whose letters have no known meaning was kept as letter shapes.',
     ]);
   });

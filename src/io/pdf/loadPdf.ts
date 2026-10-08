@@ -136,6 +136,15 @@ export async function openPdf(bytes: Uint8Array): Promise<PdfFile> {
             return null;
           }
         },
+        // Shadings arrive before the operator list does (pdf.js's canvas reads them the same way).
+        pattern: (id) => {
+          try {
+            if (page.objs.has(id)) return page.objs.get(id) as unknown;
+            return page.commonObjs.has(id) ? (page.commonObjs.get(id) as unknown) : null;
+          } catch {
+            return null;
+          }
+        },
         glyphPath: (f, ch) => {
           const id = `${f.loadedName ?? ''}_path_${ch}`;
           try {

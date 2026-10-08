@@ -6,7 +6,7 @@
  * - A Type 3 font whose glyphs have no Unicode meaning (codes 1 and 2, names
  *   pdf.js cannot map): drawn as shapes.
  * - Helvetica text, rotated by 30°, and invisible text (render mode 3).
- * - A circular clip (approximated by its box), an even-odd fill, a dashed
+ * - A circular clip (cut exactly, issue 25), an even-odd fill, a dashed
  *   CMYK stroke and a half-transparent fill (ExtGState /ca).
  * - A 3 × 2 RGB image (becomes six rectangles).
  */

@@ -28,14 +28,59 @@ scaling text, issue 3) sees no difference between the two.
   transform the coordinates and widths are baked; otherwise a stroked path keeps `matrix()`
   and plot cleanup decides, as for SVG. Width 0 (PDF's thinnest line) becomes 0.25 pt.
 - **Clipping is geometric,** since the export subset has no `clipPath`. A clip is tracked as a
-  rectangle in page space: a rectangular clip under an axis-aligned transform (what matplotlib,
-  R and cairo write for the plotting area, and form XObject bounding boxes) is exact; anything
-  else is approximated by its bounding box, with a warning. Painting tests each subpath's
-  control-point box: inside is kept as is, disjoint is dropped (a subpath whose box misses the
-  clip cannot wind around it), straddling is flattened (16 steps per curve) and cut:
-  Sutherland–Hodgman for fills (exact for a convex clip), Liang–Barsky for strokes. A stroke
-  whose centre line is inside is kept whole, so a gridline on the clip edge is not halved. Text
-  is dropped only when its origin is more than 4 em outside the clip.
+  rectangle in page space plus, for any clip that is not an axis-aligned rectangle, a list of
+  clip shapes (issue 25). A rectangular clip under an axis-aligned transform (what matplotlib,
+  R and cairo write for the plotting area, and form XObject bounding boxes) is only the
+  rectangle, and stays exact and cheap. Painting tests each subpath's control-point box: inside
+  is kept as is, disjoint is dropped (a subpath whose box misses the clip cannot wind around it),
+  straddling is flattened (16 steps per curve) and cut: Sutherland–Hodgman for fills (exact for
+  a convex clip), Liang–Barsky for strokes. A stroke whose centre line is inside is kept whole,
+  so a gridline on the clip edge is not halved. Text is dropped only when its origin is more
+  than 4 em outside the clip's rectangle.
+- **Clip shapes** (issue 25; `src/io/svg/clipRegion.ts`, independent of PDF so SVG `clipPath`,
+  issue 36, can use it): a polar plot's circle, a rotated rectangle, grid's clipping paths in
+  R. The clip path is flattened by size (each curve in `curveSteps` steps, within ~0.1 px of
+  the curve) into a `Region`: rings plus the fill rule of `W` or `W*`. A shape is cut ring by
+  ring so that the result's winding number equals the ring's inside the region and is 0
+  outside; winding numbers add up, so the path keeps its own fill rule (holes stay holes), and
+  nested clips simply cut in turn. A region that is one convex ring (the usual case) uses
+  Sutherland–Hodgman per edge, since a half-plane cut keeps winding numbers on its side
+  exactly; any other (holed, star-shaped, several rings) uses a sweep: horizontal slabs between
+  every vertex and crossing, trapezoids where the ring winds and the region is inside, chained
+  down the slabs into polygons. Both are checked by property tests on random self-crossing
+  rings against random regions of either rule. A small library (polygon-clipping, Martinez) was
+  considered and not taken: it computes boolean operations of polygon _sets_ under its own
+  fill semantics, while PDF needs the subject's own fill rule and winding kept; the sweep is
+  ~150 lines. Subpaths inside the region (all flattened points within 0.1 px, 0.5 px for
+  strokes, so a polar plot's outer grid circle survives rounding) keep their curves; lines are
+  cut where they cross the region's edges, keeping pieces whose middle is inside. Pictures:
+  pixels whose centre is outside a clip shape (or outside the rectangle, when the picture is
+  rotated) become see-through, row by row along the picture's own axes, so a rotated picture is
+  no longer kept whole. A clip of over 20 000 points (clipping to text outlines) is still taken
+  as its rectangle, with a warning.
+- **Shadings** (issue 25; `src/io/pdf/shading.ts`): pdf.js resolves a shading to its IR in
+  `page.objs` (sent before the operator list, as its canvas renderer relies on), which
+  `loadPdf` hands over by id. `sh` paints the current clip; a shading pattern as the fill
+  colour (`scn` with `/Pattern`, what R's `linearGradient()` writes) paints the path's shape,
+  in the pattern's own space (the page's, or the form XObject's), its `/BBox` clipping too.
+  Axial and radial shadings become **bands of flat colour**, not one average colour (what SVG
+  gradients get in `sanitize.ts`): a gradient in a plot is usually there to be seen (a colour
+  scale, a highlight), and its average would erase it; bands are plain paths, scale without
+  smoothing. One band per 4 levels of the largest channel change, at
+  most 64, equal neighbours merged: a black-to-white gradient is 64 bands, each 1/64 of it,
+  which reads as smooth at figure sizes. Axial bands are strips across the axis, each reaching
+  0.5 px into the next (painted over it) so anti-aliasing leaves no seams; radial ones are
+  discs painted from the largest circle in, each covering the middle of the one before (rings
+  with an even-odd hole when the fill is see-through, or where the shading does not extend
+  inwards). Extension follows pdf.js's colour stops, which encode a non-extended end as a
+  `transparent` stop; beyond the outer circle the end colour fills the clip. Radial shadings
+  whose circles are not nested (a cone) get the disc stack too, approximately. **Mesh
+  shadings** (types 4–7, and type 1, which pdf.js meshes; matplotlib's Gouraud `pcolormesh` and
+  `tripcolor`) vary smoothly in two directions, which bands cannot follow and flat triangles
+  show as facets: they are drawn as pixels (2 per unit, at most 1024² of them, colours
+  interpolated across each triangle as viewers do) and become a picture, cropped and masked
+  like any other. On text and strokes a shading is its average colour (with a warning for
+  strokes); tiling patterns (hatching) still become grey, with a warning.
 - **Text:** each show-text run becomes `<text transform="matrix(…)" font-size="1" data-advance="…">` (its width from the PDF's own advances, for alignment inference, note 15), which plot
   cleanup turns into x/y, font size and `rotate()`. Family, weight and style come from the font
   name (subset prefix and `MT`/`PS` suffixes dropped, then `fontFromPsName` from note 12) and
@@ -69,8 +114,8 @@ scaling text, issue 3) sees no difference between the two.
   whole, with a warning. Over 2048 × 2048 pixels an image is averaged down by a whole factor,
   with a warning, as storage holds ~150 M characters for all figures (note 02) and PNG does not
   compress photos the way the PDF's JPEG did. Stencil masks (`paintImageMask…`) and repeated
-  images are still left out, shadings too, and pattern paints become grey, each with a warning;
-  soft masks on paths and blend modes are ignored with one.
+  images are still left out, each with a warning; soft masks on paths and blend modes are
+  ignored with one.
 - **Pages:** `importPdf(bytes, name, choosePage)` asks only when there is more than one page.
   The session passes `choosePdfPage` (`src/ui/state/pdfPagePicker.ts`), a promise the
   **Choose a PDF page** dialog resolves: a radio group of pages (focused first) with their
@@ -89,7 +134,11 @@ scaling text, issue 3) sees no difference between the two.
   `scripts/pdf-fixtures/r-raster.R`, timestamps fixed), base R 4 `pdf()` (non-embedded
   Helvetica) and ggplot2 via `cairo_pdf()` (embedded subset), plus `handmade.pdf` (pdf-lib, raw
   content: Type 3 glyphs without Unicode, rotated and invisible text, a circular clip, even-odd
-  fill, CMYK dashes, transparency, a 3 × 2 image). No Prism file could be generated here; Prism
+  fill, CMYK dashes, transparency, a 3 × 2 image), and for issue 25 `matplotlib-shading.pdf`
+  (`scripts/pdf-fixtures/shading.py`, run with `python -I`: a polar plot whose line and fill
+  are cut to its circle, a Gouraud `pcolormesh`) and `r-gradient.pdf` (`r-gradient.R`: grid's
+  circular clipping path, `linearGradient()` and `radialGradient()` fills); `shapes.test.ts`
+  holds those and the synthetic clip-shape and shading cases. No Prism file could be generated here; Prism
   writes ordinary embedded TrueType text, the same path as cairo. The converter's clipping,
   text splitting/joining, outline fallback and image cropping are also tested on synthetic
   operator lists; `png.test.ts` decodes what `encodePng` writes with pngjs.
