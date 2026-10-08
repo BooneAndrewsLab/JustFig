@@ -105,5 +105,16 @@ parsed JSON, untouched> }`, `snapshot`: the hash of an `svgImport` asset holding
 - `barelysig-figure2.fragment.json` is the same object as a fragment: the form a future
   BarelySig "Copy for figure" command should write. It pastes like any fragment.
 
-No JSON Schema is generated yet (the plan suggested one from the TS types): the fixtures, these
-tables and the siblings' own tests are the contract for now ([#18](https://github.com/BooneAndrewsLab/JustFig/issues/18)).
+## JSON Schema
+
+`schemas/fragment.schema.json` (JSON Schema draft-07) describes the whole fragment. It is generated
+from the `FragmentFile` type in `src/io/jfig.ts` (and the model types it pulls in) by
+`ts-json-schema-generator`: run `npm run schema` after changing those types. Siblings can copy it
+or reference it by its path in this repo to validate what they write.
+`src/io/fragmentSchema.test.ts` validates every frozen fragment fixture against it and fails when
+the committed file is stale.
+
+The schema is structural only: it does not encode the strict decoders' range checks, and a
+procedural object's `params` are free-form JSON (decoded leniently by its kind, see above), so the
+tables in this note remain the contract for `params`
+([#18](https://github.com/BooneAndrewsLab/JustFig/issues/18)).

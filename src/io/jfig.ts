@@ -548,6 +548,12 @@ export interface Fragment {
   readonly assets: Assets;
 }
 
+/** The fragment as written to the clipboard or a file: the contract with sibling apps (note 05). */
+export interface FragmentFile extends Fragment {
+  readonly format: typeof FRAGMENT_FORMAT;
+  readonly schemaVersion: number;
+}
+
 export function writeFragment(f: Fragment): string {
   return JSON.stringify(
     canonical({
