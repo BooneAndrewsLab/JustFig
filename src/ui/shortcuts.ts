@@ -32,6 +32,7 @@ let lastNudge = 0;
 export interface ShortcutTargets {
   readonly exportDialog: () => void;
   readonly openFile: () => void;
+  readonly recent: () => void;
   readonly guide: () => void;
 }
 
@@ -130,6 +131,7 @@ export function onKeyDown(e: KeyboardEvent, open: ShortcutTargets): void {
     back: () => ids.length > 0 && store.edit(reorderObjects(page.id, ids, 'back')),
     backward: () => ids.length > 0 && store.edit(reorderObjects(page.id, ids, 'backward')),
     open: open.openFile,
+    recent: open.recent,
     export: open.exportDialog,
     guide: open.guide,
     fit: () => {

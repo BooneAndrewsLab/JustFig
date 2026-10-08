@@ -120,3 +120,23 @@ Autosave writes the `.jfig` text itself to IndexedDB (Dexie, database `justfig`,
 `figures`), a second after the last change and at once when the page is hidden. That is the
 BarelySig pattern, so what is stored is always the file format with its migrations. Saving
 downloads the file. No file handle is ever kept.
+
+### Recent figures
+
+Each document is its own row, keyed by `doc.id` (this was already the case in schema v1: the
+"single autosave" was only the most recently changed row, restored at start-up). Schema v2 adds
+an optional, unindexed `thumb`; its upgrade keeps every v1 row, so an existing autosave
+becomes one entry of the list (tested). Writes keep the row's thumbnail until a new one replaces it.
+
+- **Limits:** the 30 most recently changed figures and about 150 M characters of stored text plus
+  thumbnails in total (`MAX_FIGURES`, `MAX_TOTAL_CHARS`). After every save the oldest rows past either
+  cap are evicted; the figure just saved never is.
+- **Thumbnail:** the first page through the normal raster pipeline (`renderCanvas`) at ~160 px
+  wide, stored as a JPEG data URL (a few kB). It is drawn after the save, at most once per 15 s
+  (`THUMB_INTERVAL`), with a trailing draw so a quiet figure ends up current. Where drawing
+  fails the list shows a blank placeholder.
+- **Switching:** New, Templates and Open first `flush()` the autosaver, so replacing the figure
+  loses nothing; the old "not saved to a file" confirm boxes are gone. The last open id is kept
+  in `localStorage` so a reload restores the figure last opened, not just the last changed.
+- **Rename** rewrites the row's title and the `.jfig` text and keeps the modified time.
+  **Delete** is confirmed in an in-app dialog and is not offered for the open figure.

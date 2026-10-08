@@ -16,6 +16,8 @@ export interface StoredFigure {
   readonly text: string;
   readonly downloaded: boolean;
   readonly updatedAt: number;
+  /** A small JPEG data URL of the first page (Recent figures), or absent. */
+  readonly thumb?: string | null;
 }
 
 export interface FigureSummary {
@@ -23,7 +25,17 @@ export interface FigureSummary {
   readonly title: string;
   readonly downloaded: boolean;
   readonly updatedAt: number;
+  readonly thumb: string | null;
+  /** Size of the stored `.jfig` text, in characters. */
+  readonly size: number;
 }
+
+/**
+ * Limits (note 02): the store keeps the most recently changed figures and
+ * evicts the oldest past either cap. The figure just saved is never evicted.
+ */
+export const MAX_FIGURES = 30;
+export const MAX_TOTAL_CHARS = 150_000_000;
 
 export interface KeptFigure extends SavedFigure {
   readonly downloaded: boolean;
@@ -38,6 +50,18 @@ export class FigureDb extends Dexie {
   constructor(name = DB_NAME) {
     super(name);
     this.version(1).stores({ figures: 'id, updatedAt' });
+    // v2 adds the optional, unindexed `thumb`. Rows from v1 (one per document id
+    // already) are kept as they are; only the missing field is filled in.
+    this.version(2)
+      .stores({ figures: 'id, updatedAt' })
+      .upgrade((tx) =>
+        tx
+          .table<StoredFigure>('figures')
+          .toCollection()
+          .modify((r) => {
+            (r as { thumb?: string | null }).thumb ??= null;
+          }),
+      );
   }
 }
 
@@ -49,12 +73,57 @@ export class FigureStorage {
     app: { name: string; version: string },
     opts: { now?: number; downloaded?: boolean } = {},
   ): Promise<void> {
-    await this.db.figures.put({
-      id: figure.doc.id,
-      title: figure.doc.title,
-      text: writeJfig(figure, app),
-      downloaded: opts.downloaded ?? false,
-      updatedAt: opts.now ?? Date.now(),
+    const id = figure.doc.id;
+    const text = writeJfig(figure, app);
+    await this.db.transaction('rw', this.db.figures, async () => {
+      // One row per document id; the thumbnail of the last save stays until replaced.
+      const old = await this.db.figures.get(id);
+      await this.db.figures.put({
+        id,
+        title: figure.doc.title,
+        text,
+        downloaded: opts.downloaded ?? false,
+        updatedAt: opts.now ?? Date.now(),
+        thumb: old?.thumb ?? null,
+      });
+    });
+    await this.evict(id);
+  }
+
+  /** Deletes the oldest figures past the caps, never `keep`. */
+  async evict(
+    keep: string,
+    maxFigures = MAX_FIGURES,
+    maxChars = MAX_TOTAL_CHARS,
+  ): Promise<string[]> {
+    const rows = await this.db.figures.orderBy('updatedAt').reverse().toArray();
+    const gone: string[] = [];
+    let count = rows.length;
+    let total = rows.reduce((n, r) => n + r.text.length + (r.thumb?.length ?? 0), 0);
+    for (let i = rows.length - 1; i >= 0 && (count > maxFigures || total > maxChars); i -= 1) {
+      const r = rows[i];
+      if (!r || r.id === keep) continue;
+      gone.push(r.id);
+      count -= 1;
+      total -= r.text.length + (r.thumb?.length ?? 0);
+    }
+    if (gone.length > 0) await this.db.figures.bulkDelete(gone);
+    return gone;
+  }
+
+  /** Sets the thumbnail without touching the modified time. */
+  async setThumb(id: string, thumb: string | null): Promise<void> {
+    await this.db.figures.update(id, { thumb });
+  }
+
+  /** Renames a stored figure (title in the row and in the `.jfig` text); the modified time stays. */
+  async rename(id: string, title: string, app: { name: string; version: string }): Promise<void> {
+    await this.db.transaction('rw', this.db.figures, async () => {
+      const r = await this.db.figures.get(id);
+      if (!r) return;
+      const f = readJfig(r.text);
+      const figure = { doc: { ...f.doc, title }, assets: f.assets };
+      await this.db.figures.update(id, { title, text: writeJfig(figure, app) });
     });
   }
 
@@ -69,14 +138,21 @@ export class FigureStorage {
     return r ? readStored(r) : null;
   }
 
-  async list(limit = 20): Promise<FigureSummary[]> {
+  async list(limit = MAX_FIGURES): Promise<FigureSummary[]> {
     const rows = await this.db.figures.orderBy('updatedAt').reverse().limit(limit).toArray();
     return rows.map((r) => ({
       id: r.id,
       title: r.title,
       downloaded: r.downloaded,
       updatedAt: r.updatedAt,
+      thumb: r.thumb ?? null,
+      size: r.text.length,
     }));
+  }
+
+  /** The stored `.jfig` text, for "Download as .jfig" without opening the figure. */
+  async text(id: string): Promise<string | null> {
+    return (await this.db.figures.get(id))?.text ?? null;
   }
 
   async remove(id: string): Promise<void> {

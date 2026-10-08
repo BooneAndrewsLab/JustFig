@@ -34,6 +34,7 @@ test('the dialogs and the Inspector of each kind of selection have none either',
     ['Shortcuts…', 'Keyboard shortcuts'],
     ['Export…', 'Export figure'],
     ['Attribution', 'Attribution'],
+    ['Recent…', 'Recent figures'],
   ] as const) {
     await page.getByRole('button', { name: button, exact: true }).click();
     const dialog = page.getByRole('dialog').first();

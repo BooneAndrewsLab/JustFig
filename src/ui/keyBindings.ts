@@ -61,6 +61,7 @@ export const KEY_ACTIONS: readonly KeyAction[] = [
   { id: 'back', label: 'Send to back', group: 'Arrange', defaultBinding: 'BracketLeft' },
   { id: 'backward', label: 'Send backward', group: 'Arrange', defaultBinding: 'shift+BracketLeft' },
   { id: 'open', label: 'Open a figure file', group: 'File', defaultBinding: 'ctrl+KeyO' },
+  { id: 'recent', label: 'Recent figures', group: 'File', defaultBinding: 'shift+KeyO' },
   { id: 'export', label: 'Export', group: 'File', defaultBinding: 'ctrl+KeyE' },
   { id: 'fit', label: 'Fit the page in the window', group: 'View', defaultBinding: 'shift+Digit1' },
   { id: 'zoom-in', label: 'Zoom in', group: 'View', defaultBinding: 'shift+Equal' },

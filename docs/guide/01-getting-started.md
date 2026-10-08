@@ -16,6 +16,7 @@ JustFig is a free figure editor that runs entirely in your browser. There is no 
 - **New** starts an empty figure. If you have unsaved changes it asks first.
 - **Templates…** opens the Templates and examples dialog (see [Templates and examples](10-templates.md)).
 - **Open…** opens a figure file (`.jfig`). Any other file you choose here, such as an SVG or a PNG, is imported onto the page instead.
+- **Recent…** opens the Recent figures dialog (shortcut `Shift+O`): every figure JustFig has kept in this browser, newest first, each with a small picture of its first page and the time it was last changed. **Open** brings one back, **Rename** changes its title, **Download .jfig** saves it as a file, and **Delete** removes it after asking "Delete this figure?" in a second dialog. The figure you have open can be opened, renamed and downloaded but not deleted.
 - **Save** downloads the figure as a `.jfig` file named after the figure title.
 - **Import…** places an SVG, PNG or JPEG on the page (see [Importing and other apps](11-import-and-other-apps.md)).
 - **Undo** and **Redo** (the curved arrows) step through your changes. Their tooltips name the change. A drag, a nudge or a run of typing in one field counts as one step.
@@ -37,7 +38,7 @@ A new figure is a single page of 183 mm width (the Nature two-column size). Chan
 
 JustFig keeps a copy of your figure in the browser as you work. This autosave happens about a second after your last change, and again when you switch to another tab. When you come back to JustFig on the same computer and browser, your last figure is there.
 
-Autosave is a safety net, not a filing system. It does not help if you clear the browser's site data, use a private window, or open JustFig on another computer. Use **Save** to get a `.jfig` file you can keep, email or open later. The status line shows "Saved to file" once you have done so, and "Kept in this browser" after you change the figure again.
+**New**, **Templates…** and opening a file never lose the figure you were working on: it is written to the browser first and stays in Recent figures. JustFig keeps the 30 most recently changed figures, and drops the oldest when there are more or when they take more than about 150 MB. Autosave is still a safety net, not a filing system. It does not help if you clear the browser's site data, use a private window, or open JustFig on another computer. Use **Save** to get a `.jfig` file you can keep, email or open later. The status line shows "Saved to file" once you have done so, and "Kept in this browser" after you change the figure again.
 
 If you have never saved the figure as a file, the browser asks for confirmation before you close the tab.
 

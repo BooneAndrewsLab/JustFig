@@ -22,6 +22,7 @@ Every shortcut in JustFig is in this table. **Ctrl** means **⌘** on a Mac. Sho
 | Send to back                                                     | `[`            |                                 |
 | Send backward                                                    | `Shift+[`      | One step.                       |
 | Open a figure file                                               | `Ctrl+O`       |                                 |
+| Recent figures                                                   | `Shift+O`      |                                 |
 | Export                                                           | `Ctrl+E`       | Opens the Export figure dialog. |
 | Fit the page in the window                                       | `Shift+1`      |                                 |
 | Zoom in                                                          | `Shift+=`      | The plus key.                   |

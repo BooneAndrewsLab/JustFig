@@ -11,6 +11,7 @@ import { CreditsDialog } from './dialogs/CreditsDialog';
 import { ExportDialog } from './dialogs/ExportDialog';
 import { GalleryDialog } from './dialogs/GalleryDialog';
 import { GuideDialog } from './dialogs/GuideDialog';
+import { RecentDialog } from './dialogs/RecentDialog';
 import { KeyBindingsDialog } from './dialogs/KeyBindingsDialog';
 import { IconBrowser } from './panels/IconBrowser';
 import { Inspector } from './panels/Inspector';
@@ -22,7 +23,8 @@ import { importToCanvas, newFigure, openFile, saveFile } from './state/session';
 import { currentPage, figure, selectedObjects, store } from './state/store';
 import { useAppState } from './state/useAppState';
 
-type DialogId = 'export' | 'attribution' | 'credits' | 'gallery' | 'keys' | 'guide' | null;
+type DialogId =
+  'recent' | 'export' | 'attribution' | 'credits' | 'gallery' | 'keys' | 'guide' | null;
 
 /** The one selected object's name, for the status line a screen reader announces. */
 function selectionName(s: ReturnType<typeof useAppState>): string {
@@ -48,6 +50,9 @@ export function App() {
           setDialog('export');
         },
         openFile: () => openInput.current?.click(),
+        recent: () => {
+          setDialog('recent');
+        },
         guide: () => {
           setDialog('guide');
         },
@@ -113,15 +118,8 @@ export function App() {
         <div className="toolbar-group">
           <button
             type="button"
-            onClick={() => {
-              if (
-                !unsaved ||
-                confirm(
-                  'Start a new figure? The current one has not been saved to a file (Save downloads it).',
-                )
-              )
-                newFigure();
-            }}
+            title="Start a new figure (the current one stays in Recent figures)"
+            onClick={newFigure}
           >
             New
           </button>
@@ -140,6 +138,15 @@ export function App() {
             onClick={() => openInput.current?.click()}
           >
             Open…
+          </button>
+          <button
+            type="button"
+            title={withKey('Reopen a figure kept in this browser', 'recent', bound)}
+            onClick={() => {
+              setDialog('recent');
+            }}
+          >
+            Recent…
           </button>
           <button
             type="button"
@@ -315,9 +322,15 @@ export function App() {
           }}
         />
       )}
+      {dialog === 'recent' && (
+        <RecentDialog
+          onClose={() => {
+            setDialog(null);
+          }}
+        />
+      )}
       {dialog === 'gallery' && (
         <GalleryDialog
-          unsaved={unsaved}
           onClose={() => {
             setDialog(null);
           }}

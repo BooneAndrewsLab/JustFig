@@ -4,7 +4,7 @@
  * file (never a kept handle); autosave keeps a copy in IndexedDB.
  */
 import { BRAND } from '@/brand';
-import { addObjects, allIds, deleteObjects } from '@/core/edits/edits';
+import { addObjects, allIds, deleteObjects, updateDoc } from '@/core/edits/edits';
 import { boundsOf } from '@/core/geometry/transform';
 import { cloneObjects } from '@/core/model/clone';
 import { createDoc, createText, defaultRun, frame } from '@/core/model/factory';
@@ -30,11 +30,12 @@ import {
 import { convertObjects, createProcedural } from '@/procedural/edits';
 import { getKind } from '@/procedural/registry';
 import { figureWithSnapshots, withSnapshots } from '@/procedural/snapshot';
-import { getStorage } from '@/io/storage';
+import { type FigureSummary, getStorage } from '@/io/storage';
 
 import { analytics } from '../analytics';
 import { Autosaver } from './autosave';
 import { currentPage, figure, selectedObjects, store } from './store';
+import { renderThumbnail } from './thumbnail';
 
 export const APP = { name: BRAND.name, version: __APP_VERSION__ };
 
@@ -66,12 +67,32 @@ export const safeName = (title: string): string =>
 
 let saver: Autosaver | null = null;
 
+const CURRENT_KEY = 'justfig.current';
+
+/** The figure the user last had open: opening an old one from Recent figures must survive a reload. */
+function rememberCurrent(id: string): void {
+  try {
+    globalThis.localStorage.setItem(CURRENT_KEY, id);
+  } catch {
+    // Blocked storage: a reload restores the most recently changed figure instead.
+  }
+}
+
+function rememberedCurrent(): string | null {
+  try {
+    return globalThis.localStorage.getItem(CURRENT_KEY);
+  } catch {
+    return null;
+  }
+}
+
 /** Restores the last figure from the browser and starts autosaving. */
 export async function startSession(): Promise<void> {
   const storage = getStorage();
   try {
+    const wanted = rememberedCurrent();
     const kept = await Promise.race([
-      storage.latest(),
+      (async () => (wanted ? await storage.load(wanted) : null) ?? (await storage.latest()))(),
       new Promise<null>((resolve) => {
         setTimeout(() => {
           resolve(null);
@@ -82,16 +103,31 @@ export async function startSession(): Promise<void> {
   } catch {
     // A wedged IndexedDB must not block the app.
   }
-  saver = new Autosaver(store, storage, APP, () => {
-    store.notify('Could not keep a copy in this browser; save the file to be safe.', 'warning');
-  });
+  saver = new Autosaver(
+    store,
+    storage,
+    APP,
+    () => {
+      store.notify('Could not keep a copy in this browser; save the file to be safe.', 'warning');
+    },
+    renderThumbnail,
+  );
   saver.markSaved(figure(store.getState()));
+  store.subscribe(() => {
+    rememberCurrent(figure(store.getState()).doc.id);
+  });
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') void saver?.flush();
   });
 }
 
+/** Writes the current figure to the browser now: every switch to another figure goes through here first. */
+export async function flushCurrent(): Promise<void> {
+  await saver?.flush();
+}
+
 export function newFigure(): void {
+  // flush() takes the pending change before load() replaces it; the write finishes on its own.
   void saver?.flush();
   store.load({ doc: createDoc(), assets: {} });
 }
@@ -100,6 +136,66 @@ export function newFigure(): void {
 export function openGallery(e: { build: () => Figure }): void {
   void saver?.flush();
   store.load(e.build());
+}
+
+// --- Recent figures (note 02) -----------------------------------------------------
+
+export async function listRecent(): Promise<FigureSummary[]> {
+  await flushCurrent();
+  return getStorage().list();
+}
+
+/** The id of the figure on the canvas. */
+export const currentId = (): string => figure(store.getState()).doc.id;
+
+export async function openRecent(id: string): Promise<boolean> {
+  if (id === currentId()) return true;
+  await flushCurrent();
+  const kept = await getStorage().load(id);
+  if (!kept) {
+    store.notify('That figure can no longer be opened (it may be from a newer version).', 'error');
+    return false;
+  }
+  store.load(kept, { hasFile: kept.downloaded });
+  saver?.markSaved(figure(store.getState()));
+  analytics.track('file', 'open-recent');
+  return true;
+}
+
+export async function renameRecent(id: string, title: string): Promise<void> {
+  const name = title.trim();
+  if (!name) return;
+  if (id === currentId()) {
+    store.edit(
+      updateDoc('Rename figure', (d) => ({ ...d, title: name })),
+      { coalesce: 'title' },
+    );
+    await flushCurrent();
+  } else {
+    await getStorage().rename(id, name, APP);
+  }
+}
+
+export async function deleteRecent(id: string): Promise<void> {
+  await getStorage().remove(id);
+}
+
+export async function downloadRecent(id: string): Promise<void> {
+  if (id === currentId()) {
+    await flushCurrent();
+    saveFile();
+    return;
+  }
+  const kept = await getStorage().load(id);
+  if (!kept) {
+    store.notify('That figure can no longer be read.', 'error');
+    return;
+  }
+  download(
+    writeJfig(figureWithSnapshots(kept), APP),
+    `${safeName(kept.doc.title)}${BRAND.fileExt}`,
+    BRAND.mime,
+  );
 }
 
 export async function openFile(file: File): Promise<void> {

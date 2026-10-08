@@ -1,7 +1,9 @@
 /**
  * Autosave (note 02, after BarelySig's ui/state/autosave.ts): the figure
  * goes to IndexedDB a second after the last change, and at once when the
- * page is hidden. An untouched new figure is not saved.
+ * page is hidden. An untouched new figure is not saved. Each figure is its own
+ * record; a small thumbnail of its first page is refreshed at most every
+ * THUMB_INTERVAL ms, after the save itself so the save is never delayed.
  */
 import type { Figure } from '@/core/model/types';
 import type { FigureStorage } from '@/io/storage';
@@ -9,6 +11,7 @@ import type { FigureStorage } from '@/io/storage';
 import { type AppState, type AppStore, figure } from './store';
 
 export const AUTOSAVE_DELAY = 1000;
+export const THUMB_INTERVAL = 15_000;
 
 function worthSaving(s: AppState): boolean {
   return s.history.canUndo || s.history.canRedo || s.downloaded !== null;
@@ -21,12 +24,16 @@ export class Autosaver {
   /** The write under way; the next waits for it, so writes land in order. */
   private writing: Promise<void> = Promise.resolve();
   private readonly unsubscribe: () => void;
+  private lastThumb = 0;
+  private thumbTimer: ReturnType<typeof setTimeout> | undefined;
 
   constructor(
     private readonly store: AppStore,
     private readonly storage: FigureStorage,
     private readonly app: { name: string; version: string },
     private readonly onError: (e: unknown) => void = () => undefined,
+    /** Renders a small image of the first page; omitted where there is no DOM. */
+    private readonly thumbnail?: (f: Figure) => Promise<string | null>,
   ) {
     this.saved = figure(store.getState());
     this.unsubscribe = store.subscribe(() => {
@@ -66,11 +73,37 @@ export class Autosaver {
       this.saved = f;
     } catch (e: unknown) {
       this.onError(e);
+      return;
+    }
+    this.scheduleThumb();
+  }
+
+  /** At most one thumbnail per THUMB_INTERVAL; a change inside it is drawn when the interval ends. */
+  private scheduleThumb(): void {
+    if (!this.thumbnail || this.thumbTimer !== undefined) return;
+    const wait = Math.max(0, this.lastThumb + THUMB_INTERVAL - Date.now());
+    this.thumbTimer = setTimeout(() => {
+      this.thumbTimer = undefined;
+      void this.drawThumb();
+    }, wait);
+  }
+
+  private async drawThumb(): Promise<void> {
+    const f = this.saved;
+    if (!f || !this.thumbnail) return;
+    this.lastThumb = Date.now();
+    try {
+      const url = await this.thumbnail(f);
+      // The figure may have been replaced while drawing; the row is per document.
+      if (url) await this.storage.setThumb(f.doc.id, url);
+    } catch {
+      // No thumbnail is fine: the list shows a placeholder.
     }
   }
 
   dispose(): void {
     if (this.timer !== undefined) clearTimeout(this.timer);
+    if (this.thumbTimer !== undefined) clearTimeout(this.thumbTimer);
     this.unsubscribe();
   }
 }

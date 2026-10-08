@@ -16,7 +16,7 @@ function thumbnail(e: GalleryEntry): string {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
-export function GalleryDialog({ onClose, unsaved }: { onClose: () => void; unsaved: boolean }) {
+export function GalleryDialog({ onClose }: { onClose: () => void }) {
   const [tab, setTab] = useState<GalleryEntry['kind']>('template');
   const thumbs = useMemo(() => new Map(GALLERY.map((e) => [e.id, thumbnail(e)])), []);
   return (
@@ -39,7 +39,8 @@ export function GalleryDialog({ onClose, unsaved }: { onClose: () => void; unsav
       <p className="note">
         {tab === 'template'
           ? 'Empty layouts to fill in: panels sized for a journal column.'
-          : 'Finished figures to take apart. Their colours are linked to the palette, so applying another palette recolours them.'}
+          : 'Finished figures to take apart. Their colours are linked to the palette, so applying another palette recolours them.'}{' '}
+        Starting one keeps your current figure in Recent figures.
       </p>
       <div role="tabpanel">
         <ul className="gallery-grid">
@@ -50,13 +51,6 @@ export function GalleryDialog({ onClose, unsaved }: { onClose: () => void; unsav
                 className="gallery-card"
                 data-entry={e.id}
                 onClick={() => {
-                  if (
-                    unsaved &&
-                    !confirm(
-                      'Start a new figure from this? The current one has not been saved to a file (Save downloads it).',
-                    )
-                  )
-                    return;
                   openGallery(e);
                   analytics.track('gallery', 'open', e.id);
                   onClose();

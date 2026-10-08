@@ -41,6 +41,9 @@ account, figures never leave the computer. Design notes: `docs/design/`.
   images scale by transform.
 - **Every document change is a named edit** in `src/core/edits/` and one
   undo step; continuous drags coalesce via `coalesceKey` (history.ts).
+- **Storage** (note 02): IndexedDB holds one row per `doc.id`, capped (30 figures / ~150 M chars,
+  oldest evicted, never the one just saved). Anything that replaces the open figure must
+  `flush()` the autosaver first; never use `window.confirm` (in-app `Dialog` only).
 - **Files:** `.jfig` is plain JSON, hand-decoded in `src/io/jfig.ts`, with
   `MIGRATIONS`; a schema bump ships a frozen fixture and a round-trip test.
 - **Icons** go through `src/icons/library.ts` (manifest, shards, MiniSearch
