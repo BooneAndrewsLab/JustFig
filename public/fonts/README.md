@@ -1,0 +1,13 @@
+# Fonts
+
+Arimo, Tinos and Cousine from ChromeOS croscore fonts 1.31.0
+(`croscorefonts-1.31.0.tar.bz2`), Apache License 2.0 (`LICENSE-Apache-2.0.txt`).
+
+Subset with fontTools `pyftsubset` to Basic Latin, Latin-1, Latin Extended-A,
+Greek, general punctuation, super/subscripts, letterlike symbols, arrows,
+math operators and geometric shapes, no layout features, no hinting:
+
+    pyftsubset X.ttf --unicodes="U+0020-007E,U+00A0-017F,U+0391-03C9,U+03D1,U+03D5,U+03D6,U+2010-2027,U+2030-2033,U+2070-209F,U+2190-21FF,U+2200-22FF,U+2100-214F,U+25A0-25FF" --layout-features='' --no-hinting
+
+The TTFs are read by opentype.js (text layout and outlining) and embedded by
+jsPDF in PDF exports, and served as web fonts for the on-screen canvas.

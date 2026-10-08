@@ -1,0 +1,12 @@
+dist
+dev-dist
+coverage
+node_modules
+.idea
+.claude
+package-lock.json
+CLAUDE.md
+public/lib
+public/fonts
+e2e/golden
+src/export/fixtures/*.jfig
