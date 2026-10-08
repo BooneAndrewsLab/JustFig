@@ -30,6 +30,8 @@ describe('brand', () => {
     const offenders = files
       .map((f) => relative(root, f))
       .filter((f) => f !== 'src/brand.ts' && f !== 'src/brand.test.ts')
+      // Golden export outputs are generated from BRAND, not written by hand.
+      .filter((f) => !/^src\/export\/fixtures\/.*\.(svg|jfig)$/.test(f))
       .filter((f) => readFileSync(join(root, f), 'utf8').includes(BRAND.name));
     expect(offenders).toEqual([]);
   });

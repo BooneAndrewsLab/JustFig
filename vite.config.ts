@@ -70,6 +70,12 @@ export default defineConfig({
     // Model / render tests run in plain Node. Component tests opt into the
     // DOM with a `// @vitest-environment jsdom` docblock.
     environment: 'node',
+    // svg2pdf's "main" is a UMD build that expects a global jsPDF; tests use its ES build.
+    alias: {
+      'svg2pdf.js': fileURLToPath(
+        new URL('./node_modules/svg2pdf.js/dist/svg2pdf.es.js', import.meta.url),
+      ),
+    },
     setupFiles: ['./src/test/setup.ts'],
     testTimeout: 30_000,
     include: ['src/**/*.{test,spec}.{ts,tsx}'],

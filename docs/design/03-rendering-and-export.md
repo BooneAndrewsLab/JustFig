@@ -99,15 +99,32 @@ group of 384 circles plus row and column labels.
 
 ## Spike findings (svg2pdf, week 1)
 
-Recorded from `src/export/pdf.spike.test.ts`:
+These come from `src/export/pdf.spike.test.ts`, which runs the torture fixture through jsPDF 4 and
+svg2pdf.js 2.8, then checks the result with pdf-lib. A rasterised check (poppler `pdftoppm`)
+matched the SVG by eye, apart from the opacity bug below.
 
-- svg2pdf needs a DOM (`DOMParser`, `getComputedStyle`). In Vitest it runs under jsdom.
-- Fonts: svg2pdf picks a jsPDF font by `font-family` plus `font-weight` and `font-style`. A family
-  that was not registered silently falls back to Helvetica, so `pdf.ts` registers all twelve
-  styles under the exact family names that `text` mode writes, and the test asserts the embedded
-  font names.
-- `<tspan>` needs explicit `x` and `y`. svg2pdf ignores `baseline-shift` and `dominant-baseline`,
-  which confirms the rule above.
-- Group `opacity` works (an ExtGState with `ca`/`CA`). Nested opacities multiply correctly.
-- Data-URI PNG `<image>`s embed as image XObjects. Imported SVGs are inlined as groups, never
-  `<image>`, so they stay vector.
+- **Nested opacity does not multiply.** svg2pdf gives a child its own opacity _instead of_
+  multiplying it by its group's, so a 0.8 child in a 0.5 group came out at 0.8. `pdf.ts`
+  therefore pushes the effective opacity down to every leaf (`flattenOpacity`), and the test
+  asserts `/ca 0.4` is present and `/ca 0.8` is not. Remaining difference: overlapping children
+  of a translucent group show through each other in the PDF, which needs transparency groups
+  that svg2pdf does not write. If that matters, the fallback is the plan's own pdf-lib backend.
+- **Fonts.** svg2pdf picks a jsPDF font by `font-family`, `font-weight` and `font-style`. All 12
+  TTFs are registered (`addFont(file, family, normal|bold|italic|bolditalic)`) under the exact
+  family names that text mode writes. They embed as CID TrueType, Identity-H, with a ToUnicode
+  map, so Greek, arrows and super/subscripts extract as text. The test asserts that every `Tf`
+  in the content streams selects an embedded Arimo, Tinos or Cousine resource, never a
+  standard-14 fallback. jsPDF still lists the standard 14 fonts as unused page resources, which is
+  harmless. Poppler logs "Unknown character collection 'Adobe-Identity-H'" for jsPDF's
+  CIDSystemInfo but renders and extracts correctly. The text-mode PDF of the fixture is about 60 KB.
+- **Text positioning.** Every tspan carries explicit `x`/`y`. svg2pdf measures text with the
+  browser (canvas or `getBBox`) only to advance to the next chunk, so with explicit positions its
+  measurement never moves our text. `baseline-shift` and `dominant-baseline` are never written.
+- **Images.** Data-URI PNGs embed as one image XObject each (the test counts exactly one: the
+  fixture's PNG). svg2pdf asks `new Image()` for dimensions. Imported SVGs are inlined as groups,
+  so they stay vector.
+- **Testing in Node.** svg2pdf's `main` is a UMD build that expects a global jsPDF, so Vitest
+  aliases its ES build (`vite.config.ts`). Under jsdom, images never load and `getBBox` does not
+  exist, so `src/test/domStubs.ts` stubs both. The browser needs neither, and Playwright covers
+  the real path.
+- **Footer.** With the credit line on (the default), the PDF page grows by the footer strip.
