@@ -93,3 +93,28 @@ test('a gallery example opens as a new figure, and a palette recolours it', asyn
   await page.keyboard.press('Control+z');
   await expect(ligand).toHaveValue('#e69f00');
 });
+
+test('a shortcut moved in Keyboard shortcuts works at once and after a reload', async ({
+  page,
+}) => {
+  await page.getByRole('button', { name: 'Shortcuts…' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Keyboard shortcuts' });
+  await dialog.getByRole('button', { name: 'Change the key for Rectangle tool' }).click();
+  await page.keyboard.press('Control+w');
+  await expect(dialog.getByRole('alert')).toContainText('belongs to the browser');
+  await page.keyboard.press('q');
+  await expect(dialog.locator('[data-action="tool-rect"] kbd')).toHaveText('Q');
+  await dialog.getByRole('button', { name: 'Done' }).click();
+  await expect(page.locator('[data-tool="rect"]')).toHaveAttribute('title', /\(Q\)/);
+  await page.keyboard.press('q');
+  await expect(page.locator('[data-tool="rect"]')).toHaveAttribute('aria-pressed', 'true');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('r');
+  await expect(page.locator('[data-tool="rect"]')).toHaveAttribute('aria-pressed', 'false');
+  await page.reload();
+  await page.keyboard.press('q');
+  await expect(page.locator('[data-tool="rect"]')).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: 'Shortcuts…' }).click();
+  await page.getByRole('button', { name: 'All back to their defaults' }).click();
+  await expect(dialog.locator('[data-action="tool-rect"] kbd')).toHaveText('R');
+});

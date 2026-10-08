@@ -821,3 +821,45 @@ button.link {
   color: var(--ink-2);
   font-size: 12px;
 }
+
+.keybindings ul {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+}
+
+.keybindings h2 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+  margin: 10px 0 4px;
+}
+
+.keybindings-row {
+  display: grid;
+  grid-template-columns: 1fr auto 9rem;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.keybindings-row kbd {
+  font:
+    12px ui-monospace,
+    monospace;
+  background: var(--ground);
+  border: 1px solid var(--rule-strong);
+  border-radius: 3px;
+  padding: 1px 6px;
+}
+
+.keybindings-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.keybindings-fixed {
+  color: var(--ink-3);
+}

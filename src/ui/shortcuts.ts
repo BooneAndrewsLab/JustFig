@@ -1,6 +1,7 @@
 /**
- * Keyboard shortcuts. Typing in a field never triggers them. The plan's
- * shortcut editor (port of PlasmidPop's KeyBindings) is Phase 4.
+ * Keyboard shortcuts (note 09): the keys come from the binding table in
+ * `keyBindings.ts`, with the user's changes over the defaults. Typing in a
+ * field, or an open dialog, never triggers them.
  */
 import {
   deleteObjects,
@@ -11,20 +12,10 @@ import {
   allIds,
 } from '@/core/edits/edits';
 
+import { canvasSize, fitPage, zoomAt } from './canvas/view';
+import { actionFor, resolveBindings } from './keyBindings';
 import { copySelection, duplicateSelection, pasteText, saveFile } from './state/session';
 import { type ToolId, currentPage, selectedObjects, store } from './state/store';
-
-const TOOL_KEYS: Readonly<Record<string, ToolId>> = {
-  v: 'select',
-  h: 'hand',
-  r: 'rect',
-  e: 'ellipse',
-  l: 'line',
-  p: 'pen',
-  a: 'arrow',
-  t: 'text',
-  f: 'panel',
-};
 
 export function isTyping(t: EventTarget | null): boolean {
   return (
@@ -38,48 +29,54 @@ export function isTyping(t: EventTarget | null): boolean {
 let nudgeSeq = 0;
 let lastNudge = 0;
 
-export function onKeyDown(
-  e: KeyboardEvent,
-  open: { exportDialog: () => void; openFile: () => void },
-): void {
+export interface ShortcutTargets {
+  readonly exportDialog: () => void;
+  readonly openFile: () => void;
+  readonly guide: () => void;
+}
+
+const TOOL_ACTIONS: Readonly<Record<string, ToolId>> = {
+  'tool-select': 'select',
+  'tool-hand': 'hand',
+  'tool-rect': 'rect',
+  'tool-ellipse': 'ellipse',
+  'tool-line': 'line',
+  'tool-pen': 'pen',
+  'tool-arrow': 'arrow',
+  'tool-text': 'text',
+  'tool-panel': 'panel',
+};
+
+export function onKeyDown(e: KeyboardEvent, open: ShortcutTargets): void {
   if (isTyping(e.target) || document.querySelector('.dialog')) return;
   const s = store.getState();
   const page = currentPage(s);
   const mod = e.ctrlKey || e.metaKey;
-  const k = e.key.toLowerCase();
   const ids = s.selection;
   const handled = (): void => {
     e.preventDefault();
   };
-  if (mod) {
-    // Copy, cut and paste go through the clipboard events (App), so the system clipboard works.
-    const action: (() => void) | undefined = {
-      z: () => {
-        if (e.shiftKey) store.redo();
-        else store.undo();
-      },
-      y: () => {
-        store.redo();
-      },
-      s: saveFile,
-      o: open.openFile,
-      e: open.exportDialog,
-      a: () => {
-        store.select(allIds(page));
-      },
-      d: duplicateSelection,
-      g: () => {
-        if (e.shiftKey) store.edit(ungroupObjects(page.id, ids));
-        else if (ids.length > 1) store.edit(groupObjects(page.id, ids));
-      },
-    }[k];
-    if (action) {
+  // The fixed keys first (note 09: they cannot be moved).
+  if (mod && !e.altKey) {
+    const k = e.code;
+    if (k === 'KeyZ') {
       handled();
-      action();
+      if (e.shiftKey) store.redo();
+      else store.undo();
+      return;
     }
-    return;
+    if (k === 'KeyY' && !e.shiftKey) {
+      handled();
+      store.redo();
+      return;
+    }
+    if (k === 'KeyS' && !e.shiftKey) {
+      handled();
+      saveFile();
+      return;
+    }
   }
-  if ((e.key === 'Delete' || e.key === 'Backspace') && ids.length > 0) {
+  if (!mod && (e.key === 'Delete' || e.key === 'Backspace') && ids.length > 0) {
     handled();
     store.edit(deleteObjects(page.id, ids));
     return;
@@ -89,17 +86,7 @@ export function onKeyDown(
     else store.select([]);
     return;
   }
-  if (e.key === ']' && ids.length > 0)
-    return (
-      handled(),
-      void store.edit(reorderObjects(page.id, ids, e.shiftKey ? 'forward' : 'front'))
-    );
-  if (e.key === '[' && ids.length > 0)
-    return (
-      handled(),
-      void store.edit(reorderObjects(page.id, ids, e.shiftKey ? 'backward' : 'back'))
-    );
-  if (e.key.startsWith('Arrow') && ids.length > 0) {
+  if (!mod && !e.altKey && e.key.startsWith('Arrow') && ids.length > 0) {
     const d = e.shiftKey ? 10 : 1;
     const dx = e.key === 'ArrowLeft' ? -d : e.key === 'ArrowRight' ? d : 0;
     const dy = e.key === 'ArrowUp' ? -d : e.key === 'ArrowDown' ? d : 0;
@@ -116,8 +103,50 @@ export function onKeyDown(
     handled();
     return;
   }
-  const tool = TOOL_KEYS[k];
-  if (tool && !e.altKey) store.setTool(tool);
+  const id = actionFor(e, resolveBindings(s.keyBindings));
+  if (id === undefined) return;
+  const tool = TOOL_ACTIONS[id];
+  if (tool) {
+    store.setTool(tool);
+    return;
+  }
+  const zoom = (k: number) => {
+    const { w, h } = canvasSize();
+    zoomAt(s.view, w / 2, h / 2, s.view.zoom * k);
+  };
+  const actions: Readonly<Record<string, () => void>> = {
+    'select-all': () => {
+      store.select(allIds(page));
+    },
+    duplicate: duplicateSelection,
+    group: () => {
+      if (ids.length > 1) store.edit(groupObjects(page.id, ids));
+    },
+    ungroup: () => {
+      store.edit(ungroupObjects(page.id, ids));
+    },
+    front: () => ids.length > 0 && store.edit(reorderObjects(page.id, ids, 'front')),
+    forward: () => ids.length > 0 && store.edit(reorderObjects(page.id, ids, 'forward')),
+    back: () => ids.length > 0 && store.edit(reorderObjects(page.id, ids, 'back')),
+    backward: () => ids.length > 0 && store.edit(reorderObjects(page.id, ids, 'backward')),
+    open: open.openFile,
+    export: open.exportDialog,
+    guide: open.guide,
+    fit: () => {
+      fitPage(page, canvasSize());
+    },
+    'zoom-in': () => {
+      zoom(1.25);
+    },
+    'zoom-out': () => {
+      zoom(1 / 1.25);
+    },
+  };
+  const run = actions[id];
+  if (run) {
+    handled();
+    run();
+  }
 }
 
 export function onCopy(e: ClipboardEvent, cut: boolean): void {

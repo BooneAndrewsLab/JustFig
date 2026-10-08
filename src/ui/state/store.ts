@@ -16,6 +16,7 @@ import type { Figure, Obj, Page } from '@/core/model/types';
 import type { Unit } from '@/core/units';
 
 import { analytics } from '../analytics';
+import { loadCustomBindings, saveCustomBindings } from '../keyBindings';
 
 export type ToolId =
   'select' | 'rect' | 'ellipse' | 'line' | 'pen' | 'arrow' | 'text' | 'panel' | 'hand';
@@ -49,6 +50,8 @@ export interface AppState {
   readonly snap: boolean;
   /** Editor-only colour-vision preview; never exported. */
   readonly vision: Vision;
+  /** The user's changed shortcuts (note 09), action id → binding; remembered per browser. */
+  readonly keyBindings: Readonly<Record<string, string>>;
   /** The text object being edited in the overlay, if any. */
   readonly editingText: Id | null;
   readonly notice: Notice | null;
@@ -108,6 +111,7 @@ export class AppStore {
       units: initialUnits(),
       snap: true,
       vision: 'normal',
+      keyBindings: loadCustomBindings(),
       editingText: null,
       notice: null,
       downloaded: null,
@@ -215,6 +219,21 @@ export class AppStore {
 
   setSnap(snap: boolean): void {
     this.set({ snap });
+  }
+
+  /** Moves an action to a key, or (null) back to its default. */
+  setKeyBinding(id: string, binding: string | null): void {
+    const next: Record<string, string> = Object.fromEntries(
+      Object.entries(this.state.keyBindings).filter(([k]) => k !== id),
+    );
+    if (binding !== null) next[id] = binding;
+    saveCustomBindings(next);
+    this.set({ keyBindings: next });
+  }
+
+  resetKeyBindings(): void {
+    saveCustomBindings({});
+    this.set({ keyBindings: {} });
   }
 
   setVision(vision: Vision): void {

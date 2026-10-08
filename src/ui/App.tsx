@@ -10,16 +10,18 @@ import { AttributionDialog } from './dialogs/AttributionDialog';
 import { CreditsDialog } from './dialogs/CreditsDialog';
 import { ExportDialog } from './dialogs/ExportDialog';
 import { GalleryDialog } from './dialogs/GalleryDialog';
+import { KeyBindingsDialog } from './dialogs/KeyBindingsDialog';
 import { IconBrowser } from './panels/IconBrowser';
 import { Inspector } from './panels/Inspector';
 import { LayersPanel } from './panels/LayersPanel';
 import { ToolPalette } from './panels/ToolPalette';
+import { resolveBindings, withKey } from './keyBindings';
 import { onCopy, onKeyDown, onPaste } from './shortcuts';
 import { importToCanvas, newFigure, openFile, saveFile } from './state/session';
 import { currentPage, figure, store } from './state/store';
 import { useAppState } from './state/useAppState';
 
-type DialogId = 'export' | 'attribution' | 'credits' | 'gallery' | null;
+type DialogId = 'export' | 'attribution' | 'credits' | 'gallery' | 'keys' | 'guide' | null;
 
 export function App() {
   const s = useAppState();
@@ -39,6 +41,9 @@ export function App() {
           setDialog('export');
         },
         openFile: () => openInput.current?.click(),
+        guide: () => {
+          setDialog('guide');
+        },
       });
     };
     const copy = (e: ClipboardEvent) => {
@@ -74,6 +79,7 @@ export function App() {
     };
   }, [unsaved, s.downloaded]);
 
+  const bound = resolveBindings(s.keyBindings);
   const undo = store.undoLabel();
   const redo = store.redoLabel();
   const zoomBy = (k: number) => {
@@ -118,12 +124,16 @@ export function App() {
           </button>
           <button
             type="button"
-            title="Open a figure file (Ctrl+O)"
+            title={withKey('Open a figure file', 'open', bound)}
             onClick={() => openInput.current?.click()}
           >
             Open…
           </button>
-          <button type="button" title="Download the figure file (Ctrl+S)" onClick={saveFile}>
+          <button
+            type="button"
+            title={withKey('Download the figure file', 'save', bound)}
+            onClick={saveFile}
+          >
             Save
           </button>
           <button
@@ -195,6 +205,23 @@ export function App() {
         <span className="spacer" />
         <button
           type="button"
+          title={withKey('The user guide', 'guide', bound)}
+          onClick={() => {
+            setDialog('guide');
+          }}
+        >
+          Guide
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setDialog('keys');
+          }}
+        >
+          Shortcuts…
+        </button>
+        <button
+          type="button"
           onClick={() => {
             setDialog('attribution');
             analytics.trackOnce('attribution', 'open');
@@ -205,7 +232,7 @@ export function App() {
         <button
           type="button"
           className="primary"
-          title="Export (Ctrl+E)"
+          title={withKey('Export', 'export', bound)}
           onClick={() => {
             setDialog('export');
           }}
@@ -277,6 +304,13 @@ export function App() {
       {dialog === 'gallery' && (
         <GalleryDialog
           unsaved={unsaved}
+          onClose={() => {
+            setDialog(null);
+          }}
+        />
+      )}
+      {dialog === 'keys' && (
+        <KeyBindingsDialog
           onClose={() => {
             setDialog(null);
           }}
