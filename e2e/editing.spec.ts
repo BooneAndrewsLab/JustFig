@@ -33,6 +33,26 @@ test.beforeEach(async ({ page }) => {
   await expect(page.locator('.icon-tile').first()).toBeVisible();
 });
 
+test('Same width gives each selected object the first width in one step', async ({ page }) => {
+  await rect(page, 20, 20, 100, 50);
+  await rect(page, 20, 120, 40, 40);
+  const layer = (n: number) => page.locator('.layers .item .name', { hasText: 'Rect' }).nth(n);
+  // Layers list the top-most first: the second rect is first in the list.
+  await layer(1).click();
+  const w = await field(page, 'W').inputValue();
+  await layer(0).click();
+  const w0 = await field(page, 'W').inputValue();
+  expect(w0).not.toBe(w);
+  await layer(1).click();
+  await layer(0).click({ modifiers: ['Shift'] });
+  await expect(page.locator('.status')).toContainText('2 selected');
+  await page.getByRole('button', { name: 'Same width' }).click();
+  await layer(0).click();
+  expect(await field(page, 'W').inputValue()).toBe(w);
+  await page.keyboard.press('Control+z');
+  expect(await field(page, 'W').inputValue()).toBe(w0);
+});
+
 test('resize and rotate handles, with one undo step per drag', async ({ page }) => {
   await rect(page, 50, 50, 100, 50);
   const w0 = Number(await field(page, 'W').inputValue());

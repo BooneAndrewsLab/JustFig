@@ -22,6 +22,7 @@ import {
   distributeObjects,
   flipObjects,
   groupObjects,
+  matchSize,
   moveObjects,
   reorderObjects,
   resizeObjects,
@@ -165,5 +166,54 @@ describe('edits', () => {
     expect(readJfig(writeJfig(f, { name: 't', version: '0' })).doc).toEqual(f.doc);
     expect([...pageObjects(pg(f))].map((o) => o.type)).toEqual(['group', 'ellipse']);
     expect(objBounds(top(f)[0]!)).toEqual(objBounds(findObj(pg(f), objs[1]!.id)!));
+  });
+
+  describe('matchSize', () => {
+    it('gives each object the width, keeping proportions and top-left; one named edit', () => {
+      const { fig, page } = start();
+      const a = createRect(frame(0, 0, 40, 20));
+      const b = createRect(frame(100, 50, 10, 10));
+      const c = createRect(frame(5, 70, 80, 40));
+      const f0 = addObjects(page.id, [a, b, c]).apply(fig);
+      const e = matchSize(page.id, [a, b, c], { w: 40 });
+      expect(e.label).toBe('Match width objects');
+      const f = e.apply(f0);
+      expect(objBounds(findObj(pg(f), b.id)!)).toEqual({ x: 100, y: 50, w: 40, h: 40 });
+      expect(objBounds(findObj(pg(f), c.id)!)).toEqual({ x: 5, y: 70, w: 40, h: 20 });
+      expect(objBounds(findObj(pg(f), a.id)!)).toEqual({ x: 0, y: 0, w: 40, h: 20 });
+      // pure: the previous figure is the undo state
+      expect(objBounds(findObj(pg(f0), b.id)!).w).toBe(10);
+    });
+
+    it('stretches to both dimensions, and bakes the scale into path points', () => {
+      const { fig, page } = start();
+      const r = createRect(frame(0, 0, 10, 10));
+      const p = createPath(
+        [
+          { x: 0, y: 0 },
+          { x: 20, y: 10 },
+        ],
+        false,
+      );
+      let f = addObjects(page.id, [r, p]).apply(fig);
+      f = matchSize(page.id, [r, p], { w: 40, h: 30 }).apply(f);
+      const q = findObj(pg(f), p.id);
+      expect(q?.type === 'path' && q.nodes[1]).toEqual({ x: 40, y: 30 });
+      expect(objBounds(findObj(pg(f), r.id)!)).toMatchObject({ w: 40, h: 30 });
+    });
+
+    it('uses the visual bounds of rotated objects and skips locked ones', () => {
+      const { fig, page } = start();
+      const a = createRect(frame(0, 0, 20, 10));
+      const r = { ...createRect(frame(50, 0, 20, 10)), locked: true };
+      let f = addObjects(page.id, [a, r]).apply(fig);
+      f = rotateObjects(page.id, [a.id], { x: 10, y: 5 }, 90).apply(f);
+      const rot = findObj(pg(f), a.id)!;
+      expect(objBounds(rot).w).toBeCloseTo(10);
+      f = matchSize(page.id, [rot, findObj(pg(f), r.id)!], { w: 30 }).apply(f);
+      expect(objBounds(findObj(pg(f), a.id)!).w).toBeCloseTo(30);
+      expect(objBounds(findObj(pg(f), a.id)!).h).toBeCloseTo(60);
+      expect(findObj(pg(f), r.id)?.frame.w).toBe(20);
+    });
   });
 });

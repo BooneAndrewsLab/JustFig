@@ -12,6 +12,7 @@ import {
   groupObjects,
   moveObjects,
   reorderObjects,
+  matchSize,
   resizeObjects,
   setBackground,
   setCreditFooter,
@@ -23,7 +24,7 @@ import {
 } from '@/core/edits/edits';
 import { needsModifiedNote } from '@/core/attribution/attribution';
 import { center } from '@/core/geometry/matrix';
-import { boundsOf, normAngle, rebase, rotateObj } from '@/core/geometry/transform';
+import { boundsOf, normAngle, objBounds, rebase, rotateObj } from '@/core/geometry/transform';
 import type { Id } from '@/core/model/ids';
 import { findObj } from '@/core/model/tree';
 import {
@@ -310,6 +311,7 @@ function SelectionInspector({ s, sel }: { s: AppState; sel: readonly Obj[] }) {
   const ids = sel.map((o) => o.id);
   const box = boundsOf(sel);
   const one = sel.length === 1 ? sel[0] : undefined;
+  const refObj = sel[0];
   const styled = sel.filter((o): o is Extract<Obj, { style: ShapeStyle }> => 'style' in o);
   const first = styled[0];
   const pageBox = { x: 0, y: 0, w: page.size.w, h: page.size.h };
@@ -420,6 +422,35 @@ function SelectionInspector({ s, sel }: { s: AppState; sel: readonly Obj[] }) {
             Back
           </button>
         </div>
+        {sel.length > 1 && refObj && (
+          <div className="row" style={{ flexWrap: 'wrap' }} aria-label="Match size">
+            {(
+              [
+                ['Same width', 'Match width to the first selected object', 'w'],
+                ['Same height', 'Match height to the first selected object', 'h'],
+                ['Same size', 'Match width and height to the first selected object', 'wh'],
+              ] as const
+            ).map(([text, title, dims]) => (
+              <button
+                key={dims}
+                type="button"
+                title={title}
+                onClick={() => {
+                  const ref = objBounds(refObj);
+                  store.edit(
+                    matchSize(page.id, sel, {
+                      ...(dims.includes('w') ? { w: ref.w } : {}),
+                      ...(dims.includes('h') ? { h: ref.h } : {}),
+                    }),
+                    { keepSelection: true },
+                  );
+                }}
+              >
+                {text}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="row" style={{ flexWrap: 'wrap' }} aria-label="Align">
           {(
             [

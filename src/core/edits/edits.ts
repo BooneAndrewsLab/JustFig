@@ -210,17 +210,51 @@ function transformEach(pageId: Id, ids: readonly Id[], label: string, fn: (o: Ob
   };
 }
 
-/** Scales the selection's bounds `from` onto `to` (resize handles). */
-export function resizeObjects(pageId: Id, ids: readonly Id[], from: Box, to: Box): Edit {
+/** Scales one object's bounds `from` onto `to`: the per-object step of every resize. */
+function resizeOne(o: Obj, from: Box, to: Box): Obj {
   const sx = from.w === 0 ? 1 : to.w / from.w;
   const sy = from.h === 0 ? 1 : to.h / from.h;
-  return transformEach(pageId, ids, 'Resize', (o) => {
-    const moved = scaleObj(o, { x: from.x, y: from.y }, sx, sy);
-    const t = translateObj(moved, to.x - from.x, to.y - from.y);
-    // Text resized by its box: wraps at the new width; its height follows the layout.
-    return t.type === 'text'
-      ? fitText({ ...t, autoWidth: false, frame: { ...t.frame, w: Math.max(t.frame.w, 4) } })
-      : t;
+  const moved = scaleObj(o, { x: from.x, y: from.y }, sx, sy);
+  const t = translateObj(moved, to.x - from.x, to.y - from.y);
+  // Text resized by its box: wraps at the new width; its height follows the layout.
+  return t.type === 'text'
+    ? fitText({ ...t, autoWidth: false, frame: { ...t.frame, w: Math.max(t.frame.w, 4) } })
+    : t;
+}
+
+/** Scales the selection's bounds `from` onto `to` (resize handles). */
+export function resizeObjects(pageId: Id, ids: readonly Id[], from: Box, to: Box): Edit {
+  return transformEach(pageId, ids, 'Resize', (o) => resizeOne(o, from, to));
+}
+
+/**
+ * Gives each object its own size `size` (the width and/or height of its bounds, in points),
+ * keeping its top-left corner. With one dimension the other follows the object's proportions;
+ * with both each object is stretched to exactly that size. Locked objects and objects with
+ * nothing to scale (zero width or height) are left alone.
+ */
+export function matchSize(
+  pageId: Id,
+  objs: readonly Obj[],
+  size: { readonly w?: number; readonly h?: number },
+): Edit {
+  const boxes = new Map<Id, Box>();
+  for (const o of objs) {
+    const b = objBounds(o);
+    if (o.locked === true || b.w <= 0 || b.h <= 0) continue;
+    const w = size.w ?? (size.h !== undefined ? (b.w * size.h) / b.h : b.w);
+    const h = size.h ?? (size.w !== undefined ? (b.h * size.w) / b.w : b.h);
+    boxes.set(o.id, { x: b.x, y: b.y, w, h });
+  }
+  const label =
+    size.w !== undefined && size.h !== undefined
+      ? 'Match size'
+      : size.w !== undefined
+        ? 'Match width'
+        : 'Match height';
+  return transformEach(pageId, [...boxes.keys()], label, (o) => {
+    const to = boxes.get(o.id);
+    return to ? resizeOne(o, objBounds(o), to) : o;
   });
 }
 
