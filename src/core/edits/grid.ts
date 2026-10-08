@@ -63,8 +63,9 @@ export interface GridPlace {
  * Cells for items already in reading order, filled row by row. Without a
  * width, a column is as wide as its widest object and nothing scales; with
  * one, the columns share it equally and each object is scaled (keeping its
- * proportions) to its column width. A row is as tall as its tallest object
- * plus its room.
+ * proportions) to its column width, and with a height too, no taller than
+ * an equal share of it (so a tall narrow object shrinks and sits aligned in
+ * its full-width cell). A row is as tall as its tallest object plus its room.
  */
 export function gridLayout(
   items: readonly GridItem[],
@@ -75,14 +76,19 @@ export function gridLayout(
     readonly vAlign: GridVAlign;
     readonly origin: { readonly x: number; readonly y: number };
     readonly width?: number;
+    /** With a width: the vertical space for the whole grid; no object is scaled taller than its share. */
+    readonly height?: number;
   },
 ): GridPlace[] {
   const cols = Math.max(1, Math.floor(o.cols));
   const g = Math.max(0, o.gutter);
   const rows = Math.ceil(items.length / cols);
   const fitW = o.width === undefined ? undefined : Math.max(1, (o.width - (cols - 1) * g) / cols);
-  const sizes = items.map(({ box }) => {
-    const k = fitW !== undefined && box.w > 0 ? fitW / box.w : 1;
+  const capH =
+    fitW !== undefined && o.height !== undefined ? (o.height - (rows - 1) * g) / rows : undefined;
+  const sizes = items.map(({ box, room }) => {
+    let k = fitW !== undefined && box.w > 0 ? fitW / box.w : 1;
+    if (capH !== undefined && box.h > 0) k = Math.min(k, Math.max(1, capH - room) / box.h);
     return { w: box.w * k, h: box.h * k };
   });
   const colW = Array.from(
@@ -193,8 +199,8 @@ function arrangePage(
     gutter: opts.gutter,
     hAlign: opts.hAlign,
     vAlign: opts.vAlign,
-    origin: { x: opts.fitWidth ? PAGE_EDGE : all.x, y: all.y },
-    ...(opts.fitWidth ? { width: p.size.w - 2 * PAGE_EDGE } : {}),
+    origin: opts.fitWidth ? { x: PAGE_EDGE, y: PAGE_EDGE } : { x: all.x, y: all.y },
+    ...(opts.fitWidth ? { width: p.size.w - 2 * PAGE_EDGE, height: p.size.h - 2 * PAGE_EDGE } : {}),
   });
 
   const replaced = new Map<Id, Panel>();

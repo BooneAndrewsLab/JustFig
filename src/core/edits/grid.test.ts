@@ -136,6 +136,31 @@ describe('gridLayout', () => {
   });
 });
 
+describe('gridLayout height cap', () => {
+  it('shrinks a tall narrow object to its row share, keeping its proportions', () => {
+    const out = gridLayout(
+      [
+        { box: { x: 0, y: 0, w: 10, h: 400 }, room: 10 },
+        { box: { x: 0, y: 0, w: 100, h: 50 }, room: 10 },
+      ],
+      {
+        cols: 2,
+        gutter: 0,
+        hAlign: 'center',
+        vAlign: 'top',
+        origin: { x: 0, y: 0 },
+        width: 200,
+        height: 110,
+      },
+    );
+    expect(out[0]?.target.h).toBeCloseTo(100);
+    expect(out[0]?.target.w).toBeCloseTo(2.5);
+    expect(out[0]?.target.x).toBeCloseTo(48.75);
+    expect(out[1]?.target.w).toBeCloseTo(100);
+    expect((out[0]?.cell.y ?? 0) + (out[0]?.cell.h ?? 0)).toBeLessThanOrEqual(110 + 1e-9);
+  });
+});
+
 describe('arrangeInGrid', () => {
   it('wraps each object in an auto-lettered panel, lettered in reading order', () => {
     const { fig, page } = start();

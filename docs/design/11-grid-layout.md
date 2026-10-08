@@ -39,5 +39,8 @@ in its own lettered panel. Templates give empty layouts; this one starts from th
   the Inspector's **Arrange in grid…** button for two or more objects or the `grid` action in
   `KEY_ACTIONS` (Shift+G, also for one object). Gutter is typed in the user's units (3 mm by
   default). Analytics: `arrange/grid`.
-- **Not done:** per-column widths in fit mode (a tall narrow object in a fitted column becomes
-  very tall; turn fit off, or resize it after), and a "fit to page height".
+- **Fit height:** with fit on, the grid also starts 2 pt from the page top and no object is
+  scaled taller than an equal share of the page height (less the gutters, the letter room
+  and the 2 pt margins), so tall narrow objects shrink to stay on the page and sit in their
+  full-width cell by the alignment. Rows can still overflow if fixed-size room alone exceeds it.
+- **Not done:** per-column widths in fit mode.
