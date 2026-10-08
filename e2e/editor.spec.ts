@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import { type Page, expect, test } from '@playwright/test';
 import { PDFDocument } from 'pdf-lib';
 
-import { UTIF, exportVia, pageBox, readDpi } from './helpers';
+import { UTIF, exportVia, iconTile, pageBox, readDpi } from './helpers';
 
 /** Page size of the default preset (Nature, 2 columns), points. */
 const PAGE_W = (183 / 25.4) * 72;
@@ -49,13 +49,21 @@ test('builds a 2×2 figure with icons, arrows and sub/sup labels, and exports al
   await expect(page.locator('.layers .item .name', { hasText: 'Panel' })).toHaveCount(4);
 
   // An icon in each panel, dropped from the browser.
-  const tiles = ['petri-dish', 'microcentrifuge-tube', 'mouse', 'hi-dna'];
+  const tiles: [string, string][] = [
+    ['petri-dish', 'petri dish'],
+    ['microcentrifuge-tube', 'eppendorf'],
+    ['mouse', 'mouse'],
+    ['hi-dna', 'dna'],
+  ];
   for (let i = 0; i < 4; i += 1) {
     const [x, y] = cells[i] ?? [0, 0];
     const at = await toScreen(page, x + 70, y + 90);
     const box = await canvas.boundingBox();
     if (!box) throw new Error('no canvas');
-    await page.locator(`.icon-tile[data-icon="${tiles[i] ?? ''}"]`).dragTo(canvas, {
+    const [id, query] = tiles[i] ?? ['', ''];
+    await (
+      await iconTile(page, id, query)
+    ).dragTo(canvas, {
       targetPosition: { x: at.x - box.x, y: at.y - box.y },
     });
   }

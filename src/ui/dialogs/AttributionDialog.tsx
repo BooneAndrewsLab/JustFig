@@ -4,7 +4,7 @@
  * toggle (on by default) and a warning when share-alike icons are used.
  */
 import { BRAND } from '@/brand';
-import { creditLine, docCreditItems } from '@/core/attribution/attribution';
+import { creditLine, docCreditItems, needsModifiedNote } from '@/core/attribution/attribution';
 import { setCreditFooter } from '@/core/edits/edits';
 
 import { analytics } from '../analytics';
@@ -13,13 +13,20 @@ import { figure, store } from '../state/store';
 import { useAppState } from '../state/useAppState';
 import { Dialog } from './Dialog';
 
-export function AttributionDialog({ onClose }: { onClose: () => void }) {
+export function AttributionDialog({
+  onClose,
+  onCredits,
+}: {
+  onClose: () => void;
+  onCredits: () => void;
+}) {
   const s = useAppState();
   const fig = figure(s);
   const items = docCreditItems(fig.doc, fig.assets);
   const line = creditLine(items, BRAND.name);
   const sa = items.filter((i) => i.shareAlike);
   const needsNotice = items.filter((i) => /^(MIT|BSD|Apache)/.test(i.license));
+  const modified = items.filter((i) => i.modified !== undefined && needsModifiedNote(i.license));
   return (
     <Dialog title="Attribution and licences" onClose={onClose}>
       {items.length === 0 ? (
@@ -65,8 +72,18 @@ export function AttributionDialog({ onClose }: { onClose: () => void }) {
           )}
           {needsNotice.length > 0 && (
             <p className="note">
-              MIT, BSD and Apache icons also need their licence notice to travel with them; the
-              credit line names them.
+              MIT, BSD and Apache icons also need their licence notice to travel with them: the
+              credit line names them, and the full texts are in the{' '}
+              <button type="button" className="link" onClick={onCredits}>
+                icon credits and licences
+              </button>
+              .
+            </p>
+          )}
+          {modified.length > 0 && (
+            <p className="note">
+              Recoloured CC BY and CC BY-SA icons are credited as “modified”, as their licences
+              require.
             </p>
           )}
           <table className="licence-table">
@@ -101,6 +118,8 @@ export function AttributionDialog({ onClose }: { onClose: () => void }) {
                     ) : (
                       i.license
                     )}
+                    {i.shareAlike ? ' (share-alike)' : ''}
+                    {i.modified !== undefined && needsModifiedNote(i.license) ? ', modified' : ''}
                   </td>
                 </tr>
               ))}
@@ -121,6 +140,9 @@ export function AttributionDialog({ onClose }: { onClose: () => void }) {
         </label>
       </div>
       <div className="actions">
+        <button type="button" onClick={onCredits}>
+          Icon library credits
+        </button>
         <button type="button" className="primary" onClick={onClose}>
           Done
         </button>

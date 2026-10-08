@@ -22,11 +22,15 @@
     "test:coverage": "vitest run --coverage",
     "e2e": "playwright test",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run test",
-    "icons:stub": "node scripts/icons/make-stub-library.ts"
+    "icons": "node scripts/icons/fetch-library.ts",
+    "icons:fixture": "node scripts/icons/make-fixture-library.ts",
+    "predev": "node scripts/icons/fetch-library.ts --if-missing",
+    "prebuild": "node scripts/icons/fetch-library.ts --if-missing"
   },
   "dependencies": {
     "dexie": "^4.4.6",
     "jspdf": "^4.2.1",
+    "minisearch": "^7.2.0",
     "opentype.js": "^2.0.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",

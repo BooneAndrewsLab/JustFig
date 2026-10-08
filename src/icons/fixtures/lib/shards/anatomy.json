@@ -1,0 +1,109 @@
+{
+  "category": "anatomy",
+  "icons": [
+    {
+      "id": "bi-aortic-dissection",
+      "title": "Aortic dissection",
+      "tags": ["aortic", "dissection", "human", "physiology"],
+      "category": "anatomy",
+      "hash": "hb108d45f3c26060ea36e970b48",
+      "svg": "svg/hb108d45f3c26060ea36e970b48.svg",
+      "slots": [
+        {
+          "id": "s1",
+          "label": "Primary",
+          "default": "#c07a7a"
+        },
+        {
+          "id": "s2",
+          "label": "Secondary",
+          "default": "#900909"
+        },
+        {
+          "id": "s3",
+          "label": "Tertiary",
+          "default": "#dfd5bd"
+        },
+        {
+          "id": "s4",
+          "label": "Quaternary",
+          "default": "#bb7769"
+        },
+        {
+          "id": "neutral",
+          "label": "Neutral",
+          "default": "#faf1f1"
+        }
+      ],
+      "recolor": "slots",
+      "meta": {
+        "library": "justfig-icons",
+        "libraryVersion": "1.0.0",
+        "id": "bi-aortic-dissection",
+        "title": "Aortic dissection",
+        "source": "Bioicons",
+        "author": "Kathryn Kananen",
+        "license": "MIT",
+        "licenseUrl": "https://opensource.org/license/mit",
+        "originalUrl": "https://github.com/duerrsimon/bioicons/blob/d29e766ea7580b8063c4f47b29e872db40a4d979/static/icons/mit/Human_physiology/Kathryn_Kananen/aortic_dissection.svg",
+        "shareAlike": false
+      }
+    },
+    {
+      "id": "hi-dna",
+      "title": "DNA",
+      "tags": ["chomosome", "deoxyribonucleic acid", "double helix", "dna"],
+      "category": "anatomy",
+      "hash": "h42d70e8ed1241f22c5897b6935",
+      "svg": "svg/h42d70e8ed1241f22c5897b6935.svg",
+      "slots": [
+        {
+          "id": "s1",
+          "label": "Colour",
+          "default": "#333333"
+        }
+      ],
+      "recolor": "slots",
+      "meta": {
+        "library": "justfig-icons",
+        "libraryVersion": "1.0.0",
+        "id": "hi-dna",
+        "title": "DNA",
+        "source": "Health Icons",
+        "author": "Resolve to Save Lives",
+        "license": "CC0-1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "originalUrl": "https://github.com/resolvetosavelives/healthicons/blob/36887b268d2cb61f8d91622ad459bdf07910c2b0/public/icons/svg/filled/body/dna.svg",
+        "shareAlike": false
+      }
+    },
+    {
+      "id": "hi-kidneys",
+      "title": "Kidneys",
+      "tags": ["organ", "urinary", "kidneys"],
+      "category": "anatomy",
+      "hash": "h25f77eb25ffb9e135b5973f70f",
+      "svg": "svg/h25f77eb25ffb9e135b5973f70f.svg",
+      "slots": [
+        {
+          "id": "s1",
+          "label": "Colour",
+          "default": "#333333"
+        }
+      ],
+      "recolor": "slots",
+      "meta": {
+        "library": "justfig-icons",
+        "libraryVersion": "1.0.0",
+        "id": "hi-kidneys",
+        "title": "Kidneys",
+        "source": "Health Icons",
+        "author": "Resolve to Save Lives",
+        "license": "CC0-1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "originalUrl": "https://github.com/resolvetosavelives/healthicons/blob/36887b268d2cb61f8d91622ad459bdf07910c2b0/public/icons/svg/filled/body/kidneys.svg",
+        "shareAlike": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,119 @@
+{
+  "category": "lab",
+  "icons": [
+    {
+      "id": "microcentrifuge-tube",
+      "title": "Microcentrifuge tube",
+      "tags": ["eppendorf", "tube", "1.5 ml"],
+      "category": "lab",
+      "hash": "h10d640509f4401e0d6f247cb4d",
+      "svg": "svg/h10d640509f4401e0d6f247cb4d.svg",
+      "slots": [
+        {
+          "id": "s1",
+          "label": "Liquid",
+          "default": "#56b4e9"
+        },
+        {
+          "id": "s2",
+          "label": "Vessel",
+          "default": "#e4f1fb"
+        },
+        {
+          "id": "outline",
+          "label": "Outline",
+          "default": "#1f2933"
+        }
+      ],
+      "recolor": "slots",
+      "meta": {
+        "library": "justfig-icons",
+        "libraryVersion": "1.0.0",
+        "id": "microcentrifuge-tube",
+        "title": "Microcentrifuge tube",
+        "source": "House icons",
+        "author": "JustFig contributors",
+        "license": "CC0-1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "originalUrl": "https://github.com/BooneAndrewsLab/justfig-icons/blob/main/house/svg/microcentrifuge-tube.svg",
+        "shareAlike": false
+      }
+    },
+    {
+      "id": "petri-dish",
+      "title": "Petri dish",
+      "tags": ["agar", "plate", "colonies", "culture"],
+      "category": "lab",
+      "hash": "h9265f3803a2c139e8805e172e1",
+      "svg": "svg/h9265f3803a2c139e8805e172e1.svg",
+      "slots": [
+        {
+          "id": "s1",
+          "label": "Agar",
+          "default": "#f5e6a8"
+        },
+        {
+          "id": "s2",
+          "label": "Colonies",
+          "default": "#e69f00"
+        },
+        {
+          "id": "outline",
+          "label": "Outline",
+          "default": "#1f2933"
+        }
+      ],
+      "recolor": "slots",
+      "meta": {
+        "library": "justfig-icons",
+        "libraryVersion": "1.0.0",
+        "id": "petri-dish",
+        "title": "Petri dish",
+        "source": "House icons",
+        "author": "JustFig contributors",
+        "license": "CC0-1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "originalUrl": "https://github.com/BooneAndrewsLab/justfig-icons/blob/main/house/svg/petri-dish.svg",
+        "shareAlike": false
+      }
+    },
+    {
+      "id": "test-tube",
+      "title": "Test tube",
+      "tags": ["tube", "glass", "sample"],
+      "category": "lab",
+      "hash": "hf18d281011420aa414e5aabe93",
+      "svg": "svg/hf18d281011420aa414e5aabe93.svg",
+      "slots": [
+        {
+          "id": "s1",
+          "label": "Liquid",
+          "default": "#56b4e9"
+        },
+        {
+          "id": "s2",
+          "label": "Vessel",
+          "default": "#e4f1fb"
+        },
+        {
+          "id": "outline",
+          "label": "Outline",
+          "default": "#1f2933"
+        }
+      ],
+      "recolor": "slots",
+      "meta": {
+        "library": "justfig-icons",
+        "libraryVersion": "1.0.0",
+        "id": "test-tube",
+        "title": "Test tube",
+        "source": "House icons",
+        "author": "JustFig contributors",
+        "license": "CC0-1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "originalUrl": "https://github.com/BooneAndrewsLab/justfig-icons/blob/main/house/svg/test-tube.svg",
+        "shareAlike": false
+      }
+    }
+  ]
+}

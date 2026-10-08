@@ -547,9 +547,8 @@ export function Canvas() {
     const iconId = e.dataTransfer.getData(ICON_DRAG_TYPE);
     if (iconId) {
       void getLibrary()
-        .search('')
-        .then((all) => {
-          const entry = all.find((x) => x.id === iconId);
+        .byId(iconId)
+        .then((entry) => {
           if (entry) void placeIcon(entry, at);
         });
       return;

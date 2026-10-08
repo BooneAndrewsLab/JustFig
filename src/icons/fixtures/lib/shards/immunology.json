@@ -1,0 +1,71 @@
+{
+  "category": "immunology",
+  "icons": [
+    {
+      "id": "bi-erythrocyte-5",
+      "title": "Erythrocyte 5",
+      "tags": ["erythrocyte", "blood", "immunology"],
+      "category": "immunology",
+      "hash": "h396af90deae1c18969c37fe67b",
+      "svg": "svg/h396af90deae1c18969c37fe67b.svg",
+      "slots": [
+        {
+          "id": "s1",
+          "label": "Primary",
+          "default": "#f5765d"
+        },
+        {
+          "id": "s2",
+          "label": "Secondary",
+          "default": "#f9bba6"
+        },
+        {
+          "id": "outline",
+          "label": "Outline",
+          "default": "#333333"
+        }
+      ],
+      "recolor": "slots",
+      "meta": {
+        "library": "justfig-icons",
+        "libraryVersion": "1.0.0",
+        "id": "bi-erythrocyte-5",
+        "title": "Erythrocyte 5",
+        "source": "Bioicons",
+        "author": "Servier",
+        "license": "CC-BY-3.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+        "originalUrl": "https://github.com/duerrsimon/bioicons/blob/d29e766ea7580b8063c4f47b29e872db40a4d979/static/icons/cc-by-3.0/Blood_Immunology/Servier/erythrocyte-5.svg",
+        "shareAlike": false
+      }
+    },
+    {
+      "id": "bi-iga-immunoglobulin",
+      "title": "IgA immunoglobulin",
+      "tags": ["iga", "immunoglobulin", "blood", "immunology"],
+      "category": "immunology",
+      "hash": "hdc9a7542f1d633c4014c197492",
+      "svg": "svg/hdc9a7542f1d633c4014c197492.svg",
+      "slots": [
+        {
+          "id": "all",
+          "label": "Colour",
+          "default": "#83b838"
+        }
+      ],
+      "recolor": "whole",
+      "meta": {
+        "library": "justfig-icons",
+        "libraryVersion": "1.0.0",
+        "id": "bi-iga-immunoglobulin",
+        "title": "IgA immunoglobulin",
+        "source": "Bioicons",
+        "author": "Servier",
+        "license": "CC-BY-3.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+        "originalUrl": "https://github.com/duerrsimon/bioicons/blob/d29e766ea7580b8063c4f47b29e872db40a4d979/static/icons/cc-by-3.0/Blood_Immunology/Servier/igA-immunoglobulin.svg",
+        "shareAlike": false
+      }
+    }
+  ]
+}

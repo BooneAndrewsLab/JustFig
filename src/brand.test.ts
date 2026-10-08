@@ -32,6 +32,8 @@ describe('brand', () => {
       .filter((f) => f !== 'src/brand.ts' && f !== 'src/brand.test.ts')
       // Golden export outputs are generated from BRAND, not written by hand.
       .filter((f) => !/^src\/export\/fixtures\/.*\.(svg|jfig)$/.test(f))
+      // A copy of icon library data, which credits its own authors.
+      .filter((f) => !f.startsWith('src/icons/fixtures/'))
       .filter((f) => readFileSync(join(root, f), 'utf8').includes(BRAND.name));
     expect(offenders).toEqual([]);
   });

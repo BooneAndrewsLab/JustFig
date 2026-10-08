@@ -42,3 +42,15 @@ export function readDpi(png: Buffer): number | null {
   }
   return null;
 }
+
+/**
+ * An icon's tile in the browser, found by searching (the browser shows one
+ * category at a time; search reaches the whole library).
+ */
+export async function iconTile(page: Page, id: string, query: string) {
+  const search = page.getByLabel('Search icons');
+  await search.fill(query);
+  const tile = page.locator(`.icon-tile[data-icon="${id}"]`);
+  await expect(tile).toBeVisible();
+  return tile;
+}

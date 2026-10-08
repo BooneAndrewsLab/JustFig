@@ -1,0 +1,81 @@
+{
+  "format": "justfig-icons",
+  "formatVersion": 1,
+  "library": "justfig-icons",
+  "version": "1.0.0",
+  "categories": [
+    {
+      "id": "cells",
+      "title": "Cells and tissues",
+      "count": 1,
+      "shard": "shards/cells.json",
+      "shareAlike": 1
+    },
+    {
+      "id": "immunology",
+      "title": "Blood and immunology",
+      "count": 2,
+      "shard": "shards/immunology.json",
+      "shareAlike": 0
+    },
+    {
+      "id": "lab",
+      "title": "Lab equipment",
+      "count": 3,
+      "shard": "shards/lab.json",
+      "shareAlike": 0
+    },
+    {
+      "id": "organisms",
+      "title": "Animals and model organisms",
+      "count": 2,
+      "shard": "shards/organisms.json",
+      "shareAlike": 0
+    },
+    {
+      "id": "anatomy",
+      "title": "Anatomy and physiology",
+      "count": 3,
+      "shard": "shards/anatomy.json",
+      "shareAlike": 0
+    },
+    {
+      "id": "computing",
+      "title": "Computing and bioinformatics",
+      "count": 1,
+      "shard": "shards/computing.json",
+      "shareAlike": 0
+    }
+  ],
+  "sources": [
+    {
+      "id": "house",
+      "name": "House icons",
+      "homepage": "https://github.com/BooneAndrewsLab/justfig-icons",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "termsChecked": "2026-10-08"
+    },
+    {
+      "id": "bioicons",
+      "name": "Bioicons",
+      "homepage": "https://bioicons.com/",
+      "license": "per-icon",
+      "licenseUrl": "https://github.com/duerrsimon/bioicons#license",
+      "commit": "d29e766ea7580b8063c4f47b29e872db40a4d979",
+      "termsChecked": "2026-10-08"
+    },
+    {
+      "id": "healthicons",
+      "name": "Health Icons",
+      "homepage": "https://healthicons.org/",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "commit": "36887b268d2cb61f8d91622ad459bdf07910c2b0",
+      "termsChecked": "2026-10-08"
+    }
+  ],
+  "search": "search-index.json",
+  "credits": "CREDITS.md",
+  "licenses": "LICENSES/"
+}

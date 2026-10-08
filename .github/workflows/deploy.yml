@@ -8,9 +8,11 @@ name: Deploy to GitHub Pages
 # "GitHub Actions" as source. The site is served under /<repo>/, which
 # BASE_PATH passes to Vite.
 #
-# Icon library (note 01): Phase 1 ships the stub library committed in
-# public/lib/stub/. From Phase 2 a pinned release of the icons repo is
-# downloaded into public/lib/<version>/ here, before the build.
+# Icon library (note 01): the release of the justfig-icons repository pinned
+# in icons.lock.json (version, URL, SHA-256) is downloaded and checked into
+# public/lib/<version>/ before the build (`npm run icons`). PLACEHOLDER: that
+# repository is not published yet, so this step fails until its v1.0.0
+# release exists at the lock file's URL (and its SHA-256 is confirmed).
 
 on:
   release:
@@ -39,6 +41,8 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - name: Icon library (pinned release)
+        run: npm run icons
       - run: npm run check
       - name: Install browsers
         run: npx playwright install --with-deps chromium firefox webkit

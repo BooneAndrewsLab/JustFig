@@ -172,13 +172,43 @@ select {
   border-bottom: 1px solid var(--rule);
 }
 
-.icons-panel input {
+.icons-panel header input,
+.icons-panel header select {
   width: 100%;
 }
 
+.icons-panel header select {
+  margin-top: 6px;
+}
+
 .icons-scroll {
+  flex: 1;
   overflow: auto;
   padding: 4px 8px 12px;
+}
+
+.icons-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px 8px;
+  border-top: 1px solid var(--rule);
+  font-size: 11px;
+}
+
+.icons-footer .note {
+  color: var(--ink-2);
+}
+
+button.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
 }
 
 .icons-scroll h3 {
@@ -191,15 +221,41 @@ select {
 
 .icon-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
   gap: 4px;
 }
 
 .icon-tile {
+  position: relative;
+  display: grid;
+  place-items: center;
   aspect-ratio: 1;
-  padding: 6px;
+  padding: 4px;
   border: 1px solid transparent;
   background: transparent;
+}
+
+/* A 48 px cell of the library's sprite sheet (IconBrowser sets the position). */
+.icon-thumb {
+  display: block;
+  width: 48px;
+  height: 48px;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+
+.sa-badge {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  padding: 0 3px;
+  border-radius: 3px;
+  background: var(--ink-2);
+  color: var(--panel);
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 14px;
+  pointer-events: none;
 }
 
 .icon-tile:hover {
@@ -513,6 +569,37 @@ select {
 
 .dialog .warn {
   color: var(--warning);
+}
+
+.credits-body {
+  max-height: 60vh;
+  overflow: auto;
+  font-size: 12px;
+}
+
+.credits-body h2 {
+  font-size: 15px;
+  margin: 12px 0 4px;
+}
+
+.credits-body h3 {
+  font-size: 13px;
+  margin: 12px 0 4px;
+}
+
+.credits-body h4 {
+  font-size: 12px;
+  margin: 8px 0 2px;
+}
+
+.credits-body ul {
+  margin: 4px 0;
+  padding-left: 18px;
+}
+
+.credits-body .mono {
+  font-family: ui-monospace, monospace;
+  margin: 0;
 }
 
 .credit-box {

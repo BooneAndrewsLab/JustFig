@@ -1,0 +1,76 @@
+{
+  "category": "organisms",
+  "icons": [
+    {
+      "id": "bi-chlamydomonas-2",
+      "title": "Chlamydomonas",
+      "tags": ["chlamydomonas", "animals"],
+      "category": "organisms",
+      "hash": "h07d2cb96a77fcd826366e95919",
+      "svg": "svg/h07d2cb96a77fcd826366e95919.svg",
+      "slots": [
+        {
+          "id": "s1",
+          "label": "Primary",
+          "default": "#ffa733"
+        },
+        {
+          "id": "outline",
+          "label": "Outline",
+          "default": "#e5e5e5"
+        }
+      ],
+      "recolor": "slots",
+      "meta": {
+        "library": "justfig-icons",
+        "libraryVersion": "1.0.0",
+        "id": "bi-chlamydomonas-2",
+        "title": "Chlamydomonas",
+        "source": "Bioicons",
+        "author": "Margot Riggi",
+        "license": "CC-BY-4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "originalUrl": "https://github.com/duerrsimon/bioicons/blob/d29e766ea7580b8063c4f47b29e872db40a4d979/static/icons/cc-by-4.0/Animals/Margot_Riggi/chlamydomonas.svg",
+        "shareAlike": false
+      }
+    },
+    {
+      "id": "mouse",
+      "title": "Mouse",
+      "tags": ["mouse", "rodent", "mus musculus", "animal model"],
+      "category": "organisms",
+      "hash": "ha58491adb962cb1377cd8558ce",
+      "svg": "svg/ha58491adb962cb1377cd8558ce.svg",
+      "slots": [
+        {
+          "id": "s1",
+          "label": "Fur",
+          "default": "#c9ced6"
+        },
+        {
+          "id": "s2",
+          "label": "Ears",
+          "default": "#f4b6c2"
+        },
+        {
+          "id": "outline",
+          "label": "Outline",
+          "default": "#1f2933"
+        }
+      ],
+      "recolor": "slots",
+      "meta": {
+        "library": "justfig-icons",
+        "libraryVersion": "1.0.0",
+        "id": "mouse",
+        "title": "Mouse",
+        "source": "House icons",
+        "author": "JustFig contributors",
+        "license": "CC0-1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "originalUrl": "https://github.com/BooneAndrewsLab/justfig-icons/blob/main/house/svg/mouse.svg",
+        "shareAlike": false
+      }
+    }
+  ]
+}

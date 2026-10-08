@@ -6,6 +6,9 @@ playwright-report/
 test-results/
 *.log
 *.tsbuildinfo
+
+# The icon library: a pinned justfig-icons release, put here by `npm run icons`.
+public/lib/
 .DS_Store
 
 # IDE and Claude Code's per-machine settings

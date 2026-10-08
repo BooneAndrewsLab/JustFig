@@ -7,6 +7,7 @@ import { analytics } from './analytics';
 import { Canvas } from './canvas/Canvas';
 import { canvasSize, fitPage, zoomAt } from './canvas/view';
 import { AttributionDialog } from './dialogs/AttributionDialog';
+import { CreditsDialog } from './dialogs/CreditsDialog';
 import { ExportDialog } from './dialogs/ExportDialog';
 import { IconBrowser } from './panels/IconBrowser';
 import { Inspector } from './panels/Inspector';
@@ -17,7 +18,7 @@ import { importToCanvas, newFigure, openFile, saveFile } from './state/session';
 import { currentPage, figure, store } from './state/store';
 import { useAppState } from './state/useAppState';
 
-type DialogId = 'export' | 'attribution' | null;
+type DialogId = 'export' | 'attribution' | 'credits' | null;
 
 export function App() {
   const s = useAppState();
@@ -226,7 +227,11 @@ export function App() {
           }}
         />
       </header>
-      <IconBrowser />
+      <IconBrowser
+        onCredits={() => {
+          setDialog('credits');
+        }}
+      />
       <ToolPalette />
       <Canvas />
       <aside className="side" aria-label="Inspector">
@@ -251,6 +256,16 @@ export function App() {
       )}
       {dialog === 'attribution' && (
         <AttributionDialog
+          onClose={() => {
+            setDialog(null);
+          }}
+          onCredits={() => {
+            setDialog('credits');
+          }}
+        />
+      )}
+      {dialog === 'credits' && (
+        <CreditsDialog
           onClose={() => {
             setDialog(null);
           }}

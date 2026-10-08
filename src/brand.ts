@@ -20,8 +20,11 @@ export const BRAND = Object.freeze({
   mime: 'application/json',
   themeColor: '#1f2933',
   backgroundColor: '#f4f5f7',
-  /** Base URL of the icon library inside the deployed site (`public/lib/<version>/`). */
-  iconLibraryPath: 'lib/stub/',
+  /**
+   * Base URL of the icon library inside the deployed site (`public/lib/<version>/`);
+   * the version is the one pinned in icons.lock.json (src/icons/lock.test.ts checks).
+   */
+  iconLibraryPath: 'lib/1.0.0/',
 } as const);
 
 export type Brand = typeof BRAND;

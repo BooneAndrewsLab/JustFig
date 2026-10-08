@@ -1,0 +1,38 @@
+{
+  "category": "cells",
+  "icons": [
+    {
+      "id": "bi-epithelial-cell",
+      "title": "Epithelial cell",
+      "tags": ["epithelial", "cell", "types"],
+      "category": "cells",
+      "hash": "h65bb41d1765e8dcea7ca7cc093",
+      "svg": "svg/h65bb41d1765e8dcea7ca7cc093.svg",
+      "slots": [
+        {
+          "id": "s1",
+          "label": "Primary",
+          "default": "#cc00ff"
+        },
+        {
+          "id": "s2",
+          "label": "Secondary",
+          "default": "#800080"
+        }
+      ],
+      "recolor": "slots",
+      "meta": {
+        "library": "justfig-icons",
+        "libraryVersion": "1.0.0",
+        "id": "bi-epithelial-cell",
+        "title": "Epithelial cell",
+        "source": "Bioicons",
+        "author": "Helicase 11",
+        "license": "CC-BY-SA-4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "originalUrl": "https://github.com/duerrsimon/bioicons/blob/d29e766ea7580b8063c4f47b29e872db40a4d979/static/icons/cc-by-sa-4.0/Cell_types/Helicase_11/epithelial_cell.svg",
+        "shareAlike": true
+      }
+    }
+  ]
+}

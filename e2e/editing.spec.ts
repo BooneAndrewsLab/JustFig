@@ -2,7 +2,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { type Page, expect, test } from '@playwright/test';
 
-import { pageBox } from './helpers';
+import { iconTile, pageBox } from './helpers';
 
 const PAGE_W = (183 / 25.4) * 72;
 const OUT = process.env['E2E_OUT'];
@@ -105,7 +105,7 @@ test('pen draws a curved path; Enter finishes it', async ({ page }) => {
 test('save, open, import an SVG, attribution, and autosave survive a reload', async ({
   page,
 }, info) => {
-  await page.locator('.icon-tile[data-icon="petri-dish"]').click();
+  await (await iconTile(page, 'petri-dish', 'petri dish')).click();
   await rect(page, 10, 10, 30, 30);
   const svgPath = info.outputPath('shape.svg');
   writeFileSync(

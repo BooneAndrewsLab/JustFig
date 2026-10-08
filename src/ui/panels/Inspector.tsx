@@ -21,6 +21,7 @@ import {
   updateObjects,
   updatePage,
 } from '@/core/edits/edits';
+import { needsModifiedNote } from '@/core/attribution/attribution';
 import { center } from '@/core/geometry/matrix';
 import { boundsOf, normAngle, rebase, rotateObj } from '@/core/geometry/transform';
 import type { Id } from '@/core/model/ids';
@@ -798,7 +799,13 @@ function IconSection({ s, icon }: { s: AppState; icon: Extract<Obj, { type: 'ico
       <p className="note">
         {asset.meta.title} · {asset.meta.source}
         {asset.meta.author ? `, ${asset.meta.author}` : ''} · {asset.meta.license}
+        {asset.meta.shareAlike ? ' (share-alike)' : ''}
       </p>
+      {Object.keys(icon.slots).length > 0 && needsModifiedNote(asset.meta.license) && (
+        <p className="note">
+          Recoloured: the credit line calls it “modified”, as its licence asks.
+        </p>
+      )}
     </Section>
   );
 }
