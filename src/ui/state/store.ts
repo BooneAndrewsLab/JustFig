@@ -8,6 +8,7 @@
  */
 import { type Edit, EditError } from '@/core/edits/edits';
 import { History } from '@/core/history/history';
+import { reconcileBindings } from '@/core/model/binding';
 import { createDoc } from '@/core/model/factory';
 import type { Id } from '@/core/model/ids';
 import { findObj } from '@/core/model/tree';
@@ -119,7 +120,8 @@ export class AppStore {
     const base = opts.from ?? this.state.history.present;
     let next: Figure;
     try {
-      next = e.apply(base);
+      // Bound arrows follow their targets, whatever the edit was (note 06).
+      next = reconcileBindings(base, e.apply(base));
     } catch (err: unknown) {
       if (!(err instanceof EditError)) throw err;
       this.notify(err.message, 'error');

@@ -25,6 +25,7 @@ import { needsModifiedNote } from '@/core/attribution/attribution';
 import { center } from '@/core/geometry/matrix';
 import { boundsOf, normAngle, rebase, rotateObj } from '@/core/geometry/transform';
 import type { Id } from '@/core/model/ids';
+import { findObj } from '@/core/model/tree';
 import {
   HEAD_KINDS,
   FONT_IDS,
@@ -606,6 +607,35 @@ function ArrowSection({ s, arrow }: { s: AppState; arrow: Extract<Obj, { type: '
           </select>
         </div>
       ))}
+      {(['start', 'end'] as const).map((end) => {
+        const id = arrow.bind?.[end];
+        if (id === undefined) return null;
+        const t = findObj(currentPage(s), id);
+        return (
+          <div className="row" key={`bind-${end}`}>
+            <span className="muted" data-testid={`bound-${end}`}>
+              {end === 'start' ? 'Start' : 'End'} attached to {t?.name ?? cap(t?.type ?? 'object')}
+            </span>
+            <button
+              type="button"
+              aria-label={`Detach the ${end === 'start' ? 'start' : 'end'} of the arrow`}
+              onClick={() => {
+                store.edit(
+                  updateObjects(currentPage(s).id, ids, 'Detach arrow', (o) => {
+                    if (o.type !== 'arrow' || !o.bind) return o;
+                    const { [end]: _gone, ...rest } = o.bind;
+                    const { bind: _b, ...plain } = o;
+                    return Object.keys(rest).length > 0 ? { ...o, bind: rest } : plain;
+                  }),
+                  { keepSelection: true },
+                );
+              }}
+            >
+              Detach
+            </button>
+          </div>
+        );
+      })}
       <div className="grid2">
         <Num
           label="Head size"

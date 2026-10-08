@@ -26,6 +26,7 @@ import {
   frame,
 } from '@/core/model/factory';
 import { asId, type Id } from '@/core/model/ids';
+import { bindable } from '@/core/model/binding';
 import { findObj } from '@/core/model/tree';
 import type { Figure, Obj, Page, PathNode, Vec2 } from '@/core/model/types';
 import { type Guide, snapBox, snapPoint } from '@/core/snapping/snap';
@@ -62,12 +63,14 @@ type Gesture =
     }
   | { kind: 'rotate'; c: Vec2; a0: number; fig: Figure; ids: Id[]; key: string }
   | { kind: 'marquee'; start: Vec2; add: boolean }
-  | { kind: 'create'; start: Vec2 };
+  | { kind: 'create'; start: Vec2; bindStart?: Id };
 
 interface Overlay {
   readonly marquee?: Box;
   readonly preview?: { readonly d: string } | { readonly box: Box; readonly ellipse: boolean };
   readonly guides?: readonly Guide[];
+  /** The object an arrow end would attach to (note 06). */
+  readonly bindBox?: Box;
 }
 
 let gestureSeq = 0;
@@ -138,6 +141,17 @@ function pickTarget(target: EventTarget | null, page: Page): Id | null {
   const nonPanel = objs.filter((o) => o.type !== 'panel');
   const pick = nonPanel.length > 0 ? nonPanel[nonPanel.length - 1] : objs[objs.length - 1];
   return pick?.id ?? null;
+}
+
+/** The object under a screen point an arrow end may attach to (note 06). */
+function bindTargetAt(x: number, y: number, page: Page): Obj | undefined {
+  for (const el of document.elementsFromPoint(x, y)) {
+    if (!el.closest('[data-id]')) continue;
+    const id = pickTarget(el, page);
+    const o = id ? findObj(page, id) : undefined;
+    if (o && bindable(o)) return o;
+  }
+  return undefined;
 }
 
 export function Canvas() {
@@ -315,7 +329,8 @@ export function Canvas() {
       return;
     }
     const start = snapP(p).p;
-    gesture.current = { kind: 'create', start };
+    const bindStart = s.tool === 'arrow' ? bindTargetAt(e.clientX, e.clientY, page) : undefined;
+    gesture.current = { kind: 'create', start, ...(bindStart ? { bindStart: bindStart.id } : {}) };
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -404,11 +419,13 @@ export function Canvas() {
         let end = q.p;
         if (e.shiftKey && (s.tool === 'line' || s.tool === 'arrow')) end = snap45(g.start, end);
         if (s.tool === 'line' || s.tool === 'arrow') {
+          const over = s.tool === 'arrow' ? bindTargetAt(e.clientX, e.clientY, page) : undefined;
           setOverlay({
             preview: {
               d: `M${String(g.start.x)} ${String(g.start.y)}L${String(end.x)} ${String(end.y)}`,
             },
             guides: q.guides,
+            ...(over ? { bindBox: objBounds(over) } : {}),
           });
         } else {
           let box = normBox(g.start, end);
@@ -432,11 +449,17 @@ export function Canvas() {
       const hits = objectsInBox(page, box).map((o) => o.id);
       store.select(g.add ? [...new Set([...s.selection, ...hits])] : hits);
     }
-    if (g.kind === 'create' && s.tool !== 'pen') create(g.start, snapP(p).p, e.shiftKey);
+    if (g.kind === 'create' && s.tool !== 'pen') {
+      const bindEnd = s.tool === 'arrow' ? bindTargetAt(e.clientX, e.clientY, page) : undefined;
+      create(g.start, snapP(p).p, e.shiftKey, {
+        ...(g.bindStart ? { start: g.bindStart } : {}),
+        ...(bindEnd && bindEnd.id !== g.bindStart ? { end: bindEnd.id } : {}),
+      });
+    }
     if (s.tool !== 'pen') setOverlay({});
   };
 
-  const create = (a: Vec2, b0: Vec2, shift: boolean) => {
+  const create = (a: Vec2, b0: Vec2, shift: boolean, bind: { start?: Id; end?: Id } = {}) => {
     const b = shift && (s.tool === 'line' || s.tool === 'arrow') ? snap45(a, b0) : b0;
     const dragged = Math.hypot(b.x - a.x, b.y - a.y) * v.zoom > 4;
     let box = shift ? square(a, b) : normBox(a, b);
@@ -462,6 +485,8 @@ export function Canvas() {
           { x: end.x, y: end.y },
         ];
         obj = s.tool === 'line' ? createPath(nodes, false) : createArrow(nodes);
+        // Ends pressed or released on an object attach to it (note 06).
+        if (obj.type === 'arrow' && (bind.start ?? bind.end) !== undefined) obj = { ...obj, bind };
         break;
       }
       case 'text': {
@@ -650,6 +675,19 @@ export function Canvas() {
                   strokeDasharray="3 2"
                 />
               ),
+            )}
+            {overlay.bindBox && (
+              <rect
+                data-testid="bind-target"
+                x={scr(overlay.bindBox).x - 3}
+                y={scr(overlay.bindBox).y - 3}
+                width={overlay.bindBox.w * v.zoom + 6}
+                height={overlay.bindBox.h * v.zoom + 6}
+                rx={3}
+                fill="none"
+                stroke="#009e73"
+                strokeWidth={2}
+              />
             )}
             {overlay.marquee && (
               <rect

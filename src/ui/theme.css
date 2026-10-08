@@ -387,6 +387,11 @@ button.link {
   width: 64px;
 }
 
+.muted {
+  color: var(--ink-2);
+  flex: 1;
+}
+
 .grid2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
