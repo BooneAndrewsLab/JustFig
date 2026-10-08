@@ -7,10 +7,12 @@
  * Roles, judged from geometry only (pure and deterministic):
  * - stroke `tick`: a short axis-aligned straight line, one of at least two of
  *   the same length spanning the same range across their axis, with one end on
- *   a long perpendicular edge (a spine, the panel or its background);
+ *   a long perpendicular edge (a spine, the panel or its background, a colour
+ *   bar's frame);
  * - stroke `axis`: a long axis-aligned straight line (spine, grid line,
- *   reference line), at least 30 % of the plot's width or height, or a large
- *   axis-aligned frame;
+ *   reference line), at least 30 % of the plot's width or height, or along
+ *   most of an edge of a panel (a rectangle over 10 % both ways: a subplot in
+ *   a grid), or a large axis-aligned frame;
  * - stroke `data`: every other stroke (data lines, markers, error bars,
  *   legend frames and handles);
  * - text `tick`: the label nearest the free end of a tick, centred on its line;
@@ -253,6 +255,8 @@ function frameBox(segs: readonly Seg[]): [number, number, number, number] | null
 
 const LONG = 0.3;
 const SHORT = 0.08;
+/** A panel (a subplot's background or frame) is at least this share of the viewBox both ways. */
+const PANEL = 0.1;
 
 const textContent = (n: SvgNode): string =>
   n.children.map((c) => (typeof c === 'string' ? c : textContent(c))).join('');
@@ -277,6 +281,39 @@ export function plotParts(
     }
   }
 
+  // Panels (note 17, issue 32): rectangles of a good size, such as each subplot's background.
+  // Their edges are long edges and a straight stroke along one is an axis line, however small
+  // the panel is next to the whole plot (a grid of subplots).
+  // A colour bar's frame, thin but long, also has ticks on its edges.
+  const frames = shapes.flatMap((l) => {
+    if (l.inh['fill'] === 'none' && l.inh['stroke'] === 'none') return [];
+    const f = frameBox(geo.get(l)?.segs ?? []);
+    return f ? [f] : [];
+  });
+  const edgesOf = ([x0, y0, x1, y1]: readonly number[]): Line[] => [
+    { v: false, at: y0 ?? 0, a: x0 ?? 0, b: x1 ?? 0 },
+    { v: false, at: y1 ?? 0, a: x0 ?? 0, b: x1 ?? 0 },
+    { v: true, at: x0 ?? 0, a: y0 ?? 0, b: y1 ?? 0 },
+    { v: true, at: x1 ?? 0, a: y0 ?? 0, b: y1 ?? 0 },
+  ];
+  const panelEdges = frames
+    .filter((f) => f[2] - f[0] >= PANEL * vw && f[3] - f[1] >= PANEL * vh)
+    .flatMap(edgesOf);
+  longEdges.push(
+    ...frames
+      .flatMap(edgesOf)
+      .filter((e) => e.b - e.a >= PANEL * (e.v ? vh : vw) && e.b - e.a < LONG * (e.v ? vh : vw)),
+  );
+  const edgeTol = 0.005 * Math.max(vw, vh);
+  const alongPanel = (ln: Line): boolean =>
+    panelEdges.some(
+      (e) =>
+        e.v === ln.v &&
+        Math.abs(e.at - ln.at) <= edgeTol &&
+        ln.a <= e.a + 0.1 * (e.b - e.a) &&
+        ln.b >= e.b - 0.1 * (e.b - e.a),
+    );
+
   const stroked = shapes.filter((l) => {
     const w = len(l.inh['stroke-width']);
     return l.inh['stroke'] !== 'none' && w !== null && w > 0;
@@ -288,7 +325,7 @@ export function plotParts(
     if (!g?.straight) continue;
     const ln = asLine(g.segs);
     const extent = ln?.v === true ? vh : vw;
-    if (ln && ln.b - ln.a >= LONG * extent) roles.set(l, 'axis');
+    if (ln && (ln.b - ln.a >= LONG * extent || alongPanel(ln))) roles.set(l, 'axis');
     else if (ln && ln.b - ln.a > 0 && ln.b - ln.a <= SHORT * Math.max(vw, vh))
       short.push({ leaf: l, line: ln });
     else {

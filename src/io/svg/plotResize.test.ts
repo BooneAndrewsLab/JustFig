@@ -63,7 +63,7 @@ function resized(
   fx: number,
   fy: number,
 ): { svg: string; plot: Plot; sx: number; sy: number } {
-  const [sx, sy] = growthFor(p.viewBox, p.layout.area, p.viewBox[2] * fx, p.viewBox[3] * fy);
+  const [sx, sy] = growthFor(p.viewBox, p.layout, p.viewBox[2] * fx, p.viewBox[3] * fy);
   const r = resizePlot(p.root, p.viewBox, p.layout, sx, sy);
   const svg = stored(r.root, r.viewBox);
   return { svg, plot: analyse(svg), sx, sy };
@@ -75,6 +75,8 @@ const FIXTURES = [
   'matplotlib-log.svg',
   'r-svglite.svg',
   'r-cairo.svg',
+  'matplotlib-subplots.svg',
+  'r-facets.svg',
   'matplotlib-type3.pdf',
   'r-pdf.pdf',
   'r-cairo.pdf',
@@ -95,14 +97,11 @@ describe('resizePlot on the fixtures', () => {
       // The viewBox is the requested size: only the area changed.
       expect(q.viewBox[2]).toBeCloseTo(p.viewBox[2] * fx, 2);
       expect(q.viewBox[3]).toBeCloseTo(p.viewBox[3] * fy, 2);
-      expect(q.layout.area[2] - q.layout.area[0]).toBeCloseTo(
-        (p.layout.area[2] - p.layout.area[0]) * sx,
-        1,
-      );
-      expect(q.layout.area[3] - q.layout.area[1]).toBeCloseTo(
-        (p.layout.area[3] - p.layout.area[1]) * sy,
-        1,
-      );
+      const span = (pl: Plot, axis: 0 | 1) =>
+        pl.layout.spans[axis].reduce((a, [lo, hi]) => a + hi - lo, 0);
+      expect(span(q, 0)).toBeCloseTo(span(p, 0) * sx, 1);
+      expect(span(q, 1)).toBeCloseTo(span(p, 1) * sy, 1);
+      expect(q.layout.regions.length).toBe(p.layout.regions.length);
       // Same text at the same sizes, same strokes at the same widths, same roles.
       expect(q.parts.texts.map((t) => [textOf(t.node), t.size, t.role])).toEqual(
         p.parts.texts.map((t) => [textOf(t.node), t.size, t.role]),
@@ -227,9 +226,182 @@ describe('resizePlot on the fixtures', () => {
     });
   });
 
+  /** The box of the label reading `s` (text or, in R's SVG, one of its glyph clusters). */
+  const labelBox = (pl: Plot, s: string) => {
+    const t = pl.parts.texts.find((x) => textOf(x.node) === s);
+    const b = drawnLeaves(pl.root, pl.viewBox).find((l) => l.node === t?.node)?.box;
+    if (!b) throw new Error(s);
+    return b;
+  };
+  const panelsOf = (pl: Plot) => pl.layout.regions.filter((r) => !r.band).map((r) => r.box);
+  const bandsOf = (pl: Plot) => pl.layout.regions.filter((r) => r.band);
+  const mid = (b: readonly number[], i: 0 | 1) => ((b[i] ?? 0) + (b[i + 2] ?? 0)) / 2;
+
+  it('matplotlib subplots: each panel scales, gaps and labels stay with their own axes', async () => {
+    const p = analyse(await load('matplotlib-subplots.svg'));
+    expect(panelsOf(p)).toHaveLength(4);
+    expect(bandsOf(p).map((r) => r.band)).toEqual([{ axis: 0, side: 'hi', of: 3 }]);
+    for (const [fx, fy] of [
+      [1.5, 1.3],
+      [0.8, 0.75],
+    ] as const) {
+      const { plot: q, sx, sy } = resized(p, fx, fy);
+      const [a0, b0, c0, d0] = panelsOf(p);
+      const [a1, b1, c1, d1] = panelsOf(q);
+      if (!a0 || !b0 || !c0 || !d0 || !a1 || !b1 || !c1 || !d1) throw new Error('panels');
+      // Every panel but the one giving way to the colour bar scales by the growth; the gaps
+      // between columns and rows keep their size.
+      for (const [x, y] of [
+        [a0, a1],
+        [b0, b1],
+        [c0, c1],
+      ] as const) {
+        expect(x[2] - x[0]).toBeCloseTo((y[2] - y[0]) / sx, 2);
+        expect(x[3] - x[1]).toBeCloseTo((y[3] - y[1]) / sy, 2);
+      }
+      expect(b1[0] - a1[2]).toBeCloseTo(b0[0] - a0[2], 2);
+      expect(c1[1] - a1[3]).toBeCloseTo(c0[1] - a0[3], 2);
+      // An inner subplot's axis title stays beside its own axis; titles stay centred on theirs.
+      expect(b1[0] - labelBox(q, 'Count')[2]).toBeCloseTo(b0[0] - labelBox(p, 'Count')[2], 2);
+      expect(mid(labelBox(q, 'Count'), 1)).toBeCloseTo(mid(b1, 1), 1);
+      expect(mid(labelBox(q, 'Time (h)'), 0)).toBeCloseTo(mid(a1, 0), 1);
+      expect(labelBox(q, 'Time (h)')[1] - a1[3]).toBeCloseTo(labelBox(p, 'Time (h)')[1] - a0[3], 2);
+      expect(mid(labelBox(q, 'B'), 0)).toBeCloseTo(mid(b1, 0), 1);
+      // The colour bar keeps its width and its gap to its panel, takes the panel's height, and
+      // its right edge stays aligned with the panel above; its label stays beside it.
+      const bar0 = bandsOf(p)[0]?.box;
+      const bar1 = bandsOf(q)[0]?.box;
+      if (!bar0 || !bar1) throw new Error('no colour bar');
+      expect(bar1[2] - bar1[0]).toBeCloseTo(bar0[2] - bar0[0], 2);
+      expect(bar1[0] - d1[2]).toBeCloseTo(bar0[0] - d0[2], 2);
+      expect(bar1[3] - bar1[1]).toBeCloseTo(d1[3] - d1[1], 2);
+      expect(b1[2] - bar1[2]).toBeCloseTo(b0[2] - bar0[2], 2);
+      expect(labelBox(q, 'Level')[0] - bar1[2]).toBeCloseTo(labelBox(p, 'Level')[0] - bar0[2], 2);
+      // A one-entry legend without a frame moves as one: its key keeps beside its label, both
+      // in the lower left corner.
+      const sin = (pl: Plot) => labelBox(pl, 'sin');
+      expect(sin(q)[0] - a1[0]).toBeCloseTo(sin(p)[0] - a0[0], 2);
+      expect(a1[3] - sin(q)[3]).toBeCloseTo(a0[3] - sin(p)[3], 2);
+      const keyOf = (pl: Plot) => {
+        const k = drawnLeaves(pl.root, pl.viewBox).find(
+          (l) =>
+            l.node.tag === 'path' &&
+            l.box[2] <= sin(pl)[0] &&
+            l.box[2] >= sin(pl)[0] - 10 &&
+            l.box[1] >= sin(pl)[1] &&
+            l.box[3] <= sin(pl)[3],
+        );
+        if (!k) throw new Error('no legend key');
+        return k.box;
+      };
+      expect(sin(q)[0] - keyOf(q)[2]).toBeCloseTo(sin(p)[0] - keyOf(p)[2], 2);
+      expect(keyOf(q)[2] - keyOf(q)[0]).toBeCloseTo(keyOf(p)[2] - keyOf(p)[0], 2);
+    }
+  });
+
+  it('ggplot2 facets: strips keep their height on their panel, the legend stays beside', async () => {
+    const p = analyse(await load('r-facets.svg'));
+    expect(panelsOf(p)).toHaveLength(3);
+    expect(bandsOf(p).map((r) => r.band)).toEqual(
+      [0, 1, 2].map((of) => ({ axis: 1, side: 'lo', of })),
+    );
+    const { plot: q, sx } = resized(p, 1.4, 1.5);
+    const before = panelsOf(p);
+    const after = panelsOf(q);
+    after.forEach((b, i) => {
+      const a = before[i];
+      const s0 = bandsOf(p)[i]?.box;
+      const s1 = bandsOf(q)[i]?.box;
+      if (!a || !s0 || !s1) throw new Error('facet');
+      expect(b[2] - b[0]).toBeCloseTo((a[2] - a[0]) * sx, 2);
+      // The strip: as wide as its panel, as high as before, still on top of it.
+      expect(s1[3] - s1[1]).toBeCloseTo(s0[3] - s0[1], 2);
+      expect(s1[0]).toBeCloseTo(b[0], 2);
+      expect(s1[2]).toBeCloseTo(b[2], 2);
+      expect(b[1] - s1[3]).toBeCloseTo(a[1] - s0[3], 2);
+      const next = after[i + 1];
+      const was = before[i + 1];
+      if (next && was) expect(next[0] - b[2]).toBeCloseTo(was[0] - a[2], 2);
+    });
+    // Glyph outlines: a strip's label stays centred on it, the legend's keep their distance
+    // from the last panel.
+    const glyphs = (pl: Plot, box: readonly number[]) =>
+      drawnLeaves(pl.root, pl.viewBox)
+        .filter(
+          (l) => l.box[0] >= (box[0] ?? 0) && l.box[2] <= (box[2] ?? 0) && l.box[3] - l.box[1] < 8,
+        )
+        .filter((l) => l.box[1] >= (box[1] ?? 0) && l.box[3] <= (box[3] ?? 0))
+        .map((l) => l.box);
+    const strip0 = bandsOf(p)[1]?.box ?? [0, 0, 0, 0];
+    const strip1 = bandsOf(q)[1]?.box ?? [0, 0, 0, 0];
+    const label0 = glyphs(p, strip0);
+    const label1 = glyphs(q, strip1);
+    expect(label1).toHaveLength(label0.length);
+    expect(label1.length).toBeGreaterThan(0);
+    const centre = (bs: (readonly number[])[]) =>
+      (Math.min(...bs.map((b) => b[0] ?? 0)) + Math.max(...bs.map((b) => b[2] ?? 0))) / 2;
+    expect(centre(label1) - mid(strip1, 0)).toBeCloseTo(centre(label0) - mid(strip0, 0), 1);
+    const last0 = before[2] ?? [0, 0, 0, 0];
+    const last1 = after[2] ?? [0, 0, 0, 0];
+    const legend = (pl: Plot, last: readonly number[]) =>
+      drawnLeaves(pl.root, pl.viewBox)
+        .filter((l) => l.box[0] > (last[2] ?? 0) + 4)
+        .map((l) => l.box);
+    const l0 = legend(p, last0);
+    const l1 = legend(q, last1);
+    expect(l1).toHaveLength(l0.length);
+    l0.forEach((b, i) => {
+      expect((l1[i]?.[0] ?? 0) - last1[2]).toBeCloseTo(b[0] - last0[2], 2);
+      expect((l1[i]?.[2] ?? 0) - (l1[i]?.[0] ?? 0)).toBeCloseTo(b[2] - b[0], 2);
+    });
+  });
+
+  it('panels joined by something drawn across them stay one area', () => {
+    const svg =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 120">' +
+      '<rect x="20" y="10" width="110" height="90" fill="#eee"/>' +
+      '<line x1="20" y1="100" x2="130" y2="100" stroke="#000"/>' +
+      '<rect x="170" y="10" width="110" height="90" fill="#eee"/>' +
+      '<line x1="170" y1="100" x2="280" y2="100" stroke="#000"/>' +
+      '<polyline points="30,90 270,20" fill="none" stroke="#c00"/>' +
+      '</svg>';
+    const p = analyse(svg);
+    expect(p.layout.regions).toEqual([{ box: [20, 10, 280, 100] }]);
+    // Without the line across, they are two panels.
+    const two = analyse(svg.replace(/<polyline[^>]*\/>/, ''));
+    expect(panelsOf(two)).toEqual([
+      [20, 10, 130, 100],
+      [170, 10, 280, 100],
+    ]);
+  });
+
+  it('a colour bar beside a lone panel keeps its width and its gap', () => {
+    const svg =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">' +
+      '<rect x="20" y="10" width="140" height="90" fill="#eee" stroke="#000"/>' +
+      '<rect x="166" y="10" width="8" height="90" fill="#08f" stroke="#000"/>' +
+      '<line x1="174" y1="20" x2="177" y2="20" stroke="#000"/>' +
+      '<line x1="174" y1="60" x2="177" y2="60" stroke="#000"/>' +
+      '<text x="179" y="23" font-size="8">1</text>' +
+      '<text x="179" y="63" font-size="8">0</text>' +
+      '</svg>';
+    const p = analyse(svg);
+    expect(bandsOf(p).map((r) => r.band)).toEqual([{ axis: 0, side: 'hi', of: 0 }]);
+    const { plot: q, sx, sy } = resized(p, 1.5, 1.5);
+    const bar0 = bandsOf(p)[0]?.box ?? [0, 0, 0, 0];
+    const bar1 = bandsOf(q)[0]?.box ?? [0, 0, 0, 0];
+    const [panel] = panelsOf(q);
+    expect(bar1[2] - bar1[0]).toBeCloseTo(bar0[2] - bar0[0], 2);
+    expect(bar1[0] - (panel?.[2] ?? 0)).toBeCloseTo(bar0[0] - 160, 2);
+    expect(bar1[3] - bar1[1]).toBeCloseTo((bar0[3] - bar0[1]) * sy, 2);
+    expect(sx).toBeGreaterThan(1);
+    // Its tick labels stay beside it.
+    expect(labelBox(q, '1')[0] - bar1[2]).toBeCloseTo(labelBox(p, '1')[0] - bar0[2], 2);
+  });
+
   it('never shrinks the area below its minimum; text then scales with the plot', async () => {
     const p = analyse(await load('r-svglite.svg'));
-    const [sx, sy] = growthFor(p.viewBox, p.layout.area, 1, 1);
+    const [sx, sy] = growthFor(p.viewBox, p.layout, 1, 1);
     expect(sx).toBe(0.05);
     expect(sy).toBe(0.05);
   });

@@ -73,13 +73,40 @@ text) is closed in the same work.
 - **Exports** are unchanged in kind: the same attributes the import writes (`d`, `x`/`y`,
   `points`, `ellipse`, `matrix()` transforms), all in the export subset; the stored asset
   re-sanitises to itself (tested).
-- **Tests:** `plotResize.test.ts` on all seven fixtures at three sizes (text sizes, widths and
+- **Tests:** `plotResize.test.ts` on all ten fixtures at three sizes (text sizes, widths and
   roles unchanged, tick lengths and tick label offsets kept, area scaled, round trip), titles and
-  legends on matplotlib SVG and PDF, R `pdf()` markers, a synthetic ggplot2-style legend;
+  legends on matplotlib SVG and PDF, R `pdf()` markers, a synthetic ggplot2-style legend,
+  `matplotlib-subplots.svg` (2 × 2 with a colour bar and a one-entry legend) and
+  `r-facets.svg` (ggplot2 `facet_wrap`), made by `scripts/svg-fixtures/`, a lone panel's colour
+  bar and the fallback when a line joins two panels;
   `plotSize.test.ts` for the edits (copy-on-write, scale per point, drag determinism, groups,
   Match size, Arrange in grid, `growFrame`, issue 30); e2e `plot-resize.spec.ts` (W/H from the
   keyboard, the switch and its memory, export subset, axe, a timed drag with one undo step).
-- **Not handled:** several subplots in one file share one area (the gaps between them scale, and
-  an inner subplot's axis title keeps its centre's share, not its axis); facet strips scale with
-  the panels; colour bars count as part of the area; a legend with one entry and no frame moves
-  as separate pieces. Roles and legends are guesses from geometry, as in note 16.
+- **Several panels** (issue 32). The area is split into **panels** when that is safe: area
+  pieces (axis lines, and rectangles at least 10 % of the viewBox both ways that are not
+  band-shaped) are grouped where they touch; a group with no axis line and no straight stroke
+  along most of a side (a legend's background) is no panel; any other group under 10 % makes
+  the split fail. With two or more panels, and no shape that would scale overlapping two of them
+  (a line drawn across the figure fails it), each axis gets **spans**, the panels' extents
+  merged where they overlap: spans scale by one growth `(sx, sy)` about their own start and the
+  gaps between them only move, so `sx = (vw' − margins − gaps) / Σ span widths`. Otherwise the
+  plot is the one area above, unchanged. Every action names its **region**: a panel scales by
+  the map that takes its edges where the spans take them; an anchor (as above, but against the
+  region nearest the cluster, so an inner subplot's axis title follows its own axis) moves by
+  its region's map. `plotParts` also counts a straight stroke along a panel rectangle's edge
+  as an axis line, and the edges of frames over 10 % long as long edges for ticks, so small
+  subplots and colour bars keep their tick roles; short strokes from a region's edge, two
+  alike, that the roles still missed move as ticks.
+- **Bands:** colour bars and facet strips. A rectangle at most a quarter as thick as long,
+  outside every panel, as long as 40 % of a panel along it and mostly beside it, within 30 % of
+  the panel's size across: along it, it scales with the span it lies in; across, it keeps its
+  size and moves with the panel edge it faces. Shapes filling its thickness (a colour bar's
+  colours) are its cells and scale with it; its ticks and labels move with it. A colour bar
+  inside its panel's span (matplotlib takes its room from that panel only, so the panel above
+  is wider) keeps its distance to the span's end and its panel gives way: the panel scales by
+  less so the bar keeps its width and stays aligned with the panel above (never below 5 %).
+- **Legends with one entry** move as one block when they have a title or a line key (1.2–3 em
+  long, flat: matplotlib's handle); a lone marker beside a label may be an annotated point.
+- **Not handled:** a band that lies across two spans; a colour bar shared by a whole column of
+  panels squeezes only the panel it is nearest; panels a stroke joins (or that touch) scale as
+  one, gap included. Roles, panels and legends are guesses from geometry, as in note 16.

@@ -102,7 +102,7 @@ export function resizedPlot(
   if (!layout || vw <= 0 || vh <= 0 || before.w <= 0 || before.h <= 0) return null;
   const [sx, sy] = growthFor(
     s.viewBox,
-    layout.area,
+    layout,
     (after.w * vw) / before.w,
     (after.h * vh) / before.h,
   );
