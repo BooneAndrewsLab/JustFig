@@ -112,6 +112,8 @@ test('a shortcut moved in Keyboard shortcuts works at once and after a reload', 
   await page.keyboard.press('r');
   await expect(page.locator('[data-tool="rect"]')).toHaveAttribute('aria-pressed', 'false');
   await page.reload();
+  await expect(page.locator('.icon-tile').first()).toBeVisible();
+  await expect(page.locator('[data-tool="rect"]')).toHaveAttribute('title', /\(Q\)/);
   await page.keyboard.press('q');
   await expect(page.locator('[data-tool="rect"]')).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('button', { name: 'Shortcuts…' }).click();
@@ -133,4 +135,22 @@ test('a BarelySig SVG imports as its graph, at its size, with its recipe', async
     page.getByRole('button', { name: 'Download .bsig for BarelySig' }).click(),
   ]);
   expect(download.suggestedFilename()).toBe('Figure 2.bsig');
+});
+
+test('the guide opens from the top bar and from ?, and its pages link to each other', async ({
+  page,
+}) => {
+  await page.keyboard.press('Shift+Slash');
+  const dialog = page.getByRole('dialog', { name: 'User guide' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('button', { name: 'Keyboard shortcuts' }).click();
+  await expect(page.getByTestId('guide-page').locator('table')).toContainText(
+    'Group the selection',
+  );
+  await dialog.getByRole('button', { name: 'Arrows' }).click();
+  await expect(page.getByTestId('guide-page')).toContainText('Detach');
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await page.getByRole('button', { name: 'Guide', exact: true }).click();
+  await expect(dialog).toBeVisible();
 });

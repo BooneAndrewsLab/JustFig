@@ -52,7 +52,9 @@ export function GalleryDialog({ onClose, unsaved }: { onClose: () => void; unsav
                 onClick={() => {
                   if (
                     unsaved &&
-                    !confirm('Start a new figure from this? The current one stays in this browser.')
+                    !confirm(
+                      'Start a new figure from this? The current one has not been saved to a file (Save downloads it).',
+                    )
                   )
                     return;
                   openGallery(e);

@@ -880,3 +880,77 @@ button.link {
 .keybindings-fixed {
   color: var(--ink-2);
 }
+
+.dialog:has(.guide) {
+  width: min(900px, calc(100vw - 32px));
+}
+
+.guide {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 16px;
+  min-height: 0;
+}
+
+.guide nav ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.guide nav button {
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 3px 4px;
+  width: 100%;
+}
+
+.guide nav button[aria-current='page'] {
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+
+.guide-page {
+  max-height: calc(100vh - 200px);
+  overflow: auto;
+  line-height: 1.5;
+}
+
+.guide-page h2 {
+  margin-top: 0;
+}
+
+.guide-page code {
+  font:
+    12px ui-monospace,
+    monospace;
+  background: var(--ground);
+  padding: 0 3px;
+  border-radius: 3px;
+}
+
+.guide-table {
+  border-collapse: collapse;
+  margin: 6px 0;
+}
+
+.guide-table th,
+.guide-table td {
+  border: 1px solid var(--rule);
+  padding: 3px 6px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.guide-note {
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  padding: 4px 8px;
+}
+
+@media (max-width: 640px) {
+  .guide {
+    grid-template-columns: 1fr;
+  }
+}

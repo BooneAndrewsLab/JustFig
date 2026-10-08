@@ -80,11 +80,30 @@ PlasmidPop's File menu → "Copy map for …" writes one object:
 gets the defaults. Anything else in `params` is ignored. PlasmidPop converts its 0-based half-open
 ranges (a wrap has `end > length`) to this form and skips `source` and site-only features.
 
-## BarelySig (Phase 4)
+## BarelySig: `embedded` / `bsig`
 
-An `embedded` object: `source: { app: 'BarelySig', format, payload }` with the recipe from its
-`src/io/recipe.ts` as the payload, and `snapshot` the hash of an `svgImport` asset holding its
-`sceneToSvg` output, included in `assets`. It renders from the snapshot today.
+BarelySig has no copy command that writes a fragment. What it does write today is an SVG export
+"with data": `svgMeta` (its `src/io/recipe.ts`) puts the figure's **recipe** — a `.bsig`
+document cut down to the graph, its table, analyses and results — gzipped and base64'd into
+`<metadata><barelysig:recipe encoding="gzip+base64">`. So the import side is built on that,
+and nothing was added to BarelySig:
 
-No JSON Schema is generated yet (the plan suggested one from the TS types): the fixture above,
-this table and PlasmidPop's own tests are the contract for now.
+- **Import…** (or Open…, or dropping the file) of an SVG whose metadata has a recipe makes an
+  `embedded` object: `source: { app: 'BarelySig', format: 'bsig', payload: <the recipe as
+parsed JSON, untouched> }`, `snapshot`: the hash of an `svgImport` asset holding the SVG after
+  the usual sanitiser. The frame is the SVG's physical `width`/`height` (mm → pt), so a
+  graph made at a journal width keeps it. Its name is the graph's title.
+- An SVG BarelySig exported _without_ its data (the metadata says BarelySig, no recipe) is
+  imported as a plain picture, with a notice saying why.
+- The Inspector's "From BarelySig" section offers **Download .bsig for BarelySig**: the
+  payload written back as JSON, which BarelySig opens as a project. Editing happens there;
+  importing again replaces nothing (it is a new object).
+- The fixtures are BarelySig 1.0.0's real output: `src/io/fixtures/barelysig-figure2.svg` and
+  its recipe `barelysig-figure2.recipe.json`, made by running BarelySig's own `recipeText`,
+  `svgMeta` and `exportSvg` on the graph of its recipe tests (in a scratch clone; BarelySig was
+  not changed).
+- `barelysig-figure2.fragment.json` is the same object as a fragment: the form a future
+  BarelySig "Copy for figure" command should write. It pastes like any fragment.
+
+No JSON Schema is generated yet (the plan suggested one from the TS types): the fixtures, these
+tables and the siblings' own tests are the contract for now.

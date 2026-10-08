@@ -48,6 +48,13 @@ TextEditor), `ui/panels/` (IconBrowser, ToolPalette, Inspector, LayersPanel, Pag
 procedural objects takes a few milliseconds, so no worker was needed (note 04, Performance).
 Raster export runs on the main thread (see note 03).
 
+Phase 4 adds `palette/` (built-in palettes and the swatch-linked recolour edits, note 07),
+`gallery/` (templates and examples built in code, note 08), `core/model/binding.ts` (arrow
+binding, note 06), `io/barelysig.ts` (BarelySig SVG import, note 05), `ui/keyBindings.ts` (the
+shortcut table, note 09), `ui/guide.ts` with `docs/guide/*.md` (the user guide, bundled and
+shown in the Guide dialog; `guide.test.ts` checks it covers every tool, shortcut, panel, dialog,
+kind, palette and template), and the Gallery, Keyboard shortcuts and Guide dialogs.
+
 ## State
 
 One hand-written external store (`ui/state/store.ts`, after BarelySig) read with
@@ -75,6 +82,8 @@ hit stroke on screen only.
 - **Tools:** select (V), pan (H or Space), rectangle (R), ellipse (E), line (L), pen (P: click for
   corners, drag for smooth nodes, Enter or double-click to finish, click the first node to
   close), arrow (A), text (T) and panel (F). A drawing tool returns to select after one object.
+  Keys are the defaults of the binding table (note 09); the user can move them.
+- **Arrows** pressed or released on an object attach to it and follow it (note 06).
 - **Selection:** a click selects the outermost non-panel object under the pointer, so a click in
   a panel selects the object on it and a click on the panel's empty area selects the panel.
   Shift adds to or removes from the selection, and a marquee selects what it fully encloses.

@@ -10,6 +10,7 @@ import { AttributionDialog } from './dialogs/AttributionDialog';
 import { CreditsDialog } from './dialogs/CreditsDialog';
 import { ExportDialog } from './dialogs/ExportDialog';
 import { GalleryDialog } from './dialogs/GalleryDialog';
+import { GuideDialog } from './dialogs/GuideDialog';
 import { KeyBindingsDialog } from './dialogs/KeyBindingsDialog';
 import { IconBrowser } from './panels/IconBrowser';
 import { Inspector } from './panels/Inspector';
@@ -113,7 +114,12 @@ export function App() {
           <button
             type="button"
             onClick={() => {
-              if (!unsaved || confirm('Start a new figure? The current one stays in this browser.'))
+              if (
+                !unsaved ||
+                confirm(
+                  'Start a new figure? The current one has not been saved to a file (Save downloads it).',
+                )
+              )
                 newFigure();
             }}
           >
@@ -312,6 +318,13 @@ export function App() {
       {dialog === 'gallery' && (
         <GalleryDialog
           unsaved={unsaved}
+          onClose={() => {
+            setDialog(null);
+          }}
+        />
+      )}
+      {dialog === 'guide' && (
+        <GuideDialog
           onClose={() => {
             setDialog(null);
           }}

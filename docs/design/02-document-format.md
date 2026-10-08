@@ -40,7 +40,7 @@ type Obj = Rect | Ellipse | PathObj | Arrow | Text | Icon | Image | Procedural |
 Base { id; name?; frame; opacity; locked?; hidden? }
 Rect   { type: 'rect'; rx; style }          Ellipse { type: 'ellipse'; style }
 PathObj{ type: 'path'; nodes: PathNode[]; closed; style }
-Arrow  { type: 'arrow'; nodes; start: Head; end: Head; style; bind? }
+Arrow  { type: 'arrow'; nodes; start: Head; end: Head; style; bind? }  // bind: note 06
 Text   { type: 'text'; runs: Run[][]; align: 'left'|'center'|'right'; lineHeight; autoWidth; styleRef? }
 Run    { text; font: 'arimo'|'tinos'|'cousine'; size; bold?; italic?; script?: 'sub'|'sup'; color: Paint }
 Icon   { type: 'icon'; asset; slots: Record<SlotId, Paint>; lockAspect: true }
@@ -109,8 +109,10 @@ objects with only the assets they use. Copy writes it to the clipboard as JSON t
 `image/svg+xml` rendering where the browser allows. Paste reads it and gives every object fresh
 ids; objects copied from this figure land 10 pt from the originals, objects from elsewhere in the
 middle of the view. A fragment file opened with Open… is added to the page the same way. Sibling
-apps emit fragments: PlasmidPop a `procedural` `plasmidMap`, BarelySig (Phase 4) an `embedded`
-chart. The contract is note 05.
+apps emit fragments: PlasmidPop a `procedural` `plasmidMap`; BarelySig graphs arrive as an
+`embedded` object from its SVG exports (and the frozen fragment form of one). The contract is
+note 05. Arrow bindings (note 06) follow their targets into the copy, or are dropped when the
+target is not copied.
 
 ## Storage
 

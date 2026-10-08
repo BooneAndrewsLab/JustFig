@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: 'If you use JustFig in your research, please cite it as below.'
+type: software
+title: 'JustFig'
+abstract: 'Free, open-source scientific figure editor for wet-lab biologists, in the browser: shapes, arrows that stay attached, rich text with sub- and superscripts, a library of openly licensed scientific icons with recolouring and automatic attribution, procedural objects (well plates, membranes, DNA, plasmid maps, gels, cells), colourblind-safe palettes, templates, and export to SVG, PDF, PNG and TIFF at journal sizes. Figures never leave the computer.'
+authors:
+  - family-names: Usaj
+    given-names: Matej
+    email: m.usaj@utoronto.ca
+    orcid: 'https://orcid.org/0000-0003-0675-2847'
+    affiliation: 'The Donnelly Centre, University of Toronto'
+license: MIT
+repository-code: 'https://github.com/BooneAndrewsLab/JustFig'
+# Placeholder until the first release is archived on Zenodo (docs/releasing.md): replace
+# with the concept DOI Zenodo assigns, 10.5281/zenodo.<number>.
+doi: 10.5281/zenodo.0000000
+version: 0.1.0
+keywords:
+  - scientific figures
+  - illustration
+  - BioRender alternative
+  - icons
+  - colourblind-safe
+  - SVG
+  - reproducibility

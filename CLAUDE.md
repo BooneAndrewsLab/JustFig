@@ -54,8 +54,20 @@ account, figures never leave the computer. Design notes: `docs/design/`.
   the Inspector, decoder and test arbitraries come from `fields`. A new kind needs golden SVGs
   (`goldenCases.ts`) and must pass the bounded-render property test; changing a kind's params
   shape means bumping its `version` with a `migrate`. Params stay raw JSON in the model.
-- **Fragments** (note 05) are the contract with PlasmidPop and BarelySig; the frozen PlasmidPop
-  fixture is `src/io/fixtures/plasmidpop-pbr322.fragment.json`. Never write the display name
-  into a fragment or kind (the brand test scans `src/`).
+- **Fragments** (note 05) are the contract with PlasmidPop and BarelySig; frozen fixtures in
+  `src/io/fixtures/` (PlasmidPop's pBR322 fragment; BarelySig 1.0.0's real SVG export and its
+  recipe). Never write the display name into a fragment or kind (the brand test scans `src/`).
+  PlasmidPop and BarelySig are read-only from here: build the import side against fixtures.
+- **Arrow binding** (note 06) is solved only by `reconcileBindings`, run in `store.edit` after
+  every edit; never move bound arrows in an edit. Copies go through `cloneObjects` (remaps it).
+- **Colours** (note 07): paints are `{hex}` or `{swatch}`; recolour edits live in `src/palette/`.
+  Never link icon *default* colours (an override makes a CC BY credit say "modified").
+- **Gallery entries** (note 08) are code in `src/gallery/`, built from the factories.
+- **Shortcuts** (note 09) come only from `KEY_ACTIONS` in `src/ui/keyBindings.ts` (codes, not
+  `e.key`); fixed keys are handled first in `shortcuts.ts`.
+- **User guide** `docs/guide/*.md` is bundled in-app; `src/ui/guide.test.ts` fails when a tool,
+  shortcut, panel, dialog, kind, palette or template lacks an entry: document new UI there.
+- **Accessibility:** `e2e/a11y.spec.ts` (axe, no serious/critical) and keyboard e2e; every
+  control must work from the keyboard. Dialogs use `ui/dialogs/Dialog.tsx` (focus trap).
 - Analytics: `src/ui/analytics.ts` `EVENTS` allow-list only, never figure
   content; no-op when the Matomo env is unset.
