@@ -35,6 +35,12 @@ interface ProceduralKind<P> {
 - **Params are decoded at render time** (and cached per params object). The model keeps the raw
   JSON, so nothing is lost until the user edits the object; an edit stores the decoded, fixed
   params and the current `kindVersion`.
+- **Plasmid label threshold**: `minLabelPct` (percent of the sequence length, default 1) hides the
+  label of any feature shorter than that; the feature is still drawn. 1% leaves 11 of pBR322's 48
+  labels (the nearest gap is 0.21% to 0.87%). PlasmidPop culls by pixel size (`MIN_FEATURE_PX`), which
+  has no meaning in a fixed-size figure, so the threshold is relative to length. There is no
+  per-feature label switch, so nothing overrides it. Adding a param needs no version bump: a
+  missing value decodes to the field default, so old documents take the new default.
 - **Versions**: an object with an older `kindVersion` goes through `migrate` then the decoder. A
   newer or unknown kind is not drawn by a kind (see Snapshots).
 - **Slot colours** are resolved (overrides over defaults, swatches through the palette) before

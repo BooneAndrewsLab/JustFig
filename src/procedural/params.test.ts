@@ -89,3 +89,41 @@ describe('gel bands', () => {
     ]);
   });
 });
+
+describe('plasmid map label threshold', () => {
+  const k = plasmidMap;
+  const labels = (raw: unknown, size = 300): string[] =>
+    k
+      .render(decodeParams(k.fields, raw) as never, { w: size, h: size, slots: {} })
+      .flatMap((p) => (p.kind === 'text' ? [p.text] : []));
+  const base = {
+    name: '',
+    length: 1000,
+    showLength: false,
+    showTicks: false,
+    features: [
+      { name: 'big', start: 1, end: 400, strand: 1, type: 'CDS', color: '' },
+      { name: 'tiny', start: 500, end: 504, strand: 1, type: 'CDS', color: '' },
+      { name: 'wrap', start: 990, end: 20, strand: 1, type: 'CDS', color: '' },
+    ],
+  };
+
+  it('defaults to 1% and drops labels of shorter features only', () => {
+    expect(decodeParams(k.fields, {})['minLabelPct']).toBe(1);
+    const t = labels(base);
+    expect(t).toContain('big');
+    expect(t).toContain('wrap');
+    expect(t).not.toContain('tiny');
+  });
+
+  it('is a parameter: 0 labels everything, a high value hides more', () => {
+    expect(labels({ ...base, minLabelPct: 0 })).toContain('tiny');
+    expect(labels({ ...base, minLabelPct: 10 })).not.toContain('wrap');
+    expect(labels({ ...base, minLabelPct: 10 })).toContain('big');
+  });
+
+  it('old documents without the param get the default', () => {
+    const { minLabelPct: _m, ...old } = { ...base, minLabelPct: 5 };
+    expect(decodeParams(k.fields, old)['minLabelPct']).toBe(1);
+  });
+});

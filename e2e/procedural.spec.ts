@@ -101,12 +101,12 @@ test('a PlasmidPop map pastes (or opens) as an editable plasmid map', async ({ p
   await expect(name).toHaveValue('SYNPBR322');
   await expect(section.getByRole('list', { name: 'Features' }).locator('li')).toHaveCount(48);
   await name.fill('pBR322 edited');
-  // Edit one feature: open it and rename it.
-  await section.getByRole('list', { name: 'Features' }).locator('li .item-title').first().click();
+  // Edit one feature (the 8th, tet, is long; short ones carry no label): open it and rename it.
+  await section.getByRole('list', { name: 'Features' }).locator('li .item-title').nth(7).click();
   const feature = section.getByRole('list', { name: 'Features' }).locator('li.open');
   await feature.getByLabel('Name', { exact: true }).fill('MyOrigin');
   await expect(
-    section.getByRole('list', { name: 'Features' }).locator('li .item-title').first(),
+    section.getByRole('list', { name: 'Features' }).locator('li .item-title').nth(7),
   ).toContainText('MyOrigin');
   const svg = await exportVia(page, 'SVG');
   const text = readFileSync(await svg.path(), 'utf8');

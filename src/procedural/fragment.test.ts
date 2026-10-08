@@ -119,8 +119,9 @@ describe('PlasmidPop fragment', () => {
     expect(svgOf(fig)).toContain('SYNPBR322');
     fig = setParams(pageOf(fig).id, o.id, 'Name', (p) => ({
       ...p,
-      features: (p['features'] as readonly Feature[]).map((f, i) =>
-        i === 0 ? { ...f, name: 'MyFeature' } : f,
+      // Rename a long feature: short ones (under the label threshold) carry no label.
+      features: (p['features'] as readonly Feature[]).map((f, i, all) =>
+        i === all.findIndex((x) => x.end - x.start > 400) ? { ...f, name: 'MyFeature' } : f,
       ),
       name: 'pEdited',
     })).apply(fig);
@@ -215,5 +216,17 @@ describe('Convert to shapes', () => {
     expect(ring && ring.frame.y + ring.frame.h / 2).toBeCloseTo(50 + 160, 3);
     const label = all.find((x) => x.type === 'text');
     expect(label?.frame.rotation).toBe(90);
+  });
+});
+
+describe('PlasmidPop fragment label threshold', () => {
+  it('leaves only the long pBR322 features labelled', () => {
+    const o = readFragment(FIXTURE)?.objects[0] as Procedural;
+    const r = resolveProcedural(o);
+    const prims = r?.kind.render(r.params, { w: 320, h: 320, slots: {} }) ?? [];
+    const names = new Set((r?.params['features'] as readonly Feature[]).map((f) => f.name));
+    const n = prims.filter((x) => x.kind === 'text' && names.has(x.text)).length;
+    expect(n).toBeGreaterThan(0);
+    expect(n).toBeLessThanOrEqual(12);
   });
 });

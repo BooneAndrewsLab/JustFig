@@ -29,7 +29,7 @@ Every object also has a **Colours** section with a control for each of its parts
 
 ### Plasmid map
 
-Set the **Name**, the **Length** in bp and the **Topology** (Circular or Linear). Under **Features**, each feature has a name, **Start** and **End** (bp, counted from 1), **Strand** (Forward →, Reverse ← or None), **Type** and **Colour** (automatic unless you choose one). Click a feature to open it; use the arrow buttons to reorder, ✕ to remove and **Add** for a new one. You can show or hide **Name in the middle**, **Length**, **Scale ticks** and **Feature labels**, and set **Feature width** and **Label size**.
+Set the **Name**, the **Length** in bp and the **Topology** (Circular or Linear). Under **Features**, each feature has a name, **Start** and **End** (bp, counted from 1), **Strand** (Forward →, Reverse ← or None), **Type** and **Colour** (automatic unless you choose one). Click a feature to open it; use the arrow buttons to reorder, ✕ to remove and **Add** for a new one. You can show or hide **Name in the middle**, **Length**, **Scale ticks** and **Feature labels**, and set **Feature width** and **Label size**. Features shorter than **Smallest labelled feature** (1% of the length by default) are still drawn but have no label, which keeps dense maps such as pBR322 readable; set it to 0 to label every feature.
 
 To bring in a real plasmid, copy it from PlasmidPop (see [Importing and other apps](11-import-and-other-apps.md)).
 

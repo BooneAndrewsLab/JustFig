@@ -34,6 +34,8 @@ export interface PlasmidParams {
   readonly showLabels: boolean;
   readonly ring: number;
   readonly labelSize: number;
+  /** Features shorter than this share of the sequence are drawn without a label (percent). */
+  readonly minLabelPct: number;
 }
 
 export const MAX_BP = 100_000_000;
@@ -88,6 +90,13 @@ const FEATURE_FIELDS = [
   { key: 'type', label: 'Type', type: 'text', maxLength: 40, default: 'misc_feature' },
   { key: 'color', label: 'Colour', type: 'color', default: '', auto: true },
 ] as const;
+
+/** Whether a feature is long enough (share of the sequence) to carry a label. */
+export function labelled(p: PlasmidParams, f: Feature): boolean {
+  if (!p.showLabels || f.name.trim() === '') return false;
+  const bp = (f.end >= f.start ? f.end : f.end + p.length) - f.start + 1;
+  return (bp / Math.max(1, p.length)) * 100 >= p.minLabelPct;
+}
 
 const measureLabel = (s: string, size: number): number =>
   measure({ text: s, font: 'arimo', size, color: { hex: '#000000' } }, s);
@@ -200,7 +209,7 @@ function circular(p: PlasmidParams, w: number, h: number, slots: Record<string, 
       );
     else nodes = joinNodes(arcNodes(cx, cy, ro, a0, a1), arcNodes(cx, cy, ri, a1, a0));
     shapes.push({ colour: featureColour(f), sub: { t: 'poly', nodes, closed: true } });
-    if (p.showLabels && f.name.trim() !== '') {
+    if (labelled(p, f)) {
       const mid = (a0 + a1) / 2;
       const rl = Math.min(R0 - 1, ro + ls * 1.2);
       labels.push({
@@ -309,7 +318,7 @@ function linear(p: PlasmidParams, w: number, h: number, slots: Record<string, st
               { x: a, y: bot },
             ];
     shapes.push({ colour: featureColour(f), sub: poly(pts, true) });
-    if (p.showLabels && f.name.trim() !== '') {
+    if (labelled(p, f)) {
       // Stack labels that would overlap a neighbour's on the same side into further rows.
       const below = f.strand === -1;
       const x = clamp((a + b) / 2, 0, w);
@@ -424,6 +433,16 @@ export const plasmidMap = defineKind<PlasmidParams>({
       step: 0.5,
       unit: 'pt',
       default: 7,
+    },
+    {
+      key: 'minLabelPct',
+      label: 'Smallest labelled feature',
+      type: 'number',
+      min: 0,
+      max: 100,
+      step: 0.1,
+      unit: '% of length',
+      default: 1,
     },
   ],
   slots: [

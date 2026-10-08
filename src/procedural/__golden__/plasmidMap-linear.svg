@@ -1,8 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
 <path d="M12 150L288 150" fill="none" stroke="#52606d" stroke-width="1.65"/>
 <g transform="translate(17.49 166.55)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">lacZα</tspan></text></g>
-<g transform="translate(23.75 134.7)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">MCS</tspan></text></g>
-<g transform="translate(16.86 174.6)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">lac promoter</tspan></text></g>
 <g transform="translate(61.49 166.55)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">ori</tspan></text></g>
 <g transform="translate(96.83 166.55)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">AmpR</tspan></text></g>
 <g transform="translate(104.07 174.6)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">AmpR promoter</tspan></text></g>
