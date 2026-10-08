@@ -72,6 +72,7 @@ function resized(
 const FIXTURES = [
   'matplotlib-paths.svg',
   'matplotlib-text.svg',
+  'matplotlib-log.svg',
   'r-svglite.svg',
   'r-cairo.svg',
   'matplotlib-type3.pdf',

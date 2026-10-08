@@ -313,7 +313,23 @@ function flatten(n: SvgNode, m: Matrix, inh: Inherited): SvgNode[] {
   const here = inherit(inh, n.attrs);
   if (n.tag !== 'g') {
     const b = bakeLeaf(n, mm, here);
-    return [el(b.tag, pruned(b.attrs, inh), b.children)];
+    // A text's tspans drop what they repeat from it too (e.g. a `*` CSS rule's values).
+    const prune = (c: SvgNode | string, ctx: Inherited): SvgNode | string =>
+      typeof c === 'string'
+        ? c
+        : el(
+            c.tag,
+            pruned(c.attrs, ctx),
+            c.children.map((k) => prune(k, inherit(ctx, c.attrs))),
+          );
+    const ctx = inherit(inh, b.attrs);
+    return [
+      el(
+        b.tag,
+        pruned(b.attrs, inh),
+        b.children.map((c) => prune(c, ctx)),
+      ),
+    ];
   }
   const kids = n.children.flatMap((c) => (typeof c === 'string' ? [] : flatten(c, mm, here)));
   const attrs = pruned(without(n.attrs, 'transform'), inh);

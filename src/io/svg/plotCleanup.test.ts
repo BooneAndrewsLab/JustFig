@@ -79,13 +79,13 @@ describe('matplotlib', () => {
     expectSubset(s.root);
   });
 
-  it('reads the label from the escaped comment and keeps mathtext as outlines', () => {
+  it('reads the label from the escaped comment and keeps unsupported mathtext as outlines', () => {
     const s = plot(
       svg(
         '<defs><path id="DejaVuSans-Bold-61" d="M0 0L500 0L500 500Z"/></defs>' +
           '<g><!-- a &lt; b &amp; "c" --><g transform="translate(10 30) scale(0.1 -0.1)">' +
           '<use xlink:href="#DejaVuSans-Bold-61"/><use xlink:href="#DejaVuSans-Bold-61" transform="translate(60 0)"/></g></g>' +
-          '<g><!-- $10^{3}$ --><g transform="translate(10 45) scale(0.1 -0.1)">' +
+          '<g><!-- $\\sqrt{3}$ --><g transform="translate(10 45) scale(0.1 -0.1)">' +
           '<use xlink:href="#DejaVuSans-Bold-61" transform="translate(0 0.68)"/>' +
           '<use xlink:href="#DejaVuSans-Bold-61" transform="translate(120 38) scale(0.7)"/></g></g>',
         '0 0 100 50',
@@ -100,6 +100,47 @@ describe('matplotlib', () => {
       'font-weight': 'bold',
     });
     expect(all(s.root).filter((n) => n.tag === 'path')).toHaveLength(2);
+  });
+
+  it('rebuilds mathtext labels (log ticks, Greek, operators) as text with script tspans', () => {
+    const s = plot(fixture('matplotlib-log'));
+    expectSubset(s.root);
+    const t = texts(s.root);
+    const flat = (n: SvgNode): string =>
+      n.children.map((c) => (typeof c === 'string' ? c : flat(c))).join('');
+    expect(t.map(flat)).toEqual([
+      '100',
+      '101',
+      '102',
+      '103',
+      '104',
+      'Dose (μM)',
+      '102',
+      '104',
+      '106',
+      'Signal ×103',
+      'α1 response, Δ = −2',
+    ]);
+    // 10^3: the exponent is a tspan at 0.7 size, raised, right after "10" (exact positions).
+    const tick = t[3];
+    const [ten, exp] = (tick?.children ?? []).filter((c) => typeof c !== 'string');
+    expect(tick?.attrs).toMatchObject({ x: '164.376', y: '145.521', 'font-size': '10' });
+    expect(ten?.attrs).toEqual({ x: '164.376', y: '145.521' });
+    expect(exp?.attrs).toEqual({ x: '177.196', y: '141.391', 'font-size': '7' });
+    expect(exp?.children).toEqual(['3']);
+    // Subscripts go down; italic math letters keep their style, upright text resets it.
+    const title = t[10];
+    expect(title?.attrs).toMatchObject({ 'font-size': '12', 'font-style': 'italic' });
+    const [alpha, one, rest] = (title?.children ?? []).filter((c) => typeof c !== 'string');
+    expect(Number(one?.attrs['y'])).toBeGreaterThan(Number(alpha?.attrs['y']));
+    expect(one?.attrs).toMatchObject({ 'font-size': '8.4', 'font-style': 'normal' });
+    expect(rest?.attrs['y']).toBe(alpha?.attrs['y']);
+    expect(t[5]?.children.filter((c) => typeof c !== 'string')[1]?.attrs).toMatchObject({
+      'font-style': 'italic',
+    });
+    // The fraction keeps its outlines: two scaled glyphs and its bar.
+    expect(nodeToSvgString(s.root)).not.toMatch(/baseline-shift|dominant-baseline|<use/);
+    expect(t.some((n) => /^[12]$/.test(flat(n)))).toBe(false);
   });
 
   it('bakes marker and tick transforms and dissolves every wrapper group', () => {
@@ -501,7 +542,13 @@ describe('sanitiser support for plot output', () => {
 });
 
 describe('stability', () => {
-  for (const name of ['matplotlib-paths', 'matplotlib-text', 'r-cairo', 'r-svglite']) {
+  for (const name of [
+    'matplotlib-paths',
+    'matplotlib-text',
+    'matplotlib-log',
+    'r-cairo',
+    'r-svglite',
+  ]) {
     it(`${name}: the cleaned SVG re-sanitises to itself, as rendering does`, () => {
       const s = plot(fixture(name));
       const text = nodeToSvgString(s.root);

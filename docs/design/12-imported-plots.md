@@ -23,8 +23,23 @@ resizing without scaling text, issue 3; PDF import, issue 1) can find text and s
   before parsing (the parser drops comments), and a group made only of plain glyph `<use>`s
   (x offsets, no scale) becomes one `<text>` at the run's origin, size `100·s` (matplotlib's
   `FONT_SCALE`), family and weight from the PostScript name (`DejaVuSans-Bold` → `DejaVu
-Sans, sans-serif`, bold), `rotate(θ x y)` when rotated. Mathtext (`$…$`, scaled glyphs,
-  rules) keeps its outlines. R's cairo `svg()` device writes glyphs with no characters
+Sans, sans-serif`, bold), `rotate(θ x y)` when rotated. Mathtext (`$…$`, issue 22): `mathtext.ts`
+  reads the common subset of the source (`^`/`_` one level deep, `\mathdefault` and the other
+  font switches, Greek, `\times`, `\cdot`, `\pm`, relations, `-` as U+2212, `\,`-style spaces)
+  into characters with a level; anything else (`\frac`, `\sqrt`, accents, unknown commands,
+  nested scripts, `\$`) returns null. The characters are paired one to one with the glyph
+  `<use>`s (`translate(x dy)`, `scale(k)` for scripts) and must agree: base glyphs unscaled on
+  one baseline, superscripts scaled and above it, subscripts below; a rule `<path>` among them
+  (fraction bar, radical) or any mismatch keeps the outlines. Consecutive glyphs of one level,
+  font and scale form a run; a label with several runs is one `<text>` whose runs are tspans
+  with explicit `x`, `y` (in the label's unrotated frame) and `font-size` `100·s·k`, plus the
+  font attributes that differ (math letters are `DejaVuSans-Oblique` → italic) — export subset,
+  no `baseline-shift`. Each run keeps matplotlib's position, so in the narrower bundled font a
+  small gap can open before a script; mathtext spacing around relations and binary operators
+  (not signs, not in scripts) becomes a space inside a run. Such labels have positioned tspans,
+  so alignment (note 15) and merging leave them start-anchored (issue 29); they still carry
+  `data-advance` for the whole label. Plot cleanup drops what tspans repeat from their text (a
+  `*` CSS rule's values), and a rotated one keeps `matrix()` (y-axis titles). R's cairo `svg()` device writes glyphs with no characters
   attached, so those stay outlines; svglite (ggsave's default) writes real text already.
 - **Flattening** (`plotCleanup.ts`): the accumulated matrix is baked into each leaf:
   path points (arcs become cubics, H/V/S/T are made explicit), line/polyline/polygon points,
@@ -58,6 +73,7 @@ Sans, sans-serif`, bold), `rotate(θ x y)` when rotated. Mathtext (`$…$`, scal
   padded by the stroke width, text boxes from the width estimate in the bundled font the label is drawn in (note 14) ×1.1 and −1 em/+0.3 em
   around the baseline), intersected with the original viewBox (what lay outside was never
   shown), so the placed size is the drawing's. Nothing drawn: unchanged.
-- **Tests:** real matplotlib 3.11 output (`fonttype` path and none) and ggplot2 via cairo
-  `svg()` in `src/io/svg/fixtures/`, plus an svglite 2.1 file transcribed in its exact format
+- **Tests:** real matplotlib 3.11 output (`fonttype` path and none, and `matplotlib-log.svg`:
+  log axes and mathtext labels, made by `scripts/svg-fixtures/matplotlib-log.py`) and ggplot2
+  via cairo `svg()` in `src/io/svg/fixtures/`, plus an svglite 2.1 file transcribed in its exact format
   (svglite could not be built here); `plotCleanup.test.ts` covers each step on its own too.
