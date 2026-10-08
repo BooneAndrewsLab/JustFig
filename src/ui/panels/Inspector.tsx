@@ -45,6 +45,7 @@ import { formatLength, fromUnit, toUnit } from '@/core/units';
 import { type AppState, currentPage, figure, selectedObjects, store } from '../state/store';
 import { download, safeName } from '../state/session';
 import { useAppState } from '../state/useAppState';
+import { resolveBindings, withKey } from '../keyBindings';
 import { ColorInput } from './ColorInput';
 import { PaletteSection } from './PaletteSection';
 import { PathKindsSection, ProceduralSection } from './ProceduralInspector';
@@ -132,10 +133,14 @@ function restyle(
   );
 }
 
-export function Inspector() {
+export function Inspector({ onArrangeGrid }: { onArrangeGrid: () => void }) {
   const s = useAppState();
   const sel = selectedObjects(s);
-  return sel.length === 0 ? <PageInspector s={s} /> : <SelectionInspector s={s} sel={sel} />;
+  return sel.length === 0 ? (
+    <PageInspector s={s} />
+  ) : (
+    <SelectionInspector s={s} sel={sel} onArrangeGrid={onArrangeGrid} />
+  );
 }
 
 function PageInspector({ s }: { s: AppState }) {
@@ -304,7 +309,15 @@ function PageInspector({ s }: { s: AppState }) {
   );
 }
 
-function SelectionInspector({ s, sel }: { s: AppState; sel: readonly Obj[] }) {
+function SelectionInspector({
+  s,
+  sel,
+  onArrangeGrid,
+}: {
+  s: AppState;
+  sel: readonly Obj[];
+  onArrangeGrid: () => void;
+}) {
   const fig = figure(s);
   const page = currentPage(s);
   const u = s.units;
@@ -449,6 +462,21 @@ function SelectionInspector({ s, sel }: { s: AppState; sel: readonly Obj[] }) {
                 {text}
               </button>
             ))}
+          </div>
+        )}
+        {sel.length > 1 && (
+          <div className="row">
+            <button
+              type="button"
+              title={withKey(
+                'Lay the selection out in rows and columns, each in a lettered panel',
+                'grid',
+                resolveBindings(s.keyBindings),
+              )}
+              onClick={onArrangeGrid}
+            >
+              Arrange in grid…
+            </button>
           </div>
         )}
         <div className="row" style={{ flexWrap: 'wrap' }} aria-label="Align">

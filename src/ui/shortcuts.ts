@@ -34,6 +34,8 @@ export interface ShortcutTargets {
   readonly openFile: () => void;
   readonly recent: () => void;
   readonly guide: () => void;
+  /** Arrange in grid…, for a selection. */
+  readonly grid: () => void;
 }
 
 const TOOL_ACTIONS: Readonly<Record<string, ToolId>> = {
@@ -134,6 +136,9 @@ export function onKeyDown(e: KeyboardEvent, open: ShortcutTargets): void {
     recent: open.recent,
     export: open.exportDialog,
     guide: open.guide,
+    grid: () => {
+      if (ids.length > 0) open.grid();
+    },
     fit: () => {
       fitPage(page, canvasSize());
     },

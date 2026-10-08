@@ -66,4 +66,18 @@ A panel is a framed area for one part of a multi-panel figure, with a letter in 
 - Labels are lettered **automatically** in reading order: rows from top to bottom, then left to right within a row. Rearrange the panels and the letters follow.
 - To use your own label, select the panel, switch off **Automatic label** in the Panel section and type into **Label**. You can also turn off **Show label** or **Show border**.
 
+## Arrange in grid
+
+To turn plots, micrographs and drawings already on the page into a multi-panel figure, select them and press **Arrange in grid…** in the Inspector (or Shift+G). The **Arrange in grid** dialog asks:
+
+- **Columns** and **Rows**: change one and the other follows, so every object has a cell. It starts with up to three in one row, then a near-square grid.
+- **Gutter**: the space between cells, in your units (3 mm to start).
+- **Horizontal** and **Vertical**: where an object sits in its cell when it is smaller than the cell (centred at the top to start).
+- **Fit to page width** (on to start): the columns share the page width equally, and each object is scaled, keeping its proportions, to its column's width. Set the page to your journal's column width first (Page size in the Figure section). Off, nothing is scaled: each column is as wide as its widest object and the grid starts where the selection was.
+- **Leave room for panel letters** (on to start): keeps a band above each object for its letter, so the letter does not sit on top of the plot.
+
+Press **Arrange** (or Enter). Each object goes into its own panel, the panels are lettered A, B, C… in reading order, and the whole change is one undo step. The order follows where the objects are on the page now, row by row from the top, left to right, so drag them roughly into place first if you want a particular order. A panel you selected becomes a cell itself, its contents moving (and scaling) with it. Locked objects are left where they are.
+
+Lines, paths and arrows scale like the resize handles do (their points move, line widths stay); text keeps its size and re-wraps to the new width.
+
 Set the look of all panel labels in the Inspector's Figure section (click an empty part of the page to see it): **Panel labels** chooses the style (A, a, (a), (A) or a)), **Size (pt)** the size and **Bold** the weight.

@@ -48,7 +48,7 @@ const pageOf = (doc: Doc, pageId: Id): Page => {
   return p;
 };
 
-function withPage(f: Figure, pageId: Id, fn: (p: Page) => Page): Figure {
+export function withPage(f: Figure, pageId: Id, fn: (p: Page) => Page): Figure {
   const p = pageOf(f.doc, pageId);
   const next = fn(p);
   if (next === p) return f;
@@ -211,7 +211,7 @@ function transformEach(pageId: Id, ids: readonly Id[], label: string, fn: (o: Ob
 }
 
 /** Scales one object's bounds `from` onto `to`: the per-object step of every resize. */
-function resizeOne(o: Obj, from: Box, to: Box): Obj {
+export function resizeOne(o: Obj, from: Box, to: Box): Obj {
   const sx = from.w === 0 ? 1 : to.w / from.w;
   const sy = from.h === 0 ? 1 : to.h / from.h;
   const moved = scaleObj(o, { x: from.x, y: from.y }, sx, sy);

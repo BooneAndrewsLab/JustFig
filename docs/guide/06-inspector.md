@@ -34,6 +34,7 @@ The first section is named after the object (for example "Rectangle", or "3 obje
 - **Rotate °** (one object, not a group or panel) and **Opacity %**.
 - **Flip H**, **Flip V**, **Front** and **Back**.
 - With two or more objects: **Same width**, **Same height** and **Same size**. They give each selected object the width and/or height of the first object you selected (W and H above still resize the selection as one box). Same width and Same height keep each object's proportions; Same size stretches each to exactly the first object's size. Each object keeps its top-left corner, locked objects are skipped, and it is one undo step. To make five micrographs 40 mm wide, set the first to 40 mm and press Same width.
+- With two or more objects: **Arrange in grid…** (Shift+G) lays them out in rows and columns, each in its own lettered panel. See [Arranging](05-arranging.md).
 - The align and distribute buttons, and **Group** and **Ungroup**. See [Arranging](05-arranging.md).
 
 ### Style

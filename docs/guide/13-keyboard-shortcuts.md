@@ -21,6 +21,7 @@ Every shortcut in JustFig is in this table. **Ctrl** means **⌘** on a Mac. Sho
 | Bring forward                                                    | `Shift+]`      | One step.                       |
 | Send to back                                                     | `[`            |                                 |
 | Send backward                                                    | `Shift+[`      | One step.                       |
+| Arrange the selection in a grid                                  | `Shift+G`      | Opens Arrange in grid.          |
 | Open a figure file                                               | `Ctrl+O`       |                                 |
 | Recent figures                                                   | `Shift+O`      |                                 |
 | Export                                                           | `Ctrl+E`       | Opens the Export figure dialog. |

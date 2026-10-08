@@ -10,6 +10,7 @@ import { AttributionDialog } from './dialogs/AttributionDialog';
 import { CreditsDialog } from './dialogs/CreditsDialog';
 import { ExportDialog } from './dialogs/ExportDialog';
 import { GalleryDialog } from './dialogs/GalleryDialog';
+import { GridDialog } from './dialogs/GridDialog';
 import { GuideDialog } from './dialogs/GuideDialog';
 import { RecentDialog } from './dialogs/RecentDialog';
 import { KeyBindingsDialog } from './dialogs/KeyBindingsDialog';
@@ -24,7 +25,7 @@ import { currentPage, figure, selectedObjects, store } from './state/store';
 import { useAppState } from './state/useAppState';
 
 type DialogId =
-  'recent' | 'export' | 'attribution' | 'credits' | 'gallery' | 'keys' | 'guide' | null;
+  'recent' | 'export' | 'attribution' | 'credits' | 'gallery' | 'keys' | 'guide' | 'grid' | null;
 
 /** The one selected object's name, for the status line a screen reader announces. */
 function selectionName(s: ReturnType<typeof useAppState>): string {
@@ -55,6 +56,9 @@ export function App() {
         },
         guide: () => {
           setDialog('guide');
+        },
+        grid: () => {
+          setDialog('grid');
         },
       });
     };
@@ -291,7 +295,11 @@ export function App() {
       <ToolPalette />
       <Canvas />
       <aside className="side" aria-label="Inspector">
-        <Inspector />
+        <Inspector
+          onArrangeGrid={() => {
+            setDialog('grid');
+          }}
+        />
         <LayersPanel />
       </aside>
       <footer className="status" aria-live="polite">
@@ -338,6 +346,13 @@ export function App() {
       )}
       {dialog === 'guide' && (
         <GuideDialog
+          onClose={() => {
+            setDialog(null);
+          }}
+        />
+      )}
+      {dialog === 'grid' && (
+        <GridDialog
           onClose={() => {
             setDialog(null);
           }}

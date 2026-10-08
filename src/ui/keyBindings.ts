@@ -60,6 +60,12 @@ export const KEY_ACTIONS: readonly KeyAction[] = [
   { id: 'forward', label: 'Bring forward', group: 'Arrange', defaultBinding: 'shift+BracketRight' },
   { id: 'back', label: 'Send to back', group: 'Arrange', defaultBinding: 'BracketLeft' },
   { id: 'backward', label: 'Send backward', group: 'Arrange', defaultBinding: 'shift+BracketLeft' },
+  {
+    id: 'grid',
+    label: 'Arrange the selection in a grid',
+    group: 'Arrange',
+    defaultBinding: 'shift+KeyG',
+  },
   { id: 'open', label: 'Open a figure file', group: 'File', defaultBinding: 'ctrl+KeyO' },
   { id: 'recent', label: 'Recent figures', group: 'File', defaultBinding: 'shift+KeyO' },
   { id: 'export', label: 'Export', group: 'File', defaultBinding: 'ctrl+KeyE' },

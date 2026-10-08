@@ -45,6 +45,12 @@ test('the dialogs and the Inspector of each kind of selection have none either',
   }
   await page.getByRole('button', { name: 'Add Well plate' }).click();
   problems.push(...(await audit(page, '.side')).map((p) => `well plate: ${p}`));
+  // Arrange in grid needs a selection: the well plate just added is one.
+  await page.keyboard.press('Shift+G');
+  await expect(page.getByRole('dialog', { name: 'Arrange in grid' })).toBeVisible();
+  problems.push(...(await audit(page, '.dialog')).map((p) => `Arrange in grid: ${p}`));
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(problems).toEqual([]);
 });
 

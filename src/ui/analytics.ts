@@ -69,6 +69,7 @@ export const EVENTS = {
   /** The guide page id as the name. */
   guide: ['open'],
   embedded: ['import'],
+  arrange: ['grid'],
 } as const satisfies Readonly<Record<string, readonly string[]>>;
 
 export type EventCategory = keyof typeof EVENTS;

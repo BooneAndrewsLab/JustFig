@@ -37,17 +37,30 @@ export function formatLabel(i: number, format: PanelLabelFormat): string {
   }
 }
 
+/**
+ * Items in reading order: rows top to bottom, then left to right. An item
+ * joins the current row when its top is within `tolerance(first)` of the
+ * row's first (topmost) item's top.
+ */
+export function inReadingOrder<T>(
+  items: readonly T[],
+  box: (t: T) => { readonly x: number; readonly y: number; readonly h: number },
+  tolerance: (first: T) => number = () => ROW_TOLERANCE,
+): T[] {
+  const sorted = [...items].sort((a, b) => box(a).y - box(b).y || box(a).x - box(b).x);
+  const rows: T[][] = [];
+  for (const t of sorted) {
+    const row = rows[rows.length - 1];
+    const first = row?.[0];
+    if (row && first !== undefined && box(t).y - box(first).y <= tolerance(first)) row.push(t);
+    else rows.push([t]);
+  }
+  return rows.flatMap((r) => r.sort((a, b) => box(a).x - box(b).x));
+}
+
 /** Panels in reading order. */
 export function readingOrder(panels: readonly Panel[]): Panel[] {
-  const sorted = [...panels].sort((a, b) => a.frame.y - b.frame.y || a.frame.x - b.frame.x);
-  const rows: Panel[][] = [];
-  for (const p of sorted) {
-    const row = rows[rows.length - 1];
-    const top = row?.[0]?.frame.y;
-    if (row && top !== undefined && p.frame.y - top <= ROW_TOLERANCE) row.push(p);
-    else rows.push([p]);
-  }
-  return rows.flatMap((r) => r.sort((a, b) => a.frame.x - b.frame.x));
+  return inReadingOrder(panels, (p) => p.frame);
 }
 
 /** Label of every panel on the page: auto ones lettered, fixed ones as written. */

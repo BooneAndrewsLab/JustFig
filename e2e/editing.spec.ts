@@ -2,7 +2,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { type Page, expect, test } from '@playwright/test';
 
-import { iconTile, pageBox } from './helpers';
+import { exportVia, iconTile, pageBox } from './helpers';
 
 const PAGE_W = (183 / 25.4) * 72;
 const OUT = process.env['E2E_OUT'];
@@ -51,6 +51,48 @@ test('Same width gives each selected object the first width in one step', async 
   expect(await field(page, 'W').inputValue()).toBe(w);
   await page.keyboard.press('Control+z');
   expect(await field(page, 'W').inputValue()).toBe(w0);
+});
+
+test('Arrange in grid from the keyboard: lettered panels in reading order, one undo step', async ({
+  page,
+}) => {
+  // Drawn out of order: the second rect is top-left, the first top-right, the third below.
+  await rect(page, 200, 30, 60, 40);
+  await rect(page, 20, 20, 80, 50);
+  await rect(page, 60, 150, 50, 50);
+  await page.keyboard.press('Control+a');
+  await expect(page.locator('.status')).toContainText('3 selected');
+  await expect(page.getByRole('button', { name: 'Arrange in grid…' })).toBeVisible();
+  await page.keyboard.press('Shift+G');
+  const dialog = page.getByRole('dialog', { name: 'Arrange in grid' });
+  await expect(dialog).toBeVisible();
+  const cols = dialog.getByLabel('Columns');
+  await expect(cols).toBeFocused();
+  await expect(cols).toHaveValue('3');
+  await page.keyboard.press('ArrowDown');
+  await expect(cols).toHaveValue('2');
+  await expect(dialog.getByLabel('Rows')).toHaveValue('2');
+  await page.keyboard.press('Enter');
+  await expect(dialog).toBeHidden();
+  const panels = page.locator('.layers .item .name', { hasText: 'Panel' });
+  await expect(panels).toHaveCount(3);
+  await expect(page.locator('.status')).toContainText('3 selected');
+  // Fit to page width (2 pt in from each edge), 3 mm gutter on a 183 mm page: columns 89.3 mm
+  // wide, the first at 0.7 mm, the second at 93 mm.
+  // Layers list the top-most first; each panel took its rect's place in the stack.
+  const xOf = async (n: number) => {
+    await panels.nth(n).click();
+    return Number(await field(page, 'X').inputValue());
+  };
+  expect(await xOf(1)).toBeCloseTo(0.7, 1); // the top-left rect
+  expect(await xOf(2)).toBeCloseTo(93, 1); // the top-right rect
+  expect(await xOf(0)).toBeCloseTo(0.7, 1); // the one below
+  expect(Number(await field(page, 'W').inputValue())).toBeCloseTo(89.3, 1);
+  const svg = readFileSync(await (await exportVia(page, 'SVG')).path(), 'utf8');
+  for (const l of ['A', 'B', 'C']) expect(svg).toMatch(new RegExp(`>${l}</t`));
+  await page.keyboard.press('Control+z');
+  await expect(panels).toHaveCount(0);
+  await expect(page.locator('.layers .item .name', { hasText: 'Rect' })).toHaveCount(3);
 });
 
 test('resize and rotate handles, with one undo step per drag', async ({ page }) => {
