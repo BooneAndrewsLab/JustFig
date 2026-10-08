@@ -3,7 +3,7 @@
  * page and figure when nothing is selected. Every change is a named edit;
  * typing in one field merges into one undo step (coalesce per field).
  */
-import type { ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 
 import {
   alignObjects,
@@ -22,6 +22,17 @@ import {
   updateObjects,
   updatePage,
 } from '@/core/edits/edits';
+import {
+  type LineTarget,
+  type StyleChange,
+  type TextTarget,
+  currentStyle,
+  matchStyles,
+  plotOf,
+  setStyles,
+  styleSample,
+  styleTargets,
+} from '@/core/edits/style';
 import { needsModifiedNote } from '@/core/attribution/attribution';
 import { center } from '@/core/geometry/matrix';
 import { boundsOf, normAngle, objBounds, rebase, rotateObj } from '@/core/geometry/transform';
@@ -622,6 +633,8 @@ function SelectionInspector({
         </Section>
       )}
 
+      <TextAndLinesSection s={s} sel={sel} />
+
       {one?.type === 'arrow' && <ArrowSection s={s} arrow={one} />}
       {one?.type === 'text' && <TextSection s={s} text={one} />}
       {one?.type === 'icon' && <IconSection s={s} icon={one} />}
@@ -631,6 +644,146 @@ function SelectionInspector({
       {one?.type === 'procedural' && <ProceduralSection s={s} obj={one} />}
       {one?.type === 'path' && <PathKindsSection s={s} path={one} />}
     </>
+  );
+}
+
+const TEXT_TARGETS: readonly (readonly [TextTarget, string])[] = [
+  ['all', 'All text'],
+  ['tick', 'Plot tick labels'],
+  ['label', 'Other plot text (titles, legends)'],
+];
+const LINE_TARGETS: readonly (readonly [LineTarget, string])[] = [
+  ['all', 'All lines'],
+  ['tick', 'Plot ticks'],
+  ['axis', 'Plot axes and grid lines'],
+  ['data', 'Other plot lines (data, legends)'],
+];
+
+/**
+ * Fonts, text sizes and line widths across the selection, reaching inside
+ * imported plots (note 16): shown for an imported plot or several objects.
+ */
+function TextAndLinesSection({ s, sel }: { s: AppState; sel: readonly Obj[] }) {
+  const [textTarget, setTextTarget] = useState<TextTarget>('all');
+  const [lineTarget, setLineTarget] = useState<LineTarget>('all');
+  const fig = figure(s);
+  const page = currentPage(s);
+  const targets = styleTargets(sel);
+  const hasPlot = targets.some((o) => plotOf(o, fig.assets) !== null);
+  const tt = hasPlot ? textTarget : 'all';
+  const lt = hasPlot ? lineTarget : 'all';
+  const cur = currentStyle(sel, fig.assets, tt, lt);
+  const anyText = hasPlot || targets.some((o) => o.type === 'text');
+  const anyLine = hasPlot || targets.some((o) => 'style' in o);
+  if (!(hasPlot || (sel.length > 1 && (anyText || anyLine)))) return null;
+  const ref = sel[0];
+  const refSample = ref ? styleSample(ref, fig.assets) : null;
+  const canMatch =
+    sel.length > 1 &&
+    refSample !== null &&
+    (refSample.text !== undefined || refSample.line !== undefined);
+  const ids = sel.map((o) => o.id);
+  const apply = (change: StyleChange, field: string, label: string) => {
+    store.edit(setStyles(page.id, sel, { ...change, textTarget: tt, lineTarget: lt }, label), {
+      coalesce: key(`style-${field}-${tt}-${lt}`, ids),
+      keepSelection: true,
+    });
+  };
+  return (
+    <Section title="Text and lines">
+      {hasPlot && (
+        <div className="row">
+          <label htmlFor="style-text-target">Text</label>
+          <select
+            id="style-text-target"
+            value={tt}
+            onChange={(e) => {
+              setTextTarget(e.target.value as TextTarget);
+            }}
+          >
+            {TEXT_TARGETS.map(([v, text]) => (
+              <option key={v} value={v}>
+                {text}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      {cur.text && (
+        <div className="grid2">
+          <label>
+            Font
+            <select
+              aria-label="Font of the text"
+              value={cur.text.font}
+              onChange={(e) => {
+                apply({ font: e.target.value as FontId }, 'font', 'Font');
+              }}
+            >
+              {FONT_IDS.map((f) => (
+                <option key={f} value={f}>
+                  {cap(f)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Num
+            label="Text size (pt)"
+            value={cur.text.size}
+            min={1}
+            step={0.5}
+            onChange={(v) => {
+              if (v > 0) apply({ size: v }, 'size', 'Font size');
+            }}
+          />
+        </div>
+      )}
+      {hasPlot && (
+        <div className="row">
+          <label htmlFor="style-line-target">Lines</label>
+          <select
+            id="style-line-target"
+            value={lt}
+            onChange={(e) => {
+              setLineTarget(e.target.value as LineTarget);
+            }}
+          >
+            {LINE_TARGETS.map(([v, text]) => (
+              <option key={v} value={v}>
+                {text}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      {cur.line !== undefined && (
+        <div className="grid2">
+          <Num
+            label="Line width (pt)"
+            value={cur.line}
+            min={0}
+            step={0.25}
+            onChange={(v) => {
+              if (v > 0) apply({ lineWidth: v }, 'width', 'Line width');
+            }}
+          />
+        </div>
+      )}
+      {sel.length > 1 && (
+        <div className="row">
+          <button
+            type="button"
+            disabled={!canMatch}
+            title="Give every selected object the fonts, text sizes and line widths of the first selected object"
+            onClick={() => {
+              store.edit(matchStyles(page.id, sel), { keepSelection: true });
+            }}
+          >
+            Same text and lines
+          </button>
+        </div>
+      )}
+    </Section>
   );
 }
 

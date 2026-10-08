@@ -41,6 +41,17 @@ The first section is named after the object (for example "Rectangle", or "3 obje
 
 Shown for shapes, paths and arrows: **Fill**, **Stroke**, **Width (pt)**, **Dash** and **Corner (pt)** for rectangles. Every colour control is described in [Colours and palettes](09-colours.md).
 
+### Text and lines
+
+Shown for an imported plot (SVG or PDF), and when two or more objects with text or lines are selected. It sets fonts, text sizes and line widths across the whole selection at once, including the text and lines inside imported plots and inside selected panels and groups:
+
+- **Font** and **Text size (pt)** for the text: text objects and the labels inside plots.
+- **Line width (pt)** for the lines: shapes, paths, arrows and the lines inside plots.
+- With a plot selected, **Text** and **Lines** choose which parts of the plots change. Text: **All text**, **Plot tick labels** (the numbers or names at the ticks), or **Other plot text (titles, legends)**. Lines: **All lines**, **Plot ticks**, **Plot axes and grid lines**, or **Other plot lines (data, legends)**. When you pick a plot part, text objects and shapes are left alone.
+- **Same text and lines** (two or more objects) gives every selected object the fonts, text sizes and line widths of the first object you selected. Between plots it goes part by part: tick labels take the first plot's tick label size, axis titles its title size, ticks, axes and data lines their own widths. From a text object it copies the font and size; from a shape or arrow, the line width.
+
+Sizes are in points on the page, so "7 pt" means 7 pt whatever size the plot is placed at. To make every tick label in four plots 7 pt Arimo, select the four plots (or their panels), choose **Plot tick labels**, pick Arimo and type 7. Each change is one undo step and locked objects are skipped. A tick label keeps the side that faces its tick, so it stays lined up with it when it grows or shrinks. Only the selected plots change: a copy of the plot you did not select keeps its look. Resizing a plot afterwards still scales its text with it.
+
 ### Arrow
 
 **Start** and **End** heads, **Head size**, **Curve %**, and "attached to" lines with **Detach** buttons. See [Arrows](03-arrows.md).
