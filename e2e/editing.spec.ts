@@ -146,3 +146,14 @@ test('save, open, import an SVG, attribution, and autosave survive a reload', as
   await page.reload();
   await expect(page.locator('.layers .layer-head ~ ul .name')).toHaveCount(4);
 });
+
+test('copy, paste and duplicate', async ({ page }) => {
+  await rect(page, 30, 30, 40, 40);
+  await page.keyboard.press('Control+c');
+  await page.keyboard.press('Control+v');
+  await expect(page.locator('.layers .item .name', { hasText: 'Rect' })).toHaveCount(2);
+  await page.keyboard.press('Control+d');
+  await expect(page.locator('.layers .item .name', { hasText: 'Rect' })).toHaveCount(3);
+  await page.keyboard.press('Delete');
+  await expect(page.locator('.layers .item .name', { hasText: 'Rect' })).toHaveCount(2);
+});

@@ -39,6 +39,10 @@ src/
   ui/              App, canvas/ (viewport, tools, overlays), panels/, dialogs/, state/
 ```
 
+Phase 1 also has `ui/canvas/` (Canvas with the tools' pointer gestures, PageView, Rulers,
+TextEditor), `ui/panels/` (IconBrowser, ToolPalette, Inspector, LayersPanel, PagesBar),
+`ui/dialogs/` (Export, Attribution) and `ui/state/` (store, session actions, autosave).
+
 `procedural/` and `workers/` are Phase 3 and do not exist yet. Raster export runs on the main
 thread in Phase 1 (see note 03).
 
@@ -63,6 +67,28 @@ every export serialises the same tree with `nodeToSvgString`. Editor-only layers
 handles, guides, marquee, rulers) are drawn over the page and never exported. Hit-testing uses the
 DOM: each top-level object's group carries `data-id`, and thin strokes get a transparent wide
 hit stroke on screen only.
+
+## Editing
+
+- **Tools:** select (V), pan (H or Space), rectangle (R), ellipse (E), line (L), pen (P: click for
+  corners, drag for smooth nodes, Enter or double-click to finish, click the first node to
+  close), arrow (A), text (T) and panel (F). A drawing tool returns to select after one object.
+- **Selection:** a click selects the outermost non-panel object under the pointer, so a click in
+  a panel selects the object on it and a click on the panel's empty area selects the panel.
+  Shift adds to or removes from the selection, and a marquee selects what it fully encloses.
+- **Handles:** the axis-aligned bounds of the selection carry eight resize handles and a rotate
+  handle (Shift snaps to 15°). Icons and images always keep their aspect; Shift keeps it for
+  everything. A rotated object is resized along the selection's axes (note 02).
+- **Snapping:** edges and centres snap to other objects' edges and centres and to the page,
+  within 6 screen pixels. The canvas shows guides while you drag. It is a linear scan; rbush comes
+  in when a figure gets large.
+- **Text** (the plan's riskiest UI): a plain `<textarea>` in an overlay _under_ the text object,
+  with the canvas showing the live rich result above it. `core/text/rich.ts` maps every edit back
+  onto runs (one style per character, common prefix and suffix kept). Ctrl+B, Ctrl+I, Ctrl+=
+  (subscript) and Ctrl+Shift+= (superscript) apply to the selected range, or to what is typed
+  next. Ω opens a picker of Greek letters and symbols. The whole edit session is one undo step.
+- **Clipboard:** copy writes a fragment (note 02) as text/plain, keeping an in-app copy for
+  browsers that block reading. Paste also accepts image files.
 
 ## Branding rule
 
@@ -96,6 +122,12 @@ or masks. Every painted element carries `data-slot="<slotId>"` and, optionally,
 `data-tone="<±lightness>"`. Recolouring replaces every fill and stroke on that element that is not
 `none` with the slot colour, shifted in OKLCH lightness by the tone. An element whose fill and
 stroke belong to different slots must be split by the pipeline. `SlotDef = { id, label, default }`.
+
+The stub library (`npm run icons:stub`, `scripts/icons/make-stub-library.ts`) holds 39 house
+icons drawn to the house style in a 100-unit viewBox, plus 15 Health Icons (CC0, vendored at a
+pinned commit in `scripts/icons/healthicons/`). The Health Icons keep their 48-unit viewBox:
+the renderer maps any viewBox, and normalising to 100 is the Phase 2 pipeline's job. Each
+painted element gets `data-slot="s1"`.
 
 Thumbnails in Phase 1 are the SVGs themselves. Phase 2 adds sprite sheets and a MiniSearch index
 behind the same `IconLibrary` interface (`search(query)`). Phase 1's search is a substring filter

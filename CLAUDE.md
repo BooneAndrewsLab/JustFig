@@ -17,7 +17,10 @@ account, figures never leave the computer. Design notes: `docs/design/`.
 
 - **Node** is not on PATH: prefix with `PATH=/home/matej/Programs/miniconda3/envs/node/bin:$PATH`.
 - `npm run check` (typecheck, lint, format, unit tests) gates every commit.
-  `npm run e2e` runs Playwright on chromium, firefox and webkit.
+  `npm run e2e` runs Playwright on chromium, firefox and webkit. WebKit can't launch on this
+  machine (missing libicu 74): run `npx playwright test --project=chromium --project=firefox`
+  locally and let CI cover WebKit. `UPDATE_GOLDEN=1` rewrites goldens (Chromium for e2e).
+- The stub icon library in `public/lib/stub/` is generated: `npm run icons:stub`.
 - **Branding:** the display name lives only in `src/brand.ts`
   (`src/brand.test.ts` enforces it). The format id `justfig` in saved files
   and the IndexedDB name are permanent and separate.

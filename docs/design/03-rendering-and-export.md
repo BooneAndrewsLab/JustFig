@@ -97,6 +97,26 @@ group of 384 circles plus row and column labels.
   0.5% of pixels differing, since engines anti-alias differently). Export a PDF from the UI and
   check it with pdf-lib. Export a TIFF and decode it. The editor smoke test builds a 2×2 figure.
 
+## TIFF writer finding
+
+UTIF (the test oracle, and the reader behind tools such as Photopea) treats a strip whose
+compressed length _equals_ its raw length as uncompressed. With small random images this happens
+now and then, and the image decodes as garbage. libtiff (checked through Pillow,
+`scripts/oracle/check_tiff_roundtrip.py`) reads those strips correctly. The writer appends one
+zero byte after EOI in that case. LZW decoders ignore it, and the collision goes away.
+
+## Results so far (Phase 1)
+
+- `npm run check`: typecheck, lint, format, unit tests (golden SVGs, export subset, svg2pdf
+  spike, PNG and TIFF, codec properties, edits, rich text, snapping, stub library).
+- `npm run e2e` in Chromium and Firefox: the 2×2 figure built in the UI and exported to all four
+  formats; the torture suite (PNG within 0.5% of the Chromium golden, where Firefox scores 0.000%;
+  PDF checked with pdf-lib; the pdf.js render of the PDF within 2% of the PNG, scoring about
+  0.16%; TIFF decoded); and editing (handles, snapping, grouping, pen, clipboard, files, import,
+  attribution, autosave).
+- WebKit has not been run here: its build needs `libicudata.so.74`, which this machine (Gentoo)
+  lacks. CI installs the dependencies with `playwright install --with-deps`.
+
 ## Spike findings (svg2pdf, week 1)
 
 These come from `src/export/pdf.spike.test.ts`, which runs the torture fixture through jsPDF 4 and

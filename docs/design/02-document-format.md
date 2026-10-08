@@ -32,7 +32,7 @@ user.
 interface JfigFile { format: 'justfig'; schemaVersion: number; app: { name; version };
                      document: Doc; assets: Record<AssetHash, Asset> }
 interface Doc   { id; title; palette: Swatch[]; textStyles: TextStyle[];
-                  panelLabelStyle: PanelLabelStyle; pages: Page[] }
+                  panelLabelStyle: PanelLabelStyle; pages: Page[]; creditFooter: boolean }
 interface Page  { id; name; size: { w; h; preset? }; background: Paint | null; layers: Layer[] }
 interface Layer { id; name; visible; locked; children: Obj[] }        // bottom -> top
 
@@ -47,7 +47,7 @@ Icon   { type: 'icon'; asset; slots: Record<SlotId, Paint>; lockAspect: true }
 Image  { type: 'image'; asset; crop? }      // asset is an 'image' or an 'svgImport'
 Procedural { type: 'procedural'; kind; kindVersion; params; path?; slots; snapshot? }
 Group  { type: 'group'; children }
-Panel  { type: 'panel'; label: string | 'auto'; showLabel; showBorder; children }
+Panel  { type: 'panel'; label: string; autoLabel: boolean; showLabel; showBorder; children }
 Embedded { type: 'embedded'; source: { app; format; payload }; snapshot }
 
 PathNode = { x; y; in?: Vec2; out?: Vec2 }  // cubic handles, frame-local; absent = corner
@@ -72,10 +72,17 @@ Notes on specific fields:
   +0.15 em (sub) of the parent size. Both are computed by us, never by `baseline-shift`.
 - **Icon `slots`** stores only overrides. Defaults come from the asset's `SlotDef`s. An icon asset
   with `recolor: 'whole'` has one slot, `all`, that tints the entire icon.
+- **Panels** are written as `label` plus `autoLabel`, not the plan's `label: string | 'auto'`,
+  so that a hand-written label of "auto" is not mistaken for the flag. An `autoLabel` panel
+  shows the letter from reading order. Objects drawn, dropped or moved so that their centre lands
+  on a panel become its children, and leave it when moved off. Panels never nest.
+- **`creditFooter`** (default `true`, as the user decided) is the figure's default for the
+  export credit line. Both the Attribution dialog and the Export dialog change it.
 - **Paint `swatch`** refers to `doc.palette`. A swatch that no longer exists renders as black, and
   validation reports it.
 - **Asset hashes** are `h` plus 26 hex digits: two 53-bit cyrb53 hashes (seeds 0 and 1) of the
-  asset's canonical JSON. That is synchronous (unlike `crypto.subtle`) and collision-safe at the
+  asset's canonical JSON, taken when the asset is created. A user credit added later to an
+  imported image changes the asset in place under the same key. That is synchronous (unlike `crypto.subtle`) and collision-safe at the
   scale of one figure. Placing the same icon twice stores one asset. Unused assets are dropped on
   save.
 - **Attribution is derived**, never stored: `core/attribution` reads the `meta` of every asset
