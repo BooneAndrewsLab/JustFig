@@ -40,7 +40,7 @@ export function invert(m: Mat): Mat {
   return [d / det, -b / det, -c / det, a / det, (c * f - d * e) / det, (b * e - a * f) / det];
 }
 
-export const center = (f: Frame): Vec2 => ({ x: f.x + f.w / 2, y: f.y + f.h / 2 });
+export const center = (f: Box): Vec2 => ({ x: f.x + f.w / 2, y: f.y + f.h / 2 });
 
 /** Frame-local (0..w, 0..h) to page coordinates. */
 export function frameMatrix(f: Frame): Mat {

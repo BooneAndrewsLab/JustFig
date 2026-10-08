@@ -71,5 +71,10 @@ export default defineConfig(
       'no-console': ['warn', { allow: ['warn', 'error'] }],
     },
   },
+  {
+    // Tests index into fixtures they just built; `!` there is clearer than guards.
+    files: ['src/**/*.test.{ts,tsx}'],
+    rules: { '@typescript-eslint/no-non-null-assertion': 'off' },
+  },
   prettier,
 );
