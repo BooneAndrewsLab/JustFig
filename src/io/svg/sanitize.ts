@@ -22,7 +22,7 @@ import { type SvgNode, el, nodeToSvgString, walkNodes } from '@/render/svgNode';
 import { parseXml } from '@/render/xml';
 
 import { markGlyphRuns, rebuildGlyphRuns } from './glyphText';
-import { cleanupPlot } from './plotCleanup';
+import { ADVANCE_ATTR, cleanupPlot } from './plotCleanup';
 
 export interface SanitizedSvg {
   /** `<svg viewBox>` root with only allowed content. */
@@ -371,6 +371,10 @@ export function sanitizeSvg(text: string, opts: SanitizeOptions = {}): Sanitized
       const v = n.attrs[k];
       if (v !== undefined) attrs[k] = String(v);
     }
+    // The source's run width, for plot cleanup only (which drops it again).
+    const adv = n.attrs[ADVANCE_ATTR];
+    if (opts.plot === true && tag === 'text' && adv !== undefined && Number.isFinite(Number(adv)))
+      attrs[ADVANCE_ATTR] = String(adv);
     const children: (SvgNode | string)[] = [];
     for (const c of n.children) {
       if (typeof c === 'string') {

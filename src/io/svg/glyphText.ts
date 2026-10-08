@@ -16,6 +16,7 @@
 import { type SvgNode, el } from '@/render/svgNode';
 
 import { angleOf, apply, fmt, parseTransform } from './matrix';
+import { ADVANCE_ATTR, approxTextWidth } from './plotCleanup';
 
 export const GLYPH_TEXT_ATTR = 'data-glyph-text';
 
@@ -116,6 +117,12 @@ function rebuild(g: SvgNode, label: string, ids: ReadonlyMap<string, SvgNode>): 
   const [x, y] = apply(m, xs[0] ?? 0, 0);
   const angle = angleOf(m);
   const f = fontFromPsName(font);
+  // Glyph positions are exact; only the last glyph's own advance is estimated.
+  const lastX = xs[xs.length - 1] ?? 0;
+  const lastChar = Array.from(label.trimEnd()).pop() ?? '';
+  const advance =
+    (lastX - (xs[0] ?? 0)) / FONT_SCALE +
+    approxTextWidth(lastChar, 1, f.family, f.weight !== undefined);
   const attrs: Record<string, string | number | undefined> = {};
   for (const [k, v] of Object.entries(g.attrs))
     if (k !== 'transform' && k !== GLYPH_TEXT_ATTR) attrs[k] = v;
@@ -129,6 +136,7 @@ function rebuild(g: SvgNode, label: string, ids: ReadonlyMap<string, SvgNode>): 
       'font-size': fmt(s * FONT_SCALE),
       ...(f.weight ? { 'font-weight': f.weight } : {}),
       ...(f.style ? { 'font-style': f.style } : {}),
+      [ADVANCE_ATTR]: fmt(advance),
       ...(Math.abs(angle) > 1e-6 ? { transform: `rotate(${fmt(angle)} ${fmt(x)} ${fmt(y)})` } : {}),
     },
     [label],

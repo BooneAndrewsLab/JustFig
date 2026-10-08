@@ -29,7 +29,7 @@ layout like every other text (note 03).
   with Arial/Helvetica, Times and Courier, so those plots keep their exact label widths.
   DejaVu Sans (matplotlib) and Verdana are about 11 % wider than Arimo, so their labels get
   shorter; the alternative (scaling glyphs or letter-spacing to the source width) would distort
-  the font, and the source width is only known for PDF runs anyway.
+  the font, and the source width is only known at import (note 15) and not stored.
 - **Layout** of one `<text>`: characters in document order through nested `<tspan>`s, with
   whitespace collapsed as browsers do (newlines and tabs are spaces, runs of spaces become
   one, leading and trailing spaces go) unless `xml:space="preserve"`. A chunk starts at the
@@ -37,10 +37,9 @@ layout like every other text (note 03).
   list covers it, as in SVG); characters advance by opentype.js advance widths, kerning off; each
   chunk is shifted by its own `text-anchor` and its measured width. Consecutive characters with
   the same font, size and tspan paint form one segment. The anchor point is kept, so a label
-  the plot centred stays centred and a start-anchored one keeps its left end (matplotlib's
-  path-glyph SVGs and all PDFs write labels start-anchored, so their centred labels drift left
-  by half the width difference; inferring their alignment is left to issue 11's restyling,
-  where it matters more).
+  the plot centred stays centred and a start-anchored one keeps its left end. matplotlib's
+  path-glyph SVGs and all PDFs write every label start-anchored; import infers the anchor the
+  plot meant (note 15), so their centred and right-aligned labels hold under the narrower font.
 - **Output** is the same shape as `textNodes` writes for our own text, so both modes come from
   one layout and match. Text mode: `<text xml:space="preserve">` keeping the original's
   `transform` and paints, with one `<tspan>` per segment carrying explicit `x`, `y`, the bundled

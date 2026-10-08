@@ -65,10 +65,16 @@ describe('matplotlib', () => {
       'Growth',
       'Wild type',
     ]);
+    // Centred on the axes again (note 15): exactly where fonttype 'none' puts it.
     const time = t[4]?.attrs;
-    expect(time).toMatchObject({ x: '107.986', y: '159.598', 'font-size': '10' });
+    expect(time).toMatchObject({
+      x: '128.882',
+      y: '159.598',
+      'font-size': '10',
+      'text-anchor': 'middle',
+    });
     expect(String(time?.['font-family'])).toMatch(/^DejaVu Sans/);
-    expect(t[9]?.attrs['transform']).toBe('rotate(-90 18.398 108.72)');
+    expect(t[9]?.attrs['transform']).toBe('rotate(-90 18.398 78.459)');
     expect(t[10]?.attrs['font-size']).toBe('12');
     expectSubset(s.root);
   });
@@ -239,6 +245,114 @@ describe('text merging', () => {
     expect(approxTextWidth('Dose', 10)).toBeCloseTo(23.34, 2);
     expect(approxTextWidth('Dose', 10, 'DejaVu Sans')).toBeGreaterThan(25);
     expect(approxTextWidth('abc', 10, 'Courier New')).toBeCloseTo(18, 5);
+  });
+});
+
+const anchorOf = (n: SvgNode | undefined): string => String(n?.attrs['text-anchor'] ?? 'start');
+const xOf = (n: SvgNode | undefined): number => Number(n?.attrs['x']);
+/** A label as matplotlib's path glyphs and the PDF importer leave it: start-anchored, source width known. */
+const lbl = (x: number, y: number, s: string, adv?: number, extra = ''): string =>
+  `<text x="${x}" y="${y}" font-size="10" font-family="Arial"${adv === undefined ? '' : ` data-advance="${adv}"`} ${extra}>${s}</text>`;
+
+describe('label alignment', () => {
+  it('matplotlib path glyphs get the anchors and positions fonttype none writes', () => {
+    const paths = texts(plot(fixture('matplotlib-paths')).root);
+    const none = texts(plot(fixture('matplotlib-text')).root);
+    expect(paths.map(anchorOf)).toEqual(none.map(anchorOf));
+    expect(paths.map(anchorOf)).toEqual([
+      ...Array<string>(5).fill('middle'),
+      ...Array<string>(4).fill('end'),
+      'middle',
+      'middle',
+      'start',
+    ]);
+    // Within the last glyph's estimated advance (y tick labels) or exact.
+    for (const [i, n] of paths.entries()) expect(Math.abs(xOf(n) - xOf(none[i]))).toBeLessThan(0.2);
+  });
+
+  it('centres a label under a tick on the tick, and right-aligns one ending at a tick', () => {
+    const s = plot(
+      svg(
+        '<path d="M50 60V64M30 40H26" stroke="#000"/>' +
+          lbl(47, 76, '10', 0.6) + // centre 50
+          lbl(14, 43, '0.5', 0.9), // ends at 23, tick starts at 26
+      ),
+    );
+    const [x, y] = texts(s.root);
+    expect([anchorOf(x), xOf(x)]).toEqual(['middle', 50]);
+    expect([anchorOf(y), xOf(y)]).toEqual(['end', 23]);
+    expectSubset(s.root);
+  });
+
+  it('centres axis titles on a spine, rotated ones included', () => {
+    const s = plot(
+      svg(
+        '<path d="M40 10V80H190" fill="none" stroke="#000"/>' +
+          lbl(95, 98, 'Time', 3) + // centre 110, spine 40–190 → 115: off by 0.5 em
+          lbl(100, 98, 'Time', 3) +
+          lbl(20, 60, 'Signal', 2, 'transform="rotate(-90 20 60)"'), // centre y 50, spine 10–80 → 45
+        '0 0 200 120',
+      ),
+    );
+    const [off, on, rotated] = texts(s.root);
+    expect(anchorOf(off)).toBe('start');
+    expect([anchorOf(on), xOf(on)]).toEqual(['middle', 115]);
+    expect(anchorOf(rotated)).toBe('start');
+    const s2 = plot(
+      svg(
+        '<path d="M40 10V80H190" fill="none" stroke="#000"/>' +
+          lbl(20, 55, 'Signal', 2, 'transform="rotate(-90 20 55)"'),
+        '0 0 200 120',
+      ),
+    );
+    const r = texts(s2.root)[0];
+    expect(anchorOf(r)).toBe('middle');
+    expect(r?.attrs).toMatchObject({ x: '20', y: '45', transform: 'rotate(-90 20 45)' });
+  });
+
+  it('keeps legend labels at start: a handle before them, or a left-aligned column', () => {
+    // Line handle before the label, frame edge just after it.
+    const handle = plot(
+      svg('<path d="M10 37H30M80 20V70" stroke="#000"/>' + lbl(38, 40, 'Wild type', 4)),
+    );
+    expect(anchorOf(texts(handle.root)[0])).toBe('start');
+    // Marker handles leave no line before them; the column gives it away.
+    const column = plot(
+      svg(
+        '<circle cx="25" cy="37" r="3"/><circle cx="25" cy="54" r="3"/>' +
+          '<path d="M80 20V70" stroke="#000"/>' +
+          lbl(40, 40, 'a', 0.6) +
+          lbl(40, 57, 'mutant', 3.5), // ends at 75, frame at 80
+      ),
+    );
+    expect(texts(column.root).map(anchorOf)).toEqual(['start', 'start']);
+  });
+
+  it('keeps start when unsure: nothing nearby, both centre and end, or an unusual angle', () => {
+    const s = plot(
+      svg(
+        lbl(10, 20, 'alone', 2.5) +
+          // Centred under a tick and ending at another line at its height.
+          '<path d="M60 50V54M80 60V70" stroke="#000"/>' +
+          lbl(40, 66, 'both', 2) +
+          '<path d="M150 50V54" stroke="#000"/>' +
+          lbl(140, 66, 'tilted', 2, 'transform="rotate(-45 140 66)"'),
+      ),
+    );
+    expect(texts(s.root).map(anchorOf)).toEqual(['start', 'start', 'start']);
+  });
+
+  it('estimates the width when the source did not give it, with more tolerance', () => {
+    const w = approxTextWidth('100', 10, 'Arial');
+    const s = plot(svg('<path d="M50 60V64" stroke="#000"/>' + lbl(50 - w / 2 + 0.5, 76, '100')));
+    expect([anchorOf(texts(s.root)[0]), xOf(texts(s.root)[0])]).toEqual(['middle', 50]);
+  });
+
+  it('re-sanitises to itself and never stores the source width', () => {
+    const s = plot(svg('<path d="M50 60V64" stroke="#000"/>' + lbl(47, 76, '10', 0.6)));
+    const again = sanitizeSvg(nodeToSvgString(s.root));
+    expect(nodeToSvgString(again.root)).toBe(nodeToSvgString(s.root));
+    expect(nodeToSvgString(s.root)).not.toContain('data-advance');
   });
 });
 

@@ -38,6 +38,13 @@ import { bundledFont, isBold } from './plotFonts';
 
 export type ViewBox = readonly [number, number, number, number];
 
+/**
+ * The run's advance width in em of its font size, as the source laid it out,
+ * carried from the importer to plot cleanup (which infers label alignment
+ * from it, note 15) and dropped there: never stored.
+ */
+export const ADVANCE_ATTR = 'data-advance';
+
 /** Inherited presentation values in effect, starting from SVG's initial values. */
 type Inherited = Readonly<Record<string, string>>;
 
@@ -470,7 +477,7 @@ function piece(n: SvgNode, inh: Inherited): Piece | null {
     y,
     angle,
     text,
-    key: JSON.stringify([without(n.attrs, 'x', 'y', 'transform'), angle]),
+    key: JSON.stringify([without(n.attrs, 'x', 'y', 'transform', ADVANCE_ATTR), angle]),
   };
 }
 
@@ -488,9 +495,17 @@ function mergeTexts(n: SvgNode, inh: Inherited): SvgNode {
   let run: Piece[] = [];
   let runText = '';
   let end = 0;
+  /** The source's own end of the run (user units from its start), when every piece had one. */
+  let srcEnd: number | null = null;
+  let runFs = 16;
   const flush = (): void => {
     const first = run[0];
-    if (first) out.push(run.length === 1 ? first.node : el('text', first.node.attrs, [runText]));
+    if (first && run.length === 1) out.push(first.node);
+    else if (first) {
+      const attrs = without(first.node.attrs, ADVANCE_ATTR);
+      if (srcEnd !== null) attrs[ADVANCE_ATTR] = fmt(srcEnd / runFs);
+      out.push(el('text', attrs, [runText]));
+    }
     run = [];
   };
   for (const c of n.children) {
@@ -505,6 +520,7 @@ function mergeTexts(n: SvgNode, inh: Inherited): SvgNode {
     const fs = len(get(own, 'font-size')) ?? 16;
     const width = (s: string): number =>
       approxTextWidth(s, fs, get(own, 'font-family'), /bold|[6-9]00/.test(get(own, 'font-weight')));
+    const adv = len(p.node.attrs[ADVANCE_ATTR]);
     const first = run[0];
     if (first?.key === p.key) {
       const a = (first.angle * Math.PI) / 180;
@@ -518,6 +534,7 @@ function mergeTexts(n: SvgNode, inh: Inherited): SvgNode {
         runText += (gap > SPACE_GAP * fs && !spaced ? ' ' : '') + p.text;
         run.push(p);
         end = u + width(p.text);
+        srcEnd = srcEnd !== null && adv !== null ? u + adv * fs : null;
         continue;
       }
     }
@@ -525,9 +542,269 @@ function mergeTexts(n: SvgNode, inh: Inherited): SvgNode {
     run = [p];
     runText = p.text;
     end = width(p.text);
+    srcEnd = adv === null ? null : adv * fs;
+    runFs = fs;
   }
   flush();
   return el(n.tag, n.attrs, out);
+}
+
+// ---- 3b. Label alignment (note 15) ---------------------------------------
+
+/*
+ * matplotlib's path-glyph SVGs and every PDF write labels start-anchored at
+ * the left end of the run, so a label drawn in a narrower font (note 14) or
+ * restyled loses the centring or right alignment the plot gave it. Each
+ * plain start-anchored label at 0°/90°/180°/270° is set in its own frame
+ * (along the baseline from its start, and up across it, in em) against the
+ * straight axis-aligned lines and the shapes around it:
+ *
+ * - centred: a perpendicular line (a tick) ends within `NEAR` em above or
+ *   below the label with its axis at the label's centre, or a parallel
+ *   line at least 1.2× as long (a spine, an axis, a bar top, a bracket)
+ *   lies within `AXIS_GAP` em above or below with its midpoint there;
+ * - right-aligned: a line at the label's height (a tick, a gridline, a
+ *   spine) starts within `NEAR` em after its end;
+ * - kept start when something drawn at its height ends within `NEAR` em
+ *   before its start (a legend handle, a bar, a tick on its left), when both
+ *   or neither of the above hold, or when a label kept at start within 3 em
+ *   above or below starts where it does but ends elsewhere (a left-aligned
+ *   column, such as a legend whose handles are markers).
+ *
+ * "At the centre/end" allows `TOL` em with the source's exact width (PDF
+ * runs and matplotlib glyph positions carry it as `ADVANCE_ATTR`), plus 3 %
+ * of the width when only an estimate is known. A centred label is anchored
+ * on the line it centres on, a right-aligned one at its source end.
+ */
+const NEAR = 1.5;
+const AXIS_GAP = 6;
+const TOL = 0.1;
+/** The label's extent across its baseline, in em: descender to cap height. */
+const DESC = 0.25;
+const ASC = 0.75;
+/** The band across the baseline that "at the label's height" means, in em. */
+const BAND: readonly [number, number] = [0.1, 0.6];
+
+type Seg2 = readonly [number, number, number, number];
+
+/** Straight edges of a drawn leaf, page coordinates, axis-aligned ones only. */
+function straightEdges(n: SvgNode, inh: Inherited): Seg2[] {
+  if (get(inh, 'fill') === 'none' && get(inh, 'stroke') === 'none') return [];
+  const raw: [number, number, number, number][] = [];
+  const chain = (v: readonly number[], closed: boolean): void => {
+    for (let i = 0; i + 3 < v.length; i += 2)
+      raw.push([v[i] ?? 0, v[i + 1] ?? 0, v[i + 2] ?? 0, v[i + 3] ?? 0]);
+    if (closed && v.length >= 6)
+      raw.push([v[v.length - 2] ?? 0, v[v.length - 1] ?? 0, v[0] ?? 0, v[1] ?? 0]);
+  };
+  const g = (k: string): number | null => len(n.attrs[k] ?? 0);
+  switch (n.tag) {
+    case 'path': {
+      let cur: readonly [number, number] | null = null;
+      let start: readonly [number, number] | null = null;
+      for (const s of parsePath(String(n.attrs['d'] ?? '')) ?? []) {
+        if (s.c === 'M') start = cur = [s.p[0], s.p[1]];
+        else if (s.c === 'L') {
+          if (cur) raw.push([cur[0], cur[1], s.p[0], s.p[1]]);
+          cur = [s.p[0], s.p[1]];
+        } else if (s.c === 'Z') {
+          if (cur && start) raw.push([cur[0], cur[1], start[0], start[1]]);
+          cur = start;
+        } else cur = [s.p[s.p.length - 2] ?? 0, s.p[s.p.length - 1] ?? 0];
+      }
+      break;
+    }
+    case 'line': {
+      const [x1, y1, x2, y2] = [g('x1'), g('y1'), g('x2'), g('y2')];
+      if (x1 !== null && y1 !== null && x2 !== null && y2 !== null) raw.push([x1, y1, x2, y2]);
+      break;
+    }
+    case 'polyline':
+    case 'polygon':
+      chain(numList(n.attrs['points']) ?? [], n.tag === 'polygon');
+      break;
+    case 'rect': {
+      const [x, y, w, h] = [g('x'), g('y'), g('width'), g('height')];
+      if (x !== null && y !== null && w !== null && h !== null)
+        chain([x, y, x + w, y, x + w, y + h, x, y + h], true);
+      break;
+    }
+    default:
+  }
+  const m = ownTransform(n);
+  const out: Seg2[] = [];
+  for (const [a, b, c, d] of raw) {
+    const [x0, y0] = apply(m, a, b);
+    const [x1, y1] = apply(m, c, d);
+    const l = Math.hypot(x1 - x0, y1 - y0);
+    if (l > 1e-6 && (Math.abs(x1 - x0) < 1e-3 * l || Math.abs(y1 - y0) < 1e-3 * l))
+      out.push([x0, y0, x1, y1]);
+  }
+  return out;
+}
+
+interface Label {
+  readonly node: SvgNode;
+  readonly x: number;
+  readonly y: number;
+  readonly angle: number;
+  readonly fs: number;
+  /** Width as the source drew it, user units. */
+  readonly w: number;
+  readonly tol: number;
+}
+
+const ALONG = (l: Label): readonly [number, number] => {
+  const a = (l.angle * Math.PI) / 180;
+  return [Math.cos(a), Math.sin(a)];
+};
+
+/** Page point → [along, up] in the label's frame. */
+function local(l: Label, px: number, py: number): [number, number] {
+  const [ux, uy] = ALONG(l);
+  const dx = px - l.x;
+  const dy = py - l.y;
+  return [dx * ux + dy * uy, dx * uy - dy * ux];
+}
+
+type Anchor = { readonly anchor: 'middle' | 'end'; readonly at: number } | null;
+
+function inferAnchor(l: Label, edges: readonly Seg2[], boxes: readonly Box[]): Anchor {
+  const { fs, w, tol } = l;
+  const mid = w / 2;
+  const band = (q0: number, q1: number): boolean => q0 < BAND[1] * fs && q1 > BAND[0] * fs;
+  const before = (a: number): boolean => a <= tol && a >= -NEAR * fs;
+  // Something drawn at its height ending just before it: a start-anchored label.
+  for (const b of boxes) {
+    const c = [local(l, b[0], b[1]), local(l, b[2], b[3]), local(l, b[0], b[3])];
+    const a1 = Math.max(...c.map((p) => p[0]));
+    const q0 = Math.min(...c.map((p) => p[1]));
+    const q1 = Math.max(...c.map((p) => p[1]));
+    if (band(q0, q1) && before(a1)) return null;
+  }
+  /** Where lines say the centre is, within `tol` of the label's own. */
+  const centres: number[] = [];
+  let end = false;
+  const centreAt = (a: number): void => {
+    if (Math.abs(a - mid) <= tol) centres.push(a);
+  };
+  for (const e of edges) {
+    const [p0, p1] = [local(l, e[0], e[1]), local(l, e[2], e[3])];
+    const [a0, a1] = [Math.min(p0[0], p1[0]), Math.max(p0[0], p1[0])];
+    const [q0, q1] = [Math.min(p0[1], p1[1]), Math.max(p0[1], p1[1])];
+    if (q1 - q0 < a1 - a0) {
+      // Parallel to the baseline.
+      if (band(q0, q1)) {
+        if (before(a1)) return null;
+        if (a0 >= w - tol && a0 <= w + NEAR * fs) end = true;
+      } else {
+        const gap = q0 >= ASC * fs ? q0 - ASC * fs : -DESC * fs - q0;
+        if (gap >= 0 && gap <= AXIS_GAP * fs && a1 - a0 >= 1.2 * w) centreAt((a0 + a1) / 2);
+      }
+    } else if (band(q0, q1)) {
+      // Perpendicular, through the label's height.
+      if (before(a0)) return null;
+      if (a0 >= w - tol && a0 <= w + NEAR * fs) end = true;
+    } else {
+      // Perpendicular, ending above or below the label: a tick.
+      const gap = q0 >= BAND[1] * fs ? q0 - ASC * fs : -DESC * fs - q1;
+      if (gap <= NEAR * fs) centreAt(a0);
+    }
+  }
+  // The closest to the label's centre; the first of equals (document order).
+  const centre = centres.reduce<number | null>(
+    (best, a) => (best === null || Math.abs(a - mid) < Math.abs(best - mid) ? a : best),
+    null,
+  );
+  if (centre !== null && !end) return { anchor: 'middle', at: centre };
+  if (end && centre === null) return { anchor: 'end', at: w };
+  return null;
+}
+
+/**
+ * A label stacked above or below `l`, kept at start itself, that starts
+ * where `l` does but ends elsewhere: `l` is in a left-aligned column.
+ */
+function leftColumn(l: Label, all: readonly Label[], kept: ReadonlySet<Label>): boolean {
+  return all.some((o) => {
+    if (o === l || !kept.has(o) || o.angle !== l.angle || Math.abs(o.fs - l.fs) > 0.01 * l.fs)
+      return false;
+    const [a, q] = local(l, o.x, o.y);
+    const tol = Math.max(l.tol, o.tol);
+    return Math.abs(a) <= tol && Math.abs(q) <= 3 * l.fs && Math.abs(o.w - l.w) > 2 * tol;
+  });
+}
+
+/**
+ * Gives plain start-anchored labels the `text-anchor` (and anchor point) the
+ * plot laid them out with, and drops the transient `ADVANCE_ATTR`.
+ */
+function anchorLabels(root: SvgNode, vb: ViewBox): SvgNode {
+  const edges: Seg2[] = [];
+  const boxes: Box[] = [];
+  const labels: Label[] = [];
+  const collect = (n: SvgNode, inh: Inherited): void => {
+    const here = inherit(inh, n.attrs);
+    if (n.tag === 'g' || n.tag === 'svg') {
+      for (const c of n.children)
+        if (typeof c !== 'string') {
+          const p = c.tag === 'text' ? piece(c, here) : null;
+          if (p) {
+            const own = inherit(here, c.attrs);
+            const fs = len(get(own, 'font-size'));
+            const angle = (((Math.round(p.angle * 1000) / 1000) % 360) + 360) % 360;
+            if (fs === null || fs <= 0 || angle % 90 !== 0) continue;
+            const adv = len(c.attrs[ADVANCE_ATTR]);
+            const est = approxTextWidth(
+              p.text.trim(),
+              fs,
+              get(own, 'font-family'),
+              isBold(get(own, 'font-weight')),
+            );
+            const w = adv !== null && adv > 0 ? adv * fs : est;
+            const tol = TOL * fs + (adv !== null && adv > 0 ? 0 : 0.03 * w);
+            labels.push({ node: c, x: p.x, y: p.y, angle, fs, w, tol });
+          } else collect(c, here);
+        }
+      return;
+    }
+    if (n.tag === 'text') return;
+    edges.push(...straightEdges(n, here));
+    const b = leafBox(n, here, vb);
+    if (b?.every(Number.isFinite)) boxes.push(b);
+  };
+  collect(root, ROOT_INHERITED);
+  const found = labels.map((l) => inferAnchor(l, edges, boxes));
+  const kept = new Set(labels.filter((_, i) => found[i] === null));
+  const decided = new Map<SvgNode, SvgNode>();
+  for (const [i, l] of labels.entries()) {
+    const f = found[i];
+    const attrs = without(l.node.attrs, ADVANCE_ATTR);
+    if (f && !leftColumn(l, labels, kept)) {
+      const [ux, uy] = ALONG(l);
+      const x = fmt(l.x + ux * f.at);
+      const y = fmt(l.y + uy * f.at);
+      attrs['x'] = x;
+      attrs['y'] = y;
+      attrs['text-anchor'] = f.anchor;
+      if (attrs['transform'] !== undefined)
+        attrs['transform'] = `rotate(${fmt(l.angle > 180 ? l.angle - 360 : l.angle)} ${x} ${y})`;
+    }
+    decided.set(l.node, el('text', attrs, l.node.children));
+  }
+  const rebuild = (n: SvgNode): SvgNode => {
+    const d = decided.get(n);
+    if (d) return d;
+    if (n.tag === 'text' && n.attrs[ADVANCE_ATTR] !== undefined)
+      return el('text', without(n.attrs, ADVANCE_ATTR), n.children);
+    if (!n.children.some((c) => typeof c !== 'string')) return n;
+    return el(
+      n.tag,
+      n.attrs,
+      n.children.map((c) => (typeof c === 'string' ? c : rebuild(c))),
+    );
+  };
+  return rebuild(root);
 }
 
 // ---- 4. Cropping ---------------------------------------------------------
@@ -672,7 +949,7 @@ export function cleanupPlot(root: SvgNode, viewBox: ViewBox): { root: SvgNode; v
     root.attrs,
     root.children.flatMap((c) => (typeof c === 'string' ? [] : flatten(c, IDENTITY, rootInh))),
   );
-  const merged = mergeTexts(dropBackground(flat, viewBox), ROOT_INHERITED);
+  const merged = anchorLabels(mergeTexts(dropBackground(flat, viewBox), ROOT_INHERITED), viewBox);
   const vb = crop(merged, viewBox);
   return {
     root: el('svg', { ...merged.attrs, viewBox: vb.map(fmt).join(' ') }, merged.children),

@@ -50,6 +50,10 @@ Sans, sans-serif`, bold), `rotate(θ x y)` when rotated. Mathtext (`$…$`, scal
   position and so may shift by the width estimate's error; that is the price of one
   editable string instead of per-glyph positions. Rendering then maps every label to Arimo,
   Tinos or Cousine and lays it out with our fonts (note 14); the asset keeps the plot's names.
+- **Label alignment** (note 15): after merging, each plain start-anchored label is given the
+  `text-anchor` the plot laid it out with (centred under a tick or axis, right-aligned to a
+  tick), judged from the lines around it; the source's run width travels as a transient
+  `data-advance` that is never stored.
 - **Cropping:** the viewBox becomes the union of drawn boxes (control-point hulls for paths,
   padded by the stroke width, text boxes from the width estimate in the bundled font the label is drawn in (note 14) ×1.1 and −1 em/+0.3 em
   around the baseline), intersected with the original viewBox (what lay outside was never

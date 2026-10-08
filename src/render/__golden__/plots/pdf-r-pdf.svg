@@ -1,14 +1,14 @@
-<text xml:space="preserve"><tspan x="101.91" y="207.09" font-family="Arimo" font-size="16">2</tspan></text>
+<text xml:space="preserve"><tspan x="101.9" y="207.09" font-family="Arimo" font-size="16">2</tspan></text>
 <text xml:space="preserve"><tspan x="145.36" y="207.09" font-family="Arimo" font-size="16">4</tspan></text>
 <text xml:space="preserve"><tspan x="188.81" y="207.09" font-family="Arimo" font-size="16">6</tspan></text>
 <text xml:space="preserve"><tspan x="232.27" y="207.09" font-family="Arimo" font-size="16">8</tspan></text>
-<text xml:space="preserve"><tspan x="271.28" y="207.09" font-family="Arimo" font-size="16">10</tspan></text>
-<text transform="rotate(-90 53.76 172)" xml:space="preserve"><tspan x="53.76" y="172" font-family="Arimo" font-size="16">0</tspan></text>
-<text transform="rotate(-90 53.76 147.12)" xml:space="preserve"><tspan x="53.76" y="147.12" font-family="Arimo" font-size="16">5</tspan></text>
-<text transform="rotate(-90 53.76 101.787)" xml:space="preserve"><tspan x="53.76" y="101.79" font-family="Arimo" font-size="16">15</tspan></text>
-<text transform="rotate(-90 53.76 52.013)" xml:space="preserve"><tspan x="53.76" y="52.01" font-family="Arimo" font-size="16">25</tspan></text>
-<text xml:space="preserve"><tspan x="150.76" y="25.64" font-family="Arimo" font-size="18.67" font-weight="bold">Base R</tspan></text>
-<text xml:space="preserve"><tspan x="145.07" y="245.49" font-family="Arimo" font-size="16">Dose (mg)</tspan></text>
-<text transform="rotate(-90 15.36 141.347)" xml:space="preserve"><tspan x="15.36" y="141.35" font-family="Arimo" font-size="16">Response</tspan></text>
+<text xml:space="preserve"><tspan x="271.27" y="207.09" font-family="Arimo" font-size="16">10</tspan></text>
+<text transform="rotate(-90 53.76 167.56)" xml:space="preserve"><tspan x="49.31" y="167.56" font-family="Arimo" font-size="16">0</tspan></text>
+<text transform="rotate(-90 53.76 142.667)" xml:space="preserve"><tspan x="49.31" y="142.67" font-family="Arimo" font-size="16">5</tspan></text>
+<text transform="rotate(-90 53.76 92.893)" xml:space="preserve"><tspan x="44.86" y="92.89" font-family="Arimo" font-size="16">15</tspan></text>
+<text transform="rotate(-90 53.76 43.107)" xml:space="preserve"><tspan x="44.86" y="43.11" font-family="Arimo" font-size="16">25</tspan></text>
+<text xml:space="preserve"><tspan x="150.75" y="25.64" font-family="Arimo" font-size="18.67" font-weight="bold">Base R</tspan></text>
+<text xml:space="preserve"><tspan x="145.06" y="245.49" font-family="Arimo" font-size="16">Dose (mg)</tspan></text>
+<text transform="rotate(-90 15.36 105.333)" xml:space="preserve"><tspan x="-20.66" y="105.33" font-family="Arimo" font-size="16">Response</tspan></text>
 <text xml:space="preserve"><tspan x="124.32" y="63.08" font-family="Arimo" font-size="16">obs</tspan></text>
 <text xml:space="preserve"><tspan x="124.32" y="82.28" font-family="Arimo" font-size="16">fit</tspan></text>

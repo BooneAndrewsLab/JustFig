@@ -36,7 +36,7 @@ scaling text, issue 3) sees no difference between the two.
   Sutherland–Hodgman for fills (exact for a convex clip), Liang–Barsky for strokes. A stroke
   whose centre line is inside is kept whole, so a gridline on the clip edge is not halved. Text
   is dropped only when its origin is more than 4 em outside the clip.
-- **Text:** each show-text run becomes `<text transform="matrix(…)" font-size="1">`, which plot
+- **Text:** each show-text run becomes `<text transform="matrix(…)" font-size="1" data-advance="…">` (its width from the PDF's own advances, for alignment inference, note 15), which plot
   cleanup turns into x/y, font size and `rotate()`. Family, weight and style come from the font
   name (subset prefix and `MT`/`PS` suffixes dropped, then `fontFromPsName` from note 12) and
   pdf.js's bold/italic flags; rendering maps them to the bundled fonts (note 14). A run is split where the PDF leaves a gap over 0.3 em (TJ

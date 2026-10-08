@@ -39,6 +39,7 @@ import {
 } from '../svg/matrix';
 import { fontFromPsName } from '../svg/glyphText';
 import { pathRect } from '../svg/pathData';
+import { ADVANCE_ATTR } from '../svg/plotCleanup';
 
 export interface PdfOpList {
   readonly fnArray: ArrayLike<number>;
@@ -519,8 +520,13 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
   /** The last `<text>` written, so a run that continues it can join it. */
   let lastText: { at: number; tm: Matrix; attrs: string; end: [number, number]; s: string } | null =
     null;
-  const textElement = (tm: Matrix, attrs: string, s: string): string =>
-    `<text transform="${matrixString(tm)}" font-size="1" ${attrs}>${esc(s)}</text>`;
+  /** A run, with its advance width (in em, from the PDF's own widths) for plot cleanup. */
+  const textElement = (tm: Matrix, attrs: string, s: string, end: [number, number]): string => {
+    const [ox, oy] = apply(tm, 0, 0);
+    const em2 = tm[0] * tm[0] + tm[1] * tm[1];
+    const adv = em2 > 0 ? ((end[0] - ox) * tm[0] + (end[1] - oy) * tm[1]) / em2 : 0;
+    return `<text transform="${matrixString(tm)}" font-size="1" ${attrs} ${ADVANCE_ATTR}="${fmt(adv)}">${esc(s)}</text>`;
+  };
 
   const paintAttrs = (fill: boolean, stroke: boolean, evenOdd: boolean, m: Matrix): string => {
     const a: string[] = [];
@@ -762,12 +768,12 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
         if (sameLinear && across < 0.1 && along > -0.1 && along < SPLIT_GAP) {
           prev.s += (along > WORD_GAP ? ' ' : '') + s;
           prev.end = end;
-          out[prev.at] = textElement(prev.tm, attrs, prev.s);
+          out[prev.at] = textElement(prev.tm, attrs, prev.s, end);
           continue;
         }
       }
       lastText = { at: out.length, tm, attrs, end, s };
-      out.push(textElement(tm, attrs, s));
+      out.push(textElement(tm, attrs, s, end));
     }
     st.x += x * st.hScale;
   };
