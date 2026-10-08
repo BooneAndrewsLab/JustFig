@@ -198,8 +198,32 @@ export interface PastedWells {
   readonly range: { readonly min: number; readonly max: number } | null;
 }
 
+/** One line split at `delim`; a "double-quoted" field may contain the delimiter ("" is a quote). */
+function splitRow(line: string, delim: string): string[] {
+  if (!line.includes('"')) return line.split(delim);
+  const out: string[] = [];
+  let cur = '';
+  let quoted = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line.charAt(i);
+    if (quoted) {
+      if (ch === '"' && line.charAt(i + 1) === '"') {
+        cur += '"';
+        i++;
+      } else if (ch === '"') quoted = false;
+      else cur += ch;
+    } else if (ch === '"') quoted = true;
+    else if (ch === delim) {
+      out.push(cur);
+      cur = '';
+    } else cur += ch;
+  }
+  out.push(cur);
+  return out;
+}
+
 /**
- * A block copied from a spreadsheet (tab- or comma-separated) → well
+ * A block copied from a spreadsheet, or the text of a .csv/.tsv file (tab- or comma-separated) → well
  * colours, top-left cell at `A1`. A leading header row (1, 2, 3 …) and
  * label column (A, B, C …) are skipped. Hex colours are used as they are;
  * numbers map onto a colourblind-safe ramp; other text gets one
@@ -207,10 +231,11 @@ export interface PastedWells {
  */
 export function wellsFromTable(table: string, rows: number, cols: number): PastedWells {
   let grid = table
-    .replace(/\r/g, '')
+    .replace(/^\uFEFF/, '')
+    .replace(/\r\n?/g, '\n')
     .split('\n')
     .filter((l, i, a) => l.trim() !== '' || i < a.length - 1)
-    .map((l) => (l.includes('\t') ? l.split('\t') : l.split(',')).map((c) => c.trim()));
+    .map((l) => splitRow(l, l.includes('\t') ? '\t' : ',').map((c) => c.trim()));
   while (grid.length > 0 && (grid[grid.length - 1] ?? []).every((c) => c === '')) grid.pop();
   const head = grid[0] ?? [];
   if (head.length > 1 && head.slice(1).every((c, i) => c === String(i + 1))) grid = grid.slice(1);

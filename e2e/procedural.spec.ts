@@ -58,6 +58,24 @@ test('a well plate from the shelf: generated Inspector, painting, Convert to sha
   // One undo step per paint stroke and per paste.
   await page.keyboard.press('Control+z');
   await expect(page.getByText('1 of 384 wells coloured')).toBeVisible();
+  // A CSV file opens into the same box (review, then Apply), through the same parser.
+  await page.getByTestId('wellmap-file-input').setInputFiles({
+    name: 'plate.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('\uFEFF,1,2\r\nA,"x, y",#ff0000\r\n'),
+  });
+  await expect(page.getByLabel('Spreadsheet cells')).toHaveValue(/x, y/);
+  await page.getByRole('button', { name: 'Apply' }).click();
+  await expect(page.getByRole('list', { name: 'Pasted values' })).toContainText('x, y');
+  await expect(page.getByText('3 of 384 wells coloured')).toBeVisible();
+  await page.getByTestId('wellmap-file-input').setInputFiles({
+    name: 'plate.xlsx',
+    mimeType: 'application/octet-stream',
+    buffer: Buffer.from('PK'),
+  });
+  await expect(page.getByRole('alert').filter({ hasText: 'Choose a .csv' })).toBeVisible();
+  await page.keyboard.press('Control+z');
+  await expect(page.getByText('1 of 384 wells coloured')).toBeVisible();
   await page.getByRole('button', { name: 'Convert to shapes' }).click();
   await expect(side(page).getByRole('region', { name: 'Well plate options' })).toBeHidden();
   await expect(page.locator('.layers .item .name', { hasText: 'Well plate' })).toHaveCount(1);

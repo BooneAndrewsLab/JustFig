@@ -1,7 +1,8 @@
 /**
  * The well-colour editor of a plate (note 04): paint wells with a brush
  * colour (click or drag; Alt or the eraser clears), or paste a block from a
- * spreadsheet. One stroke of painting is one undo step. From the keyboard
+ * spreadsheet or a .csv/.tsv file (a button, or dropped on the editor; the text
+ * lands in the paste box to review, then Apply). One stroke of painting is one undo step. From the keyboard
  * (note 09): arrow keys move a cursor, Space or Enter paints, Delete
  * clears, Shift+arrows paint as they move.
  */
@@ -11,6 +12,7 @@ import { OKABE_ITO } from '@/core/color/color';
 import type { Swatch } from '@/core/model/types';
 import { rowLabel } from '@/procedural/kinds/util';
 import { type PastedWells, wellId, wellsFromTable } from '@/procedural/kinds/wellPlate';
+import { readTableFile } from '@/procedural/tableFile';
 import type { Params, WellMap, WellMapField } from '@/procedural/types';
 
 interface Props {
@@ -75,6 +77,9 @@ export function WellMapEditor({ field, params, value, palette = [], onChange }: 
   const [brush, setBrush] = useState<string>(OKABE_ITO[5] ?? '#0072b2');
   const [erase, setErase] = useState(false);
   const [paste, setPaste] = useState<string | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
   const [legend, setLegend] = useState<PastedWells | null>(null);
   const painting = useRef<{ erase: boolean; stroke: number } | null>(null);
   const [cursor, setCursor] = useState<{ r: number; c: number } | null>(null);
@@ -140,10 +145,36 @@ export function WellMapEditor({ field, params, value, palette = [], onChange }: 
     e.preventDefault();
     e.stopPropagation();
   };
+  const openFile = async (file: File | undefined) => {
+    if (!file) return;
+    const r = await readTableFile(file);
+    if (r.ok) {
+      setFileError(null);
+      setPaste(r.text);
+    } else setFileError(r.error);
+  };
   const cursorId = cursor ? wellId(cursor.r, cursor.c) : null;
 
   return (
-    <div className="wellmap">
+    <div
+      className={dragging ? 'wellmap wellmap-drop' : 'wellmap'}
+      onDragOver={(e) => {
+        if (!e.dataTransfer.types.includes('Files')) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setDragging(true);
+      }}
+      onDragLeave={() => {
+        setDragging(false);
+      }}
+      onDrop={(e) => {
+        setDragging(false);
+        if (e.dataTransfer.files.length === 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        void openFile(e.dataTransfer.files[0]);
+      }}
+    >
       <div className="row">
         <label>Brush</label>
         <input
@@ -266,6 +297,26 @@ export function WellMapEditor({ field, params, value, palette = [], onChange }: 
         </button>
         <button
           type="button"
+          onClick={() => {
+            fileInput.current?.click();
+          }}
+        >
+          Open CSV/TSV file…
+        </button>
+        <input
+          ref={fileInput}
+          type="file"
+          accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain"
+          aria-label="CSV or TSV file"
+          data-testid="wellmap-file-input"
+          hidden
+          onChange={(e) => {
+            void openFile(e.target.files?.[0]);
+            e.target.value = '';
+          }}
+        />
+        <button
+          type="button"
           disabled={Object.keys(value).length === 0}
           onClick={() => {
             onChange({}, 'Clear wells');
@@ -275,6 +326,7 @@ export function WellMapEditor({ field, params, value, palette = [], onChange }: 
           Clear
         </button>
       </div>
+      {fileError && <p role="alert">{fileError}</p>}
       {paste !== null && (
         <div className="wellmap-paste">
           <textarea
@@ -298,6 +350,7 @@ export function WellMapEditor({ field, params, value, palette = [], onChange }: 
                 onChange({ ...value, ...r.wells }, 'Paste wells');
                 setLegend(r);
                 setPaste(null);
+                setFileError(null);
               }}
             >
               Apply

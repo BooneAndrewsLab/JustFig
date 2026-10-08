@@ -779,6 +779,11 @@ button.link {
   margin: 4px 0;
 }
 
+.wellmap-drop {
+  outline: 2px dashed var(--accent, #0072b2);
+  outline-offset: 2px;
+}
+
 .wellmap-paste textarea {
   width: 100%;
   font-family: monospace;

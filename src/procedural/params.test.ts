@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { parseBands } from './kinds/gel';
 import { featureColour, plasmidMap } from './kinds/plasmid';
+import { decodeTableBytes, MAX_TABLE_BYTES } from './tableFile';
 import { wellsFromTable } from './kinds/wellPlate';
 import { decodeParams } from './params';
 import { getKind, resolveProcedural } from './registry';
@@ -125,5 +126,26 @@ describe('plasmid map label threshold', () => {
   it('old documents without the param get the default', () => {
     const { minLabelPct: _m, ...old } = { ...base, minLabelPct: 5 };
     expect(decodeParams(k.fields, old)['minLabelPct']).toBe(1);
+  });
+});
+
+describe('table files', () => {
+  it('parses a BOM, CRLF and quoted fields like a paste', () => {
+    const r = wellsFromTable('\uFEFF"a, b",c\r\n"say ""hi""",c\r\n', 2, 2);
+    expect(Object.keys(r.wells)).toEqual(['A1', 'A2', 'B1', 'B2']);
+    expect(r.categories.map((c) => c.value)).toEqual(['a, b', 'c', 'say "hi"']);
+  });
+
+  it('decodes bytes, refusing big, binary or wrongly named files', () => {
+    const enc = (s: string) => new TextEncoder().encode(s);
+    expect(decodeTableBytes(enc('\uFEFF1,2'), 'x.csv')).toEqual({ ok: true, text: '1,2' });
+    expect(decodeTableBytes(Uint8Array.from([0xff, 0xfe, 0x31, 0x00]), 'x.TSV')).toEqual({
+      ok: true,
+      text: '1',
+    });
+    expect(decodeTableBytes(enc('1'), 'x.xlsx').ok).toBe(false);
+    expect(decodeTableBytes(Uint8Array.from([0x31, 0, 0x32]), 'x.csv').ok).toBe(false);
+    expect(decodeTableBytes(Uint8Array.from([0xc3, 0x28]), 'x.csv').ok).toBe(false);
+    expect(decodeTableBytes(new Uint8Array(MAX_TABLE_BYTES + 1), 'x.csv').ok).toBe(false);
   });
 });

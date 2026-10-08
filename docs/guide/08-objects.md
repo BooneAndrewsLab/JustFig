@@ -59,6 +59,8 @@ A whole stroke is one undo step. The note under the grid says how many wells are
 
 **From a spreadsheet:** choose **Paste from spreadsheet…**, copy a block of cells in Excel or Sheets (the top-left cell is well A1) and paste it into the box, then choose **Apply**.
 
+**From a file:** choose **Open CSV/TSV file…** (or drop a `.csv`, `.tsv` or `.txt` file onto the well editor). The file's cells appear in the same box so you can check them before choosing **Apply**. Files must be plain text under 1 MB; quoted fields (`"a, b"`) and Excel's UTF-8 CSV exports work.
+
 - Numbers become a light-to-dark colour ramp.
 - Words become one colour each, so every "Control" well is the same colour.
 - Colours written as `#d55e00` are used as they are.
