@@ -18,10 +18,16 @@ import { ToolPalette } from './panels/ToolPalette';
 import { resolveBindings, withKey } from './keyBindings';
 import { onCopy, onKeyDown, onPaste } from './shortcuts';
 import { importToCanvas, newFigure, openFile, saveFile } from './state/session';
-import { currentPage, figure, store } from './state/store';
+import { currentPage, figure, selectedObjects, store } from './state/store';
 import { useAppState } from './state/useAppState';
 
 type DialogId = 'export' | 'attribution' | 'credits' | 'gallery' | 'keys' | 'guide' | null;
+
+/** The one selected object's name, for the status line a screen reader announces. */
+function selectionName(s: ReturnType<typeof useAppState>): string {
+  const [one] = selectedObjects(s);
+  return s.selection.length === 1 && one ? `: ${one.name ?? one.type}` : '';
+}
 
 export function App() {
   const s = useAppState();
@@ -277,7 +283,9 @@ export function App() {
       </aside>
       <footer className="status" aria-live="polite">
         <span>
-          {s.selection.length > 0 ? `${String(s.selection.length)} selected` : 'Nothing selected'}
+          {s.selection.length > 0
+            ? `${String(s.selection.length)} selected${selectionName(s)}`
+            : 'Nothing selected'}
         </span>
         <span>{s.downloaded === fig ? 'Saved to file' : 'Kept in this browser'}</span>
         {s.notice && <span className={`notice-${s.notice.tone}`}>{s.notice.text}</span>}

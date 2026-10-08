@@ -41,31 +41,33 @@ export function GalleryDialog({ onClose, unsaved }: { onClose: () => void; unsav
           ? 'Empty layouts to fill in: panels sized for a journal column.'
           : 'Finished figures to take apart. Their colours are linked to the palette, so applying another palette recolours them.'}
       </p>
-      <ul className="gallery-grid" role="tabpanel">
-        {GALLERY.filter((e) => e.kind === tab).map((e) => (
-          <li key={e.id}>
-            <button
-              type="button"
-              className="gallery-card"
-              data-entry={e.id}
-              onClick={() => {
-                if (
-                  unsaved &&
-                  !confirm('Start a new figure from this? The current one stays in this browser.')
-                )
-                  return;
-                openGallery(e);
-                analytics.track('gallery', 'open', e.id);
-                onClose();
-              }}
-            >
-              <img src={thumbs.get(e.id)} alt="" />
-              <strong>{e.title}</strong>
-              <span>{e.description}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
+      <div role="tabpanel">
+        <ul className="gallery-grid">
+          {GALLERY.filter((e) => e.kind === tab).map((e) => (
+            <li key={e.id}>
+              <button
+                type="button"
+                className="gallery-card"
+                data-entry={e.id}
+                onClick={() => {
+                  if (
+                    unsaved &&
+                    !confirm('Start a new figure from this? The current one stays in this browser.')
+                  )
+                    return;
+                  openGallery(e);
+                  analytics.track('gallery', 'open', e.id);
+                  onClose();
+                }}
+              >
+                <img src={thumbs.get(e.id)} alt="" />
+                <strong>{e.title}</strong>
+                <span>{e.description}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
       <div className="actions">
         <button type="button" onClick={onClose}>
           Cancel

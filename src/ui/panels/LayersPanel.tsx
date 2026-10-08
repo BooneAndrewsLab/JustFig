@@ -33,16 +33,6 @@ function ObjRow({
       <div
         className={`item${selected.has(o.id) ? ' selected' : ''}`}
         style={{ paddingLeft: 6 + depth * 12 }}
-        onClick={(e) => {
-          const cur = store.getState().selection;
-          store.select(
-            e.shiftKey
-              ? cur.includes(o.id)
-                ? cur.filter((x) => x !== o.id)
-                : [...cur, o.id]
-              : [o.id],
-          );
-        }}
       >
         {kids.length > 0 ? (
           <button
@@ -58,7 +48,24 @@ function ObjRow({
         ) : (
           <span style={{ width: 14 }} />
         )}
-        <span className="name">{objName(o)}</span>
+        <button
+          type="button"
+          className="name"
+          aria-pressed={selected.has(o.id)}
+          title="Select (Shift adds to the selection)"
+          onClick={(e) => {
+            const cur = store.getState().selection;
+            store.select(
+              e.shiftKey
+                ? cur.includes(o.id)
+                  ? cur.filter((x) => x !== o.id)
+                  : [...cur, o.id]
+                : [o.id],
+            );
+          }}
+        >
+          {objName(o)}
+        </button>
         <button
           type="button"
           title={o.hidden ? 'Show' : 'Hide'}

@@ -344,6 +344,16 @@ button.link {
   border-radius: var(--radius) var(--radius) 0 0;
 }
 
+.page-tabs {
+  display: flex;
+  gap: 2px;
+}
+
+.pages-bar button.tab[aria-selected='true'] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
 .side {
   grid-area: side;
   background: var(--panel);
@@ -491,6 +501,9 @@ button.link {
 
 .layers .item .name {
   flex: 1;
+  text-align: left;
+  color: var(--ink) !important;
+  padding: 1px 3px !important;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -500,7 +513,11 @@ button.link {
   border: 0;
   padding: 0 3px;
   background: transparent;
-  color: var(--ink-3);
+  color: var(--ink-2);
+}
+
+.layers .item button[aria-pressed='true'] {
+  background: transparent;
 }
 
 .layers .layer-head {
@@ -861,5 +878,5 @@ button.link {
 }
 
 .keybindings-fixed {
-  color: var(--ink-3);
+  color: var(--ink-2);
 }

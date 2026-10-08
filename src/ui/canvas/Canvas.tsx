@@ -220,10 +220,11 @@ export function Canvas() {
   // Space held: pan with any tool.
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (
-        e.code === 'Space' &&
-        !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)
-      ) {
+      // Only over the canvas or nothing focused: Space on a focused button, checkbox or
+      // the well grid must still press it (note 09).
+      const t = e.target;
+      const free = !(t instanceof Element) || t === document.body || t.closest('.canvas') !== null;
+      if (e.code === 'Space' && free && !document.querySelector('.dialog')) {
         setSpace(true);
         e.preventDefault();
       }
@@ -626,7 +627,7 @@ export function Canvas() {
   const panning = space;
 
   return (
-    <div className="canvas-wrap">
+    <main className="canvas-wrap" aria-label="Canvas">
       <div className="ruler-corner" title="Ruler units">
         {s.units}
       </div>
@@ -838,7 +839,7 @@ export function Canvas() {
         )}
       </div>
       <PagesBar />
-    </div>
+    </main>
   );
 }
 
