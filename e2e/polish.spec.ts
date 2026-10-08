@@ -134,7 +134,8 @@ test('a BarelySig SVG imports as its graph, at its size, with its recipe', async
     page.waitForEvent('download'),
     page.getByRole('button', { name: 'Download .bsig for BarelySig' }).click(),
   ]);
-  expect(download.suggestedFilename()).toBe('Figure 2.bsig');
+  // Playwright's WebKit reports spaces in download names as underscores.
+  expect(download.suggestedFilename().replaceAll('_', ' ')).toBe('Figure 2.bsig');
 });
 
 test('the guide opens from the top bar and from ?, and its pages link to each other', async ({

@@ -57,7 +57,8 @@ test('make A, start B, reopen A from Recent figures; rename, download, delete', 
     page.waitForEvent('download'),
     dialog.getByRole('button', { name: 'Download Figure A renamed as .jfig' }).click(),
   ]);
-  expect(download.suggestedFilename()).toBe('Figure A renamed.jfig');
+  // Playwright's WebKit reports spaces in download names as underscores.
+  expect(download.suggestedFilename().replaceAll('_', ' ')).toBe('Figure A renamed.jfig');
 
   await dialog.getByRole('button', { name: 'Open Figure A renamed' }).click();
   await expect(dialog).toBeHidden();
