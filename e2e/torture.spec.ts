@@ -80,43 +80,45 @@ test('PDF export: page size, embedded fonts, no rasterised vectors; pdf.js rende
   // The legacy build: pdf.js 6's modern build uses syntax Playwright's WebKit can't
   // parse ("Importing a module script failed", #20); the legacy one works everywhere.
   // Render with pdf.js, served from node_modules, inside this engine.
-  await page.route('**/__pdfjs/**', (route) => {
-    const file = route.request().url().split('/__pdfjs/')[1] ?? '';
-    return route.fulfill({
-      path: join(root, 'node_modules/pdfjs-dist/legacy/build', file),
-      contentType: 'text/javascript',
-    });
-  });
-  const dataUrl = await page.evaluate(async (b64: string) => {
-    const base = `${location.origin}/__pdfjs/`;
-    const pdfjs = (await import(/* @vite-ignore */ `${base}pdf.min.mjs`)) as {
-      GlobalWorkerOptions: { workerSrc: string };
-      getDocument: (src: { data: Uint8Array }) => {
-        promise: Promise<{
-          getPage: (n: number) => Promise<{
-            getViewport: (o: { scale: number }) => { width: number; height: number };
-            render: (o: {
-              canvasContext: CanvasRenderingContext2D;
-              viewport: unknown;
-              background?: string;
-            }) => { promise: Promise<void> };
+  // Hand the sources to the page as blob URLs: Playwright's WebKit does not deliver
+  // routed responses to module imports (#20), and blobs need no routing.
+  const libDir = join(root, 'node_modules/pdfjs-dist/legacy/build');
+  const pdfjsSrc = readFileSync(join(libDir, 'pdf.min.mjs'), 'utf8');
+  const workerSrc = readFileSync(join(libDir, 'pdf.worker.min.mjs'), 'utf8');
+  const dataUrl = await page.evaluate(
+    async ({ b64, lib, worker }: { b64: string; lib: string; worker: string }) => {
+      const blobUrl = (src: string) =>
+        URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+      const pdfjs = (await import(/* @vite-ignore */ blobUrl(lib))) as {
+        GlobalWorkerOptions: { workerSrc: string };
+        getDocument: (src: { data: Uint8Array }) => {
+          promise: Promise<{
+            getPage: (n: number) => Promise<{
+              getViewport: (o: { scale: number }) => { width: number; height: number };
+              render: (o: {
+                canvasContext: CanvasRenderingContext2D;
+                viewport: unknown;
+                background?: string;
+              }) => { promise: Promise<void> };
+            }>;
           }>;
-        }>;
+        };
       };
-    };
-    pdfjs.GlobalWorkerOptions.workerSrc = `${base}pdf.worker.min.mjs`;
-    const data = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-    const doc = await pdfjs.getDocument({ data }).promise;
-    const pg = await doc.getPage(1);
-    const viewport = pg.getViewport({ scale: 150 / 72 });
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.round(viewport.width);
-    canvas.height = Math.round(viewport.height);
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('no canvas');
-    await pg.render({ canvasContext: ctx, viewport, background: 'white' }).promise;
-    return canvas.toDataURL('image/png');
-  }, Buffer.from(pdfBytes).toString('base64'));
+      pdfjs.GlobalWorkerOptions.workerSrc = blobUrl(worker);
+      const data = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      const doc = await pdfjs.getDocument({ data }).promise;
+      const pg = await doc.getPage(1);
+      const viewport = pg.getViewport({ scale: 150 / 72 });
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(viewport.width);
+      canvas.height = Math.round(viewport.height);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('no canvas');
+      await pg.render({ canvasContext: ctx, viewport, background: 'white' }).promise;
+      return canvas.toDataURL('image/png');
+    },
+    { b64: Buffer.from(pdfBytes).toString('base64'), lib: pdfjsSrc, worker: workerSrc },
+  );
   const rendered = PNG.sync.read(Buffer.from(dataUrl.split(',')[1] ?? '', 'base64'));
   if (OUT) writeFileSync(`${OUT}/torture-pdfjs-${info.project.name}.png`, PNG.sync.write(rendered));
   const pngBytes = readFileSync(await (await exportVia(page, 'PNG', { dpi: 150 })).path());
