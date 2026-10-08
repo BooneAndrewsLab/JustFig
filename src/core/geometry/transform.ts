@@ -5,7 +5,8 @@
  * bake a scale into their nodes; everything else scales its frame.
  */
 import type { Frame, Obj, PathNode, Vec2 } from '../model/types';
-import { type Box, center, frameBounds, unionBoxes } from './matrix';
+import { localise } from '../model/factory';
+import { type Box, apply, center, frameBounds, frameMatrix, unionBoxes } from './matrix';
 
 export function objBounds(o: Obj): Box {
   if (o.type === 'group')
@@ -129,4 +130,20 @@ export function flipObj(o: Obj, axis: 'x' | 'y', about: Vec2): Obj {
       ...(flips.flipY ? { flipY: true } : {}),
     },
   };
+}
+
+/**
+ * A path or arrow whose nodes changed (or that is rotated/flipped) with its
+ * nodes taken to page space and back: the frame fits the nodes again, and
+ * any rotation or flip is baked into them (exact).
+ */
+export function rebase<T extends Extract<Obj, { type: 'path' | 'arrow' }>>(o: T): T {
+  const m = frameMatrix(o.frame);
+  const nodes = o.nodes.map((n) => ({
+    ...apply(m, n),
+    ...(n.in ? { in: apply(m, n.in) } : {}),
+    ...(n.out ? { out: apply(m, n.out) } : {}),
+  }));
+  const { f, local } = localise(nodes);
+  return { ...o, frame: f, nodes: local };
 }

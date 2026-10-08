@@ -290,6 +290,9 @@ interface Memo {
   readonly node: SvgNode | null;
   readonly palette: readonly Swatch[];
   readonly assets: Assets;
+  /** A panel's resolved label (it depends on the page's other panels). */
+  readonly label: string | undefined;
+  readonly labelStyle: PanelLabelStyle;
 }
 
 const memos = new Map<string, WeakMap<Obj, Memo>>();
@@ -298,20 +301,25 @@ function build(o: Obj, ctx: RenderCtx): SvgNode | null {
   if (o.hidden === true) return null;
   const opacity = o.opacity < 1 ? o.opacity : undefined;
   const id = ctx.screen ? o.id : undefined;
+  // Locked objects let clicks through to what is under them (screen only).
+  const pe = ctx.screen && o.locked === true ? 'none' : undefined;
   if (o.type === 'group') {
     const kids = o.children
       .map((c) => objectToNode(c, ctx))
       .filter((n): n is SvgNode => n !== null);
-    return el('g', { 'data-id': id, opacity }, kids);
+    return el('g', { 'data-id': id, opacity, 'pointer-events': pe }, kids);
   }
-  if (o.type === 'panel') return el('g', { 'data-id': id, opacity }, panelNodes(o, ctx));
-  return el('g', { 'data-id': id, transform: transformOf(o), opacity }, content(o, ctx));
+  if (o.type === 'panel')
+    return el('g', { 'data-id': id, opacity, 'pointer-events': pe }, panelNodes(o, ctx));
+  return el(
+    'g',
+    { 'data-id': id, transform: transformOf(o), opacity, 'pointer-events': pe },
+    content(o, ctx),
+  );
 }
 
 /** An object as an SvgNode, or null when hidden. Memoised per object and render mode. */
 export function objectToNode(o: Obj, ctx: RenderCtx): SvgNode | null {
-  // Panels depend on the page's label assignment; they are cheap, children are memoised.
-  if (o.type === 'panel') return build(o, ctx);
   const key = `${ctx.textMode}|${String(ctx.screen)}`;
   let memo = memos.get(key);
   if (!memo) {
@@ -319,15 +327,22 @@ export function objectToNode(o: Obj, ctx: RenderCtx): SvgNode | null {
     memos.set(key, memo);
   }
   const hit = memo.get(o);
-  const usesAssets =
-    o.type === 'icon' ||
-    o.type === 'image' ||
-    o.type === 'group' ||
-    o.type === 'procedural' ||
-    o.type === 'embedded';
-  if (hit?.palette === ctx.palette && (!usesAssets || hit.assets === ctx.assets)) return hit.node;
+  const label = o.type === 'panel' ? ctx.labels.get(o.id) : undefined;
+  if (
+    hit?.palette === ctx.palette &&
+    hit.assets === ctx.assets &&
+    hit.label === label &&
+    hit.labelStyle === ctx.labelStyle
+  )
+    return hit.node;
   const node = build(o, ctx);
-  memo.set(o, { node, palette: ctx.palette, assets: ctx.assets });
+  memo.set(o, {
+    node,
+    palette: ctx.palette,
+    assets: ctx.assets,
+    label,
+    labelStyle: ctx.labelStyle,
+  });
   return node;
 }
 

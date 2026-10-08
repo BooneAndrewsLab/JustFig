@@ -21,7 +21,11 @@ const image = (w: number, h: number, f: (x: number, y: number, c: number) => num
   return px;
 };
 
+let oracleCount = 0;
+
 describe('TIFF writer', () => {
+  // libtiff is the second oracle: scripts/oracle/check_tiff_roundtrip.py
+  // reads what TIFF_ORACLE_DIR collects through Pillow.
   it('round-trips RGBA and RGB pixels through UTIF', () => {
     fc.assert(
       fc.property(
@@ -31,17 +35,24 @@ describe('TIFF writer', () => {
         fc.integer(),
         (w, h, alpha, seed) => {
           let s = seed;
+          const dir = process.env['TIFF_ORACLE_DIR'];
           const rnd = () => ((s = (Math.imul(s, 1103515245) + 12345) | 0) >>> 16) & 0xff;
           const px = image(w, h, (_x, _y, c) =>
             c === 3 && !alpha ? 255 : rnd() < 128 ? rnd() : 40,
           );
-          const { rgba, ifd } = decode(encodeTiff(px, { width: w, height: h, dpi: 300, alpha }));
+          const tiff = encodeTiff(px, { width: w, height: h, dpi: 300, alpha });
+          if (dir) {
+            oracleCount += 1;
+            writeFileSync(`${dir}/${String(oracleCount)}.tif`, tiff);
+            writeFileSync(`${dir}/${String(oracleCount)}.raw`, px);
+          }
+          const { rgba, ifd } = decode(tiff);
           expect(ifd.width).toBe(w);
           expect(ifd.height).toBe(h);
           expect(Array.from(rgba)).toEqual(Array.from(px));
         },
       ),
-      { numRuns: 60 },
+      { numRuns: 300 },
     );
   });
 

@@ -132,7 +132,11 @@ export function encodeTiff(rgba: Uint8Array | Uint8ClampedArray, opts: TiffOptio
           raw[i] = ((raw[i] ?? 0) - (raw[i - spp] ?? 0)) & 0xff;
         }
     }
-    strips.push(lzwEncode(raw));
+    const lzw = lzwEncode(raw);
+    // UTIF (and readers built on it, e.g. Photopea) takes a strip whose
+    // compressed length equals its raw length for uncompressed data. A zero
+    // byte after EOI is ignored by LZW decoders and avoids the collision.
+    strips.push(lzw.length === raw.length ? Uint8Array.from([...lzw, 0]) : lzw);
   }
 
   const software = `${opts.software ?? 'TIFF writer'}\0`;

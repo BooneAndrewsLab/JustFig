@@ -1,0 +1,913 @@
+/**
+ * The Inspector (note 01): the properties of the selection, or of the
+ * page and figure when nothing is selected. Every change is a named edit;
+ * typing in one field merges into one undo step (coalesce per field).
+ */
+import type { ReactNode } from 'react';
+
+import {
+  alignObjects,
+  distributeObjects,
+  flipObjects,
+  groupObjects,
+  moveObjects,
+  reorderObjects,
+  resizeObjects,
+  setBackground,
+  setCreditFooter,
+  setLabelStyle,
+  ungroupObjects,
+  updateDoc,
+  updateObjects,
+  updatePage,
+} from '@/core/edits/edits';
+import { center } from '@/core/geometry/matrix';
+import { boundsOf, normAngle, rebase, rotateObj } from '@/core/geometry/transform';
+import type { Id } from '@/core/model/ids';
+import {
+  HEAD_KINDS,
+  FONT_IDS,
+  type FontId,
+  type HeadKind,
+  type Obj,
+  type Paint,
+  type PanelLabelFormat,
+  type ShapeStyle,
+  type TextAlign,
+} from '@/core/model/types';
+import { PAGE_PRESETS, presetSize } from '@/core/presets/pages';
+import { formatLength, fromUnit, toUnit } from '@/core/units';
+
+import { type AppState, currentPage, figure, selectedObjects, store } from '../state/store';
+import { useAppState } from '../state/useAppState';
+import { ColorInput } from './ColorInput';
+
+const HEAD_LABEL: Record<HeadKind, string> = {
+  none: 'None',
+  triangle: 'Triangle',
+  open: 'Open',
+  stealth: 'Stealth',
+  bar: 'Bar (inhibition ⊣)',
+  circle: 'Circle',
+  diamond: 'Diamond',
+};
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="section" aria-label={title}>
+      <h2>{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+function Num({
+  label,
+  value,
+  onChange,
+  step = 1,
+  min,
+  max,
+  suffix,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  step?: number;
+  min?: number;
+  max?: number;
+  suffix?: string;
+}) {
+  return (
+    <label>
+      {label}
+      <input
+        type="number"
+        aria-label={label}
+        value={Number.isFinite(value) ? Math.round(value * 100) / 100 : ''}
+        step={step}
+        {...(min === undefined ? {} : { min })}
+        {...(max === undefined ? {} : { max })}
+        onChange={(e) => {
+          const v = Number(e.target.value);
+          if (e.target.value !== '' && Number.isFinite(v)) onChange(v);
+        }}
+      />
+      {suffix}
+    </label>
+  );
+}
+
+const cap = (t: string): string => t.charAt(0).toUpperCase() + t.slice(1);
+
+const key = (field: string, ids: readonly Id[]) => `field:${field}:${ids.join(',')}`;
+
+function edit(s: AppState, ids: readonly Id[], field: string, label: string, fn: (o: Obj) => Obj) {
+  store.edit(updateObjects(currentPage(s).id, ids, label, fn), {
+    coalesce: key(field, ids),
+    keepSelection: true,
+  });
+}
+
+function restyle(
+  s: AppState,
+  objs: readonly Obj[],
+  field: string,
+  label: string,
+  patch: Partial<ShapeStyle>,
+) {
+  edit(
+    s,
+    objs.map((o) => o.id),
+    field,
+    label,
+    (o) => ('style' in o ? { ...o, style: { ...o.style, ...patch } } : o),
+  );
+}
+
+export function Inspector() {
+  const s = useAppState();
+  const sel = selectedObjects(s);
+  return sel.length === 0 ? <PageInspector s={s} /> : <SelectionInspector s={s} sel={sel} />;
+}
+
+function PageInspector({ s }: { s: AppState }) {
+  const fig = figure(s);
+  const page = currentPage(s);
+  const u = s.units;
+  const ls = fig.doc.panelLabelStyle;
+  return (
+    <>
+      <Section title="Page">
+        <div className="row">
+          <label htmlFor="page-preset">Size</label>
+          <select
+            id="page-preset"
+            value={page.size.preset ?? ''}
+            onChange={(e) => {
+              const size = presetSize(e.target.value);
+              if (size) store.edit(updatePage(page.id, 'Page size', (p) => ({ ...p, size })));
+            }}
+          >
+            <option value="">Custom</option>
+            {(['Journal', 'Paper', 'Screen'] as const).map((g) => (
+              <optgroup key={g} label={g}>
+                {PAGE_PRESETS.filter((p) => p.group === g).map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        </div>
+        <div className="grid2">
+          <Num
+            label={`W (${u})`}
+            value={toUnit(page.size.w, u)}
+            min={1}
+            onChange={(v) => {
+              store.edit(
+                updatePage(page.id, 'Page size', (p) => ({
+                  ...p,
+                  size: { w: fromUnit(v, u), h: p.size.h },
+                })),
+                { coalesce: `page-w:${page.id}` },
+              );
+            }}
+          />
+          <Num
+            label={`H (${u})`}
+            value={toUnit(page.size.h, u)}
+            min={1}
+            onChange={(v) => {
+              store.edit(
+                updatePage(page.id, 'Page size', (p) => ({
+                  ...p,
+                  size: { w: p.size.w, h: fromUnit(v, u) },
+                })),
+                { coalesce: `page-h:${page.id}` },
+              );
+            }}
+          />
+        </div>
+        <ColorInput
+          label="Background"
+          value={page.background}
+          palette={fig.doc.palette}
+          allowNone
+          onChange={(p) => {
+            store.edit(setBackground(page.id, p), { coalesce: `bg:${page.id}` });
+          }}
+        />
+        <div className="row">
+          <label htmlFor="units">Units</label>
+          <select
+            id="units"
+            value={u}
+            onChange={(e) => {
+              store.setUnits(e.target.value === 'in' ? 'in' : 'mm');
+            }}
+          >
+            <option value="mm">Millimetres</option>
+            <option value="in">Inches</option>
+          </select>
+        </div>
+      </Section>
+      <Section title="Figure">
+        <div className="row">
+          <label htmlFor="label-format">Panel labels</label>
+          <select
+            id="label-format"
+            value={ls.format}
+            onChange={(e) => {
+              store.edit(setLabelStyle({ ...ls, format: e.target.value as PanelLabelFormat }));
+            }}
+          >
+            {(['A', 'a', '(a)', '(A)', 'a)'] as const).map((f) => (
+              <option key={f} value={f}>
+                {f}, {f.replace('A', 'B').replace('a', 'b')}, …
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="grid2">
+          <Num
+            label="Size (pt)"
+            value={ls.size}
+            min={4}
+            max={72}
+            onChange={(v) => {
+              store.edit(setLabelStyle({ ...ls, size: v }), { coalesce: 'label-size' });
+            }}
+          />
+          <label>
+            <input
+              type="checkbox"
+              checked={ls.bold}
+              onChange={(e) => {
+                store.edit(setLabelStyle({ ...ls, bold: e.target.checked }));
+              }}
+            />
+            Bold
+          </label>
+        </div>
+        <div className="row">
+          <label>
+            <input
+              type="checkbox"
+              checked={fig.doc.creditFooter}
+              onChange={(e) => {
+                store.edit(setCreditFooter(e.target.checked));
+              }}
+            />{' '}
+            Credit line in exports
+          </label>
+        </div>
+        <div className="row">
+          <label>
+            <input
+              type="checkbox"
+              checked={s.snap}
+              onChange={(e) => {
+                store.setSnap(e.target.checked);
+              }}
+            />{' '}
+            Snap to objects and page
+          </label>
+        </div>
+        <div className="row">
+          <label htmlFor="doc-title">Title</label>
+          <input
+            id="doc-title"
+            type="text"
+            value={fig.doc.title}
+            onChange={(e) => {
+              const title = e.target.value;
+              store.edit(
+                updateDoc('Rename figure', (d) => ({ ...d, title })),
+                { coalesce: 'title' },
+              );
+            }}
+          />
+        </div>
+      </Section>
+    </>
+  );
+}
+
+function SelectionInspector({ s, sel }: { s: AppState; sel: readonly Obj[] }) {
+  const fig = figure(s);
+  const page = currentPage(s);
+  const u = s.units;
+  const ids = sel.map((o) => o.id);
+  const box = boundsOf(sel);
+  const one = sel.length === 1 ? sel[0] : undefined;
+  const styled = sel.filter((o): o is Extract<Obj, { style: ShapeStyle }> => 'style' in o);
+  const first = styled[0];
+  const pageBox = { x: 0, y: 0, w: page.size.w, h: page.size.h };
+
+  const setBox = (patch: Partial<typeof box>, field: string) => {
+    const to = { ...box, ...patch };
+    const e =
+      to.w !== box.w || to.h !== box.h
+        ? resizeObjects(page.id, ids, box, to)
+        : moveObjects(page.id, ids, to.x - box.x, to.y - box.y);
+    store.edit(e, { coalesce: key(field, ids), keepSelection: true });
+  };
+
+  return (
+    <>
+      <Section title={one ? (one.name ?? cap(one.type)) : `${String(sel.length)} objects`}>
+        <div className="grid2">
+          <Num
+            label={`X`}
+            value={toUnit(box.x, u)}
+            onChange={(v) => {
+              setBox({ x: fromUnit(v, u) }, 'x');
+            }}
+            step={0.5}
+          />
+          <Num
+            label={`Y`}
+            value={toUnit(box.y, u)}
+            onChange={(v) => {
+              setBox({ y: fromUnit(v, u) }, 'y');
+            }}
+            step={0.5}
+          />
+          <Num
+            label={`W`}
+            value={toUnit(box.w, u)}
+            min={0.1}
+            onChange={(v) => {
+              setBox({ w: Math.max(0.1, fromUnit(v, u)) }, 'w');
+            }}
+            step={0.5}
+          />
+          <Num
+            label={`H`}
+            value={toUnit(box.h, u)}
+            min={0.1}
+            onChange={(v) => {
+              setBox({ h: Math.max(0.1, fromUnit(v, u)) }, 'h');
+            }}
+            step={0.5}
+          />
+          {one && one.type !== 'group' && one.type !== 'panel' && (
+            <Num
+              label="Rotate °"
+              value={one.frame.rotation}
+              onChange={(v) => {
+                const c = center(boundsOf([one]));
+                edit(s, ids, 'rot', 'Rotate', (o) =>
+                  rotateObj(o, c, normAngle(v - o.frame.rotation)),
+                );
+              }}
+            />
+          )}
+          <Num
+            label="Opacity %"
+            value={Math.round((one?.opacity ?? 1) * 100)}
+            min={0}
+            max={100}
+            step={5}
+            onChange={(v) => {
+              edit(s, ids, 'opacity', 'Opacity', (o) => ({
+                ...o,
+                opacity: Math.min(1, Math.max(0, v / 100)),
+              }));
+            }}
+          />
+        </div>
+        <p className="note" style={{ margin: '4px 0' }}>
+          {formatLength(box.w, u)} × {formatLength(box.h, u)} {u}
+        </p>
+        <div className="row" style={{ flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            title="Flip horizontally"
+            onClick={() => store.edit(flipObjects(page.id, ids, 'x', sel))}
+          >
+            ⇋ Flip H
+          </button>
+          <button
+            type="button"
+            title="Flip vertically"
+            onClick={() => store.edit(flipObjects(page.id, ids, 'y', sel))}
+          >
+            ⇵ Flip V
+          </button>
+          <button
+            type="button"
+            title="Bring to front (])"
+            onClick={() => store.edit(reorderObjects(page.id, ids, 'front'))}
+          >
+            Front
+          </button>
+          <button
+            type="button"
+            title="Send to back ([)"
+            onClick={() => store.edit(reorderObjects(page.id, ids, 'back'))}
+          >
+            Back
+          </button>
+        </div>
+        <div className="row" style={{ flexWrap: 'wrap' }} aria-label="Align">
+          {(
+            [
+              ['left', '⇤', 'Align left'],
+              ['hcenter', '↔', 'Align centres'],
+              ['right', '⇥', 'Align right'],
+              ['top', '⤒', 'Align top'],
+              ['vcenter', '↕', 'Align middles'],
+              ['bottom', '⤓', 'Align bottom'],
+            ] as const
+          ).map(([edge, glyph, title]) => (
+            <button
+              key={edge}
+              type="button"
+              className="icon"
+              title={sel.length === 1 ? `${title} (to the page)` : title}
+              aria-label={title}
+              onClick={() => store.edit(alignObjects(page.id, sel, edge, pageBox))}
+            >
+              {glyph}
+            </button>
+          ))}
+          {sel.length > 2 && (
+            <>
+              <button
+                type="button"
+                title="Distribute horizontally"
+                onClick={() => store.edit(distributeObjects(page.id, sel, 'x'))}
+              >
+                ⋯
+              </button>
+              <button
+                type="button"
+                title="Distribute vertically"
+                onClick={() => store.edit(distributeObjects(page.id, sel, 'y'))}
+              >
+                ⋮
+              </button>
+            </>
+          )}
+        </div>
+        <div className="row">
+          {sel.length > 1 && (
+            <button type="button" onClick={() => store.edit(groupObjects(page.id, ids))}>
+              Group (Ctrl+G)
+            </button>
+          )}
+          {sel.some((o) => o.type === 'group') && (
+            <button type="button" onClick={() => store.edit(ungroupObjects(page.id, ids))}>
+              Ungroup
+            </button>
+          )}
+        </div>
+      </Section>
+
+      {first && (
+        <Section title="Style">
+          {styled.some(
+            (o) => o.type === 'rect' || o.type === 'ellipse' || (o.type === 'path' && o.closed),
+          ) && (
+            <ColorInput
+              label="Fill"
+              value={first.style.fill}
+              palette={fig.doc.palette}
+              allowNone
+              onChange={(p) => {
+                restyle(s, styled, 'fill', 'Fill colour', { fill: p });
+              }}
+            />
+          )}
+          <ColorInput
+            label="Stroke"
+            value={first.style.stroke}
+            palette={fig.doc.palette}
+            allowNone={!styled.some((o) => o.type === 'arrow')}
+            onChange={(p) => {
+              restyle(s, styled, 'stroke', 'Stroke colour', { stroke: p });
+            }}
+          />
+          <div className="grid2">
+            <Num
+              label="Width (pt)"
+              value={first.style.strokeWidth}
+              min={0}
+              step={0.25}
+              onChange={(v) => {
+                restyle(s, styled, 'sw', 'Stroke width', { strokeWidth: Math.max(0, v) });
+              }}
+            />
+            <label>
+              Dash
+              <select
+                aria-label="Dash"
+                value={
+                  first.style.dash === undefined
+                    ? 'solid'
+                    : first.style.dash[0] === first.style.strokeWidth
+                      ? 'dotted'
+                      : 'dashed'
+                }
+                onChange={(e) => {
+                  const w = Math.max(first.style.strokeWidth, 0.5);
+                  edit(
+                    s,
+                    styled.map((o) => o.id),
+                    'dash',
+                    'Dash',
+                    (o) => {
+                      if (!('style' in o)) return o;
+                      const { dash: _d, ...rest } = o.style;
+                      if (e.target.value === 'solid') return { ...o, style: rest };
+                      return {
+                        ...o,
+                        style: {
+                          ...rest,
+                          dash: e.target.value === 'dotted' ? [w, w * 2] : [w * 4, w * 2],
+                        },
+                      };
+                    },
+                  );
+                }}
+              >
+                <option value="solid">Solid</option>
+                <option value="dashed">Dashed</option>
+                <option value="dotted">Dotted</option>
+              </select>
+            </label>
+            {one?.type === 'rect' && (
+              <Num
+                label="Corner (pt)"
+                value={one.rx}
+                min={0}
+                onChange={(v) => {
+                  edit(s, ids, 'rx', 'Corner radius', (o) =>
+                    o.type === 'rect' ? { ...o, rx: Math.max(0, v) } : o,
+                  );
+                }}
+              />
+            )}
+          </div>
+        </Section>
+      )}
+
+      {one?.type === 'arrow' && <ArrowSection s={s} arrow={one} />}
+      {one?.type === 'text' && <TextSection s={s} text={one} />}
+      {one?.type === 'icon' && <IconSection s={s} icon={one} />}
+      {one?.type === 'panel' && <PanelSection s={s} panel={one} />}
+      {one?.type === 'image' && <ImageSection s={s} image={one} />}
+    </>
+  );
+}
+
+function ArrowSection({ s, arrow }: { s: AppState; arrow: Extract<Obj, { type: 'arrow' }> }) {
+  const ids = [arrow.id];
+  const [a, b] = [arrow.nodes[0], arrow.nodes[arrow.nodes.length - 1]];
+  const bend = (() => {
+    if (arrow.nodes.length !== 2 || !a || !b || !a.out) return 0;
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const ox = a.out.x - (a.x + dx / 3);
+    const oy = a.out.y - (a.y + dy / 3);
+    return Math.round(((ox * -dy + oy * dx) / len / len) * 100);
+  })();
+  const setHead = (end: 'start' | 'end', patch: Partial<{ kind: HeadKind; size: number }>) => {
+    edit(s, ids, `head-${end}`, end === 'start' ? 'Start head' : 'End head', (o) =>
+      o.type === 'arrow' ? { ...o, [end]: { ...o[end], ...patch } } : o,
+    );
+  };
+  return (
+    <Section title="Arrow">
+      {(['start', 'end'] as const).map((end) => (
+        <div className="row" key={end}>
+          <label htmlFor={`head-${end}`}>{end === 'start' ? 'Start' : 'End'}</label>
+          <select
+            id={`head-${end}`}
+            value={arrow[end].kind}
+            onChange={(e) => {
+              setHead(end, { kind: e.target.value as HeadKind });
+            }}
+          >
+            {HEAD_KINDS.map((k) => (
+              <option key={k} value={k}>
+                {HEAD_LABEL[k]}
+              </option>
+            ))}
+          </select>
+        </div>
+      ))}
+      <div className="grid2">
+        <Num
+          label="Head size"
+          value={arrow.end.size}
+          min={1}
+          max={20}
+          step={0.5}
+          onChange={(v) => {
+            edit(s, ids, 'head-size', 'Head size', (o) =>
+              o.type === 'arrow'
+                ? { ...o, start: { ...o.start, size: v }, end: { ...o.end, size: v } }
+                : o,
+            );
+          }}
+        />
+        {arrow.nodes.length === 2 && (
+          <Num
+            label="Curve %"
+            value={bend}
+            min={-100}
+            max={100}
+            step={5}
+            onChange={(v) => {
+              edit(s, ids, 'bend', 'Curve arrow', (o) => {
+                if (o.type !== 'arrow' || o.nodes.length !== 2) return o;
+                const [p, q] = o.nodes;
+                if (!p || !q) return o;
+                const len = Math.hypot(q.x - p.x, q.y - p.y) || 1;
+                const nx = (-(q.y - p.y) / len) * len * (v / 100);
+                const ny = ((q.x - p.x) / len) * len * (v / 100);
+                const c1 = { x: p.x + (q.x - p.x) / 3 + nx, y: p.y + (q.y - p.y) / 3 + ny };
+                const c2 = {
+                  x: p.x + ((q.x - p.x) * 2) / 3 + nx,
+                  y: p.y + ((q.y - p.y) * 2) / 3 + ny,
+                };
+                const nodes =
+                  v === 0
+                    ? [
+                        { x: p.x, y: p.y },
+                        { x: q.x, y: q.y },
+                      ]
+                    : [
+                        { x: p.x, y: p.y, out: c1 },
+                        { x: q.x, y: q.y, in: c2 },
+                      ];
+                return rebase({ ...o, nodes });
+              });
+            }}
+          />
+        )}
+      </div>
+    </Section>
+  );
+}
+
+function TextSection({ s, text }: { s: AppState; text: Extract<Obj, { type: 'text' }> }) {
+  const ids = [text.id];
+  const firstRun = text.runs[0]?.[0];
+  const allRuns = (
+    fn: (r: NonNullable<typeof firstRun>) => NonNullable<typeof firstRun>,
+    field: string,
+    label: string,
+  ) => {
+    edit(s, ids, field, label, (o) =>
+      o.type === 'text' ? { ...o, runs: o.runs.map((p) => p.map(fn)) } : o,
+    );
+  };
+  return (
+    <Section title="Text">
+      <div className="row">
+        <button
+          type="button"
+          className="primary"
+          onClick={() => {
+            store.editText(text.id);
+          }}
+        >
+          Edit text
+        </button>
+      </div>
+      <div className="row">
+        <label htmlFor="text-font">Font</label>
+        <select
+          id="text-font"
+          value={firstRun?.font ?? 'arimo'}
+          onChange={(e) => {
+            allRuns((r) => ({ ...r, font: e.target.value as FontId }), 'font', 'Font');
+          }}
+        >
+          {FONT_IDS.map((f) => (
+            <option key={f} value={f}>
+              {cap(f)}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="grid2">
+        <Num
+          label="Size (pt)"
+          value={firstRun?.size ?? 10}
+          min={2}
+          step={0.5}
+          onChange={(v) => {
+            allRuns((r) => ({ ...r, size: v }), 'size', 'Font size');
+          }}
+        />
+        <label>
+          Align
+          <select
+            aria-label="Align"
+            value={text.align}
+            onChange={(e) => {
+              edit(s, ids, 'align', 'Text alignment', (o) =>
+                o.type === 'text' ? { ...o, align: e.target.value as TextAlign } : o,
+              );
+            }}
+          >
+            <option value="left">Left</option>
+            <option value="center">Centre</option>
+            <option value="right">Right</option>
+          </select>
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={text.autoWidth}
+            onChange={(e) => {
+              edit(s, ids, 'autow', 'Auto width', (o) =>
+                o.type === 'text' ? { ...o, autoWidth: e.target.checked } : o,
+              );
+            }}
+          />
+          Auto width
+        </label>
+        <Num
+          label="Line height"
+          value={text.lineHeight}
+          min={0.8}
+          max={3}
+          step={0.05}
+          onChange={(v) => {
+            edit(s, ids, 'lh', 'Line height', (o) =>
+              o.type === 'text' ? { ...o, lineHeight: v } : o,
+            );
+          }}
+        />
+      </div>
+      <ColorInput
+        label="Colour"
+        value={firstRun?.color ?? null}
+        palette={figure(s).doc.palette}
+        onChange={(p) => {
+          if (p) allRuns((r) => ({ ...r, color: p }), 'color', 'Text colour');
+        }}
+      />
+    </Section>
+  );
+}
+
+function IconSection({ s, icon }: { s: AppState; icon: Extract<Obj, { type: 'icon' }> }) {
+  const fig = figure(s);
+  const asset = fig.assets[icon.asset];
+  if (asset?.kind !== 'icon') return null;
+  const ids = [icon.id];
+  return (
+    <Section title="Icon colours">
+      {asset.slots.map((slot) => (
+        <ColorInput
+          key={slot.id}
+          label={slot.label}
+          value={icon.slots[slot.id] ?? { hex: slot.default }}
+          palette={fig.doc.palette}
+          onChange={(p: Paint | null) => {
+            if (p)
+              edit(s, ids, `slot-${slot.id}`, `Recolour ${slot.label.toLowerCase()}`, (o) =>
+                o.type === 'icon' ? { ...o, slots: { ...o.slots, [slot.id]: p } } : o,
+              );
+          }}
+        />
+      ))}
+      <div className="row">
+        <button
+          type="button"
+          disabled={Object.keys(icon.slots).length === 0}
+          onClick={() => {
+            edit(s, ids, 'slot-reset', 'Reset icon colours', (o) =>
+              o.type === 'icon' ? { ...o, slots: {} } : o,
+            );
+          }}
+        >
+          Reset colours
+        </button>
+      </div>
+      <p className="note">
+        {asset.meta.title} · {asset.meta.source}
+        {asset.meta.author ? `, ${asset.meta.author}` : ''} · {asset.meta.license}
+      </p>
+    </Section>
+  );
+}
+
+function PanelSection({ s, panel }: { s: AppState; panel: Extract<Obj, { type: 'panel' }> }) {
+  const ids = [panel.id];
+  return (
+    <Section title="Panel">
+      <div className="row">
+        <label>
+          <input
+            type="checkbox"
+            checked={panel.autoLabel}
+            onChange={(e) => {
+              edit(s, ids, 'auto', 'Panel label', (o) =>
+                o.type === 'panel' ? { ...o, autoLabel: e.target.checked } : o,
+              );
+            }}
+          />{' '}
+          Automatic label
+        </label>
+      </div>
+      {!panel.autoLabel && (
+        <div className="row">
+          <label htmlFor="panel-label">Label</label>
+          <input
+            id="panel-label"
+            type="text"
+            value={panel.label}
+            onChange={(e) => {
+              const label = e.target.value;
+              edit(s, ids, 'label', 'Panel label', (o) =>
+                o.type === 'panel' ? { ...o, label } : o,
+              );
+            }}
+          />
+        </div>
+      )}
+      <div className="row">
+        <label>
+          <input
+            type="checkbox"
+            checked={panel.showLabel}
+            onChange={(e) => {
+              edit(s, ids, 'show', 'Show label', (o) =>
+                o.type === 'panel' ? { ...o, showLabel: e.target.checked } : o,
+              );
+            }}
+          />{' '}
+          Show label
+        </label>
+      </div>
+      <div className="row">
+        <label>
+          <input
+            type="checkbox"
+            checked={panel.showBorder}
+            onChange={(e) => {
+              edit(s, ids, 'border', 'Panel border', (o) =>
+                o.type === 'panel' ? { ...o, showBorder: e.target.checked } : o,
+              );
+            }}
+          />{' '}
+          Show border
+        </label>
+      </div>
+    </Section>
+  );
+}
+
+function ImageSection({ s, image }: { s: AppState; image: Extract<Obj, { type: 'image' }> }) {
+  const asset = figure(s).assets[image.asset];
+  if (!asset || asset.kind === 'icon') return null;
+  return (
+    <Section title={asset.kind === 'image' ? 'Image' : 'Imported SVG'}>
+      <p className="note">{asset.meta.name}</p>
+      <div className="row">
+        <label htmlFor="credit">Credit</label>
+        <input
+          id="credit"
+          type="text"
+          placeholder="e.g. Photo: A. Author"
+          value={asset.meta.credit ?? ''}
+          onChange={(e) => {
+            const credit = e.target.value;
+            store.edit(
+              {
+                label: 'Image credit',
+                apply: (f) => {
+                  const a = f.assets[image.asset];
+                  if (!a || a.kind === 'icon') return f;
+                  const { credit: _c, ...meta } = a.meta;
+                  return {
+                    ...f,
+                    assets: {
+                      ...f.assets,
+                      [image.asset]: {
+                        ...a,
+                        meta: credit.trim() === '' ? meta : { ...meta, credit },
+                      },
+                    },
+                  };
+                },
+              },
+              { coalesce: `credit:${image.asset}` },
+            );
+          }}
+        />
+      </div>
+    </Section>
+  );
+}

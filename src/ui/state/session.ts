@@ -1,0 +1,318 @@
+/**
+ * What the menus and shortcuts do with files, the clipboard, icons and
+ * exports: everything that reaches outside the store. Saving downloads a
+ * file (never a kept handle); autosave keeps a copy in IndexedDB.
+ */
+import { BRAND } from '@/brand';
+import { addObjects, deleteObjects, withAssets } from '@/core/edits/edits';
+import { boundsOf } from '@/core/geometry/transform';
+import { cloneObjects } from '@/core/model/clone';
+import { createDoc, createText, defaultRun, frame } from '@/core/model/factory';
+import type { Id } from '@/core/model/ids';
+import { objectAssets } from '@/core/model/tree';
+import type { Assets, Figure, Obj } from '@/core/model/types';
+import { fitText } from '@/core/text/layout';
+import { exportPdf } from '@/export/pdf';
+import { exportPng, exportTiff } from '@/export/raster';
+import { exportSvg } from '@/export/svg';
+import type { IconEntry } from '@/icons/manifest';
+import { HttpIconLibrary, type IconLibrary } from '@/icons/library';
+import { importFile } from '@/io/import';
+import { JfigError, readFragment, readJfig, writeFragment, writeJfig } from '@/io/jfig';
+import { getStorage } from '@/io/storage';
+
+import { analytics } from '../analytics';
+import { Autosaver } from './autosave';
+import { currentPage, figure, selectedObjects, store } from './store';
+
+export const APP = { name: BRAND.name, version: __APP_VERSION__ };
+
+let library: IconLibrary | null = null;
+export function getLibrary(): IconLibrary {
+  library ??= new HttpIconLibrary(`${import.meta.env.BASE_URL}${BRAND.iconLibraryPath}`);
+  return library;
+}
+
+export function download(bytes: Uint8Array | string, name: string, type: string): void {
+  const blob = new Blob([bytes as BlobPart], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 10_000);
+}
+
+export const safeName = (title: string): string =>
+  title
+    .trim()
+    .replace(/[\\/:*?"<>|]+/g, '-')
+    .slice(0, 80) || 'figure';
+
+let saver: Autosaver | null = null;
+
+/** Restores the last figure from the browser and starts autosaving. */
+export async function startSession(): Promise<void> {
+  const storage = getStorage();
+  try {
+    const kept = await Promise.race([
+      storage.latest(),
+      new Promise<null>((resolve) => {
+        setTimeout(() => {
+          resolve(null);
+        }, 1500);
+      }),
+    ]);
+    if (kept) store.load(kept, { hasFile: kept.downloaded });
+  } catch {
+    // A wedged IndexedDB must not block the app.
+  }
+  saver = new Autosaver(store, storage, APP, () => {
+    store.notify('Could not keep a copy in this browser; save the file to be safe.', 'warning');
+  });
+  saver.markSaved(figure(store.getState()));
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') void saver?.flush();
+  });
+}
+
+export function newFigure(): void {
+  void saver?.flush();
+  store.load({ doc: createDoc(), assets: {} });
+}
+
+export async function openFile(file: File): Promise<void> {
+  try {
+    if (!file.name.toLowerCase().endsWith(BRAND.fileExt) && file.type !== BRAND.mime) {
+      await importToCanvas(file);
+      return;
+    }
+    const saved = readJfig(await file.text());
+    await saver?.flush();
+    store.load(saved, { hasFile: true });
+    analytics.track('file', 'open');
+  } catch (e: unknown) {
+    store.notify(e instanceof Error ? e.message : 'Could not open that file.', 'error');
+  }
+}
+
+export function saveFile(): void {
+  const f = figure(store.getState());
+  download(writeJfig(f, APP), `${safeName(f.doc.title)}${BRAND.fileExt}`, BRAND.mime);
+  store.markDownloaded();
+  analytics.track('file', 'download');
+}
+
+/** Where new things go: the centre of the visible canvas, in page coordinates. */
+export function viewCenter(): { x: number; y: number } {
+  const s = store.getState();
+  const el = document.querySelector('.canvas');
+  const w = el?.clientWidth ?? 800;
+  const h = el?.clientHeight ?? 600;
+  return { x: (w / 2 - s.view.x) / s.view.zoom, y: (h / 2 - s.view.y) / s.view.zoom };
+}
+
+export async function importToCanvas(file: File, at?: { x: number; y: number }): Promise<void> {
+  try {
+    const imp = await importFile(file);
+    const c = at ?? viewCenter();
+    const obj: Obj = {
+      id: '' as Id,
+      type: 'image',
+      frame: frame(c.x - imp.w / 2, c.y - imp.h / 2, imp.w, imp.h),
+      opacity: 1,
+      asset: imp.hash,
+    };
+    const [placed] = cloneObjects([obj]);
+    if (!placed) return;
+    store.edit(addObjects(currentPage(store.getState()).id, [placed], { [imp.hash]: imp.asset }));
+    analytics.track('file', imp.asset.kind === 'svgImport' ? 'import-svg' : 'import-image');
+    if (imp.warnings.length > 0)
+      store.notify(`Imported with changes: ${imp.warnings.join(' ')}`, 'warning');
+  } catch (e: unknown) {
+    store.notify(e instanceof Error ? e.message : 'Could not import that file.', 'error');
+  }
+}
+
+export async function placeIcon(entry: IconEntry, at?: { x: number; y: number }): Promise<void> {
+  try {
+    const { hash, asset } = await getLibrary().asset(entry);
+    const c = at ?? viewCenter();
+    const [vw, vh] = /viewBox="[\d.-]+ [\d.-]+ ([\d.]+) ([\d.]+)"/
+      .exec(asset.svg)
+      ?.slice(1)
+      .map(Number) ?? [100, 100];
+    const size = 56;
+    const k = size / Math.max(vw ?? 100, vh ?? 100);
+    const w = (vw ?? 100) * k;
+    const h = (vh ?? 100) * k;
+    const [obj] = cloneObjects([
+      {
+        id: '' as Id,
+        type: 'icon',
+        name: entry.title,
+        frame: frame(c.x - w / 2, c.y - h / 2, w, h),
+        opacity: 1,
+        asset: hash,
+        slots: {},
+        lockAspect: true,
+      },
+    ]);
+    if (!obj) return;
+    store.edit(addObjects(currentPage(store.getState()).id, [obj], { [hash]: asset }));
+    analytics.track('icon', 'place');
+  } catch (e: unknown) {
+    store.notify(e instanceof Error ? e.message : 'Could not place that icon.', 'error');
+  }
+}
+
+// --- clipboard ------------------------------------------------------------------
+
+let internalClipboard: string | null = null;
+
+function fragmentOf(objs: readonly Obj[], assets: Assets): string {
+  const used: Record<string, Assets[string]> = {};
+  for (const o of objs) for (const h of objectAssets(o)) if (assets[h]) used[h] = assets[h];
+  return writeFragment({ objects: objs, assets: used });
+}
+
+export function copySelection(cut = false): string | null {
+  const s = store.getState();
+  const objs = selectedObjects(s);
+  if (objs.length === 0) return null;
+  const text = fragmentOf(objs, figure(s).assets);
+  internalClipboard = text;
+  void navigator.clipboard.writeText(text).catch(() => undefined);
+  if (cut)
+    store.edit({
+      ...deleteObjects(
+        currentPage(s).id,
+        objs.map((o) => o.id),
+      ),
+      label: 'Cut',
+    });
+  return text;
+}
+
+/** Pastes a fragment (from the system clipboard text, else the internal one). */
+export function pasteText(text: string | null, offset = 10): boolean {
+  const source = text ?? internalClipboard;
+  if (source === null) return false;
+  try {
+    const frag = readFragment(source);
+    if (!frag) return false;
+    const objs = cloneObjects(frag.objects, offset, offset);
+    store.edit({
+      ...addObjects(currentPage(store.getState()).id, objs, frag.assets),
+      label: 'Paste',
+    });
+    internalClipboard = writeFragment({ objects: objs, assets: frag.assets });
+    return true;
+  } catch (e: unknown) {
+    store.notify(e instanceof JfigError ? e.message : 'Could not paste that.', 'error');
+    return true;
+  }
+}
+
+export function duplicateSelection(): void {
+  const s = store.getState();
+  const objs = selectedObjects(s);
+  if (objs.length === 0) return;
+  const copies = cloneObjects(objs, 10, 10);
+  store.edit({ ...addObjects(currentPage(s).id, copies), label: 'Duplicate' });
+}
+
+// --- export -----------------------------------------------------------------------
+
+export type ExportFormat = 'svg' | 'pdf' | 'png' | 'tiff';
+
+export interface ExportRequest {
+  readonly format: ExportFormat;
+  readonly allPages: boolean;
+  readonly dpi: number;
+  readonly transparent: boolean;
+  readonly outline: boolean;
+  readonly footer: boolean;
+}
+
+export async function runExport(req: ExportRequest): Promise<void> {
+  const s = store.getState();
+  const fig = figure(s);
+  const page = currentPage(s);
+  const base = safeName(fig.doc.title);
+  const pageSuffix = fig.doc.pages.length > 1 ? `-${safeName(page.name)}` : '';
+  const opts = {
+    textMode: req.outline ? 'outline' : 'text',
+    footer: req.footer,
+    background: true,
+  } as const;
+  switch (req.format) {
+    case 'svg':
+      download(
+        exportSvg(fig, page, opts, APP.version),
+        `${base}${pageSuffix}.svg`,
+        'image/svg+xml',
+      );
+      break;
+    case 'pdf': {
+      const pages = req.allPages ? fig.doc.pages : [page];
+      download(
+        await exportPdf(fig, pages, opts, APP.version),
+        `${base}${req.allPages ? '' : pageSuffix}.pdf`,
+        'application/pdf',
+      );
+      break;
+    }
+    case 'png':
+      download(
+        await exportPng(
+          fig,
+          page,
+          { dpi: req.dpi, transparent: req.transparent, footer: req.footer },
+          APP.version,
+        ),
+        `${base}${pageSuffix}.png`,
+        'image/png',
+      );
+      break;
+    case 'tiff':
+      download(
+        await exportTiff(
+          fig,
+          page,
+          { dpi: req.dpi, transparent: req.transparent, footer: req.footer },
+          APP.version,
+        ),
+        `${base}${pageSuffix}.tif`,
+        'image/tiff',
+      );
+      break;
+  }
+  analytics.track('export', req.format);
+}
+
+/** Adds the credit line as a text object under the page's content (bottom-left). */
+export function addCreditText(line: string): void {
+  const s = store.getState();
+  const page = currentPage(s);
+  const t = fitText({
+    ...createText(8, 0, [[defaultRun(line, { size: 6, color: { hex: '#52606d' } })]]),
+    autoWidth: false,
+    frame: frame(8, 0, page.size.w - 16, 10),
+  });
+  const placed = { ...t, frame: { ...t.frame, y: page.size.h - t.frame.h - 6 } };
+  store.edit({ ...addObjects(page.id, [placed]), label: 'Add credit line' });
+  analytics.track('attribution', 'add-text');
+}
+
+export function selectionBounds(): ReturnType<typeof boundsOf> | null {
+  const objs = selectedObjects(store.getState());
+  return objs.length === 0 ? null : boundsOf(objs);
+}
+
+export { withAssets };
+export type { Figure };
