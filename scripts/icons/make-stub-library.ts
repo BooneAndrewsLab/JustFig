@@ -503,7 +503,7 @@ const HOUSE: Def[] = [
       line(P('M14 70C4 66 6 50 18 52'), 2.5) +
       both(P('M18 66C18 40 44 30 64 38C78 30 92 44 92 58C92 66 84 70 74 70Z'), 's1', '#c9ced6') +
       both(C(70, 34, 9), 's2', '#f4b6c2') +
-      fill(C(84, 52, 2.5), 's1', OUTLINE),
+      fill(C(84, 52, 2.5), 'outline', OUTLINE),
   },
   {
     id: 'zebrafish',
@@ -518,7 +518,7 @@ const HOUSE: Def[] = [
         '/>',
         ` fill="none" stroke="${DBLUE}" stroke-width="3" data-slot="s2"/>`,
       ) +
-      fill(C(18, 47, 2.5), 's1', OUTLINE),
+      fill(C(18, 47, 2.5), 'outline', OUTLINE),
   },
   {
     id: 'plant',

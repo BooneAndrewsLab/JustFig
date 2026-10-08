@@ -3,7 +3,7 @@ import type { ToolId } from '../state/store';
 /** The tools, their shortcut keys and palette glyphs. */
 export const TOOLS: readonly { id: ToolId; label: string; key: string; glyph: string }[] = [
   { id: 'select', label: 'Select', key: 'V', glyph: '↖' },
-  { id: 'hand', label: 'Pan', key: 'H', glyph: '✋' },
+  { id: 'hand', label: 'Pan', key: 'H', glyph: '⇄' },
   { id: 'rect', label: 'Rectangle', key: 'R', glyph: '▭' },
   { id: 'ellipse', label: 'Ellipse', key: 'E', glyph: '◯' },
   { id: 'line', label: 'Line', key: 'L', glyph: '╱' },

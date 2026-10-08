@@ -594,6 +594,7 @@ export function Canvas() {
             <PageView page={page} figure={fig} />
             {/* The page edge stays visible over a page-sized object. */}
             <rect
+              data-testid="page"
               width={page.size.w}
               height={page.size.h}
               fill="none"

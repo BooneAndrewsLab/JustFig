@@ -322,6 +322,11 @@ select {
   flex: none;
 }
 
+.row > label:first-child:has(input[type='checkbox']) {
+  width: auto;
+  color: inherit;
+}
+
 .row input[type='number'] {
   width: 64px;
 }
