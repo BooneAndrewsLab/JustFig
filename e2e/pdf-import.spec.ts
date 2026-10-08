@@ -28,6 +28,9 @@ test('a multi-page PDF asks for a page, from the keyboard, and Escape imports no
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole('radio')).toHaveCount(2);
   await expect(dialog.getByRole('img', { name: 'Preview of page 1' })).toBeVisible();
+  // The preview is the laid-out outline rendering (no browser-font text), as placed.
+  const src = await dialog.getByRole('img', { name: 'Preview of page 1' }).getAttribute('src');
+  expect(decodeURIComponent(src ?? '')).not.toContain('<text');
   const axe = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .include('.dialog')

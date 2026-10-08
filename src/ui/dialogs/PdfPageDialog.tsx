@@ -6,13 +6,21 @@
 import { useEffect, useState } from 'react';
 
 import { formatLength } from '@/core/units';
+import { svgImportNode } from '@/render/assets';
+import { nodeToSvgString } from '@/render/svgNode';
 
 import type { PdfPageRequest } from '../state/pdfPagePicker';
 import { useAppState } from '../state/useAppState';
 import { Dialog } from './Dialog';
 
-const svgUrl = (svg: string): string =>
-  `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+/** The page as it will be placed: text laid out in the bundled fonts, drawn as outlines (note 14). */
+function previewUrl(svg: string, w: number, h: number): string {
+  const body = nodeToSvgString(svgImportNode(svg, w, h, 'outline'));
+  const page =
+    `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" ` +
+    `width="${String(w)}" height="${String(h)}" viewBox="0 0 ${String(w)} ${String(h)}">${body}</svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(page)}`;
+}
 
 export function PdfPageDialog({ request }: { request: PdfPageRequest }) {
   const units = useAppState().units;
@@ -24,7 +32,10 @@ export function PdfPageDialog({ request }: { request: PdfPageRequest }) {
     request.preview(page).then(
       (imp) => {
         if (live)
-          setPreview({ page, url: imp.asset.kind === 'svgImport' ? svgUrl(imp.asset.svg) : null });
+          setPreview({
+            page,
+            url: imp.asset.kind === 'svgImport' ? previewUrl(imp.asset.svg, imp.w, imp.h) : null,
+          });
       },
       () => {
         if (live) setPreview({ page, url: null });

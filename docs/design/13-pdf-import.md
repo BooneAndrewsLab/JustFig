@@ -61,7 +61,7 @@ scaling text, issue 3) sees no difference between the two.
   The session passes `choosePdfPage` (`src/ui/state/pdfPagePicker.ts`), a promise the
   **Choose a PDF page** dialog resolves: a radio group of pages (focused first) with their
   sizes in the document's units, a preview of the selected page (the converted SVG as an
-  `<img>`), Import, and Cancel/Escape, which imports nothing. The asset is named
+  `<img>`, drawn through `svgImportNode(..., 'outline')` so its text is in the bundled fonts, as placed), Import, and Cancel/Escape, which imports nothing. The asset is named
   `file.pdf (page n)` for multi-page files.
 - **Detection:** `.pdf`, `application/pdf` or the `%PDF` magic number (pasted files may have
   neither name nor type). Password-protected and unreadable files raise `PdfImportError` with a
