@@ -87,26 +87,30 @@ Notes on specific fields:
   save.
 - **Attribution is derived**, never stored: `core/attribution` reads the `meta` of every asset
   in use.
-- **Procedural** objects (Phase 3) are decoded and kept losslessly now. Until the registry exists,
-  they render from `snapshot` (an `svgImport` asset) or as a dashed placeholder box, and are never
-  dropped. **Embedded** objects render from their snapshot the same way.
+- **Procedural** objects are drawn by their kind (note 04). `params` is stored as the JSON it
+  was given and decoded at render time, so it is kept losslessly. A kind this version does not
+  know, or a newer `kindVersion`, renders from `snapshot` (an `svgImport` asset written on save
+  and copy) or as a dashed placeholder box, and is never dropped. A path-following kind keeps its
+  path in `path` (frame-local, like path nodes) and resizing bakes the scale into it. **Embedded**
+  objects render from their snapshot.
 
 ## Versioning and migrations
 
 As in `bsig.ts`: `MIGRATIONS[i]` turns schema `i + 1` into `i + 2`, `SCHEMA_VERSION =
 MIGRATIONS.length + 1`, and `migrate()` runs on open. A file from a newer app is refused with a
-message saying so and suggesting a reload. Each procedural kind will carry `kindVersion` and its
-own `migrate`. Every schema bump ships a frozen fixture in `src/io/fixtures/` plus a round-trip
+message saying so and suggesting a reload. Each procedural kind carries `kindVersion` and its
+own `migrate` (note 04), so kinds evolve without a schema bump. Every schema bump ships a frozen fixture in `src/io/fixtures/` plus a round-trip
 test. Schema 1 is frozen as `src/io/fixtures/v1.jfig`.
 
 ## Fragments (clipboard and sibling interchange)
 
 `{ format: 'justfig-fragment', schemaVersion, objects: Obj[], assets }` holds the selected
 objects with only the assets they use. Copy writes it to the clipboard as JSON text, with an
-`image/svg+xml` rendering where the browser allows. Paste reads it, gives every object fresh ids
-and offsets it by 10 pt. Sibling apps will emit fragments (PlasmidPop a `procedural`
-`plasmidMap`, BarelySig an `embedded` chart). The contract note `NN-fragment-format.md` and the
-JSON Schema come with Phase 3.
+`image/svg+xml` rendering where the browser allows. Paste reads it and gives every object fresh
+ids; objects copied from this figure land 10 pt from the originals, objects from elsewhere in the
+middle of the view. A fragment file opened with Open… is added to the page the same way. Sibling
+apps emit fragments: PlasmidPop a `procedural` `plasmidMap`, BarelySig (Phase 4) an `embedded`
+chart. The contract is note 05.
 
 ## Storage
 

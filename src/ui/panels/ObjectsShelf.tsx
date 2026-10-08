@@ -59,12 +59,11 @@ export function ObjectsShelf() {
       }}
     >
       <summary>Scientific objects</summary>
-      <div className="objects-grid" role="list">
+      <div className="objects-grid">
         {allKinds().map((k) => (
           <button
             key={k.kind}
             type="button"
-            role="listitem"
             className="object-tile"
             data-kind={k.kind}
             title={`${k.title} — ${k.description}`}

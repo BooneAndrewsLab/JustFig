@@ -173,12 +173,12 @@ function ListControl({
     setOpen(j);
   };
   return (
-    <div className="param-list" aria-label={f.label}>
+    <div className="param-list">
       <div className="row">
         <label>{f.label}</label>
         <span className="note">{items.length}</span>
       </div>
-      <ul>
+      <ul aria-label={f.label}>
         {items.map((it, i) => (
           <li key={i} className={open === i ? 'open' : undefined}>
             <div className="row">
@@ -353,7 +353,7 @@ export function ProceduralSection({ s, obj }: { s: AppState; obj: Procedural }) 
   const ids = [obj.id];
   return (
     <>
-      <section className="section procedural" aria-label={kind.title}>
+      <section className="section procedural" aria-label={`${kind.title} options`}>
         <h2>{kind.title}</h2>
         {visibleFields(kind.fields, params).map((f) => (
           <FieldControl key={f.key} s={s} o={obj} f={f} params={params} />

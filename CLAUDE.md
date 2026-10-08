@@ -49,5 +49,13 @@ account, figures never leave the computer. Design notes: `docs/design/`.
   a recoloured CC BY/BY-SA icon is credited "modified". The library is data
   from another repo: paths stay inside it, CREDITS.md renders as text only.
 - **Share-alike** (CC BY-SA) icons stay hidden unless the user opts in.
+- **Procedural objects** (note 04): a kind in `src/procedural/kinds/` is declarative `fields`
+  plus a PURE `render` to primitives, merged into one path per colour. Never add per-kind UI:
+  the Inspector, decoder and test arbitraries come from `fields`. A new kind needs golden SVGs
+  (`goldenCases.ts`) and must pass the bounded-render property test; changing a kind's params
+  shape means bumping its `version` with a `migrate`. Params stay raw JSON in the model.
+- **Fragments** (note 05) are the contract with PlasmidPop and BarelySig; the frozen PlasmidPop
+  fixture is `src/io/fixtures/plasmidpop-pbr322.fragment.json`. Never write the display name
+  into a fragment or kind (the brand test scans `src/`).
 - Analytics: `src/ui/analytics.ts` `EVENTS` allow-list only, never figure
   content; no-op when the Matomo env is unset.

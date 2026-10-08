@@ -3,7 +3,7 @@
  * colour (click or drag; Alt or the eraser clears), or paste a block from a
  * spreadsheet. One stroke of painting is one undo step.
  */
-import { useRef, useState } from 'react';
+import { memo, useRef, useState } from 'react';
 
 import { OKABE_ITO } from '@/core/color/color';
 import { rowLabel } from '@/procedural/kinds/util';
@@ -16,6 +16,46 @@ interface Props {
   readonly value: WellMap;
   readonly onChange: (m: WellMap, what: string) => void;
 }
+
+/** The wells, redrawn only when the colours or the grid change (not on every move of the plate). */
+const WellGrid = memo(function WellGrid({
+  rows,
+  cols,
+  cell,
+  value,
+}: {
+  rows: number;
+  cols: number;
+  cell: number;
+  value: WellMap;
+}) {
+  return (
+    <>
+      <rect width={cols * cell} height={rows * cell} fill="#eef2f6" />
+      {Array.from({ length: rows }, (_, r) =>
+        Array.from({ length: cols }, (_, c) => {
+          const id = wellId(r, c);
+          return (
+            <rect
+              key={id}
+              data-well={id}
+              x={c * cell + 0.5}
+              y={r * cell + 0.5}
+              width={cell - 1}
+              height={cell - 1}
+              rx={cell / 2}
+              fill={value[id] ?? '#ffffff'}
+              stroke="#9aa5b1"
+              strokeWidth={cell > 6 ? 0.5 : 0}
+            >
+              <title>{id}</title>
+            </rect>
+          );
+        }),
+      )}
+    </>
+  );
+});
 
 export function WellMapEditor({ field, params, value, onChange }: Props) {
   const { rows, cols } = field.grid(params);
@@ -106,28 +146,7 @@ export function WellMapEditor({ field, params, value, onChange }: Props) {
           painting.current = null;
         }}
       >
-        <rect width={W} height={H} fill="#eef2f6" />
-        {Array.from({ length: rows }, (_, r) =>
-          Array.from({ length: cols }, (_, c) => {
-            const id = wellId(r, c);
-            return (
-              <rect
-                key={id}
-                data-well={id}
-                x={c * cell + 0.5}
-                y={r * cell + 0.5}
-                width={cell - 1}
-                height={cell - 1}
-                rx={cell / 2}
-                fill={value[id] ?? '#ffffff'}
-                stroke="#9aa5b1"
-                strokeWidth={cell > 6 ? 0.5 : 0}
-              >
-                <title>{id}</title>
-              </rect>
-            );
-          }),
-        )}
+        <WellGrid rows={rows} cols={cols} cell={cell} value={value} />
       </svg>
       <p className="note">
         {Object.keys(value).length} of {rows * cols} wells coloured · rows A–{rowLabel(rows - 1)},

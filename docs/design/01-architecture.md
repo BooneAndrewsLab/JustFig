@@ -43,8 +43,10 @@ Phase 1 also has `ui/canvas/` (Canvas with the tools' pointer gestures, PageView
 TextEditor), `ui/panels/` (IconBrowser, ToolPalette, Inspector, LayersPanel, PagesBar),
 `ui/dialogs/` (Export, Attribution) and `ui/state/` (store, session actions, autosave).
 
-`procedural/` and `workers/` are Phase 3 and do not exist yet. Raster export runs on the main
-thread in Phase 1 (see note 03).
+`procedural/` (Phase 3) holds the procedural kinds, their registry, the params decoder,
+"Convert to shapes" and snapshots; see note 04. There is no `workers/`: regenerating the largest
+procedural objects takes a few milliseconds, so no worker was needed (note 04, Performance).
+Raster export runs on the main thread (see note 03).
 
 ## State
 

@@ -92,8 +92,9 @@ dialog links to through "Icon library credits".
 It holds every primitive (rect with rx, ellipse, open and closed bezier paths, polyline), rotated
 and flipped objects, every arrowhead kind, sub- and superscripts with Greek letters in all three
 fonts, a group with opacity 0.5, a recoloured icon, an imported SVG, a PNG image, a 2×2 panel
-layout with auto labels, and a 384-well plate. Procedural kinds are Phase 3, so the plate is a
-group of 384 circles plus row and column labels.
+layout with auto labels, and a 384-well plate. The fixture predates procedural kinds (Phase 3), so
+its plate is a group of 384 circles plus row and column labels; the kinds have their own golden
+SVGs (note 04).
 
 - **Unit (Vitest):** the golden SVG of the fixture in both text modes; the export-subset
   allow-list; PNG `pHYs` round trip; TIFF tags, LZW and decode round trip through UTIF; and PDF
