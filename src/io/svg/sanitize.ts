@@ -80,7 +80,7 @@ const GEOMETRY: Readonly<Record<string, readonly string[]>> = {
   polyline: ['points'],
   polygon: ['points'],
   text: ['x', 'y', 'xml:space'],
-  tspan: ['x', 'y'],
+  tspan: ['x', 'y', 'dy'],
 };
 
 const KEEP_DATA = ['data-slot', 'data-tone', 'data-part'];

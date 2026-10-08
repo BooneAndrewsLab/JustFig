@@ -28,7 +28,7 @@ const FONT_ATTRS = new Set([
   'font-style',
   'text-anchor',
 ]);
-const POSITION_ATTRS = new Set(['x', 'y', 'xml:space']);
+const POSITION_ATTRS = new Set(['x', 'y', 'dy', 'xml:space']);
 const PAINT_ATTRS = [
   'fill',
   'fill-opacity',
@@ -104,12 +104,15 @@ interface Char {
   readonly style: Style;
   readonly x: number | undefined;
   readonly y: number | undefined;
+  /** Baseline shift before this character (`dy`); it does not start a chunk. */
+  readonly dy: number | undefined;
 }
 
 /** An element's position lists and how many of its characters were placed. */
 interface Positions {
   readonly xs: readonly number[];
   readonly ys: readonly number[];
+  readonly dys: readonly number[];
   count: number;
 }
 
@@ -122,6 +125,7 @@ function collectChars(text: SvgNode, base: FontCtx): Char[] {
     const pos: Positions = {
       xs: numList(n.attrs['x']) ?? [],
       ys: numList(n.attrs['y']) ?? [],
+      dys: numList(n.attrs['dy']) ?? [],
       count: 0,
     };
     const st = [...stack, pos];
@@ -142,14 +146,16 @@ function collectChars(text: SvgNode, base: FontCtx): Char[] {
         lastSpace = raw === ' ';
         let x: number | undefined;
         let y: number | undefined;
+        let dy: number | undefined;
         for (let i = st.length - 1; i >= 0; i--) {
           const p = st[i];
           if (!p) continue;
           x ??= p.xs[p.count];
           y ??= p.ys[p.count];
+          dy ??= p.dys[p.count];
         }
         for (const p of st) p.count++;
-        out.push({ ch: raw, style, x, y });
+        out.push({ ch: raw, style, x, y, dy });
       }
     }
   };
@@ -173,8 +179,8 @@ const fontOf = (s: Style) => getFont(s.font, { bold: s.bold, italic: s.italic })
 
 /**
  * Lays out one imported `<text>` with the bundled fonts: chunks start at
- * the first character and wherever a position is given; each is shifted by
- * its own `text-anchor`. Coordinates stay in the text's user space.
+ * the first character and wherever a position is given (`dy` moves the
+ * baseline within a chunk); each is shifted by its own `text-anchor`. Coordinates stay in the text's user space.
  */
 export function layoutImportedText(text: SvgNode, inherited: FontCtx = ROOT_FONT): PlacedSegment[] {
   const chars = collectChars(text, inheritFont(inherited, text.attrs));
@@ -199,6 +205,10 @@ export function layoutImportedText(text: SvgNode, inherited: FontCtx = ROOT_FONT
       if (c.x !== undefined) cx = c.x;
       if (c.y !== undefined) cy = c.y;
       chunk = { start: out.length, x0: cx, anchor: c.style.anchor };
+      joinable = false;
+    }
+    if (c.dy !== undefined && c.dy !== 0) {
+      cy += c.dy;
       joinable = false;
     }
     const adv = fontOf(c.style).getAdvanceWidth(c.ch, c.style.size, OPTS);

@@ -9,9 +9,7 @@
 <text xml:space="preserve"><tspan x="48.22" y="109.68" font-family="Arimo" font-size="13.33">0.0</tspan></text>
 <text xml:space="preserve"><tspan x="48.22" y="80.49" font-family="Arimo" font-size="13.33">0.5</tspan></text>
 <text xml:space="preserve"><tspan x="48.22" y="51.3" font-family="Arimo" font-size="13.33">1.0</tspan></text>
-<text transform="rotate(-90 24.525 136.611)" xml:space="preserve"><tspan x="24.53" y="136.61" font-family="Arimo" font-size="13.33">Signal</tspan></text>
-<text transform="rotate(-90 24.525 91.416)" xml:space="preserve"><tspan x="24.53" y="91.42" font-family="Arimo" font-size="13.33" font-style="italic">μ</tspan></text>
-<text transform="rotate(-90 24.525 82.933)" xml:space="preserve"><tspan x="24.53" y="82.93" font-family="Arimo" font-size="13.33">V</tspan></text>
+<text transform="rotate(-90 24.525 104.612)" xml:space="preserve"><tspan x="-3.96" y="104.61" font-family="Arimo" font-size="13.33">Signal </tspan><tspan x="36.81" y="104.61" font-family="Arimo" font-size="13.33" font-style="italic">μ</tspan><tspan x="44.11" y="104.61" font-family="Arimo" font-size="13.33">V</tspan></text>
 <text xml:space="preserve"><tspan x="142.43" y="26.56" font-family="Arimo" font-size="16">Two waves</tspan></text>
 <text xml:space="preserve"><tspan x="264.7" y="50.05" font-family="Arimo" font-size="9.33">sin</tspan></text>
 <text xml:space="preserve"><tspan x="264.7" y="64.05" font-family="Arimo" font-size="9.33">cos</tspan></text>

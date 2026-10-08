@@ -34,7 +34,8 @@ layout like every other text (note 03).
   whitespace collapsed as browsers do (newlines and tabs are spaces, runs of spaces become
   one, leading and trailing spaces go) unless `xml:space="preserve"`. A chunk starts at the
   first character and at every character with a listed `x` or `y` (the innermost element whose
-  list covers it, as in SVG); characters advance by opentype.js advance widths, kerning off; each
+  list covers it, as in SVG); a `dy` (kept on tspans only) moves the baseline without starting
+  a chunk; characters advance by opentype.js advance widths, kerning off; each
   chunk is shifted by its own `text-anchor` and its measured width. Consecutive characters with
   the same font, size and tspan paint form one segment. The anchor point is kept, so a label
   the plot centred stays centred and a start-anchored one keeps its left end. matplotlib's

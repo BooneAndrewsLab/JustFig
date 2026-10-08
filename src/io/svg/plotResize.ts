@@ -399,6 +399,8 @@ function mapLocal(n: SvgNode, m: Matrix): SvgNode | null {
     const ys = node.attrs['y'] === undefined ? null : numList(node.attrs['y']);
     if (xs?.length) attrs['x'] = xs.map(X).join(' ');
     if (ys?.length) attrs['y'] = ys.map(Y).join(' ');
+    const dys = node.attrs['dy'] === undefined ? null : numList(node.attrs['dy']);
+    if (dys?.length) attrs['dy'] = dys.map((v) => fmt(d * v)).join(' ');
     return el(
       node.tag,
       attrs,

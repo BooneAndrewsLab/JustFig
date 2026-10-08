@@ -433,7 +433,7 @@ const scaledList = (v: string, k: number): string | null => {
   return l && l.length > 0 ? l.map((x) => fmt(x * k)).join(' ') : null;
 };
 
-/** Removes `font-family` from tspans and scales their own `font-size` by `k`. */
+/** Removes `font-family` from tspans and scales their own `font-size` and `dy` by `k`. */
 function restyleTspans(n: SvgNode, dropFamily: boolean, k: number): SvgNode {
   return el(
     n.tag,
@@ -444,6 +444,9 @@ function restyleTspans(n: SvgNode, dropFamily: boolean, k: number): SvgNode {
       if (dropFamily) delete attrs['font-family'];
       const fs = len(attrs['font-size']);
       if (k !== 1 && fs !== null) attrs['font-size'] = fmt(fs * k);
+      // A script's baseline shift scales with the text.
+      const dy = attrs['dy'] === undefined ? null : scaledList(String(attrs['dy']), k);
+      if (k !== 1 && dy !== null) attrs['dy'] = dy;
       return restyleTspans(el(c.tag, attrs, c.children), dropFamily, k);
     }),
   );

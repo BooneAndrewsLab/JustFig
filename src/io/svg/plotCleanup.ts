@@ -9,7 +9,9 @@
  *    text) keeps a `matrix()` on that one element.
  * 2. Leading full-page white rectangles (the figure background) go.
  * 3. Neighbouring `<text>` pieces on one baseline with the same style are
- *    merged into one editable label (see `mergeTexts`).
+ *    merged into one editable label, and the runs of a mathtext or mixed-style
+ *    label flow on as tspans of one (see `mergeTexts`); labels get the
+ *    alignment the plot gave them (`anchorLabels`).
  * 4. The viewBox is cropped to the drawn content.
  *
  * Text and strokes stay separate elements with their own attributes, so
@@ -155,51 +157,48 @@ function bakeText(n: SvgNode, m: Matrix, inh: Inherited): SvgNode {
   if (fs === null || !stroke || !isSimilarity(m) || determinant(m) < 0) return keep(n, m);
   const base = { ...without(n.attrs, 'transform'), ...stroke };
   if (Math.abs(s - 1) > 1e-9) base['font-size'] = fmt(fs * s);
-  if (isAxisAligned(m) && m[0] > 0) {
-    // Translate and scale only: every x and y (lists included) maps on its own.
-    const mapPos = (node: SvgNode, top: boolean): SvgNode | null => {
-      const xs = numList(node.attrs['x']);
-      const ys = numList(node.attrs['y']);
-      if (!xs || !ys) return null;
-      const attrs: Record<string, string | number> = top ? base : without(node.attrs);
-      if (xs.length || top)
-        attrs['x'] = (xs.length ? xs : [0]).map((x) => fmt(m[0] * x + m[4])).join(' ');
-      if (ys.length || top)
-        attrs['y'] = (ys.length ? ys : [0]).map((y) => fmt(m[3] * y + m[5])).join(' ');
-      if (!top && node.attrs['font-size'] !== undefined) {
-        const f = len(node.attrs['font-size']);
-        if (f === null) return null;
-        attrs['font-size'] = fmt(f * s);
-      }
-      const kids: (SvgNode | string)[] = [];
-      for (const c of node.children) {
-        if (typeof c === 'string') kids.push(c);
-        else {
-          const k = mapPos(c, false);
-          if (!k) return null;
-          kids.push(k);
-        }
-      }
-      return el(node.tag, attrs, kids);
-    };
-    return mapPos(n, true) ?? keep(n, m);
-  }
-  // Rotated: one anchor point, carried by `rotate(angle x y)`.
+  // Every x and y (lists included) maps on its own: through `m` when it only translates and
+  // scales, else relative to the text's first position, which carries `rotate(angle x y)`.
   const xs = numList(n.attrs['x']);
   const ys = numList(n.attrs['y']);
-  const positioned = n.children.some(
-    (c) =>
-      typeof c !== 'string' &&
-      (c.attrs['x'] !== undefined ||
-        c.attrs['y'] !== undefined ||
-        c.attrs['font-size'] !== undefined),
-  );
-  if (!xs || !ys || xs.length > 1 || ys.length > 1 || positioned) return keep(n, m);
-  const [x, y] = apply(m, xs[0] ?? 0, ys[0] ?? 0);
+  if (!xs || !ys) return keep(n, m);
+  const aligned = isAxisAligned(m) && m[0] > 0;
+  const [x0, y0] = [xs[0] ?? 0, ys[0] ?? 0];
+  const [ax, ay] = apply(m, x0, y0);
+  const fx = (x: number): number => (aligned ? m[0] * x + m[4] : ax + s * (x - x0));
+  const fy = (y: number): number => (aligned ? m[3] * y + m[5] : ay + s * (y - y0));
+  const mapPos = (node: SvgNode, top: boolean): SvgNode | null => {
+    const nx = numList(node.attrs['x']);
+    const ny = numList(node.attrs['y']);
+    const ndy = numList(node.attrs['dy']);
+    if (!nx || !ny || !ndy) return null;
+    const attrs: Record<string, string | number> = top ? { ...base } : without(node.attrs);
+    if (nx.length || top) attrs['x'] = (nx.length ? nx : [0]).map((x) => fmt(fx(x))).join(' ');
+    if (ny.length || top) attrs['y'] = (ny.length ? ny : [0]).map((y) => fmt(fy(y))).join(' ');
+    if (ndy.length) attrs['dy'] = ndy.map((d) => fmt(d * s)).join(' ');
+    if (!top && node.attrs['font-size'] !== undefined) {
+      const f = len(node.attrs['font-size']);
+      if (f === null) return null;
+      attrs['font-size'] = fmt(f * s);
+    }
+    const kids: (SvgNode | string)[] = [];
+    for (const c of node.children) {
+      if (typeof c === 'string') kids.push(c);
+      else {
+        const k = mapPos(c, false);
+        if (!k) return null;
+        kids.push(k);
+      }
+    }
+    return el(node.tag, attrs, kids);
+  };
+  const out = mapPos(n, true);
+  if (!out) return keep(n, m);
+  if (aligned) return out;
   return el(
     'text',
-    { ...base, x: fmt(x), y: fmt(y), transform: `rotate(${fmt(angleOf(m))} ${fmt(x)} ${fmt(y)})` },
-    n.children,
+    { ...out.attrs, transform: `rotate(${fmt(angleOf(m))} ${fmt(ax)} ${fmt(ay)})` },
+    out.children,
   );
 }
 
@@ -471,6 +470,15 @@ interface Piece {
   readonly key: string;
 }
 
+/** The angle of a text's `rotate(angle x y)` about its own position (0 without one), or null. */
+function rotation(n: SvgNode, x: number, y: number): number | null {
+  const t = n.attrs['transform'];
+  if (t === undefined) return 0;
+  const r = /^rotate\(([-\d.e]+) ([-\d.e]+) ([-\d.e]+)\)$/.exec(String(t));
+  if (!r || Number(r[2]) !== Number(fmt(x)) || Number(r[3]) !== Number(fmt(y))) return null;
+  return Number(r[1]);
+}
+
 /** A plain one-line text piece (no tspans, start-anchored), or null. */
 function piece(n: SvgNode, inh: Inherited): Piece | null {
   if (n.tag !== 'text' || n.children.some((c) => typeof c !== 'string')) return null;
@@ -478,13 +486,8 @@ function piece(n: SvgNode, inh: Inherited): Piece | null {
   const x = len(n.attrs['x'] ?? 0);
   const y = len(n.attrs['y'] ?? 0);
   if (x === null || y === null) return null;
-  let angle = 0;
-  const t = n.attrs['transform'];
-  if (t !== undefined) {
-    const r = /^rotate\(([-\d.e]+) ([-\d.e]+) ([-\d.e]+)\)$/.exec(String(t));
-    if (!r || Number(r[2]) !== Number(fmt(x)) || Number(r[3]) !== Number(fmt(y))) return null;
-    angle = Number(r[1]);
-  }
+  const angle = rotation(n, x, y);
+  if (angle === null) return null;
   const text = n.children.filter((c) => typeof c === 'string').join('');
   if (text.trim() === '') return null;
   return {
@@ -497,30 +500,217 @@ function piece(n: SvgNode, inh: Inherited): Piece | null {
   };
 }
 
+// ---- 3a. Runs of one label (note 15) --------------------------------------
+
+/** The font attributes the runs of one label may differ in. */
+const RUN_FONT = ['font-family', 'font-size', 'font-style', 'font-weight'] as const;
+/** A smaller run (a script) may sit this many em of the label's size off its baseline. */
+const SCRIPT_SHIFT = 0.6;
+
+/** One run of a label, in the frame of its first run (user units, down is +v). */
+interface Run {
+  readonly u: number;
+  readonly v: number;
+  readonly font: Inherited;
+  readonly fs: number;
+  readonly text: string;
+  /** Estimated advance width. */
+  readonly w: number;
+}
+
+function makeRun(u: number, v: number, font: Inherited, text: string): Run {
+  const fs = len(get(font, 'font-size')) ?? 16;
+  const bold = /bold|[6-9]00/.test(get(font, 'font-weight'));
+  return { u, v, font, fs, text, w: approxTextWidth(text, fs, get(font, 'font-family'), bold) };
+}
+
+/** The run that sets the label's size and baseline: the first of the largest. */
+function baseRun(runs: readonly Run[]): Run | null {
+  const max = Math.max(...runs.map((r) => r.fs));
+  return runs.find((r) => r.fs >= 0.99 * max) ?? null;
+}
+
 /**
- * Merges runs of consecutive sibling text pieces that continue one another:
- * same attributes (font, size, colour) and angle, on one baseline (within
- * 0.1 em), each starting between 0.3 em before and `MAX_GAP` em after the
- * estimated end of the previous one. A gap wider than `SPACE_GAP` em becomes a
- * space. The merged label keeps the first piece's position.
+ * Whether runs read as one line of one label: in order along it, each
+ * starting between `OVERLAP_TOL` em before and `MAX_GAP` em after the
+ * estimated end of the previous one, full-size runs on the base baseline
+ * (within `BASELINE_TOL` em) and smaller ones raised or lowered off it (scripts,
+ * by more than that and at most `SCRIPT_SHIFT` em); em of the largest run.
+ */
+function oneLine(runs: readonly Run[]): boolean {
+  const b = baseRun(runs);
+  if (!b) return false;
+  const em = b.fs;
+  let end: number | null = null;
+  for (const r of runs) {
+    const off = Math.abs(r.v - b.v);
+    const full = r.fs >= 0.99 * em;
+    if (full ? off > BASELINE_TOL * em : off <= BASELINE_TOL * em || off > SCRIPT_SHIFT * em)
+      return false;
+    if (end !== null && (r.u - end < -OVERLAP_TOL * em || r.u - end > MAX_GAP * em)) return false;
+    end = r.u + r.w;
+  }
+  return true;
+}
+
+/**
+ * Each run's text, followed by a space where the gap to the next is wider
+ * than `SPACE_GAP` em; never next to a script (the estimate is no judge of the
+ * small gaps around one).
+ */
+function spacedTexts(runs: readonly Run[]): string[] {
+  const em = baseRun(runs)?.fs ?? 16;
+  const out: string[] = [];
+  runs.forEach((r, i) => {
+    const prev = runs[i - 1];
+    const before = out[i - 1];
+    if (
+      prev &&
+      before !== undefined &&
+      Math.abs(r.v - prev.v) <= BASELINE_TOL * em &&
+      r.u - (prev.u + prev.w) > SPACE_GAP * em &&
+      !/\s$/.test(before) &&
+      !/^\s/.test(r.text)
+    )
+      out[i - 1] = `${before} `;
+    out.push(r.text);
+  });
+  return out;
+}
+
+/**
+ * One `<text>` for the runs of a label (valid per `oneLine`): at the first
+ * run's start on the base run's baseline (`origin` is the first run's start
+ * on the page, `angle` the label's), later runs flowing on as tspans with the
+ * font attributes that differ from the base run's and a `dy` where the
+ * baseline moves, so the label stays joined up and can be anchored as one
+ * chunk in any font. `attrs` resolve to the base run's font; `srcEnd` is the
+ * source's own extent from the first run's start, when known.
+ */
+function flowText(
+  attrs: Record<string, string | number>,
+  runs: readonly Run[],
+  origin: readonly [number, number],
+  angle: number,
+  srcEnd: number | null,
+): SvgNode {
+  const b = baseRun(runs) ?? runs[0];
+  if (!b) return el('text', attrs, []);
+  const texts = spacedTexts(runs);
+  const kids: (SvgNode | string)[] = [];
+  let shift = 0;
+  runs.forEach((r, i) => {
+    const t = texts[i] ?? r.text;
+    const font: Record<string, string> = {};
+    for (const k of RUN_FONT) if (get(r.font, k) !== get(b.font, k)) font[k] = get(r.font, k);
+    const off = Number(fmt(r.v - b.v));
+    const dy = Number(fmt(off - shift));
+    shift = off;
+    const last = kids[kids.length - 1];
+    if (dy === 0 && Object.keys(font).length === 0 && off === 0) {
+      if (typeof last === 'string') kids[kids.length - 1] = last + t;
+      else kids.push(t);
+      return;
+    }
+    if (
+      dy === 0 &&
+      last !== undefined &&
+      typeof last !== 'string' &&
+      JSON.stringify(without(last.attrs, 'dy')) === JSON.stringify(font)
+    ) {
+      kids[kids.length - 1] = el('tspan', last.attrs, [...last.children, t]);
+      return;
+    }
+    kids.push(el('tspan', { ...font, ...(dy !== 0 ? { dy: fmt(dy) } : {}) }, [t]));
+  });
+  const a = (angle * Math.PI) / 180;
+  const x = fmt(origin[0] - b.v * Math.sin(a));
+  const y = fmt(origin[1] + b.v * Math.cos(a));
+  const out: Record<string, string | number> = { ...attrs, x, y };
+  if (srcEnd !== null) out[ADVANCE_ATTR] = fmt(srcEnd / b.fs);
+  if (angle !== 0) out['transform'] = `rotate(${fmt(angle)} ${x} ${y})`;
+  return el('text', out, kids);
+}
+
+const POSITIONED_RUN = new Set<string>(['x', 'y', ...RUN_FONT]);
+
+/**
+ * A start-anchored label written as tspans at their own positions (matplotlib
+ * mathtext rebuilt from glyph outlines) as one flowing `<text>`, or null when
+ * its runs do not read as one line.
+ */
+function flowPositioned(n: SvgNode, inh: Inherited): SvgNode | null {
+  const own = inherit(inh, n.attrs);
+  if (get(own, 'text-anchor') !== 'start') return null;
+  const tx = len(n.attrs['x'] ?? 0);
+  const ty = len(n.attrs['y'] ?? 0);
+  if (tx === null || ty === null) return null;
+  const angle = rotation(n, tx, ty);
+  if (angle === null) return null;
+  const spans = n.children.filter((c) => typeof c !== 'string' || c.trim() !== '');
+  if (spans.length < 2) return null;
+  const runs: Run[] = [];
+  let first: readonly [number, number] | null = null;
+  for (const c of spans) {
+    if (typeof c === 'string' || c.tag !== 'tspan') return null;
+    if (c.children.some((k) => typeof k !== 'string')) return null;
+    if (Object.keys(c.attrs).some((k) => !POSITIONED_RUN.has(k))) return null;
+    const x = len(c.attrs['x']);
+    const y = len(c.attrs['y']);
+    const text = c.children.filter((k) => typeof k === 'string').join('');
+    if (x === null || y === null || text === '') return null;
+    first ??= [x, y];
+    runs.push(makeRun(x - first[0], y - first[1], inherit(own, c.attrs), text));
+  }
+  const b = baseRun(runs);
+  if (!first || !b || !oneLine(runs)) return null;
+  const a = (angle * Math.PI) / 180;
+  const [dx, dy] = [first[0] - tx, first[1] - ty];
+  const origin = [
+    tx + dx * Math.cos(a) - dy * Math.sin(a),
+    ty + dx * Math.sin(a) + dy * Math.cos(a),
+  ] as const;
+  const adv = len(n.attrs[ADVANCE_ATTR]);
+  const fs = len(get(own, 'font-size'));
+  const srcEnd = adv !== null && fs !== null ? adv * fs - dx : null;
+  const attrs = without(n.attrs, 'x', 'y', 'transform', ADVANCE_ATTR);
+  for (const k of RUN_FONT) if (get(b.font, k) !== get(own, k)) attrs[k] = get(b.font, k);
+  return flowText(attrs, runs, origin, angle, srcEnd);
+}
+
+/**
+ * Merges runs of consecutive sibling text pieces that continue one another
+ * (`oneLine`): same attributes and angle, apart from the font of a run. Pieces
+ * of one style become one plain label (a gap wider than `SPACE_GAP` em becomes
+ * a space); mixed styles and scripts (a PDF's mathtext) become one flowing
+ * label with tspans (`flowText`), as do labels written as positioned tspans.
+ * The merged label starts at the first piece's position.
  */
 function mergeTexts(n: SvgNode, inh: Inherited): SvgNode {
   if (n.tag !== 'g' && n.tag !== 'svg') return n;
   const here = inherit(inh, n.attrs);
   const out: SvgNode[] = [];
-  let run: Piece[] = [];
-  let runText = '';
-  let end = 0;
-  /** The source's own end of the run (user units from its start), when every piece had one. */
-  let srcEnd: number | null = null;
-  let runFs = 16;
+  let run: { readonly p: Piece; readonly r: Run; readonly adv: number | null }[] = [];
+  let group = '';
   const flush = (): void => {
     const first = run[0];
-    if (first && run.length === 1) out.push(first.node);
-    else if (first) {
-      const attrs = without(first.node.attrs, ADVANCE_ATTR);
-      if (srcEnd !== null) attrs[ADVANCE_ATTR] = fmt(srcEnd / runFs);
-      out.push(el('text', attrs, [runText]));
+    const last = run[run.length - 1];
+    if (first && last && run.length === 1) out.push(first.p.node);
+    else if (first && last) {
+      const runs = run.map((q) => q.r);
+      const srcEnd = run.every((q) => q.adv !== null)
+        ? last.r.u + (last.adv ?? 0) * last.r.fs
+        : null;
+      if (run.every((q) => q.p.key === first.p.key)) {
+        const attrs = without(first.p.node.attrs, ADVANCE_ATTR);
+        if (srcEnd !== null) attrs[ADVANCE_ATTR] = fmt(srcEnd / first.r.fs);
+        out.push(el('text', attrs, [spacedTexts(runs).join('')]));
+      } else {
+        const b = baseRun(runs);
+        const base = run.find((q) => q.r === b) ?? first;
+        const attrs = without(base.p.node.attrs, 'x', 'y', 'transform', ADVANCE_ATTR);
+        out.push(flowText(attrs, runs, [first.p.x, first.p.y], first.p.angle, srcEnd));
+      }
     }
     run = [];
   };
@@ -529,37 +719,34 @@ function mergeTexts(n: SvgNode, inh: Inherited): SvgNode {
     const p = piece(c, here);
     if (!p) {
       flush();
-      out.push(mergeTexts(c, here));
+      out.push((c.tag === 'text' ? flowPositioned(c, here) : null) ?? mergeTexts(c, here));
       continue;
     }
-    const own = inherit(here, p.node.attrs);
-    const fs = len(get(own, 'font-size')) ?? 16;
-    const width = (s: string): number =>
-      approxTextWidth(s, fs, get(own, 'font-family'), /bold|[6-9]00/.test(get(own, 'font-weight')));
+    const font = inherit(here, p.node.attrs);
     const adv = len(p.node.attrs[ADVANCE_ATTR]);
+    const g = JSON.stringify([
+      without(p.node.attrs, 'x', 'y', 'transform', ADVANCE_ATTR, ...RUN_FONT),
+      p.angle,
+    ]);
     const first = run[0];
-    if (first?.key === p.key) {
-      const a = (first.angle * Math.PI) / 180;
-      const dx = p.x - first.x;
-      const dy = p.y - first.y;
-      const u = dx * Math.cos(a) + dy * Math.sin(a);
-      const v = -dx * Math.sin(a) + dy * Math.cos(a);
-      const gap = u - end;
-      if (Math.abs(v) <= BASELINE_TOL * fs && gap >= -OVERLAP_TOL * fs && gap <= MAX_GAP * fs) {
-        const spaced = /\s$/.test(runText) || /^\s/.test(p.text);
-        runText += (gap > SPACE_GAP * fs && !spaced ? ' ' : '') + p.text;
-        run.push(p);
-        end = u + width(p.text);
-        srcEnd = srcEnd !== null && adv !== null ? u + adv * fs : null;
+    if (first && g === group) {
+      const a = (first.p.angle * Math.PI) / 180;
+      const dx = p.x - first.p.x;
+      const dy = p.y - first.p.y;
+      const r = makeRun(
+        dx * Math.cos(a) + dy * Math.sin(a),
+        -dx * Math.sin(a) + dy * Math.cos(a),
+        font,
+        p.text,
+      );
+      if (oneLine([...run.map((q) => q.r), r])) {
+        run.push({ p, r, adv });
         continue;
       }
     }
     flush();
-    run = [p];
-    runText = p.text;
-    end = width(p.text);
-    srcEnd = adv === null ? null : adv * fs;
-    runFs = fs;
+    run = [{ p, r: makeRun(0, 0, font, p.text), adv }];
+    group = g;
   }
   flush();
   return el(n.tag, n.attrs, out);
@@ -571,7 +758,7 @@ function mergeTexts(n: SvgNode, inh: Inherited): SvgNode {
  * matplotlib's path-glyph SVGs and every PDF write labels start-anchored at
  * the left end of the run, so a label drawn in a narrower font (note 14) or
  * restyled loses the centring or right alignment the plot gave it. Each
- * plain start-anchored label at 0°/90°/180°/270° is set in its own frame
+ * start-anchored label at 0°/90°/180°/270° (`labelText`) is set in its own frame
  * (along the baseline from its start, and up across it, in em) against the
  * straight axis-aligned lines and the shapes around it:
  *
@@ -751,6 +938,50 @@ function leftColumn(l: Label, all: readonly Label[], kept: ReadonlySet<Label>): 
   });
 }
 
+const FLOW_RUN = new Set<string>(['dy', ...RUN_FONT]);
+
+/**
+ * A start-anchored one-line label at 0° or a `rotate(angle x y)` about its
+ * start: plain text, or runs flowing on as tspans that change only the font
+ * and the baseline (`flowText`); with the estimate of its width.
+ */
+function labelText(
+  n: SvgNode,
+  inh: Inherited,
+): { x: number; y: number; angle: number; est: number } | null {
+  const own = inherit(inh, n.attrs);
+  const width = (s: string, f: Inherited): number =>
+    approxTextWidth(
+      s,
+      len(get(f, 'font-size')) ?? 16,
+      get(f, 'font-family'),
+      isBold(get(f, 'font-weight')),
+    );
+  const p = piece(n, inh);
+  if (p) return { x: p.x, y: p.y, angle: p.angle, est: width(p.text.trim(), own) };
+  if (n.tag !== 'text' || get(own, 'text-anchor') !== 'start') return null;
+  const x = len(n.attrs['x'] ?? 0);
+  const y = len(n.attrs['y'] ?? 0);
+  if (x === null || y === null) return null;
+  const angle = rotation(n, x, y);
+  if (angle === null) return null;
+  let est = 0;
+  let text = '';
+  for (const c of n.children) {
+    if (typeof c === 'string') {
+      est += width(c, own);
+      text += c;
+      continue;
+    }
+    if (c.tag !== 'tspan' || c.children.some((k) => typeof k !== 'string')) return null;
+    if (Object.keys(c.attrs).some((k) => !FLOW_RUN.has(k))) return null;
+    const t = c.children.filter((k) => typeof k === 'string').join('');
+    est += width(t, inherit(own, c.attrs));
+    text += t;
+  }
+  return text.trim() === '' ? null : { x, y, angle, est };
+}
+
 /**
  * Gives plain start-anchored labels the `text-anchor` (and anchor point) the
  * plot laid them out with, and drops the transient `ADVANCE_ATTR`.
@@ -764,19 +995,14 @@ function anchorLabels(root: SvgNode, vb: ViewBox): SvgNode {
     if (n.tag === 'g' || n.tag === 'svg') {
       for (const c of n.children)
         if (typeof c !== 'string') {
-          const p = c.tag === 'text' ? piece(c, here) : null;
+          const p = c.tag === 'text' ? labelText(c, here) : null;
           if (p) {
             const own = inherit(here, c.attrs);
             const fs = len(get(own, 'font-size'));
             const angle = (((Math.round(p.angle * 1000) / 1000) % 360) + 360) % 360;
             if (fs === null || fs <= 0 || angle % 90 !== 0) continue;
             const adv = len(c.attrs[ADVANCE_ATTR]);
-            const est = approxTextWidth(
-              p.text.trim(),
-              fs,
-              get(own, 'font-family'),
-              isBold(get(own, 'font-weight')),
-            );
+            const est = p.est;
             const w = adv !== null && adv > 0 ? adv * fs : est;
             const tol = TOL * fs + (adv !== null && adv > 0 ? 0 : 0.03 * w);
             labels.push({ node: c, x: p.x, y: p.y, angle, fs, w, tol });

@@ -75,7 +75,7 @@ describe('plot roles', () => {
   it('PDFs: matplotlib, R pdf() with rotated y tick labels, ggplot2 cairo_pdf()', async () => {
     expect(summary(await pdfFixture('matplotlib-type3'))).toEqual({
       ticks: ['0.0', '2.5', '5.0', '7.5', '10.0', '−1.0', '−0.5', '0.0', '0.5', '1.0'],
-      labels: ['Time (s)', 'Signal', 'μ', 'V', 'Two waves', 'sin', 'cos'],
+      labels: ['Time (s)', 'Signal μV', 'Two waves', 'sin', 'cos'],
       strokes: { tick: 10, axis: 4, data: 46 },
     });
     expect(summary(await pdfFixture('r-pdf'))).toEqual({
@@ -128,7 +128,7 @@ describe('restylePlot', () => {
     const svg =
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
       '<g transform="scale(2)"><text x="5" y="5" font-size="4" font-family="DejaVu Sans">' +
-      'a<tspan font-size="3" font-family="Courier">b</tspan></text>' +
+      'a<tspan font-size="3" font-family="Courier">b</tspan><tspan font-size="3" dy="-1">2</tspan></text>' +
       '<path d="M0 0L10 0" stroke="#000" stroke-dasharray="2 1"/></g></svg>';
     const s = sanitizeSvg(svg);
     const parts = plotParts(s.root, s.viewBox);
@@ -142,6 +142,8 @@ describe('restylePlot', () => {
     expect(str).toContain('<text x="5" y="5" font-size="6" font-family="Tinos">');
     // The tspan keeps its proportion and loses its own family.
     expect(str).toContain('<tspan font-size="4.5">b</tspan>');
+    // A script's baseline shift scales with it.
+    expect(str).toContain('<tspan dy="-1.5" font-size="4.5">2</tspan>');
     expect(str).toContain('stroke-dasharray="4 2" stroke-width="2"');
     // Unchanged requests give back the same tree.
     expect(restylePlot(s.root, parts, { text: () => null, stroke: () => null })).toBe(s.root);

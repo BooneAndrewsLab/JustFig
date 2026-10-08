@@ -44,7 +44,7 @@ scaling text, issue 3) sees no difference between the two.
   previous one ended on the same baseline, with nothing drawn in between, is joined to it
   using the PDF's own advance widths (matplotlib
   writes `−` as a run of its own; the width estimate in plot cleanup would have put a space
-  there). Mathtext stays one `<text>` per symbol, as in SVG imports. Invisible text (render
+  there). Mathtext is one `<text>` per symbol here; plot cleanup joins the runs of one label (note 15). Invisible text (render
   mode 3, OCR layers) is skipped; stroked text is kept as stroked text.
 - **Letters without meaning** (no ToUnicode entry: empty, U+FFFD, private use, control codes)
   would become the wrong text, so a run containing one is drawn as outlines instead: the

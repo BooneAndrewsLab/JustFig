@@ -34,12 +34,12 @@ Sans, sans-serif`, bold), `rotate(θ x y)` when rotated. Mathtext (`$…$`, issu
   font and scale form a run; a label with several runs is one `<text>` whose runs are tspans
   with explicit `x`, `y` (in the label's unrotated frame) and `font-size` `100·s·k`, plus the
   font attributes that differ (math letters are `DejaVuSans-Oblique` → italic) — export subset,
-  no `baseline-shift`. Each run keeps matplotlib's position, so in the narrower bundled font a
-  small gap can open before a script; mathtext spacing around relations and binary operators
-  (not signs, not in scripts) becomes a space inside a run. Such labels have positioned tspans,
-  so alignment (note 15) and merging leave them start-anchored (issue 29); they still carry
-  `data-advance` for the whole label. Plot cleanup drops what tspans repeat from their text (a
-  `*` CSS rule's values), and a rotated one keeps `matrix()` (y-axis titles). R's cairo `svg()` device writes glyphs with no characters
+  no `baseline-shift`; mathtext spacing around relations and binary operators (not signs, not
+  in scripts) becomes a space inside a run. The label carries `data-advance` for its whole
+  width. Plot cleanup then makes the runs flow (note 15, issue 29): one `<text>` on the base
+  baseline whose later runs are tspans with only their font and a `dy`, so the label stays
+  joined up in the narrower bundled font and is aligned as one. Flattening maps the positions
+  of a rotated text's tspans into its `rotate(θ x y)` frame (no `matrix()` for y-axis titles). R's cairo `svg()` device writes glyphs with no characters
   attached, so those stay outlines; svglite (ggsave's default) writes real text already.
 - **Flattening** (`plotCleanup.ts`): the accumulated matrix is baked into each leaf:
   path points (arcs become cubics, H/V/S/T are made explicit), line/polyline/polygon points,

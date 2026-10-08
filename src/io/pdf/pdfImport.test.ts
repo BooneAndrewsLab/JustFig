@@ -41,7 +41,8 @@ const svgOf = (imp: Imported): string => (imp.asset.kind === 'svgImport' ? imp.a
 const tree = (imp: Imported): SvgNode => sanitizeSvg(svgOf(imp)).root;
 const all = (root: SvgNode): SvgNode[] => [...walkNodes(root)].slice(1);
 const texts = (root: SvgNode): SvgNode[] => all(root).filter((n) => n.tag === 'text');
-const label = (n: SvgNode): string => n.children.filter((c) => typeof c === 'string').join('');
+const label = (n: SvgNode): string =>
+  n.children.map((c) => (typeof c === 'string' ? c : label(c))).join('');
 const labels = (imp: Imported): string[] => texts(tree(imp)).map(label);
 const viewBox = (imp: Imported): number[] =>
   (/viewBox="([^"]+)"/.exec(svgOf(imp))?.[1] ?? '').split(' ').map(Number);
@@ -78,9 +79,7 @@ describe('real plots', () => {
       '0.0',
       '0.5',
       '1.0',
-      'Signal',
-      'μ', // mathtext: one run per symbol, italic
-      'V',
+      'Signal μV', // mathtext: one run per symbol, joined into one label (note 15)
       'Two waves',
       'sin',
       'cos',
@@ -95,8 +94,13 @@ describe('real plots', () => {
     // 12 pt is 16 px, the SVG default, so it is not written.
     expect(title?.attrs['font-size']).toBeUndefined();
     expect(t.find((n) => label(n) === 'sin')?.attrs['font-size']).toBe('9.333'); // 7 pt
-    expect(t.find((n) => label(n) === 'μ')?.attrs['font-style']).toBe('italic');
-    expect(t.find((n) => label(n) === 'Signal')?.attrs['transform']).toMatch(/^rotate\(-90 /);
+    const yLabel = t.find((n) => label(n) === 'Signal μV');
+    expect(yLabel?.children).toEqual([
+      'Signal ',
+      { tag: 'tspan', attrs: { 'font-style': 'italic' }, children: ['μ'] },
+      'V',
+    ]);
+    expect(yLabel?.attrs['transform']).toMatch(/^rotate\(-90 /);
   });
 
   it('matplotlib: the white page goes, the axes are cropped to, and lines are clipped', async () => {

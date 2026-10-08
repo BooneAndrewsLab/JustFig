@@ -121,23 +121,33 @@ describe('matplotlib', () => {
       'Signal ×103',
       'α1 response, Δ = −2',
     ]);
-    // 10^3: the exponent is a tspan at 0.7 size, raised, right after "10" (exact positions).
+    // 10^3: one label centred on its tick, the exponent flowing on as a tspan at 0.7 size,
+    // raised by its source offset (no position of its own, so it stays joined in any font).
     const tick = t[3];
-    const [ten, exp] = (tick?.children ?? []).filter((c) => typeof c !== 'string');
-    expect(tick?.attrs).toMatchObject({ x: '164.376', y: '145.521', 'font-size': '10' });
-    expect(ten?.attrs).toEqual({ x: '164.376', y: '145.521' });
-    expect(exp?.attrs).toEqual({ x: '177.196', y: '141.391', 'font-size': '7' });
-    expect(exp?.children).toEqual(['3']);
-    // Subscripts go down; italic math letters keep their style, upright text resets it.
+    expect(tick?.attrs).toMatchObject({
+      x: '173.176',
+      y: '145.521',
+      'font-size': '10',
+      'text-anchor': 'middle',
+    });
+    expect(tick?.children).toEqual([
+      '10',
+      { tag: 'tspan', attrs: { 'font-size': '7', dy: '-4.13' }, children: ['3'] },
+    ]);
+    // Subscripts go down and come back; italic math letters keep their style, upright text
+    // resets it.
     const title = t[10];
     expect(title?.attrs).toMatchObject({ 'font-size': '12', 'font-style': 'italic' });
-    const [alpha, one, rest] = (title?.children ?? []).filter((c) => typeof c !== 'string');
-    expect(Number(one?.attrs['y'])).toBeGreaterThan(Number(alpha?.attrs['y']));
-    expect(one?.attrs).toMatchObject({ 'font-size': '8.4', 'font-style': 'normal' });
-    expect(rest?.attrs['y']).toBe(alpha?.attrs['y']);
-    expect(t[5]?.children.filter((c) => typeof c !== 'string')[1]?.attrs).toMatchObject({
-      'font-style': 'italic',
-    });
+    const [one, rest] = (title?.children ?? []).filter((c) => typeof c !== 'string');
+    expect(one?.attrs).toEqual({ 'font-size': '8.4', 'font-style': 'normal', dy: '1.8' });
+    expect(rest?.attrs).toEqual({ 'font-style': 'normal', dy: '-1.8' });
+    expect(t[5]?.children).toEqual([
+      'Dose (',
+      { tag: 'tspan', attrs: { 'font-style': 'italic' }, children: ['μ'] },
+      'M)',
+    ]);
+    // The rotated y label keeps its angle about its new anchor.
+    expect(t[9]?.attrs['transform']).toMatch(/^rotate\(-90 /);
     // The fraction keeps its outlines: two scaled glyphs and its bar.
     expect(nodeToSvgString(s.root)).not.toMatch(/baseline-shift|dominant-baseline|<use/);
     expect(t.some((n) => /^[12]$/.test(flat(n)))).toBe(false);
@@ -387,6 +397,74 @@ describe('label alignment', () => {
     const w = approxTextWidth('100', 10, 'Arial');
     const s = plot(svg('<path d="M50 60V64" stroke="#000"/>' + lbl(50 - w / 2 + 0.5, 76, '100')));
     expect([anchorOf(texts(s.root)[0]), xOf(texts(s.root)[0])]).toEqual(['middle', 50]);
+  });
+
+  it('joins runs of mixed style and scripts (PDF mathtext) into one flowing label', () => {
+    const s = plot(
+      svg(
+        lbl(10, 50, 'Signal', 2.78) +
+          lbl(40.5, 50, 'μ', 0.58, 'font-style="italic"') +
+          lbl(46.3, 50, 'V', 0.67) +
+          lbl(70, 50, '10', 1.1) +
+          lbl(81, 46, '3', 0.6, 'font-size="7"'),
+      ),
+    );
+    const t = texts(s.root);
+    expect(t).toHaveLength(2);
+    expect(t[0]?.children).toEqual([
+      'Signal ',
+      { tag: 'tspan', attrs: { 'font-style': 'italic' }, children: ['μ'] },
+      'V',
+    ]);
+    expect(t[0]?.attrs).toMatchObject({ x: '10', y: '50', 'font-size': '10' });
+    expect(t[1]?.children).toEqual([
+      '10',
+      { tag: 'tspan', attrs: { 'font-size': '7', dy: '-4' }, children: ['3'] },
+    ]);
+  });
+
+  it('anchors a label of several runs as one, on its combined source width', () => {
+    // 10³ under a tick at x = 50: "10" from 43, its exponent ending at 57.
+    const tick = '<path d="M50 60V64" stroke="#000"/>';
+    const s = plot(svg(tick + lbl(43, 76, '10', 1.1) + lbl(54, 72, '3', 0.43, 'font-size="7"')));
+    const [t] = texts(s.root);
+    expect([anchorOf(t), xOf(t), t?.attrs['y']]).toEqual(['middle', 50, '76']);
+    expect(t?.children[1]).toMatchObject({ tag: 'tspan', attrs: { dy: '-4' } });
+    // A rotated mathtext axis title (PDF runs) centres on its spine as one label.
+    const spine = '<path d="M30 10V90" stroke="#000"/>';
+    const r = plot(
+      svg(
+        spine +
+          lbl(20, 71.5, 'Signal', 2.78, 'transform="rotate(-90 20 71.5)"') +
+          lbl(20, 41, 'μ', 0.58, 'transform="rotate(-90 20 41)" font-style="italic"') +
+          lbl(20, 35.2, 'V', 0.67, 'transform="rotate(-90 20 35.2)"'),
+      ),
+    );
+    const [y] = texts(r.root);
+    expect([anchorOf(y), y?.attrs['transform']]).toEqual(['middle', 'rotate(-90 20 50)']);
+  });
+
+  it('keeps runs apart that are not one line of one label', () => {
+    const cases = [
+      // A smaller run on the same baseline is not a script.
+      lbl(10, 50, '10', 1.1) + lbl(21, 50, '3', 0.6, 'font-size="7"'),
+      // Raised too far: a stacked line, not a superscript.
+      lbl(10, 50, '10', 1.1) + lbl(21, 42, '3', 0.6, 'font-size="7"'),
+      // A same-size run off the baseline.
+      lbl(10, 50, 'a', 0.6) + lbl(16, 46, 'b', 0.6, 'font-style="italic"'),
+      // Too far along, or another colour.
+      lbl(10, 50, 'a', 0.6) + lbl(30, 50, 'b', 0.6, 'font-style="italic"'),
+      lbl(10, 50, 'a', 0.6) + lbl(16, 50, 'b', 0.6, 'font-style="italic" fill="#ff0000"'),
+    ];
+    for (const c of cases) expect(texts(plot(svg(c)).root), c).toHaveLength(2);
+    // Positioned tspans whose runs do not read as one line keep their positions.
+    const far = plot(
+      svg(
+        '<text x="10" y="50" font-size="10"><tspan x="10" y="50">a</tspan>' +
+          '<tspan x="40" y="50" font-style="italic">b</tspan></text>',
+      ),
+    );
+    expect(texts(far.root)[0]?.children[1]).toMatchObject({ attrs: { x: '40', y: '50' } });
   });
 
   it('re-sanitises to itself and never stores the source width', () => {

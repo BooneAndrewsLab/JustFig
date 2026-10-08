@@ -136,6 +136,29 @@ describe('layout of one imported text', () => {
     expect(segs[2]?.style).toMatchObject({ font: 'tinos', bold: true, paint: { fill: '#ff0000' } });
   });
 
+  it('moves the baseline by dy within one chunk, so a label with scripts anchors as one', () => {
+    const segs = layoutImportedText(
+      text(
+        { x: '50', y: '20', 'font-size': '10', 'text-anchor': 'middle' },
+        '10',
+        el('tspan', { 'font-size': '7', dy: '-4' }, ['3']),
+        el('tspan', { dy: '4' }, [' M']),
+      ),
+    );
+    const w10 = width('10', 10);
+    const w3 = width('3', 7);
+    const total = w10 + w3 + width(' M', 10);
+    expect(segs.map((s) => [s.text, s.y])).toEqual([
+      ['10', 20],
+      ['3', 16],
+      [' M', 20],
+    ]);
+    expect(segs[0]?.x).toBeCloseTo(50 - total / 2, 6);
+    // Joined up: each run starts where the previous one ends in the bundled font.
+    expect(segs[1]?.x).toBeCloseTo(50 - total / 2 + w10, 6);
+    expect(segs[2]?.x).toBeCloseTo(50 - total / 2 + w10 + w3, 6);
+  });
+
   it('collapses whitespace unless xml:space is preserve', () => {
     const t = (a: Record<string, string>) =>
       layoutImportedText(text({ y: '0', ...a }, '  a \n  b  ')).map((s) => s.text);

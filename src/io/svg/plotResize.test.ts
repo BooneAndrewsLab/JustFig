@@ -166,7 +166,7 @@ describe('resizePlot on the fixtures', () => {
     expect(wild(q)[1] - q.layout.area[1]).toBeCloseTo(wild(p)[1] - p.layout.area[1], 3);
   });
 
-  it('PDFs: a legend in the upper right stays there; split axis titles stay together', async () => {
+  it('PDFs: a legend in the upper right stays there; a mathtext axis title stays one label', async () => {
     const p = analyse(await load('matplotlib-type3.pdf'));
     const { plot: q } = resized(p, 1.5, 1.4);
     const box = (pl: Plot, s: string) => {
@@ -178,11 +178,11 @@ describe('resizePlot on the fixtures', () => {
     // "sin" keeps its distance from the right and top edges of the axes.
     expect(q.layout.area[2] - box(q, 'sin')[2]).toBeCloseTo(p.layout.area[2] - box(p, 'sin')[2], 3);
     expect(box(q, 'sin')[1] - q.layout.area[1]).toBeCloseTo(box(p, 'sin')[1] - p.layout.area[1], 3);
-    // "Signal" and "μ" (mathtext split into runs) move as one.
-    expect(box(q, 'μ')[1] - box(q, 'Signal')[1]).toBeCloseTo(
-      box(p, 'μ')[1] - box(p, 'Signal')[1],
-      3,
-    );
+    // The mathtext y label (runs joined into one label, note 15) keeps its size and its
+    // distance from the axes.
+    const y = (pl: Plot) => box(pl, 'Signal μV');
+    expect(y(q)[3] - y(q)[1]).toBeCloseTo(y(p)[3] - y(p)[1], 3);
+    expect(q.layout.area[0] - y(q)[2]).toBeCloseTo(p.layout.area[0] - y(p)[2], 3);
   });
 
   it('R pdf(): markers keep their shape; data lines scale', async () => {
