@@ -70,6 +70,7 @@ export const bilayer = defineKind<BilayerParams>({
   category: 'Cell',
   description:
     'A phospholipid bilayer along a path; draw a path with the pen and turn it into one.',
+  keywords: ['membrane', 'lipid', 'phospholipid', 'leaflet', 'liposome', 'vesicle'],
   usesPath: 'open',
   defaultSize: { w: 280, h: 80 },
   defaultPath: (w, h, closed) => archPath(w, h, closed, 15),
@@ -175,6 +176,7 @@ export const helix = defineKind<HelixParams>({
   title: 'DNA / RNA',
   category: 'Molecules',
   description: 'A double helix (or an RNA strand) along a path, with base-pair ticks.',
+  keywords: ['dna', 'rna', 'helix', 'double', 'nucleic', 'strand', 'base pair'],
   usesPath: 'open',
   defaultSize: { w: 260, h: 50 },
   defaultPath: (w, h) => [
@@ -382,6 +384,7 @@ export const receptors = defineKind<ReceptorParams>({
   title: 'Membrane proteins',
   category: 'Cell',
   description: 'Receptors, channels or transporters spaced along a membrane path.',
+  keywords: ['receptor', 'channel', 'transporter', 'membrane', 'transmembrane', 'gpcr', 'protein'],
   usesPath: 'open',
   defaultSize: { w: 280, h: 110 },
   defaultPath: (w, h, closed) => archPath(w, h, closed, 42),

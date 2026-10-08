@@ -49,6 +49,7 @@ export const gel = defineKind<GelParams>({
   title: 'Agarose gel',
   category: 'Lab',
   description: 'A gel with a ladder and lanes of bands; type band sizes in bp.',
+  keywords: ['agarose', 'electrophoresis', 'ladder', 'band', 'lane', 'pcr', 'dna'],
   defaultSize: { w: 220, h: 170 },
   fields: [
     {

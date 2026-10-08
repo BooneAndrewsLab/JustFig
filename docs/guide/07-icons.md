@@ -7,6 +7,9 @@ JustFig comes with a library of thousands of openly licensed icons for biology a
 - **Search** looks across the whole library. Type part of a name, such as "mitochondria" or "pipette". The count of matches appears above the results; at most 240 are shown, and the count then ends in "+". Make the search more specific to narrow it.
 - **Icon category** lists the categories with the number of icons in each. Pick one to browse it. While you are searching, the category list is switched off, because a search covers every category. JustFig remembers the last category.
 - Hover over an icon to see its title and where it comes from, with its licence.
+- A search also lists any matching **scientific objects** first, under "Scientific objects · redrawn from settings" and tagged **Adjustable**; the icons follow under "Icons · fixed drawings". Searching "plate", for example, offers the configurable Well plate and Petri dish before the plate icons. See [Scientific objects](08-objects.md).
+
+An icon is a fixed drawing: you can recolour, resize and rotate it, but its shape stays the same. A scientific object is redrawn from settings (wells, lanes, organelles, features), so pick one when you want to change what is drawn, not just its colour.
 
 ## Placing an icon
 

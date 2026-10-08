@@ -8,6 +8,9 @@ The **Scientific objects** shelf is at the top of the Icons panel. It can be fol
 
 - **Click** a tile to place the object in the middle of what you can see.
 - **Drag** a tile onto the canvas to drop it where you want it.
+- **Search** for one in the icon search box: typing "plate", "gel", "agarose" or "cell" lists the matching scientific objects above the icons, each tagged **Adjustable**. Click, drag or press Enter on one exactly as on the shelf.
+
+A scientific object is not the same as an icon of the same thing. An icon is a fixed drawing: you can recolour, resize and rotate it, but its shape never changes. A scientific object is redrawn from its settings, such as the number of wells, the lanes and bands, which organelles are shown or the plasmid's features, and resizing redraws it instead of stretching it.
 
 Select an object to see its settings in the Inspector. Resize it with its handles; the object is redrawn at the new size. You can also rotate, flip and fade it like anything else.
 

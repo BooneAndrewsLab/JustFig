@@ -31,6 +31,7 @@ export const proteinDomains = defineKind<DomainParams>({
   title: 'Protein domains',
   category: 'Molecules',
   description: 'A protein as a bar with its domains to scale, a residue ruler and N/C termini.',
+  keywords: ['protein', 'domain', 'residue', 'sequence', 'motif', 'terminus'],
   defaultSize: { w: 320, h: 70 },
   fields: [
     { key: 'length', label: 'Length', type: 'int', min: 1, max: MAX_AA, unit: 'aa', default: 600 },

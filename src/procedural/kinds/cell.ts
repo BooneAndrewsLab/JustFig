@@ -41,6 +41,16 @@ export const cell = defineKind<CellParams>({
   title: 'Cell',
   category: 'Cell',
   description: 'An animal cell; switch organelles on and off and colour each one.',
+  keywords: [
+    'eukaryotic',
+    'animal',
+    'organelle',
+    'nucleus',
+    'mitochondria',
+    'golgi',
+    'reticulum',
+    'lysosome',
+  ],
   defaultSize: { w: 220, h: 160 },
   fields: [
     {

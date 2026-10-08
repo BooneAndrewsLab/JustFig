@@ -55,6 +55,7 @@ export const wellPlate = defineKind<WellPlateParams>({
   title: 'Well plate',
   category: 'Lab',
   description: 'A 6- to 1536-well plate; paint wells or paste a layout from a spreadsheet.',
+  keywords: ['well', '96', '384', 'microplate', 'microtiter', 'multiwell', 'elisa', 'layout'],
   defaultSize: { w: 240, h: 160 },
   fields: [
     {

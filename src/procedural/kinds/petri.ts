@@ -22,6 +22,7 @@ export const petriDish = defineKind<PetriParams>({
   category: 'Lab',
   description:
     'An agar plate with colonies: random, streaked, spotted dilutions, a pinned grid or a lawn.',
+  keywords: ['agar', 'plate', 'colony', 'colonies', 'bacteria', 'yeast', 'culture', 'streak'],
   defaultSize: { w: 150, h: 150 },
   fields: [
     {

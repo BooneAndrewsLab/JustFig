@@ -10,6 +10,7 @@ drawing, so the object stays editable as a whole.
 ```ts
 interface ProceduralKind<P> {
   kind; version; title; category; description;
+  keywords: string[];          // extra words an icon search finds it by
   fields: Field[];            // declarative params → decoder, Inspector, test arbitraries
   slots: SlotDef[];           // colour slots, recoloured like icon slots
   usesPath?: 'open' | 'closed';
@@ -80,6 +81,16 @@ one `<path>`; a full 1536-well plate is about ten DOM nodes, a 2,000-lipid bilay
 | `petriDish`      | Petri dish        | Scattered, streak (three zones), spot dilutions, pinned grid, lawn or empty; seeded                                                                                                                                                                                                    |
 | `gel`            | Agarose gel       | 1 kb or 100 bp ladder, lanes of bands typed as `3000, 1500:0.4` (size:intensity), log-scale migration, stained or inverted look; intensities are colour blends, not opacity                                                                                                            |
 
+**Found from icon search.** Icons are fixed drawings; a kind is redrawn from settings, and some
+names overlap ("cell", "petri", "plate"). So an icon search also runs `matchKinds`
+(`procedural/search.ts`) on the kinds' own `title` and `keywords`, locally and never through the
+icon library's index (data from another repo). Every query word must be a prefix of a title or
+keyword word (a trailing "s" may be dropped); title hits rank above keyword hits, then shelf
+order. The matches are listed above the icons as the shelf's own tile, outlined and tagged
+"Adjustable" (accessible name "Add _title_ (adjustable object)"), so click, drag and Enter do what
+they do on the shelf. Result headings say "Scientific objects · redrawn from settings" and
+"Icons · fixed drawings", and the shelf carries a one-line hint saying the same.
+
 ## Path-following kinds
 
 `core/geometry/sampling.ts` flattens the path (corners exact, curves cut into short pieces),
@@ -126,6 +137,7 @@ first.
 
 ## Tests
 
+`procedural/search.test.ts` covers the search matching (titles, keywords, prefixes, plurals, ranking).
 `procedural/kinds.test.ts` runs for every kind: golden SVGs of the defaults and a few variants
 (`__golden__/`, `UPDATE_GOLDEN=1` rewrites), defaults decoding to themselves, a property test that
 any valid params (from the field arbitraries, any frame from 1 to 2,000 pt, any path inside it)

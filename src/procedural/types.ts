@@ -97,6 +97,11 @@ export interface ProceduralKind<P = Params> {
   readonly category: string;
   /** One sentence for the Objects panel. */
   readonly description: string;
+  /**
+   * Extra words an icon search finds this kind by, besides its title (note 04): what a
+   * biologist would type looking for it, e.g. "microplate" or "electrophoresis".
+   */
+  readonly keywords: readonly string[];
   readonly fields: readonly Field[];
   readonly slots: readonly SlotDef[];
   /** Path-following kinds draw along `obj.path`. */

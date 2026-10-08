@@ -737,6 +737,43 @@ button.link {
   max-width: 100%;
 }
 
+.objects-hint {
+  font-size: 10px;
+  margin: 4px 0 0;
+}
+
+/* Scientific objects an icon search matches: the shelf's tiles, tagged and outlined. */
+.object-results {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.object-tile.tagged {
+  position: relative;
+  border: 1px solid var(--accent);
+  padding-top: 14px;
+}
+
+.adjustable-tag {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  padding: 0 3px;
+  border-radius: 3px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 12px;
+  pointer-events: none;
+}
+
+.icons-scroll h3 .kind-hint {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
 .param-list ul {
   list-style: none;
   margin: 0;

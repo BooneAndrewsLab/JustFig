@@ -1,7 +1,8 @@
 /**
  * The Objects shelf (note 04): one tile per procedural kind, drawn by the
  * kind itself with its defaults. Click places one at the view centre; drag
- * drops it where it lands.
+ * drops it where it lands. An icon search also lists the kinds it matches
+ * (`matchKinds`), with the same tile tagged "Adjustable".
  */
 import { useState } from 'react';
 
@@ -32,6 +33,52 @@ function thumb(k: ProceduralKind): string {
   return t;
 }
 
+/**
+ * One kind's tile: click (or Enter) places it at the view centre, drag drops it. `tagged`
+ * marks it "Adjustable" where it sits among icon search results.
+ */
+export function ObjectTile({
+  kind: k,
+  thumbnail = true,
+  tagged = false,
+}: {
+  kind: ProceduralKind;
+  thumbnail?: boolean;
+  tagged?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      className={tagged ? 'object-tile tagged' : 'object-tile'}
+      data-kind={k.kind}
+      title={`${k.title} — ${k.description}`}
+      aria-label={tagged ? `Add ${k.title} (adjustable object)` : `Add ${k.title}`}
+      draggable
+      onDragStart={(ev) => {
+        ev.dataTransfer.setData(KIND_DRAG_TYPE, k.kind);
+        ev.dataTransfer.effectAllowed = 'copy';
+      }}
+      onClick={() => {
+        placeProcedural(k.kind);
+      }}
+    >
+      {thumbnail && (
+        <span
+          className="object-thumb"
+          aria-hidden="true"
+          dangerouslySetInnerHTML={{ __html: thumb(k) }}
+        />
+      )}
+      <span className="object-name">{k.title}</span>
+      {tagged && (
+        <span className="adjustable-tag" aria-hidden="true">
+          Adjustable
+        </span>
+      )}
+    </button>
+  );
+}
+
 const OPEN_KEY = 'justfig.objectsOpen';
 
 function storedOpen(): boolean {
@@ -59,33 +106,12 @@ export function ObjectsShelf() {
       }}
     >
       <summary>Scientific objects</summary>
+      <p className="note objects-hint">
+        Redrawn from settings: change wells, lanes, organelles or features in the Inspector.
+      </p>
       <div className="objects-grid">
         {allKinds().map((k) => (
-          <button
-            key={k.kind}
-            type="button"
-            className="object-tile"
-            data-kind={k.kind}
-            title={`${k.title} — ${k.description}`}
-            aria-label={`Add ${k.title}`}
-            draggable
-            onDragStart={(ev) => {
-              ev.dataTransfer.setData(KIND_DRAG_TYPE, k.kind);
-              ev.dataTransfer.effectAllowed = 'copy';
-            }}
-            onClick={() => {
-              placeProcedural(k.kind);
-            }}
-          >
-            {open && (
-              <span
-                className="object-thumb"
-                aria-hidden="true"
-                dangerouslySetInnerHTML={{ __html: thumb(k) }}
-              />
-            )}
-            <span className="object-name">{k.title}</span>
-          </button>
+          <ObjectTile key={k.kind} kind={k} thumbnail={open} />
         ))}
       </div>
     </details>

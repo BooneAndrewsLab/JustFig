@@ -373,6 +373,7 @@ export const plasmidMap = defineKind<PlasmidParams>({
   title: 'Plasmid map',
   category: 'Molecules',
   description: 'A circular or linear map with features; PlasmidPop maps paste in as these.',
+  keywords: ['plasmid', 'vector', 'construct', 'circular', 'backbone', 'dna'],
   defaultSize: { w: 300, h: 300 },
   fields: [
     { key: 'name', label: 'Name', type: 'text', maxLength: 200, default: 'pUC19' },

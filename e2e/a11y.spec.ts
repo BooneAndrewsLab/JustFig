@@ -23,6 +23,10 @@ test.beforeEach(async ({ page }) => {
 
 test('the editor has no serious accessibility problems', async ({ page }) => {
   expect(await audit(page)).toEqual([]);
+  // Icon search results with tagged scientific objects above the icons.
+  await page.getByLabel('Search icons').fill('plate');
+  await expect(page.locator('.object-tile.tagged').first()).toBeVisible();
+  expect(await audit(page, '.icons-panel')).toEqual([]);
 });
 
 test('the dialogs and the Inspector of each kind of selection have none either', async ({

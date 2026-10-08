@@ -2,14 +2,16 @@
  * The icon browser (note 01): a category picker, search (the library's
  * MiniSearch index, loaded on the first query), sprite-sheet thumbnails,
  * click to place at the centre of the view or drag onto the canvas, the
- * share-alike opt-in, and the library credits.
+ * share-alike opt-in, and the library credits. A search also lists the
+ * scientific objects it matches (note 04), first and tagged "Adjustable".
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import type { IconEntry, LibraryManifest } from '@/icons/manifest';
+import { matchKinds } from '@/procedural/search';
 
 import { ICON_DRAG_TYPE } from '../canvas/view';
-import { ObjectsShelf } from './ObjectsShelf';
+import { ObjectTile, ObjectsShelf } from './ObjectsShelf';
 import { getLibrary, placeIcon } from '../state/session';
 
 const TILE = 48;
@@ -136,6 +138,11 @@ export function IconBrowser({ onCredits }: { onCredits: () => void }) {
   const searching = query.trim() !== '';
   const loading = result.key !== `${query.trim()}|${category ?? ''}|${String(sa)}`;
   const icons = result.icons;
+  const objects = useMemo(() => matchKinds(query), [query]);
+  const objectCount =
+    objects.length === 0
+      ? ''
+      : `${String(objects.length)} adjustable object${objects.length === 1 ? '' : 's'}, `;
   return (
     <aside className="icons-panel" aria-label="Icons">
       <ObjectsShelf />
@@ -169,10 +176,26 @@ export function IconBrowser({ onCredits }: { onCredits: () => void }) {
         {error && <p className="note">{error}</p>}
         {searching && !loading && (
           <p className="note" role="status">
+            {objectCount}
             {icons.length === 0
               ? `No icons match “${query.trim()}”.`
               : `${String(icons.length)}${icons.length >= 240 ? '+' : ''} icons`}
           </p>
+        )}
+        {searching && objects.length > 0 && (
+          <>
+            <h3>
+              Scientific objects <span className="kind-hint">· redrawn from settings</span>
+            </h3>
+            <div className="object-results">
+              {objects.map((k) => (
+                <ObjectTile key={k.kind} kind={k} tagged />
+              ))}
+            </div>
+            <h3>
+              Icons <span className="kind-hint">· fixed drawings</span>
+            </h3>
+          </>
         )}
         {manifest && (
           <div className="icon-grid">

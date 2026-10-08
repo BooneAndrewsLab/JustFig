@@ -93,3 +93,36 @@ test('shows the library credits', async ({ page }) => {
   await expect(dialog.getByRole('heading', { name: 'Health Icons' })).toBeVisible();
   await expect(dialog.locator('a[href^="https://"]').first()).toBeVisible();
 });
+
+test('a search lists matching scientific objects first, tagged, and places them', async ({
+  page,
+}) => {
+  const search = page.getByLabel('Search icons');
+  await search.fill('plate');
+  await expect(page.getByRole('status')).toContainText(/2 adjustable objects, \d+\+? icons/);
+  const results = page.getByTestId('icon-results');
+  // The objects come before every icon, the title match first, each tagged.
+  const first = results.locator('button').first();
+  await expect(first).toHaveAttribute('data-kind', 'wellPlate');
+  await expect(first).toHaveAccessibleName('Add Well plate (adjustable object)');
+  await expect(first.locator('.adjustable-tag')).toHaveText('Adjustable');
+  await expect(results.locator('.object-tile.tagged[data-kind="petriDish"]')).toBeVisible();
+  await expect(results.getByRole('heading', { name: /Icons · fixed drawings/ })).toBeVisible();
+
+  // Enter places it, like a click.
+  await first.focus();
+  await page.keyboard.press('Enter');
+  const side = page.locator('.side');
+  await expect(side.getByRole('region', { name: 'Well plate options' })).toBeVisible();
+
+  // Dragging works as from the shelf.
+  await results
+    .getByRole('button', { name: 'Add Petri dish (adjustable object)' })
+    .dragTo(page.getByTestId('canvas'));
+  await expect(side.getByRole('region', { name: 'Petri dish options' })).toBeVisible();
+
+  // A query no kind matches lists none.
+  await search.fill('pipette');
+  await expect(page.getByRole('status')).not.toContainText('adjustable');
+  await expect(results.locator('.object-tile')).toHaveCount(0);
+});
