@@ -4,13 +4,12 @@
  * file (never a kept handle); autosave keeps a copy in IndexedDB.
  */
 import { BRAND } from '@/brand';
-import { addObjects, deleteObjects, withAssets } from '@/core/edits/edits';
-import { boundsOf } from '@/core/geometry/transform';
+import { addObjects, deleteObjects } from '@/core/edits/edits';
 import { cloneObjects } from '@/core/model/clone';
 import { createDoc, createText, defaultRun, frame } from '@/core/model/factory';
 import type { Id } from '@/core/model/ids';
 import { objectAssets } from '@/core/model/tree';
-import type { Assets, Figure, Obj } from '@/core/model/types';
+import type { Assets, Obj } from '@/core/model/types';
 import { fitText } from '@/core/text/layout';
 import { exportPdf } from '@/export/pdf';
 import { exportPng, exportTiff } from '@/export/raster';
@@ -308,11 +307,3 @@ export function addCreditText(line: string): void {
   store.edit({ ...addObjects(page.id, [placed]), label: 'Add credit line' });
   analytics.track('attribution', 'add-text');
 }
-
-export function selectionBounds(): ReturnType<typeof boundsOf> | null {
-  const objs = selectedObjects(store.getState());
-  return objs.length === 0 ? null : boundsOf(objs);
-}
-
-export { withAssets };
-export type { Figure };
