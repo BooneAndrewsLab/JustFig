@@ -11,7 +11,7 @@ name: Deploy to GitHub Pages
 # Icon library (note 01): the release of the justfig-icons repository pinned
 # in icons.lock.json (version, URL, SHA-256) is downloaded and checked into
 # public/lib/<version>/ before the build (`npm run icons`). PLACEHOLDER: that
-# repository is not published yet, so this step fails until its v1.0.0
+# repository is not published yet, so this step fails until its v1.1.0
 # release exists at the lock file's URL (and its SHA-256 is confirmed).
 
 on:

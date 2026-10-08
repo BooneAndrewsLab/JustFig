@@ -1,0 +1,48 @@
+{
+  "category": "nucleic",
+  "icons": [
+    {
+      "id": "bi-amplicons",
+      "title": "Amplicons",
+      "tags": ["amplicons", "molecular", "biology"],
+      "category": "nucleic",
+      "hash": "h13137db2a07bce6acec2e00df6",
+      "svg": "svg/h13137db2a07bce6acec2e00df6.svg",
+      "slots": [
+        {
+          "id": "s1",
+          "label": "Primary",
+          "default": "#c83737"
+        },
+        {
+          "id": "s2",
+          "label": "Secondary",
+          "default": "#55a868"
+        },
+        {
+          "id": "s3",
+          "label": "Tertiary",
+          "default": "#4c72b0"
+        },
+        {
+          "id": "outline",
+          "label": "Outline",
+          "default": "#000000"
+        }
+      ],
+      "recolor": "slots",
+      "meta": {
+        "library": "justfig-icons",
+        "libraryVersion": "1.1.0",
+        "id": "bi-amplicons",
+        "title": "Amplicons",
+        "source": "Bioicons",
+        "author": "Michael-Swift",
+        "license": "MIT",
+        "licenseUrl": "https://opensource.org/license/mit",
+        "originalUrl": "https://github.com/duerrsimon/bioicons/blob/d29e766ea7580b8063c4f47b29e872db40a4d979/static/icons/mit/Molecular_Biology/Michael-Swift/amplicons.svg",
+        "shareAlike": false
+      }
+    }
+  ]
+}

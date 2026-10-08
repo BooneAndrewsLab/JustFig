@@ -2,7 +2,7 @@
   "format": "justfig-icons",
   "formatVersion": 1,
   "library": "justfig-icons",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "categories": [
     {
       "id": "cells",
@@ -10,6 +10,13 @@
       "count": 1,
       "shard": "shards/cells.json",
       "shareAlike": 1
+    },
+    {
+      "id": "nucleic",
+      "title": "DNA, RNA and genetics",
+      "count": 1,
+      "shard": "shards/nucleic.json",
+      "shareAlike": 0
     },
     {
       "id": "immunology",
@@ -37,13 +44,6 @@
       "title": "Anatomy and physiology",
       "count": 3,
       "shard": "shards/anatomy.json",
-      "shareAlike": 0
-    },
-    {
-      "id": "computing",
-      "title": "Computing and bioinformatics",
-      "count": 1,
-      "shard": "shards/computing.json",
       "shareAlike": 0
     }
   ],

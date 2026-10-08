@@ -74,7 +74,7 @@ describe('attribution for a figure mixing three sources', () => {
       { id: 'bi-erythrocyte-5', slots: { s1: hex('#0072b2') } },
       { id: 'bi-chlamydomonas-2' },
       { id: 'bi-aortic-dissection' },
-      { id: 'bi-pytorch' },
+      { id: 'bi-amplicons' },
     ]);
     const items = docCreditItems(fig.doc, fig.assets);
     expect(new Set(items.map((i) => i.source))).toEqual(
@@ -83,7 +83,7 @@ describe('attribution for a figure mixing three sources', () => {
     // The house icons' author is the app's contributors; masked so the name lives in brand.ts only.
     const line = creditLine(items, 'App').replaceAll(BRAND.name, '<app>');
     expect(line).toMatchInlineSnapshot(
-      `"Created with App. Icons: Bioicons: Facebook (BSD-3-Clause), Kathryn Kananen (MIT), Margot Riggi (CC BY 4.0), Servier (CC BY 3.0, modified); Health Icons: Resolve to Save Lives (CC0); House icons: <app> contributors (CC0)."`,
+      `"Created with App. Icons: Bioicons: Kathryn Kananen (MIT), Margot Riggi (CC BY 4.0), Michael-Swift (MIT), Servier (CC BY 3.0, modified); Health Icons: Resolve to Save Lives (CC0); House icons: <app> contributors (CC0)."`,
     );
     // CC0 icons never say "modified", even when recoloured (petri dish).
     expect(line).not.toMatch(/CC0, modified/);

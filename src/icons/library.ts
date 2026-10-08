@@ -88,7 +88,7 @@ export class HttpIconLibrary implements IconLibrary {
   /** Milliseconds the last index query took (not counting shard fetches). */
   lastQueryMs = 0;
 
-  /** `base` ends with a slash, e.g. `${BASE_URL}lib/1.0.0/`. */
+  /** `base` ends with a slash, e.g. `${BASE_URL}lib/1.1.0/`. */
   constructor(
     private readonly base: string,
     private readonly fetchText: Fetcher = (u) => fetch(u),

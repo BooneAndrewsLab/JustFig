@@ -23,7 +23,7 @@ const IDS = [
   'bi-erythrocyte-5',
   'bi-aortic-dissection',
   'bi-epithelial-cell',
-  'bi-pytorch',
+  'bi-amplicons',
   'bi-chlamydomonas-2',
   'bi-iga-immunoglobulin',
 ];

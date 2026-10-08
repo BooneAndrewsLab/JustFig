@@ -1,6 +1,6 @@
 {
   "$comment": "The pinned justfig-icons release (note 01). PLACEHOLDER URL: the icons repository is not published yet; until it is, `npm run icons` copies ../justfig-icons/dist (same version). sha256 is of the reproducible tarball `npm run pack` makes there; re-check it against the published release.",
-  "version": "1.0.0",
-  "url": "https://github.com/BooneAndrewsLab/justfig-icons/releases/download/v1.0.0/justfig-icons-1.0.0.tar.gz",
-  "sha256": "5f49ab037e15778a38a9a8f3cced53a07e203b0b3048f8ad69f4c6a705825cc3"
+  "version": "1.1.0",
+  "url": "https://github.com/BooneAndrewsLab/justfig-icons/releases/download/v1.1.0/justfig-icons-1.1.0.tar.gz",
+  "sha256": "a9224d2d2f8766f11c567191a2c52fd06064d3e14febfb8fd40dc6ed47fe8100"
 }
