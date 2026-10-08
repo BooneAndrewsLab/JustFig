@@ -9,11 +9,28 @@ import { mapPageObjs } from '@/core/model/tree';
 import type { Obj, PathNode, PathObj, Procedural, Swatch, Vec2 } from '@/core/model/types';
 
 import { defaultParams } from './params';
+import { ellipseNodes } from './prims';
 import { getKind, resolveProcedural } from './registry';
 import { convertToShapes } from './shapes';
 import type { Params, ProceduralKind } from './types';
 
 const fixed = (k: ProceduralKind, p: Params): Params => (k.fix ? k.fix(p) : p);
+
+/** A two-node path, or an axis-aligned oval as `ellipseNodes` builds it (resizing keeps one). */
+function isDefaultShape(path: readonly PathNode[]): boolean {
+  if (path.length <= 2) return true;
+  if (path.length !== 4) return false;
+  const xs = path.map((n) => n.x);
+  const ys = path.map((n) => n.y);
+  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  const oval = ellipseNodes((x0 + x1) / 2, (y0 + y1) / 2, (x1 - x0) / 2, (y1 - y0) / 2);
+  const near = (a: Vec2 | undefined, b: Vec2 | undefined) =>
+    a !== undefined && b !== undefined && Math.hypot(a.x - b.x, a.y - b.y) < 0.01;
+  return path.every((n, i) => {
+    const m = oval[i];
+    return m !== undefined && near(n, m) && near(n.in, m.in) && near(n.out, m.out);
+  });
+}
 
 /** A new object of a kind, centred on `at`, with default params. */
 export function createProcedural(
@@ -72,10 +89,10 @@ export function setParams(pageId: Id, id: Id, label: string, fn: (p: Params) => 
     if (!r)
       throw new EditError('This object was made by a newer version and cannot be edited here.');
     const next = fixed(r.kind, { ...fn(r.params) });
-    // Closing or opening a simple two-node path swaps it for the kind's default shape.
+    // Closing or opening a simple two-node path or a plain oval swaps it for the kind's default shape.
     const toggled = next['closed'] !== r.params['closed'];
     const reshape =
-      toggled && r.kind.defaultPath && (o.path === undefined || o.path.length <= 2)
+      toggled && r.kind.defaultPath && (o.path === undefined || isDefaultShape(o.path))
         ? { path: r.kind.defaultPath(o.frame.w, o.frame.h, next['closed'] === true) }
         : {};
     return { ...o, kindVersion: r.kind.version, params: next, ...reshape };

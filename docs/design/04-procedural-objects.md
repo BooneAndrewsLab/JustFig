@@ -101,7 +101,8 @@ builds each unit in local (along, across) coordinates and maps them through the 
 The path is stored frame-local in `obj.path`. A new object gets the kind's `defaultPath`; a
 drawn path or line becomes one through the Inspector's **Follow this path** buttons (the
 frame grows by the kind's `overhang`). Resizing scales the path, not the units, as for path
-objects. Ticking **Closed** on a two-node path swaps it for the kind's closed default (an oval).
+objects. Ticking **Closed** on a two-node path swaps it for the kind's closed default (an oval); unticking
+it on a plain oval (even resized) swaps back. A path of any other shape is kept and just opened or closed.
 There is no node editing of the path yet (Phase 4 with arrow binding, or later).
 
 ## Snapshots
