@@ -110,8 +110,8 @@ colours moves in about 0.01 ms per step and regenerates (resize) in about 30 ms 
 2,000-lipid bilayer moves in 0.005 ms and regenerates in about 12 ms. In the browser
 (`e2e/procedural.spec.ts`, headless, software rendering): dragging the full plate gave a median
 frame of 16.7 ms (p95 16.8–33 ms) and no long tasks in Chromium, 17.1 ms (p95 17.1 ms) in
-Firefox; the bilayer 16.7 / 17.1 ms. A scripted mouse move took about 51 ms round trip for the
-plate and 18–25 ms for the bilayer, most of it rasterising (no long tasks). This is not a 60 fps
+Firefox; the bilayer 16.7 / 17.1 ms. A scripted mouse move took 51–83 ms round trip (varying run to run) for the
+plate and 18–33 ms for the bilayer, most of it rasterising (no long tasks). This is not a 60 fps
 claim for a mid-range laptop, which was not measured.
 
 Because regeneration stays well under a frame for the sizes the plan names, the plan's debounced
