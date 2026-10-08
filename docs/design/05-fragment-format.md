@@ -106,4 +106,4 @@ parsed JSON, untouched> }`, `snapshot`: the hash of an `svgImport` asset holding
   BarelySig "Copy for figure" command should write. It pastes like any fragment.
 
 No JSON Schema is generated yet (the plan suggested one from the TS types): the fixtures, these
-tables and the siblings' own tests are the contract for now.
+tables and the siblings' own tests are the contract for now ([#18](https://github.com/BooneAndrewsLab/JustFig/issues/18)).

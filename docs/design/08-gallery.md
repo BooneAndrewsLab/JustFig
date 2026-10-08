@@ -28,7 +28,7 @@ saved `.jfig` files because:
   linked to swatches (note 07), by construction rather than by hand-editing JSON.
 
 The cost is that a contributor writes TypeScript rather than drawing in the app. A future
-"Save as template" could export a figure as a `GalleryEntry` source file; not built.
+"Save as template" could export a figure as a `GalleryEntry` source file ([#17](https://github.com/BooneAndrewsLab/JustFig/issues/17)).
 
 - **Templates** are empty layouts: lettered panels on a journal page size (2 × 2 on Nature
   double column, 1 × 3 on Cell full width, 1 × 2 on Nature single column).

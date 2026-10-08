@@ -67,7 +67,7 @@ Text renders in one of two modes:
 
 Raster export runs on the main thread in Phase 1, because only a document can decode SVG into an
 image. A pre-flight check refuses exports over 16.7 Mpx, Safari's canvas cap, and suggests a lower
-DPI. Tiled rendering is deferred until a user hits the cap. The export dialog says: "RGB only.
+DPI. Tiled rendering is deferred until a user hits the cap ([#16](https://github.com/BooneAndrewsLab/JustFig/issues/16)). The export dialog says: "RGB only.
 Journals convert to CMYK; colours may shift slightly."
 
 ## Attribution footer
