@@ -20,7 +20,11 @@ account, figures never leave the computer. Design notes: `docs/design/`.
   `npm run e2e` runs Playwright on chromium, firefox and webkit. WebKit can't launch on this
   machine (missing libicu 74): run `npx playwright test --project=chromium --project=firefox`
   locally and let CI cover WebKit. `UPDATE_GOLDEN=1` rewrites goldens (Chromium for e2e).
-- The stub icon library in `public/lib/stub/` is generated: `npm run icons:stub`.
+- The icon library is not in this repo: `npm run icons` puts the release pinned in
+  `icons.lock.json` into `public/lib/<version>/` (from `../justfig-icons/dist` while that repo
+  is unpublished; the lock URL is a placeholder). Bumping it: build and pack in justfig-icons,
+  update the lock's version and SHA-256 and `BRAND.iconLibraryPath`, then `npm run icons:fixture`.
+  Unit tests use the committed `src/icons/fixtures/lib/`, never `public/lib/`.
 - **Branding:** the display name lives only in `src/brand.ts`
   (`src/brand.test.ts` enforces it). The format id `justfig` in saved files
   and the IndexedDB name are permanent and separate.
@@ -39,8 +43,11 @@ account, figures never leave the computer. Design notes: `docs/design/`.
   undo step; continuous drags coalesce via `coalesceKey` (history.ts).
 - **Files:** `.jfig` is plain JSON, hand-decoded in `src/io/jfig.ts`, with
   `MIGRATIONS`; a schema bump ships a frozen fixture and a round-trip test.
-- **Icons** go through `src/icons/library.ts` (the loader interface the
-  Phase 2 `justfig-icons` release also serves); placing one copies its SVG
-  and licence meta into `doc.assets`. Attribution is derived, never stored.
+- **Icons** go through `src/icons/library.ts` (manifest, shards, MiniSearch
+  index, sprite sheets of the `justfig-icons` release); placing one copies its
+  SVG and licence meta into `doc.assets`. Attribution is derived, never stored;
+  a recoloured CC BY/BY-SA icon is credited "modified". The library is data
+  from another repo: paths stay inside it, CREDITS.md renders as text only.
+- **Share-alike** (CC BY-SA) icons stay hidden unless the user opts in.
 - Analytics: `src/ui/analytics.ts` `EVENTS` allow-list only, never figure
   content; no-op when the Matomo env is unset.

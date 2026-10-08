@@ -97,41 +97,79 @@ the `index.html` title (`%BRAND_NAME%`). `src/brand.test.ts` fails if the displa
 anywhere else in `src/`, `index.html` or `public/manifest*`. The format id `justfig` and the
 IndexedDB name `justfig` are permanent and separate, so a rename never breaks a file.
 
-## Icon library loader (the Phase 2 contract)
+## Icon library (Phase 2)
 
-The app reads every icon through `src/icons/library.ts`. Phase 1 serves a stub library from
-`public/lib/stub/`. Phase 2's `justfig-icons` release tarball is unpacked to
-`public/lib/<version>/` with the **same layout**, and `BRAND.iconLibraryPath` points at it:
+The library is built in a separate repository, `justfig-icons` (for now a local sibling
+checkout, `../justfig-icons`; not yet published). It fetches openly licensed sources at pinned
+commits, normalises every icon, and builds a versioned release: v1.0.0 holds 2,891 icons from
+the house set (39, CC0), Health Icons (748, CC0) and Bioicons (2,104: CC BY 3.0/4.0, CC0, MIT,
+BSD, and 26 CC BY-SA). Its `REPORT.md` has the counts per source and licence and the rejection
+log; its README the pipeline.
+
+**Pinning.** `icons.lock.json` names the release (version, URL, SHA-256 of the reproducible
+tarball). `npm run icons` (`scripts/icons/fetch-library.ts`; `predev`/`prebuild` run it with
+`--if-missing`) puts it in `public/lib/<version>/` (gitignored): from `--from DIR` or
+`$JUSTFIG_ICONS_DIST`, else `../justfig-icons/dist` when its version matches, else by
+downloading the URL and checking the hash, which is what CI and `deploy.yml` do. The URL is a
+placeholder until the icons repository is published, so CI's icon step fails until then.
+`BRAND.iconLibraryPath` is `lib/<version>/`; a unit test keeps it equal to the lock file.
+
+**Layout** (`src/icons/manifest.ts` decodes it; fields marked * are optional v1 extensions):
 
 ```
 manifest.json         { format: "justfig-icons", formatVersion: 1, library, version,
-                        categories: [{ id, title, count, shard }],
-                        sources: [{ id, name, homepage, license, licenseUrl, attribution }] }
-shards/<cat>.json     { category, icons: [IconEntry] }
+                        categories: [{ id, title, count, shard, shareAlike* }],
+                        sources: [{ id, name, homepage, license, licenseUrl, attribution?,
+                                    commit*, termsChecked* }],
+                        thumbs*: { size: 96, columns: 10, ext: ".webp", hiDpi: "@2x" },
+                        search*: "search-index.json", credits*: "CREDITS.md", licenses*: "LICENSES/" }
+shards/<cat>.json     { category, icons: [IconEntry] }        (one per category, fetched on demand)
 svg/<hash>.svg        normalised SVG (see below)
+thumbs/<cat>-<n>.webp sprite sheets, 100 icons each, always 10 cells wide (+ @2x)
+search-index.json     { format: "justfig-search", fields, storeFields, searchOptions, index }
+CREDITS.md, LICENSES/ per-source, per-licence, per-author credits; MIT/BSD texts with copyright lines
 ```
 
 `IconEntry = { id, title, tags, category, hash, svg, slots: SlotDef[], recolor: "slots"|"whole",
-meta: IconMeta }`, where `IconMeta` is the model type in note 02 (library, libraryVersion, id,
-title, source, author?, license (SPDX), licenseUrl, originalUrl, shareAlike). The decoder in
-`icons/manifest.ts` validates both files and rejects entries that lack licence metadata.
+meta: IconMeta, thumb*: { sheet, i } }`, where `IconMeta` is the model type in note 02. The
+decoder rejects entries without complete licence metadata, and every path must stay inside the
+library (no `..`, no scheme): the release is data from another repository.
 
-Normalised icon SVGs: a `viewBox` starting at `0 0` with the longer side 100, presentation
-attributes only (no `style`, `<style>`, `class`), no transforms, `<use>`, text, images, filters
-or masks. Every painted element carries `data-slot="<slotId>"` and, optionally,
-`data-tone="<±lightness>"`. Recolouring replaces every fill and stroke on that element that is not
-`none` with the slot colour, shifted in OKLCH lightness by the tone. An element whose fill and
-stroke belong to different slots must be split by the pipeline. `SlotDef = { id, label, default }`.
+**Normalised SVGs**: a `viewBox` of `0 0 W H` with the longer side 100 (cropped to the drawing
+plus 2%), only `<g>` (opacity, data-part) and `<path>` with presentation attributes, no
+transforms, `<use>`, text, images, filters, masks or clip paths. Every painted element carries
+`data-slot` and, when shaded, `data-tone` (an OKLCH lightness offset); its fill or stroke is
+already the slot default shifted by the tone, so the SVG looks the way the app renders it before
+any recolour. Recolouring replaces every fill and stroke that is not `none` with the slot colour
+shifted by the tone. Slots: `s1`–`s4` (hue families, labelled Primary…), `outline` (dark
+neutrals) or `neutral`, or `s1` "Colour" for a single-colour icon. An icon that needs more than
+four hue families is `recolor: "whole"` with one slot `all`: it keeps its exact colours and a
+recolour tints the whole icon. `SlotDef = { id, label, default }`.
 
-The stub library (`npm run icons:stub`, `scripts/icons/make-stub-library.ts`) holds 39 house
-icons drawn to the house style in a 100-unit viewBox, plus 15 Health Icons (CC0, vendored at a
-pinned commit in `scripts/icons/healthicons/`). The Health Icons keep their 48-unit viewBox:
-the renderer maps any viewBox, and normalising to 100 is the Phase 2 pipeline's job. Each
-painted element gets `data-slot="s1"`.
+**Client** (`src/icons/library.ts`, `HttpIconLibrary`): categories load one shard at a time;
+`search` loads the MiniSearch index on the first query (prefix and fuzzy matching, title boosted,
+taxonomy synonyms indexed) and fetches only the shards its best hits live in, falling back to a
+substring filter for a library without an index; `byId` serves drag and drop; `thumb` positions a
+sprite cell; `credits` fetches CREDITS.md. Share-alike icons are left out unless the caller asks.
+The index query takes under 10 ms on the full library (budget 100 ms); the first payload
+(manifest + first shard) is about 90 kB (budget 300 kB). The index runs on the main thread:
+at this size a worker would cost more than the query.
 
-Thumbnails in Phase 1 are the SVGs themselves. Phase 2 adds sprite sheets and a MiniSearch index
-behind the same `IconLibrary` interface (`search(query)`). Phase 1's search is a substring filter
-over title and tags.
+**Browser** (`ui/panels/IconBrowser.tsx`): a category picker (one category at a time), search
+over the whole library, 48 px sprite tiles (`image-set` 1×/2×), click to place at the view
+centre or drag onto the canvas, an "SA" badge, and the **Show share-alike (CC BY-SA) icons**
+opt-in (off by default, remembered in localStorage). "Icon credits and licences" opens
+`CreditsDialog`, which renders CREDITS.md as plain React text (headings, lists, bold, https
+links; never HTML).
+
+**Offline**: the service worker precaches the manifest, shards and search index (~3 MB); SVGs,
+sprite sheets and licence texts (~80 MB in all) are cached on first use (CacheFirst; the
+versioned path never changes).
+
+**Tests** read `src/icons/fixtures/lib/`, 12 icons cut from the release by
+`npm run icons:fixture` (all three sources; CC0, CC BY 3.0/4.0, CC BY-SA, MIT, BSD; one
+whole-recolour icon), so they need neither the full library nor the network. When the full
+library is in `public/lib/`, a test also checks the budgets on it.
 
 ## Analytics
 
