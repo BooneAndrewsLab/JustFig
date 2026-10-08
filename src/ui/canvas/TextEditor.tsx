@@ -57,7 +57,10 @@ export function TextEditor({ text, page, view }: { text: Text; page: Page; view:
     const id = text.id;
     return () => {
       // An editor closed on empty text leaves no invisible object behind.
+      // Still editing this object: not a real close but StrictMode's dev-only
+      // unmount/remount, which would otherwise delete the text just created.
       const s = store.getState();
+      if (s.editingText === id) return;
       const p = s.history.present.doc.pages.find((x) => x.id === page.id);
       const found = p ? findObj(p, id) : undefined;
       if (found?.type === 'text' && plainText(found).trim() === '')
