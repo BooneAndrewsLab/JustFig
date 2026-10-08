@@ -42,9 +42,11 @@ jobs:
       - name: Test
         run: npm run test:coverage
 
-      # The pinned icon library release (icons.lock.json; placeholder URL until
-      # the justfig-icons repository is published, see deploy.yml).
+      # The pinned icon library release (icons.lock.json; private repository,
+      # read with the JUSTFIG_ICONS_TOKEN secret, see deploy.yml).
       - name: Icon library
+        env:
+          JUSTFIG_ICONS_TOKEN: ${{ secrets.JUSTFIG_ICONS_TOKEN }}
         run: npm run icons
 
       - name: Build
@@ -78,6 +80,8 @@ jobs:
         run: npm ci
 
       - name: Icon library
+        env:
+          JUSTFIG_ICONS_TOKEN: ${{ secrets.JUSTFIG_ICONS_TOKEN }}
         run: npm run icons
 
       - name: Install ${{ matrix.browser }}

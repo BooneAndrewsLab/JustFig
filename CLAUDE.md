@@ -21,9 +21,10 @@ account, figures never leave the computer. Design notes: `docs/design/`.
   machine (missing libicu 74): run `npx playwright test --project=chromium --project=firefox`
   locally and let CI cover WebKit. `UPDATE_GOLDEN=1` rewrites goldens (Chromium for e2e).
 - The icon library is not in this repo: `npm run icons` puts the release pinned in
-  `icons.lock.json` into `public/lib/<version>/` (from `../justfig-icons/dist` while that repo
-  is unpublished; the lock URL is a placeholder). Bumping it: build and pack in justfig-icons,
-  update the lock's version and SHA-256 and `BRAND.iconLibraryPath`, then `npm run icons:fixture`.
+  `icons.lock.json` into `public/lib/<version>/` (from `../justfig-icons/dist` when built, else the
+  private repo's release, which needs `JUSTFIG_ICONS_TOKEN`; CI has it as a secret). Bumping it: tag `v<version>` in justfig-icons,
+  copy the release's version and `.sha256` into the lock, update `BRAND.iconLibraryPath`, then
+  `npm run icons:fixture`.
   Unit tests use the committed `src/icons/fixtures/lib/`, never `public/lib/`.
 - **Branding:** the display name lives only in `src/brand.ts`
   (`src/brand.test.ts` enforces it). The format id `justfig` in saved files

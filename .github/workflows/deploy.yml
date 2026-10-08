@@ -10,9 +10,8 @@ name: Deploy to GitHub Pages
 #
 # Icon library (note 01): the release of the justfig-icons repository pinned
 # in icons.lock.json (version, URL, SHA-256) is downloaded and checked into
-# public/lib/<version>/ before the build (`npm run icons`). PLACEHOLDER: that
-# repository is not published yet, so this step fails until its v1.2.0
-# release exists at the lock file's URL (and its SHA-256 is confirmed).
+# public/lib/<version>/ before the build (`npm run icons`). That repository is private: the
+# JUSTFIG_ICONS_TOKEN secret is a fine-grained token that can read it.
 
 on:
   release:
@@ -42,6 +41,8 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Icon library (pinned release)
+        env:
+          JUSTFIG_ICONS_TOKEN: ${{ secrets.JUSTFIG_ICONS_TOKEN }}
         run: npm run icons
       - run: npm run check
       - name: Install browsers

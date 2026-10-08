@@ -110,8 +110,8 @@ IndexedDB name `justfig` are permanent and separate, so a rename never breaks a 
 
 ## Icon library (Phase 2)
 
-The library is built in a separate repository, `justfig-icons` (for now a local sibling
-checkout, `../justfig-icons`; not yet published). It fetches openly licensed sources at pinned
+The library is built in a separate repository, `justfig-icons` (private on GitHub,
+`BooneAndrewsLab/justfig-icons`; a sibling checkout at `../justfig-icons`). It fetches openly licensed sources at pinned
 commits, normalises every icon, and builds a versioned release: v1.2.0 holds 2,869 icons from
 the house set (39, CC0), Health Icons (742, CC0) and Bioicons (2,088: CC BY 3.0/4.0, CC0, MIT,
 and 26 CC BY-SA). Its `REPORT.md` has the counts per source and licence and the rejection
@@ -121,8 +121,10 @@ log; its README the pipeline.
 tarball). `npm run icons` (`scripts/icons/fetch-library.ts`; `predev`/`prebuild` run it with
 `--if-missing`) puts it in `public/lib/<version>/` (gitignored): from `--from DIR` or
 `$JUSTFIG_ICONS_DIST`, else `../justfig-icons/dist` when its version matches, else by
-downloading the URL and checking the hash, which is what CI and `deploy.yml` do. The URL is a
-placeholder until the icons repository is published, so CI's icon step fails until then.
+downloading the URL and checking the hash, which is what CI and `deploy.yml` do. A `v*` tag in
+justfig-icons builds and attaches the tarball. The repository is private, so the download goes
+through the GitHub API with `$JUSTFIG_ICONS_TOKEN` (a fine-grained token that can read it; a
+repository secret of the same name in CI).
 `BRAND.iconLibraryPath` is `lib/<version>/`; a unit test keeps it equal to the lock file.
 
 **Layout** (`src/icons/manifest.ts` decodes it; fields marked * are optional v1 extensions):
