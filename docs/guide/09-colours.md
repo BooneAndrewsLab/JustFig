@@ -55,3 +55,7 @@ This colour-vision preview changes only what you see on screen. Your exports are
 ## Colours in templates
 
 The example figures in the gallery are linked to their palettes, so applying another palette to one recolours it (see [Templates and examples](10-templates.md)).
+
+## Colours inside scientific objects
+
+The colour pickers for an object's own settings (a plasmid feature, a protein domain, the brush of a well plate) also list your palette's swatches, marked **Palette (copies)**. Choosing one copies its colour into the setting; it is not linked. These colours mean something (a condition, a kind of feature), so changing a swatch or applying a palette leaves them as they are.

@@ -19,9 +19,13 @@ defaults. Not touched:
 - **Icon defaults.** Linking an icon's default colour would put an override on it, and an
   override on a CC BY icon makes its credit say "modified" (note 03). Only colours the user
   already changed are linked.
-- **Procedural params that hold colours** (a plasmid feature's colour, the well map) are raw
-  hex strings inside the kind's params (note 04), not `Paint`s. Linking them would mean a
-  per-kind change to the params format; left for later.
+- **Procedural params that hold colours** (a plasmid feature's colour, protein-domain colours,
+  the well map's brush) are raw hex strings inside the kind's params (note 04), not `Paint`s,
+  and they carry meaning (a condition, a feature type). Applying a palette must not recolour
+  them. Their pickers still **offer** the document's swatches, but choosing one **copies its hex
+  by value**: `ColorInput` takes a `copy` flag, its swatch buttons then emit `{hex}` rather than
+  `{swatch}`, are not drawn as linked, and carry the tooltip "copies the colour; not linked to
+  the palette" and a "Palette (copies):" caption. A later palette change leaves them alone.
 - Images and imported SVGs keep their own colours.
 
 ## Edits (each one undo step)
@@ -50,7 +54,8 @@ The Palette section of the Inspector (nothing selected) lists the swatches with 
 a name and a remove button, the palette chooser with a preview strip, Apply to figure, Add
 swatch, Link colours, Unlink, and **Preview as**. Every colour control (`ColorInput`) shows the
 figure's swatches first, round, before the Okabe-Ito quick colours; picking one links the
-colour, and the linked swatch is outlined.
+colour, and the linked swatch is outlined. The exception is procedural params (above): there
+the same swatches copy their hex and say so.
 
 **Preview as** applies an SVG colour-matrix filter to the page on screen only (Machado, Oliveira
 & Fernandes 2009 at full severity for protanopia, deuteranopia and tritanopia, applied in

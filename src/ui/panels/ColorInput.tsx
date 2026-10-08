@@ -1,7 +1,9 @@
 /**
  * A colour control: the native picker, the figure's swatches (choosing one
  * links the colour to it, note 07), Okabe-Ito quick colours and, where
- * allowed, "none".
+ * allowed, "none". With `copy` (procedural params, whose colours carry
+ * meaning) a swatch click stores its hex by value, never a link, so a later
+ * palette change leaves the colour alone.
  */
 import { OKABE_ITO, resolvePaint } from '@/core/color/color';
 import type { Paint, Swatch } from '@/core/model/types';
@@ -12,9 +14,18 @@ interface Props {
   readonly palette: readonly Swatch[];
   readonly onChange: (p: Paint | null, live?: boolean) => void;
   readonly allowNone?: boolean;
+  /** Swatches copy their hex instead of linking. */
+  readonly copy?: boolean;
 }
 
-export function ColorInput({ label, value, palette, onChange, allowNone = false }: Props) {
+export function ColorInput({
+  label,
+  value,
+  palette,
+  onChange,
+  allowNone = false,
+  copy = false,
+}: Props) {
   const hex = value === null ? '#ffffff' : resolvePaint(value, palette);
   return (
     <div className="row">
@@ -29,19 +40,31 @@ export function ColorInput({ label, value, palette, onChange, allowNone = false 
         }}
       />
       <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+        {copy && palette.length > 0 && (
+          <span
+            className="note"
+            title="Choosing a palette swatch copies its colour; later palette changes leave it alone."
+          >
+            Palette (copies):
+          </span>
+        )}
         {palette.map((sw) => {
           const linked = value !== null && 'swatch' in value && value.swatch === sw.id;
           return (
             <button
               key={sw.id}
               type="button"
-              className="swatch linked"
-              title={`${sw.name} (linked: follows the swatch)`}
+              className={copy ? 'swatch' : 'swatch linked'}
+              title={
+                copy
+                  ? `${sw.name} ${sw.hex} (copies the colour; not linked to the palette)`
+                  : `${sw.name} (linked: follows the swatch)`
+              }
               aria-label={`${label} swatch ${sw.name}`}
-              aria-pressed={linked}
+              aria-pressed={copy ? undefined : linked}
               style={{ background: sw.hex, width: 14, height: 14 }}
               onClick={() => {
-                onChange({ swatch: sw.id });
+                onChange(copy ? { hex: sw.hex } : { swatch: sw.id });
               }}
             />
           );

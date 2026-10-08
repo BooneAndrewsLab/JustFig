@@ -64,6 +64,8 @@ account, figures never leave the computer. Design notes: `docs/design/`.
 - **Arrow binding** (note 06) is solved only by `reconcileBindings`, run in `store.edit` after
   every edit; never move bound arrows in an edit. Copies go through `cloneObjects` (remaps it).
 - **Colours** (note 07): paints are `{hex}` or `{swatch}`; recolour edits live in `src/palette/`.
+  Procedural colour params are plain hex that palettes never recolour; their pickers offer swatches by copy
+  (`ColorInput copy`), not link.
   Never link icon *default* colours (an override makes a CC BY credit say "modified").
 - **Gallery entries** (note 08) are code in `src/gallery/`, built from the factories.
 - **Shortcuts** (note 09) come only from `KEY_ACTIONS` in `src/ui/keyBindings.ts` (codes, not

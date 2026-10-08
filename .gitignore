@@ -15,3 +15,6 @@ public/lib/
 .idea/
 .vscode/
 .claude/
+
+# Private notes, kept local (user decision)
+LANDSCAPE.md

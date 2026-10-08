@@ -7,7 +7,7 @@ import { useState } from 'react';
 
 import { updateObjects } from '@/core/edits/edits';
 import type { Id } from '@/core/model/ids';
-import type { Paint, PathObj, Procedural } from '@/core/model/types';
+import type { Paint, PathObj, Procedural, Swatch } from '@/core/model/types';
 import { convertObjects, makeFromPath, setParams } from '@/procedural/edits';
 import { visibleFields } from '@/procedural/params';
 import { allKinds, resolveProcedural } from '@/procedural/registry';
@@ -48,11 +48,13 @@ function ScalarControl({
   value,
   onChange,
   idPrefix,
+  palette,
 }: {
   f: ScalarField;
   value: Scalar;
   onChange: (v: Scalar) => void;
   idPrefix: string;
+  palette: readonly Swatch[];
 }) {
   const id = `${idPrefix}-${f.key}`;
   switch (f.type) {
@@ -134,7 +136,8 @@ function ScalarControl({
           <ColorInput
             label={f.label}
             value={hex === '' ? null : { hex }}
-            palette={[]}
+            palette={palette}
+            copy
             allowNone={f.auto === true}
             onChange={(p: Paint | null) => {
               onChange(p === null ? '' : 'hex' in p ? p.hex : f.default);
@@ -153,12 +156,14 @@ function ListControl({
   params,
   onChange,
   idPrefix,
+  palette,
 }: {
   f: ListField;
   items: readonly Item[];
   params: Params;
   onChange: (items: readonly Item[], what: string) => void;
   idPrefix: string;
+  palette: readonly Swatch[];
 }) {
   const [open, setOpen] = useState<number | null>(null);
   const move = (i: number, by: -1 | 1) => {
@@ -237,6 +242,7 @@ function ListControl({
                   key={sf.key}
                   f={sf}
                   idPrefix={`${idPrefix}-${String(i)}`}
+                  palette={palette}
                   value={it[sf.key] ?? sf.default}
                   onChange={(v) => {
                     onChange(
@@ -270,11 +276,13 @@ function FieldControl({
   o,
   f,
   params,
+  palette,
 }: {
   s: AppState;
   o: Procedural;
   f: Field;
   params: Params;
+  palette: readonly Swatch[];
 }) {
   const v: ParamValue | undefined = params[f.key];
   const idPrefix = `p-${o.id}`;
@@ -289,6 +297,7 @@ function FieldControl({
         items={Array.isArray(v) ? (v as readonly Item[]) : []}
         params={params}
         idPrefix={idPrefix}
+        palette={palette}
         onChange={(items, what) => {
           set(items, what, `${f.key}:${what}`);
         }}
@@ -299,6 +308,7 @@ function FieldControl({
       <WellMapEditor
         field={f}
         params={params}
+        palette={palette}
         value={(v ?? {}) as WellMap}
         onChange={(m, what) => {
           set(m, what, `${f.key}:${what}`);
@@ -310,6 +320,7 @@ function FieldControl({
       <ScalarControl
         f={f}
         idPrefix={idPrefix}
+        palette={palette}
         value={(v as Scalar | undefined) ?? f.default}
         onChange={(x) => {
           set(x, f.label);
@@ -356,7 +367,7 @@ export function ProceduralSection({ s, obj }: { s: AppState; obj: Procedural }) 
       <section className="section procedural" aria-label={`${kind.title} options`}>
         <h2>{kind.title}</h2>
         {visibleFields(kind.fields, params).map((f) => (
-          <FieldControl key={f.key} s={s} o={obj} f={f} params={params} />
+          <FieldControl key={f.key} s={s} o={obj} f={f} params={params} palette={fig.doc.palette} />
         ))}
       </section>
       {kind.slots.length > 0 && (

@@ -8,6 +8,7 @@
 import { memo, useRef, useState } from 'react';
 
 import { OKABE_ITO } from '@/core/color/color';
+import type { Swatch } from '@/core/model/types';
 import { rowLabel } from '@/procedural/kinds/util';
 import { type PastedWells, wellId, wellsFromTable } from '@/procedural/kinds/wellPlate';
 import type { Params, WellMap, WellMapField } from '@/procedural/types';
@@ -16,6 +17,8 @@ interface Props {
   readonly field: WellMapField;
   readonly params: Params;
   readonly value: WellMap;
+  /** The document palette: offered as brush colours, copied by value (note 07). */
+  readonly palette?: readonly Swatch[];
   readonly onChange: (m: WellMap, what: string) => void;
 }
 
@@ -67,7 +70,7 @@ const WellGrid = memo(function WellGrid({
 const strokes = { n: 0 };
 const keyStroke: { run: { stroke: number; at: number } | null } = { run: null };
 
-export function WellMapEditor({ field, params, value, onChange }: Props) {
+export function WellMapEditor({ field, params, value, palette = [], onChange }: Props) {
   const { rows, cols } = field.grid(params);
   const [brush, setBrush] = useState<string>(OKABE_ITO[5] ?? '#0072b2');
   const [erase, setErase] = useState(false);
@@ -154,6 +157,29 @@ export function WellMapEditor({ field, params, value, onChange }: Props) {
           }}
         />
         <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+          {palette.length > 0 && (
+            <span
+              className="note"
+              title="Choosing a palette swatch copies its colour; later palette changes leave the wells alone."
+            >
+              Palette (copies):
+            </span>
+          )}
+          {palette.map((sw) => (
+            <button
+              key={sw.id}
+              type="button"
+              className="swatch"
+              title={`${sw.name} ${sw.hex} (copies the colour; not linked to the palette)`}
+              aria-label={`Brush swatch ${sw.name}`}
+              style={{ background: sw.hex, width: 14, height: 14 }}
+              onClick={() => {
+                setBrush(sw.hex);
+                setErase(false);
+              }}
+            />
+          ))}
+          {palette.length > 0 && <span className="swatch-sep" aria-hidden="true" />}
           {OKABE_ITO.slice(1).map((c) => (
             <button
               key={c}
