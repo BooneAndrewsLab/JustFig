@@ -10,3 +10,4 @@ public/lib
 public/fonts
 e2e/golden
 src/export/fixtures/*.jfig
+src/io/fixtures/*.jfig
