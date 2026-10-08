@@ -19,8 +19,12 @@
  *   with a glyph that has no Unicode meaning (no ToUnicode entry, private
  *   use, control codes) is drawn as glyph outlines instead, so nothing is
  *   replaced by the wrong letters. Invisible text (OCR layers) is skipped.
- * - Images, image masks, shadings and patterns are not in the export subset:
- *   images and shadings are left out, pattern paints become grey; each is
+ * - Images: a small block image (a heatmap at data resolution, a colour
+ *   bar) becomes filled rectangles; any other is written as an `<image>`
+ *   whose `href` is `pdf-image:N`, N indexing the returned pixels, which the
+ *   caller encodes as PNG (issue 24); import then places it as a picture of
+ *   its own under the plot. A rectangular clip crops its pixels. Image
+ *   masks and shadings are left out, pattern paints become grey; each is
  *   reported in the warnings.
  *
  * Pure: pdf.js is not imported here (it is loaded lazily in `loadPdf.ts`),
@@ -30,9 +34,11 @@ import {
   IDENTITY,
   type Matrix,
   apply,
+  determinant,
   fmt,
   isAxisAligned,
   isSimilarity,
+  invert,
   matrixString,
   multiply,
   scaleOf,
@@ -40,6 +46,7 @@ import {
 import { fontFromPsName } from '../svg/glyphText';
 import { pathRect } from '../svg/pathData';
 import { ADVANCE_ATTR } from '../svg/plotCleanup';
+import type { Pixels } from '../png';
 
 export interface PdfOpList {
   readonly fnArray: ArrayLike<number>;
@@ -86,18 +93,28 @@ export interface PdfPageInput {
   readonly image?: (id: string) => PdfImage | null;
 }
 
-/** pdf.js image data: kind 2 is RGB, 3 is RGBA, 8 bits per channel, rows top first. */
+/**
+ * pdf.js image data, rows top first: kind 1 is 1 bit grey (rows padded to a
+ * byte, a set bit is white), 2 is RGB, 3 is RGBA, 8 bits per channel.
+ */
 export interface PdfImage {
   readonly width: number;
   readonly height: number;
   readonly kind: number;
   readonly data: ArrayLike<number>;
+  /** The PDF asks for smoothing when it is enlarged (`/Interpolate`). */
+  readonly interpolate?: boolean | undefined;
 }
 
 export interface PdfPageSvg {
   readonly svg: string;
+  /** The pictures `<image href="pdf-image:N">` stands for, by N. */
+  readonly images: readonly Pixels[];
   readonly warnings: readonly string[];
 }
+
+/** The `href` an `<image>` of `pageToSvg` carries until its pixels are encoded. */
+export const PDF_IMAGE_HREF = 'pdf-image:';
 
 /** A gap in a text run wider than this (em) starts a new `<text>`. */
 export const SPLIT_GAP = 0.3;
@@ -107,6 +124,14 @@ export const WORD_GAP = 0.15;
 const HAIRLINE = 0.33;
 /** Images with more pixels than this are not turned into rectangles. */
 export const MAX_IMAGE_PIXELS = 512 * 512;
+/**
+ * …nor are those whose rectangles are smaller than this on average, in
+ * square SVG units ((1.5 pt)²): a picture or a layer rasterized at a print
+ * resolution, which would become thousands of pixel-sized shapes.
+ */
+export const MIN_BLOCK_AREA = 4;
+/** Pictures with more pixels than this are reduced (a whole-number factor) before storing. */
+export const MAX_PICTURE_PIXELS = 2048 * 2048;
 /** …nor are those that need more rectangles than this (photographs, smooth gradients). */
 export const MAX_IMAGE_RECTS = 4000;
 /** Segments a straddling curve is cut into before clipping. */
@@ -471,6 +496,105 @@ export function imageRects(img: PdfImage): [string, number, number[]][] | null {
   });
 }
 
+/**
+ * pdf.js image data as RGB(A) pixels: RGBA only when some pixel is not
+ * opaque (an RGB PNG says it has no see-through parts). Null for kinds it
+ * does not know or data too short for the size.
+ */
+export function toPixels(img: PdfImage): Pixels | null {
+  const { width: w, height: h, kind, data } = img;
+  if (w < 1 || h < 1) return null;
+  if (kind === 1) {
+    const stride = Math.ceil(w / 8);
+    if (data.length < stride * h) return null;
+    const out = new Uint8Array(w * h * 3);
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        const bit = ((data[y * stride + (x >> 3)] ?? 0) >> (7 - (x & 7))) & 1;
+        out.fill(bit ? 255 : 0, (y * w + x) * 3, (y * w + x) * 3 + 3);
+      }
+    return { width: w, height: h, channels: 3, data: out };
+  }
+  const ch = kind === 2 ? 3 : kind === 3 ? 4 : 0;
+  if (ch === 0 || data.length < w * h * ch) return null;
+  let opaque = true;
+  if (ch === 4)
+    for (let i = 3; i < w * h * 4; i += 4)
+      if ((data[i] ?? 255) !== 255) {
+        opaque = false;
+        break;
+      }
+  if (ch === 3 || !opaque)
+    return {
+      width: w,
+      height: h,
+      channels: ch === 3 ? 3 : 4,
+      data: Uint8Array.from({ length: w * h * ch }, (_, i) => data[i] ?? 0),
+    };
+  const out = new Uint8Array(w * h * 3);
+  for (let i = 0, j = 0; j < out.length; i += 4, j += 3) {
+    out[j] = data[i] ?? 0;
+    out[j + 1] = data[i + 1] ?? 0;
+    out[j + 2] = data[i + 2] ?? 0;
+  }
+  return { width: w, height: h, channels: 3, data: out };
+}
+
+/** Columns [x0, x1) and rows [y0, y1) of the pixels. */
+export function cropPixels(px: Pixels, x0: number, y0: number, x1: number, y1: number): Pixels {
+  const ch = px.channels;
+  const w = x1 - x0;
+  const out = new Uint8Array(w * (y1 - y0) * ch);
+  for (let y = y0; y < y1; y++)
+    out.set(
+      px.data.subarray((y * px.width + x0) * ch, (y * px.width + x1) * ch),
+      (y - y0) * w * ch,
+    );
+  return { width: w, height: y1 - y0, channels: ch, data: out };
+}
+
+/** The pixels averaged over k × k blocks (a partial block at the edges averages what it has). */
+export function reducePixels(px: Pixels, k: number): Pixels {
+  const ch = px.channels;
+  const w = Math.ceil(px.width / k);
+  const h = Math.ceil(px.height / k);
+  const out = new Uint8Array(w * h * ch);
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const sum = [0, 0, 0, 0];
+      let n = 0;
+      for (let yy = y * k; yy < Math.min(px.height, (y + 1) * k); yy++)
+        for (let xx = x * k; xx < Math.min(px.width, (x + 1) * k); xx++) {
+          for (let c = 0; c < ch; c++)
+            sum[c] = (sum[c] ?? 0) + (px.data[(yy * px.width + xx) * ch + c] ?? 0);
+          n++;
+        }
+      for (let c = 0; c < ch; c++) out[(y * w + x) * ch + c] = Math.round((sum[c] ?? 0) / n);
+    }
+  return { width: w, height: h, channels: ch, data: out };
+}
+
+/**
+ * Image rectangles worth drawing as shapes: their mean area on the page
+ * (`scale` square units per unit square) is at least `MIN_BLOCK_AREA`.
+ */
+export function blocky(
+  rects: [string, number, number[]][] | null,
+  scale: number,
+): [string, number, number[]][] | null {
+  if (!rects) return null;
+  let n = 0;
+  let area = 0;
+  for (const [, , ops] of rects)
+    for (let i = 0; i + 12 < ops.length; i += 13) {
+      n++;
+      area += Math.abs(
+        ((ops[i + 4] ?? 0) - (ops[i + 1] ?? 0)) * ((ops[i + 8] ?? 0) - (ops[i + 2] ?? 0)),
+      );
+    }
+  return n > 0 && (area * scale) / n >= MIN_BLOCK_AREA ? rects : null;
+}
+
 function fresh(viewport: Matrix): State {
   return {
     ctm: viewport,
@@ -514,6 +638,7 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
   for (const [k, v] of Object.entries(input.OPS)) name[v] = k;
   const warnings = new Set<string>();
   const out: string[] = [];
+  const images: Pixels[] = [];
   const stack: State[] = [];
   let st = fresh(input.viewport);
   let pendingClip = false;
@@ -611,6 +736,59 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
       if (kept.length > 0)
         out.push(`<path d="${segsToD(kept)}" ${paintAttrs(false, true, false, IDENTITY)}/>`);
     }
+  };
+
+  /**
+   * An image as a picture: an `<image>` over its unit square (PDF puts the
+   * first row at the top, y = 1), its pixels cropped to a rectangular clip
+   * when it is axis-aligned, reduced when huge, and handed back to be encoded.
+   */
+  const picture = (img: PdfImage) => {
+    let px = toPixels(img);
+    if (!px) {
+      warnings.add('A picture in an unsupported format was left out.');
+      return;
+    }
+    // Unit square with y down (row 0 at the top) → SVG units.
+    let m = multiply(st.ctm, [1, 0, 0, -1, 0, 1]);
+    const corners = [apply(m, 0, 0), apply(m, 1, 0), apply(m, 0, 1), apply(m, 1, 1)];
+    const xs = corners.map((c) => c[0]);
+    const ys = corners.map((c) => c[1]);
+    const box: Box = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+    const clip = st.clip;
+    if (clip && disjoint(box, clip)) return;
+    if (clip && !inside(box, clip)) {
+      if (isAxisAligned(m) && determinant(m) !== 0) {
+        const inv = invert(m);
+        const [u0, v0] = apply(inv, clip[0], clip[1]);
+        const [u1, v1] = apply(inv, clip[2], clip[3]);
+        const cut = (a: number, b: number, n: number): [number, number] => [
+          Math.max(0, Math.round(Math.min(a, b) * n)),
+          Math.min(n, Math.round(Math.max(a, b) * n)),
+        ];
+        const [x0, x1] = cut(u0, u1, px.width);
+        const [y0, y1] = cut(v0, v1, px.height);
+        if (x1 <= x0 || y1 <= y0) return;
+        m = multiply(m, [
+          (x1 - x0) / px.width,
+          0,
+          0,
+          (y1 - y0) / px.height,
+          x0 / px.width,
+          y0 / px.height,
+        ]);
+        px = cropPixels(px, x0, y0, x1, y1);
+      } else warnings.add('A rotated picture under a clipping shape was kept whole.');
+    }
+    if (px.width * px.height > MAX_PICTURE_PIXELS) {
+      px = reducePixels(px, Math.ceil(Math.sqrt((px.width * px.height) / MAX_PICTURE_PIXELS)));
+      warnings.add('A very large picture was stored at a lower resolution.');
+    }
+    const opacity = st.fillAlpha < 1 ? ` opacity="${fmt(st.fillAlpha)}"` : '';
+    out.push(
+      `<image x="0" y="0" width="1" height="1" preserveAspectRatio="none" transform="${matrixString(m)}"${opacity} href="${PDF_IMAGE_HREF}${String(images.length)}"/>`,
+    );
+    images.push(px);
   };
 
   /** A clip path (user space under the CTM) → the new clip box. */
@@ -997,11 +1175,18 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
               : typeof args[0] === 'string'
                 ? (input.image?.(args[0]) ?? null)
                 : null;
-          const rects = img ? imageRects(img) : null;
+          if (!img) {
+            warnings.add('A picture that could not be read was left out.');
+            break;
+          }
+          // Blocks of colour big on the page become shapes, crisp in every export, unless
+          // the PDF asks for them to be smoothed.
+          const rects =
+            img.interpolate === true
+              ? null
+              : blocky(imageRects(img), Math.abs(determinant(st.ctm)));
           if (!rects) {
-            warnings.add(
-              'Embedded pictures were left out (only small block images, such as heatmaps, become shapes).',
-            );
+            picture(img);
             break;
           }
           for (const [colour, alpha, data] of rects) {
@@ -1014,12 +1199,12 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
         }
         case 'paintInlineImageXObjectGroup':
         case 'paintImageXObjectRepeat':
+          warnings.add('Repeated pictures were left out.');
+          break;
         case 'paintImageMaskXObject':
         case 'paintImageMaskXObjectGroup':
         case 'paintImageMaskXObjectRepeat':
-          warnings.add(
-            'Embedded pictures were left out (only small block images, such as heatmaps, become shapes).',
-          );
+          warnings.add('Stencil masks (pictures in one colour) were left out.');
           break;
         case 'shadingFill':
           warnings.add('Gradient shadings were left out.');
@@ -1035,6 +1220,7 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
   const h = fmt(input.height);
   return {
     svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${out.join('')}</svg>`,
+    images,
     warnings: [...warnings],
   };
 }

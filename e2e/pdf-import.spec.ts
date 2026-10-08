@@ -58,3 +58,18 @@ test('a multi-page PDF asks for a page, from the keyboard, and Escape imports no
   await expect(dialog).toBeHidden();
   await expect(page.locator(images, { hasText: 'Image' })).toHaveCount(1);
 });
+
+test('a plot with pictures inside is placed as a group, pictures under the plot (issue 24)', async ({
+  page,
+}) => {
+  await page.getByTestId('import-input').setInputFiles(fixture('matplotlib-images'));
+  await expect(page.locator(images, { hasText: 'matplotlib-images.pdf' })).toHaveCount(1);
+  await expect(page.locator('.notice-error')).toHaveCount(0);
+  // Encoded as PNG in the browser and drawn on the canvas.
+  const pics = page.locator('g[data-id] image');
+  await expect(pics).toHaveCount(2);
+  expect(await pics.first().getAttribute('xlink:href')).toMatch(/^data:image\/png;base64,iVBOR/);
+  // One undo step removes the whole import.
+  await page.keyboard.press('Control+z');
+  await expect(page.locator('g[data-id] image')).toHaveCount(0);
+});

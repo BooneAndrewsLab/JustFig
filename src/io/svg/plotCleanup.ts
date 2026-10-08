@@ -14,6 +14,10 @@
  *    alignment the plot gave them (`anchorLabels`).
  * 4. The viewBox is cropped to the drawn content.
  *
+ * Embedded pictures are taken out after step 2 (`plotImages.ts`, issue 24)
+ * and returned, to be placed as pictures of their own under the plot; the
+ * crop keeps room for them.
+ *
  * Text and strokes stay separate elements with their own attributes, so
  * later passes (matching fonts, resizing a plot without scaling its text)
  * can find them.
@@ -37,6 +41,7 @@ import {
 } from './matrix';
 import { parsePath, pathPoints, pathRect, pathString, transformPath } from './pathData';
 import { bundledFont, isBold } from './plotFonts';
+import { type PlotImage, takeImages } from './plotImages';
 
 export type ViewBox = readonly [number, number, number, number];
 
@@ -1246,8 +1251,21 @@ export function viewBoxAroundText(root: SvgNode, vb: ViewBox): ViewBox {
   return [x0, y0, Number(fmt(x1 - x0)), Number(fmt(y1 - y0))];
 }
 
-function crop(root: SvgNode, vb: ViewBox): ViewBox {
-  const b = contentBounds(root, vb);
+function crop(root: SvgNode, vb: ViewBox, extra: readonly Box[] = []): ViewBox {
+  const b = [contentBounds(root, vb), ...extra].reduce<Box | null>(
+    (a, x) =>
+      !x
+        ? a
+        : !a
+          ? x
+          : [
+              Math.min(a[0], x[0]),
+              Math.min(a[1], x[1]),
+              Math.max(a[2], x[2]),
+              Math.max(a[3], x[3]),
+            ],
+    null,
+  );
   if (!b) return vb;
   const x0 = Math.max(vb[0], Math.floor(b[0] * 100) / 100);
   const y0 = Math.max(vb[1], Math.floor(b[1] * 100) / 100);
@@ -1259,17 +1277,35 @@ function crop(root: SvgNode, vb: ViewBox): ViewBox {
 
 // ---- All together --------------------------------------------------------
 
-export function cleanupPlot(root: SvgNode, viewBox: ViewBox): { root: SvgNode; viewBox: ViewBox } {
+export function cleanupPlot(
+  root: SvgNode,
+  viewBox: ViewBox,
+): { root: SvgNode; viewBox: ViewBox; images: PlotImage[] } {
   const rootInh = inherit(ROOT_INHERITED, root.attrs);
   const flat = el(
     'svg',
     root.attrs,
     root.children.flatMap((c) => (typeof c === 'string' ? [] : flatten(c, IDENTITY, rootInh))),
   );
-  const merged = anchorLabels(mergeTexts(dropBackground(flat, viewBox), ROOT_INHERITED), viewBox);
-  const vb = crop(merged, viewBox);
+  const bare = dropBackground(flat, viewBox);
+  const boxes = new Map(drawnLeaves(bare, viewBox).map((l) => [l.path.join('.'), l.box]));
+  const { root: drawing, images } = takeImages(bare, boxes);
+  const merged = anchorLabels(mergeTexts(drawing, ROOT_INHERITED), viewBox);
+  const corners = images.map((p): Box => {
+    const q = [
+      apply(p.matrix, 0, 0),
+      apply(p.matrix, 1, 0),
+      apply(p.matrix, 0, 1),
+      apply(p.matrix, 1, 1),
+    ];
+    const xs = q.map((c) => c[0]);
+    const ys = q.map((c) => c[1]);
+    return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+  });
+  const vb = crop(merged, viewBox, corners);
   return {
     root: el('svg', { ...merged.attrs, viewBox: vb.map(fmt).join(' ') }, merged.children),
     viewBox: vb,
+    images,
   };
 }

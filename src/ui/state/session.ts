@@ -5,6 +5,7 @@
  */
 import { BRAND } from '@/brand';
 import { addObjects, allIds, deleteObjects, updateDoc } from '@/core/edits/edits';
+import { placeImport } from '@/core/edits/placeImport';
 import { boundsOf } from '@/core/geometry/transform';
 import { cloneObjects } from '@/core/model/clone';
 import { createDoc, createText, defaultRun, frame } from '@/core/model/factory';
@@ -267,16 +268,7 @@ export async function importToCanvas(file: File, at?: { x: number; y: number }):
     if (await importBarelySig(file, c)) return;
     const imp = await importFile(file, { choosePdfPage: choosePdfPage(file.name) });
     if (!imp) return; // a page choice was cancelled
-    const obj: Obj = {
-      id: '' as Id,
-      type: 'image',
-      frame: frame(c.x - imp.w / 2, c.y - imp.h / 2, imp.w, imp.h),
-      opacity: 1,
-      asset: imp.hash,
-    };
-    const [placed] = cloneObjects([obj]);
-    if (!placed) return;
-    store.edit(addObjects(currentPage(store.getState()).id, [placed], { [imp.hash]: imp.asset }));
+    store.edit(placeImport(currentPage(store.getState()).id, imp, c));
     analytics.track(
       'file',
       imp.asset.kind !== 'svgImport'

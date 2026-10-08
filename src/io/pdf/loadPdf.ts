@@ -7,8 +7,15 @@
  */
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 
+import { base64, encodePng } from '../png';
 import type { Matrix } from '../svg/matrix';
-import { type PdfFont, type PdfImage, type PdfPageSvg, pageToSvg } from './pageToSvg';
+import {
+  PDF_IMAGE_HREF,
+  type PdfFont,
+  type PdfImage,
+  type PdfPageSvg,
+  pageToSvg,
+} from './pageToSvg';
 
 export interface PdfPageInfo {
   /** 1-based. */
@@ -20,8 +27,11 @@ export interface PdfPageInfo {
 
 export interface PdfFile {
   readonly pages: readonly PdfPageInfo[];
-  /** The page as SVG text in CSS pixel units (1 pt = 4/3 px, what SVG import expects). */
-  pageSvg(number: number): Promise<PdfPageSvg>;
+  /**
+   * The page as SVG text in CSS pixel units (1 pt = 4/3 px, what SVG import
+   * expects), its pictures embedded as PNG.
+   */
+  pageSvg(number: number): Promise<Omit<PdfPageSvg, 'images'>>;
   close(): Promise<void>;
 }
 
@@ -53,6 +63,9 @@ export async function openPdf(bytes: Uint8Array): Promise<PdfFile> {
     disableFontFace: true,
     fontExtraProperties: true,
     useSystemFonts: false,
+    // Images as pixels (not ImageBitmaps decoded in the worker): they become shapes or PNG.
+    isOffscreenCanvasSupported: false,
+    isImageDecoderSupported: false,
     // Nothing is fetched: no CMap or standard-font files are shipped.
     useWorkerFetch: false,
     stopAtErrors: false,
@@ -76,7 +89,7 @@ export async function openPdf(bytes: Uint8Array): Promise<PdfFile> {
   }
   return {
     pages,
-    async pageSvg(number: number): Promise<PdfPageSvg> {
+    async pageSvg(number: number): Promise<Omit<PdfPageSvg, 'images'>> {
       const page = await doc.getPage(number);
       const vp = page.getViewport({ scale: PX_PER_PT });
       const ops = await page.getOperatorList({ annotationMode: pdfjs.AnnotationMode.DISABLE });
@@ -105,7 +118,7 @@ export async function openPdf(bytes: Uint8Array): Promise<PdfFile> {
           return null;
         }
       };
-      return pageToSvg({
+      const out = pageToSvg({
         ops,
         OPS: pdfjs.OPS,
         width: vp.width,
@@ -136,7 +149,20 @@ export async function openPdf(bytes: Uint8Array): Promise<PdfFile> {
           }
         },
       });
+      return { svg: await withPictures(out), warnings: out.warnings };
     },
     close: () => task.destroy(),
   };
+}
+
+/** A converted page's SVG with each picture's pixels in place, as PNG (issue 24). */
+async function withPictures(page: PdfPageSvg): Promise<string> {
+  if (page.images.length === 0) return page.svg;
+  const urls = await Promise.all(
+    page.images.map(async (px) => `data:image/png;base64,${base64(await encodePng(px))}`),
+  );
+  return page.svg.replace(
+    new RegExp(`href="${PDF_IMAGE_HREF}(\\d+)"`, 'g'),
+    (_, n: string) => `href="${urls[Number(n)] ?? ''}"`,
+  );
 }

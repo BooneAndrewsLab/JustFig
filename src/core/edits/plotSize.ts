@@ -9,17 +9,26 @@
  * `keepPlotText(before, after, pageId)` is a pass over a resize: every plot
  * whose frame changed size between the two figures is redrawn for its new
  * size from its asset in `before`, so a drag recomputed from its start bakes
- * once per step from the original, never from an earlier step.
+ * once per step from the original, never from an earlier step. Pictures in
+ * the plot's group that lay over it (an imported plot's embedded pictures,
+ * issue 24) follow the panel under them instead of scaling with the group.
  */
 import { hashAsset } from '@/io/assets';
 import { fmt } from '@/io/svg/matrix';
 import type { ViewBox } from '@/io/svg/plotCleanup';
-import { type PlotLayout, growthFor, plotLayout, resizePlot } from '@/io/svg/plotResize';
+import {
+  type PlotLayout,
+  growthFor,
+  mapPlotBox,
+  plotLayout,
+  resizePlot,
+} from '@/io/svg/plotResize';
 import { type PlotParts, plotParts } from '@/io/svg/plotRoles';
 import { parsedSvg } from '@/render/assets';
 import { type SvgNode, el, nodeToSvgString } from '@/render/svgNode';
 
-import { frameMatrix } from '../geometry/matrix';
+import { apply, center, frameMatrix, invert } from '../geometry/matrix';
+import { refit } from '../geometry/transform';
 import type { Id } from '../model/ids';
 import { mapPageObjs, pageObjects, usedAssets } from '../model/tree';
 import type { Asset, Figure, Frame, Obj } from '../model/types';
@@ -96,6 +105,19 @@ export function resizedPlot(
   before: Frame,
   after: Frame,
 ): SvgImportAsset | null {
+  return resizing(asset, before, after)?.asset ?? null;
+}
+
+/** A plot's resize: the new asset and what moving pictures over it needs. */
+interface Resizing {
+  readonly asset: SvgImportAsset;
+  readonly layout: PlotLayout;
+  readonly growth: readonly [number, number];
+  readonly from: ViewBox;
+  readonly to: ViewBox;
+}
+
+function resizing(asset: SvgImportAsset, before: Frame, after: Frame): Resizing | null {
   const s = parsedSvg(asset.svg);
   const layout = layoutOf(asset.svg);
   const [, , vw, vh] = s.viewBox;
@@ -107,7 +129,48 @@ export function resizedPlot(
     (after.h * vh) / before.h,
   );
   const r = resizePlot(s.root, s.viewBox, layout, sx, sy);
-  return { ...asset, svg: plotSvg(r.root, r.viewBox) };
+  return {
+    asset: { ...asset, svg: plotSvg(r.root, r.viewBox) },
+    layout,
+    growth: [sx, sy],
+    from: s.viewBox,
+    to: r.viewBox,
+  };
+}
+
+/**
+ * A picture that lay over a plot (`was` its frame, issue 24) where the
+ * plot's resize from `before` to `after` takes it: with the panel or band
+ * under it (`mapPlotBox`). Null when it is not over the plot or not turned
+ * the same way (it then just scales with its group).
+ */
+function followPlot(pic: Frame, before: Frame, after: Frame, r: Resizing): Frame | null {
+  if (
+    Math.abs(pic.rotation - before.rotation) > 1e-6 ||
+    (pic.flipX ?? false) !== (before.flipX ?? false)
+  )
+    return null;
+  const [fx, fy] = [r.from[2] / before.w, r.from[3] / before.h];
+  const c = apply(invert(frameMatrix(before)), center(pic));
+  const hw = pic.w / 2;
+  const hh = pic.h / 2;
+  const tol = 0.01 * Math.max(before.w, before.h);
+  if (c.x - hw < -tol || c.y - hh < -tol || c.x + hw > before.w + tol || c.y + hh > before.h + tol)
+    return null;
+  const b = mapPlotBox(r.layout, r.growth[0], r.growth[1], [
+    r.from[0] + (c.x - hw) * fx,
+    r.from[1] + (c.y - hh) * fy,
+    r.from[0] + (c.x + hw) * fx,
+    r.from[1] + (c.y + hh) * fy,
+  ]);
+  const [gx, gy] = [after.w / r.to[2], after.h / r.to[3]];
+  const p = apply(frameMatrix(after), {
+    x: ((b[0] + b[2]) / 2 - r.to[0]) * gx,
+    y: ((b[1] + b[3]) / 2 - r.to[1]) * gy,
+  });
+  const w = (b[2] - b[0]) * gx;
+  const h = (b[3] - b[1]) * gy;
+  return { ...pic, x: p.x - w / 2, y: p.y - h / 2, w, h };
 }
 
 /**
@@ -139,27 +202,43 @@ export function keepPlotText(before: Figure, after: Figure, pageId: Id): Figure 
   const pa = after.doc.pages.find((p) => p.id === pageId);
   if (!pb || !pa || pb === pa) return after;
   const old = new Map<Id, Obj>();
-  for (const o of pageObjects(pb)) if (o.type === 'image') old.set(o.id, o);
+  /** The group each object is in, before. */
+  const parent = new Map<Id, Obj>();
+  for (const o of pageObjects(pb)) {
+    if (o.type === 'image') old.set(o.id, o);
+    if (o.type === 'group') for (const c of o.children) parent.set(c.id, o);
+  }
   const added: Record<string, Asset> = {};
   const replaced = new Set<string>();
   const changed = new Map<Id, string>();
+  /** Pictures grouped with a resized plot, over it (issue 24): their new frames. */
+  const follow = new Map<Id, Frame>();
   for (const o of pageObjects(pa)) {
     if (o.type !== 'image') continue;
     const was = old.get(o.id);
     if (was?.type !== 'image' || was.asset !== o.asset || sameSize(was.frame, o.frame)) continue;
     const asset = before.assets[o.asset];
     if (asset?.kind !== 'svgImport') continue;
-    const r = resizedPlot(asset, was.frame, o.frame);
+    const r = resizing(asset, was.frame, o.frame);
     if (!r) continue;
-    const hash = hashAsset(r);
-    added[hash] = r;
+    const hash = hashAsset(r.asset);
+    added[hash] = r.asset;
     replaced.add(o.asset);
     changed.set(o.id, hash);
+    const g = parent.get(o.id);
+    for (const pic of g?.type === 'group' ? g.children : []) {
+      if (pic.type !== 'image' || before.assets[pic.asset]?.kind !== 'image') continue;
+      const f = followPlot(pic.frame, was.frame, o.frame, r);
+      if (f) follow.set(pic.id, f);
+    }
   }
   if (changed.size === 0) return after;
   const page = mapPageObjs(pa, (o) => {
     const h = changed.get(o.id);
-    return h !== undefined && o.type === 'image' ? { ...o, asset: h } : o;
+    if (h !== undefined && o.type === 'image') return { ...o, asset: h };
+    const f = follow.get(o.id);
+    if (f) return { ...o, frame: f };
+    return o.type === 'group' && o.children.some((c) => follow.has(c.id)) ? refit(o) : o;
   });
   const next: Figure = {
     ...after,

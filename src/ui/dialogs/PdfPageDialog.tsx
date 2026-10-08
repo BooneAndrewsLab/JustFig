@@ -5,17 +5,36 @@
  */
 import { useEffect, useState } from 'react';
 
+import { frameMatrix } from '@/core/geometry/matrix';
 import { formatLength } from '@/core/units';
-import { svgImportNode } from '@/render/assets';
-import { nodeToSvgString } from '@/render/svgNode';
+import type { Imported } from '@/io/import';
+import { imageNode, svgImportNode } from '@/render/assets';
+import { el, nodeToSvgString } from '@/render/svgNode';
 
 import type { PdfPageRequest } from '../state/pdfPagePicker';
 import { useAppState } from '../state/useAppState';
 import { Dialog } from './Dialog';
 
-/** The page as it will be placed: text laid out in the bundled fonts, drawn as outlines (note 14). */
-function previewUrl(svg: string, w: number, h: number): string {
-  const body = nodeToSvgString(svgImportNode(svg, w, h, 'outline'));
+/**
+ * The page as it will be placed: text laid out in the bundled fonts, drawn as
+ * outlines (note 14), over the pictures it holds (issue 24).
+ */
+function previewUrl(imp: Imported): string | null {
+  if (imp.asset.kind !== 'svgImport') return null;
+  const { w, h } = imp;
+  const pictures = (imp.pictures ?? []).map((p) =>
+    el(
+      'g',
+      {
+        transform: `matrix(${frameMatrix(p.frame).join(' ')})`,
+        opacity: p.opacity < 1 ? p.opacity : undefined,
+      },
+      [imageNode(p.asset, p.frame.w, p.frame.h)],
+    ),
+  );
+  const body = [...pictures, svgImportNode(imp.asset.svg, w, h, 'outline')]
+    .map((n) => nodeToSvgString(n))
+    .join('');
   const page =
     `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" ` +
     `width="${String(w)}" height="${String(h)}" viewBox="0 0 ${String(w)} ${String(h)}">${body}</svg>`;
@@ -34,7 +53,7 @@ export function PdfPageDialog({ request }: { request: PdfPageRequest }) {
         if (live)
           setPreview({
             page,
-            url: imp.asset.kind === 'svgImport' ? previewUrl(imp.asset.svg, imp.w, imp.h) : null,
+            url: previewUrl(imp),
           });
       },
       () => {

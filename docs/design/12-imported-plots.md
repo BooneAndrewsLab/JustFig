@@ -69,11 +69,34 @@ Sans, sans-serif`, bold), `rotate(θ x y)` when rotated. Mathtext (`$…$`, issu
   `text-anchor` the plot laid it out with (centred under a tick or axis, right-aligned to a
   tick), judged from the lines around it; the source's run width travels as a transient
   `data-advance` that is never stored.
+- **Pictures** (`plotImages.ts`, issue 24). `<image>` is not in an `svgImport` asset's subset,
+  and putting megabytes of base64 into the plot's SVG would make every restyle and resize
+  step rewrite and hash them. With `plot: true` the sanitiser keeps embedded PNG and JPEG
+  `<image>`s (data URLs only; a linked one is dropped with a warning); flattening bakes their
+  matrix like any leaf, and after the background is dropped each one is taken out with the
+  matrix of its unit square (its drawn rectangle under `preserveAspectRatio`, default `meet`)
+  and its accumulated opacity. Import makes each an `image` asset whose frame is decomposed
+  from that matrix (size, rotation, a mirror as `flipY`: matplotlib's SVG stores rows bottom
+  first and mirrors them back; a slant is dropped with a warning) and places it in **one group
+  with the plot, under it** (`placeImport` in `src/core/edits/`): what plots draw over their
+  pictures (contours, markers, labels, spines) must stay on top, and splitting the plot into a
+  layer above and one below would break restyling and resizing, which work on one asset. What
+  was drawn **before** a picture is cut where the picture is: a filled axis-aligned rectangle
+  around it (the axes background, a ggplot2 panel) gets an even-odd hole of the picture's
+  shape, or loses its fill when an opaque picture (a JPEG, or a PNG without alpha or `tRNS`, at
+  full opacity) covers all of it; anything else drawn before an opaque picture and wholly
+  inside it is dropped, and a straight unfilled line partly under one (ggplot2's grid lines) loses
+  the part under it (Liang–Barsky). Curves and fills only partly under a picture, and anything
+  under a see-through one, stay over it (grid lines under a rasterized scatter layer end up over
+  its dots), and a see-through picture over a holed
+  coloured background shows the page through its clear pixels. SVG clipping is still ignored
+  (no `clipPath`), so a picture is placed whole. The crop includes the pictures.
 - **Cropping:** the viewBox becomes the union of drawn boxes (control-point hulls for paths,
   padded by the stroke width, text boxes from the width estimate in the bundled font the label is drawn in (note 14) ×1.1 and −1 em/+0.3 em
   around the baseline), intersected with the original viewBox (what lay outside was never
   shown), so the placed size is the drawing's. Nothing drawn: unchanged.
-- **Tests:** real matplotlib 3.11 output (`fonttype` path and none, and `matplotlib-log.svg`:
+- **Tests:** `plotImages.test.ts` (holes, drops, `meet`, mirrored and linked pictures, and
+  `matplotlib-images.svg` from `scripts/svg-fixtures/matplotlib-images.py`); real matplotlib 3.11 output (`fonttype` path and none, and `matplotlib-log.svg`:
   log axes and mathtext labels, made by `scripts/svg-fixtures/matplotlib-log.py`) and ggplot2
   via cairo `svg()` in `src/io/svg/fixtures/`, plus an svglite 2.1 file transcribed in its exact format
   (svglite could not be built here); `plotCleanup.test.ts` covers each step on its own too.

@@ -6,6 +6,9 @@
  *
  * - Elements outside the allow-list are dropped with their content
  *   (script, foreignObject, image, filter, mask, clipPath, …) and logged.
+ *   A plot's embedded PNG and JPEG pictures are the exception: plot cleanup
+ *   takes them out of the tree, to be placed as pictures of their own
+ *   (issue 24); linked ones are dropped.
  * - `<style>` rules (tag, .class, #id, `*` and descendant selectors) and
  *   `style=` are resolved into presentation attributes; the `font`
  *   shorthand is expanded and `inherit` means "not set".
@@ -23,6 +26,7 @@ import { parseXml } from '@/render/xml';
 
 import { markGlyphRuns, rebuildGlyphRuns } from './glyphText';
 import { ADVANCE_ATTR, cleanupPlot } from './plotCleanup';
+import type { PlotImage } from './plotImages';
 
 export interface SanitizedSvg {
   /** `<svg viewBox>` root with only allowed content. */
@@ -30,6 +34,8 @@ export interface SanitizedSvg {
   readonly viewBox: readonly [number, number, number, number];
   /** What was removed or approximated, for the import report. */
   readonly warnings: readonly string[];
+  /** A plot's embedded pictures, taken out of the tree (`plot: true` only). */
+  readonly images?: readonly PlotImage[];
 }
 
 export class SvgImportError extends Error {
@@ -84,6 +90,9 @@ const GEOMETRY: Readonly<Record<string, readonly string[]>> = {
 };
 
 const KEEP_DATA = ['data-slot', 'data-tone', 'data-part'];
+
+/** An embedded picture a plot may keep: PNG or JPEG data, nothing fetched. */
+const PICTURE_HREF = /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/]+=*$/;
 
 interface Compound {
   readonly tag?: string;
@@ -354,6 +363,21 @@ export function sanitizeSvg(text: string, opts: SanitizeOptions = {}): Sanitized
         .join(' ');
       return el('g', { ...pres(n, ancestors), ...(t ? { transform: t } : {}) }, [inner]);
     }
+    if (tag === 'image' && opts.plot === true) {
+      const href = String(n.attrs['href'] ?? n.attrs['xlink:href'] ?? '').replace(/\s+/g, '');
+      if (!PICTURE_HREF.test(href)) {
+        warnings.add('Removed a picture linked from outside the file.');
+        return null;
+      }
+      const a: Record<string, string> = { href };
+      for (const k of ['x', 'y', 'width', 'height', 'preserveAspectRatio', 'transform']) {
+        const v = n.attrs[k];
+        if (v !== undefined) a[k] = String(v);
+      }
+      const op = pres(n, ancestors)['opacity'];
+      if (op !== undefined) a['opacity'] = op;
+      return el('image', a, []);
+    }
     if (!(CONTAINERS.has(tag) || SHAPES.has(tag) || TEXT.has(tag))) {
       if (!DROP_SILENT.has(tag) && tag !== '')
         warnings.add(`Removed unsupported <${n.tag}> content.`);
@@ -437,8 +461,9 @@ export function sanitizeSvg(text: string, opts: SanitizeOptions = {}): Sanitized
   );
   if (opts.plot === true) {
     // Sanitised once more, so the stored SVG is exactly what rendering will parse it into.
-    const tidy = sanitizeSvg(nodeToSvgString(cleanupPlot(root, viewBox).root));
-    return { root: tidy.root, viewBox: tidy.viewBox, warnings: [...warnings] };
+    const c = cleanupPlot(root, viewBox);
+    const tidy = sanitizeSvg(nodeToSvgString(c.root));
+    return { root: tidy.root, viewBox: tidy.viewBox, warnings: [...warnings], images: c.images };
   }
   return { root, viewBox, warnings: [...warnings] };
 }

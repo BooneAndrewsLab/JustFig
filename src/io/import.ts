@@ -4,12 +4,25 @@
  * through the same sanitiser as icons, so they stay vector in every
  * export, and are tidied up as plots (note 12); a PDF page is converted to
  * SVG first and then takes the same path (note 13); rasters keep their bytes.
+ * A plot's embedded pictures come out as pictures of their own, placed
+ * under it (issue 24).
  */
-import type { Asset } from '@/core/model/types';
+import type { Asset, Frame } from '@/core/model/types';
 import { el, nodeToSvgString } from '@/render/svgNode';
 
 import { hashAsset } from './assets';
+import { base64, imageSize } from './png';
 import { SvgImportError, sanitizeSvg } from './svg/sanitize';
+import type { PlotImage } from './svg/plotImages';
+
+/** A picture from inside an imported plot, placed with it (issue 24). */
+export interface ImportedPicture {
+  readonly hash: string;
+  readonly asset: Extract<Asset, { kind: 'image' }>;
+  /** Relative to the plot's top-left as placed, points. */
+  readonly frame: Frame;
+  readonly opacity: number;
+}
 
 export interface Imported {
   readonly hash: string;
@@ -18,49 +31,19 @@ export interface Imported {
   readonly w: number;
   readonly h: number;
   readonly warnings: readonly string[];
+  /** Pictures that were inside the plot, to be drawn under it in drawing order. */
+  readonly pictures?: readonly ImportedPicture[];
 }
 
 /** Longest side a newly placed import gets, points (~106 mm). */
 export const MAX_PLACE = 300;
 
+export { imageSize };
+
 const fit = (w: number, h: number): { w: number; h: number } => {
   const k = Math.min(1, MAX_PLACE / Math.max(w, h, 1));
   return { w: w * k, h: h * k };
 };
-
-export function imageSize(
-  bytes: Uint8Array,
-): { mime: 'image/png' | 'image/jpeg'; width: number; height: number } | null {
-  const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  if (
-    bytes.length > 24 &&
-    bytes[0] === 0x89 &&
-    bytes[1] === 0x50 &&
-    bytes[2] === 0x4e &&
-    bytes[3] === 0x47
-  )
-    return { mime: 'image/png', width: v.getUint32(16), height: v.getUint32(20) };
-  if (bytes[0] === 0xff && bytes[1] === 0xd8) {
-    let i = 2;
-    while (i + 9 < bytes.length) {
-      if (bytes[i] !== 0xff) return null;
-      const marker = bytes[i + 1] ?? 0;
-      const len = v.getUint16(i + 2);
-      // SOF0..SOF15 except DHT (C4), JPG (C8), DAC (CC) carry the frame size.
-      if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc)
-        return { mime: 'image/jpeg', height: v.getUint16(i + 5), width: v.getUint16(i + 7) };
-      i += 2 + len;
-    }
-  }
-  return null;
-}
-
-function base64(bytes: Uint8Array): string {
-  let s = '';
-  for (let i = 0; i < bytes.length; i += 0x8000)
-    s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  return btoa(s);
-}
 
 /**
  * An SVG file as an `svgImport` asset. `plot` (the default) also cleans it
@@ -75,7 +58,59 @@ export function importSvgText(text: string, name: string, { plot = true } = {}):
   // SVG user units are CSS pixels: 0.75 pt each.
   const size = fit(s.viewBox[2] * 0.75, s.viewBox[3] * 0.75);
   const asset: Asset = { kind: 'svgImport', svg, meta: { name, width: size.w, height: size.h } };
-  return { hash: hashAsset(asset), asset, ...size, warnings: s.warnings };
+  const k = size.w / s.viewBox[2];
+  const warnings = new Set(s.warnings);
+  const pictures = (s.images ?? []).map((p, i) => {
+    const picture = placedPicture(p, k, s.viewBox, `${name} (picture ${String(i + 1)})`);
+    if (picture.slanted) warnings.add('A slanted picture was placed without its slant.');
+    return picture.picture;
+  });
+  return {
+    hash: hashAsset(asset),
+    asset,
+    ...size,
+    warnings: [...warnings],
+    ...(pictures.length > 0 ? { pictures } : {}),
+  };
+}
+
+/**
+ * A picture taken out of a plot as an image asset and the frame that shows
+ * it where it was, `k` points per plot unit from the viewBox's top-left: the
+ * matrix's columns give its size, rotation and a flip (a mirror becomes
+ * `flipY`); a slant cannot be shown by a frame and is dropped.
+ */
+function placedPicture(
+  p: PlotImage,
+  k: number,
+  vb: readonly [number, number, number, number],
+  name: string,
+): { picture: ImportedPicture; slanted: boolean } {
+  const m = p.matrix;
+  const w = Math.hypot(m[0], m[1]) * k;
+  const h = Math.hypot(m[2], m[3]) * k;
+  const det = m[0] * m[3] - m[1] * m[2];
+  const cx = (m[4] + (m[0] + m[2]) / 2 - vb[0]) * k;
+  const cy = (m[5] + (m[1] + m[3]) / 2 - vb[1]) * k;
+  const rot = (Math.atan2(m[1], m[0]) * 180) / Math.PI;
+  const rotation = Math.abs(rot) < 1e-9 ? 0 : rot;
+  const slanted =
+    Math.abs(m[0] * m[2] + m[1] * m[3]) > 1e-3 * Math.hypot(m[0], m[1]) * Math.hypot(m[2], m[3]);
+  const asset: ImportedPicture['asset'] = {
+    kind: 'image',
+    mime: p.mime,
+    dataBase64: p.dataBase64,
+    meta: { name, width: p.width, height: p.height },
+  };
+  const frame: Frame = {
+    x: cx - w / 2,
+    y: cy - h / 2,
+    w,
+    h,
+    rotation,
+    ...(det < 0 ? { flipY: true } : {}),
+  };
+  return { picture: { hash: hashAsset(asset), asset, frame, opacity: p.opacity }, slanted };
 }
 
 export function importRaster(bytes: Uint8Array, name: string): Imported {

@@ -203,11 +203,18 @@ export function plotLayout(root: SvgNode, vb: ViewBox, parts: PlotParts): PlotLa
   const shapes = leaves.filter((l) => !isText(l) && strokes.get(k(l))?.role !== 'tick');
   const isAxis = (l: DrawnLeaf): boolean => strokes.get(k(l))?.role === 'axis';
   const big = (b: Box): boolean => w(b) >= LONG * vb[2] && h(b) >= LONG * vb[3];
-  /** An axis-aligned rectangle. */
+  /** An axis-aligned rectangle (a panel holed for a picture inside it too: issue 24). */
   const rectLike = (l: DrawnLeaf): boolean => {
     if (l.node.tag === 'rect') return true;
     const segs = l.node.tag === 'path' ? segsOf(l.node) : null;
-    return segs !== null && pathRect(segs) !== null;
+    if (segs === null) return false;
+    if (pathRect(segs) !== null) return true;
+    const second = segs.findIndex((g, i) => i > 0 && g.c === 'M');
+    return (
+      l.node.attrs['fill-rule'] === 'evenodd' &&
+      second > 0 &&
+      pathRect(segs.slice(0, second)) !== null
+    );
   };
   /** A panel background or frame: a large axis-aligned rectangle. */
   const panel = (l: DrawnLeaf): boolean => big(l.box) && rectLike(l);
@@ -745,6 +752,61 @@ function regionMaps(layout: PlotLayout, sx: number, sy: number): Matrix[] {
     return [ax, 0, 0, ay, bx, by];
   });
 }
+/**
+ * Where growth (sx, sy) takes a box drawn over the plot (a picture that was
+ * inside it, issue 24): like the smallest shape around it (a panel's
+ * background, a legend key), so it scales with its panel or moves with its
+ * legend; with no shape around it, scaled with the panel or band its centre
+ * is in, or outside every region moved as the nearest one's map takes its
+ * centre.
+ */
+export function mapPlotBox(layout: PlotLayout, sx: number, sy: number, box: Box): Box {
+  const maps = regionMaps(layout, sx, sy);
+  const cx = (box[0] + box[2]) / 2;
+  const cy = (box[1] + box[3]) / 2;
+  const scaled = (R: Matrix): Box => {
+    const [x0, y0] = apply(R, box[0], box[1]);
+    const [x1, y1] = apply(R, box[2], box[3]);
+    return [Math.min(x0, x1), Math.min(y0, y1), Math.max(x0, x1), Math.max(y0, y1)];
+  };
+  const moved = (R: Matrix, at: readonly [number, number]): Box => {
+    const [nx, ny] = apply(R, at[0], at[1]);
+    const dx = nx - at[0];
+    const dy = ny - at[1];
+    return [box[0] + dx, box[1] + dy, box[2] + dx, box[3] + dy];
+  };
+  const tol = 0.5;
+  let around: { act: Action; area: number } | null = null;
+  for (const l of layout.leaves) {
+    const act = layout.actions.get(key(l.path));
+    const b = inner(l);
+    if (!act || l.node.tag === 'text' || !inside(box, b, tol)) continue;
+    const area = w(b) * h(b);
+    if (!around || area < around.area) around = { act, area };
+  }
+  if (around) {
+    const R = maps[around.act.in];
+    if (R) return around.act.kind === 'scale' ? scaled(R) : moved(R, around.act.at);
+  }
+  const holds = (r: Region): boolean =>
+    cx >= r.box[0] && cx <= r.box[2] && cy >= r.box[1] && cy <= r.box[3];
+  const dist = (r: Region): number =>
+    Math.hypot(
+      Math.max(r.box[0] - cx, 0, cx - r.box[2]),
+      Math.max(r.box[1] - cy, 0, cy - r.box[3]),
+    );
+  let best = layout.regions.findIndex(holds);
+  if (best < 0)
+    best = layout.regions.reduce(
+      (b, r, i) => (b < 0 || dist(r) < dist(layout.regions[b] ?? r) ? i : b),
+      -1,
+    );
+  const R = maps[best];
+  const region = layout.regions[best];
+  if (!R || !region) return box;
+  return holds(region) ? scaled(R) : moved(R, [cx, cy]);
+}
+
 const own = (n: SvgNode): Matrix => {
   const t = n.attrs['transform'];
   return (t === undefined ? null : parseTransform(String(t))) ?? IDENTITY;

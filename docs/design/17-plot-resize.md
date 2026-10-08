@@ -107,6 +107,15 @@ text) is closed in the same work.
   less so the bar keeps its width and stays aligned with the panel above (never below 5 %).
 - **Legends with one entry** move as one block when they have a title or a line key (1.2–3 em
   long, flat: matplotlib's handle); a lone marker beside a label may be an annotated point.
+- **Pictures** (issue 24). A panel background holed for a picture still counts as a rectangle. An imported plot's pictures are `image` objects in its group (note
+  12). `keepPlotText` moves every raster `image` in a resized plot's group that lay over the
+  plot, turned the same way, like the smallest shape around it (`mapPlotBox`: its panel's
+  background scales, a legend key moves with its legend: ggplot2's colour bar), else with the
+  region under its centre (scaled by that panel's or band's map; outside every region, moved as
+  the nearest one's map takes its centre), instead of scaling it with the group, so a heatmap stays on its axes. Its pixels
+  stretch: a rasterized scatter layer's dots get wider with an uneven resize, unlike vector
+  markers. Restyling keeps them where they are (`growFrame` keeps the shared part in place).
+  A picture's frame is recomputed from the start of the gesture like the plot's asset.
 - **Not handled:** a band that lies across two spans; a colour bar shared by a whole column of
   panels squeezes only the panel it is nearest; panels a stroke joins (or that touch) scale as
   one, gap included. Roles, panels and legends are guesses from geometry, as in note 16.

@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { importSvgText } from '@/io/import';
+import { importPdf, importSvgText } from '@/io/import';
 import { drawnLeaves } from '@/io/svg/plotCleanup';
 import { parsedSvg } from '@/render/assets';
 import { loadTestFonts } from '@/test/fonts';
@@ -20,6 +20,7 @@ import { findObj } from '../model/tree';
 import type { Figure, Frame, Image, Obj, Page } from '../model/types';
 import { addObjects, groupObjects, matchSize, resizeObjects } from './edits';
 import { arrangeInGrid, GRID_DEFAULTS } from './grid';
+import { placeImport } from './placeImport';
 import { growFrame, partsOf } from './plotSize';
 import { plotOf, setStyles } from './style';
 
@@ -206,5 +207,112 @@ describe('restyled plots keep their bounds around their text (issue 30)', () => 
       expect(l.box[2]).toBeLessThanOrEqual(after[0] + after[2] + 0.01);
       expect(l.box[3]).toBeLessThanOrEqual(after[1] + after[3] + 0.01);
     }
+  });
+
+  it('moves the pictures of an imported plot with the panels under them (issue 24)', () => {
+    const imp = importSvgText(
+      readFileSync(new URL('../../io/svg/fixtures/matplotlib-images.svg', import.meta.url), 'utf8'),
+      'matplotlib-images.svg',
+    );
+    const doc = createDoc();
+    const page = doc.pages[0];
+    if (!page) throw new Error('no page');
+    const fig = placeImport(page.id, imp, { x: 200, y: 150 }).apply({ doc, assets: {} });
+    const g = fig.doc.pages[0]?.layers[0]?.children[0];
+    if (g?.type !== 'group') throw new Error('no group');
+    // Pictures first (under the plot), each where it was in the plot.
+    expect(g.children.map((c) => c.name)).toEqual(['Picture 1', 'Picture 2', 'Picture 3', 'Plot']);
+    const plot = g.children[3];
+    const [field, cells] = g.children;
+    if (!plot || !field || !cells) throw new Error('missing');
+    expect(plot.frame).toMatchObject({ x: 200 - imp.w / 2, y: 150 - imp.h / 2, w: imp.w });
+    expect(field.frame.x - plot.frame.x).toBeCloseTo(imp.pictures?.[0]?.frame.x ?? NaN, 9);
+
+    const box = objBounds(g);
+    const r = resizeObjects(
+      page.id,
+      [g.id],
+      box,
+      { ...box, w: box.w * 1.5, h: box.h * 1.2 },
+      'keep',
+    ).apply(fig);
+    const at = (id: Id) => {
+      const p = r.doc.pages[0];
+      const o = p ? findObj(p, id) : undefined;
+      if (!o) throw new Error('missing');
+      return o.frame;
+    };
+    const [p1, f1, c1] = [at(plot.id), at(field.id), at(cells.id)];
+    // The heatmap stays on its axis lines, which move and scale with the panel, and
+    // grows more than the group (the margins keep their size).
+    const spines = (f: Figure, o: Obj): number[] => {
+      if (o.type !== 'image') return [];
+      const svg = svgOf(f, o.asset);
+      const s = parsedSvg(svg);
+      const axis = new Set(
+        partsOf(svg)
+          .strokes.filter((x) => x.role === 'axis')
+          .map((x) => x.path.join('.')),
+      );
+      const k = o.frame.w / s.viewBox[2];
+      return drawnLeaves(s.root, s.viewBox)
+        .filter((l) => axis.has(l.path.join('.')) && l.box[2] - l.box[0] < 2)
+        .map((l) => o.frame.x + ((l.box[0] + l.box[2]) / 2 - s.viewBox[0]) * k);
+    };
+    const near = (xs: number[], x: number) => Math.min(...xs.map((v) => Math.abs(v - x)));
+    const plotAfter = (r.doc.pages[0] && findObj(r.doc.pages[0], plot.id)) ?? plot;
+    for (const [f, o, pic] of [
+      [fig, plot, field.frame],
+      [r, plotAfter, f1],
+    ] as const) {
+      // (matplotlib snaps the picture to its pixel grid: 0.16 pt off the axis lines, stretched
+      // with the panel.)
+      expect(near(spines(f, o), pic.x)).toBeLessThan(0.4);
+      expect(near(spines(f, o), pic.x + pic.w)).toBeLessThan(0.4);
+    }
+    expect(p1.w).toBeCloseTo(box.w * 1.5, 6);
+    expect(c1.w / cells.frame.w).toBeGreaterThan(1.5);
+    expect(f1.h / field.frame.h).toBeGreaterThan(1.2);
+
+    // Scaled plainly, they scale with the group.
+    const s = resizeObjects(page.id, [g.id], box, { ...box, w: box.w * 1.5 }, 'scale').apply(fig);
+    const fs = (s.doc.pages[0] && findObj(s.doc.pages[0], field.id))?.frame;
+    expect(fs?.w).toBeCloseTo(field.frame.w * 1.5, 6);
+  });
+
+  it('moves a picture in a legend with the legend (ggplot2 colour bar)', async () => {
+    const bytes = new Uint8Array(
+      readFileSync(new URL('../../io/pdf/fixtures/r-raster.pdf', import.meta.url)),
+    );
+    const imp = await importPdf(bytes, 'r-raster.pdf');
+    if (!imp) throw new Error('cancelled');
+    const doc = createDoc();
+    const page = doc.pages[0];
+    if (!page) throw new Error('no page');
+    const fig = placeImport(page.id, imp, { x: 200, y: 150 }).apply({ doc, assets: {} });
+    const g = fig.doc.pages[0]?.layers[0]?.children[0];
+    if (g?.type !== 'group') throw new Error('no group');
+    const [raster, bar, plot] = g.children;
+    if (!raster || !bar || !plot) throw new Error('missing');
+    const box = objBounds(g);
+    const r = resizeObjects(
+      page.id,
+      [g.id],
+      box,
+      { ...box, w: box.w * 1.7, h: box.h * 0.8 },
+      'keep',
+    ).apply(fig);
+    const at = (id: Id) => {
+      const p = r.doc.pages[0];
+      const o = p ? findObj(p, id) : undefined;
+      if (!o) throw new Error('missing');
+      return o.frame;
+    };
+    // The raster scales with its panel; the legend's bar keeps its size, moving with the
+    // legend.
+    expect(at(raster.id).w / raster.frame.w).toBeGreaterThan(1.7);
+    expect(at(bar.id).w).toBeCloseTo(bar.frame.w, 6);
+    expect(at(bar.id).h).toBeCloseTo(bar.frame.h, 6);
+    expect(at(bar.id).x).toBeGreaterThan(at(raster.id).x + at(raster.id).w);
   });
 });
