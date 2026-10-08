@@ -77,21 +77,13 @@ test('PDF export: page size, embedded fonts, no rasterised vectors; pdf.js rende
   // The fixture's one PNG; everything else stayed vector.
   expect(images).toBe(1);
 
-  // pdf.js 6 fails to import as a module under Playwright's WebKit (#20); the checks
-  // above still run there, the render comparison only on Chromium and Firefox.
-  if (info.project.name === 'webkit') {
-    info.annotations.push({
-      type: 'skip',
-      description: 'pdf.js render: module import fails in WebKit',
-    });
-    return;
-  }
-
+  // The legacy build: pdf.js 6's modern build uses syntax Playwright's WebKit can't
+  // parse ("Importing a module script failed", #20); the legacy one works everywhere.
   // Render with pdf.js, served from node_modules, inside this engine.
   await page.route('**/__pdfjs/**', (route) => {
     const file = route.request().url().split('/__pdfjs/')[1] ?? '';
     return route.fulfill({
-      path: join(root, 'node_modules/pdfjs-dist/build', file),
+      path: join(root, 'node_modules/pdfjs-dist/legacy/build', file),
       contentType: 'text/javascript',
     });
   });
