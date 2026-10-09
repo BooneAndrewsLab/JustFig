@@ -18,14 +18,17 @@ under any size or font. Nothing new enters the export subset.
   matplotlib's glyph SVGs one `<text>` with a tspan per run at its own `x`/`y` (note 12). Text
   merging joins them when they read as one line: consecutive siblings (or the tspans of one
   start-anchored text) with the same attributes and angle apart from `font-family`, `-size`,
-  `-style` and `-weight`; in order along the baseline, each starting between 0.3 em before and
+  `-style`, `-weight` and `fill` (issue 38: "rainbow" text, a title whose words take their
+  series' colours, written as one text per colour); in order along the baseline, each starting between 0.3 em before and
   0.6 em after the estimated end of the previous one; full-size runs on the base baseline
   (within 0.1 em) and smaller ones off it by more than 0.1 em and at most 0.6 em (scripts), em
   of the largest run. A smaller run on the base baseline, a same-size run off it, a script
-  further off (a stacked line) or another colour keeps them apart, as before. The result is
-  one `<text>` at the first run's start on the base baseline: runs of the base font are plain
-  text, others tspans with only the font attributes that differ and a `dy` where the baseline
-  moves; a space joins two runs on one baseline whose gap is over 0.15 em, never next to a
+  further off (a stacked line) or another `fill-opacity` keeps them apart, as before. Coloured
+  legend entries in a row are not joined: the handle between two entries puts the next one more
+  than 0.6 em after the previous one's end. The result is one `<text>` at the first run's start
+  on the base baseline: runs of the base font and colour are plain text, others tspans with only
+  the font attributes and `fill` that differ (an explicit `#000000` where the base run is
+  coloured) and a `dy` where the baseline moves; a space joins two runs on one baseline whose gap is over 0.15 em, never next to a
   script (the width estimate is no judge there). No run keeps a position of its own, so the
   label stays joined up in the bundled font and its `text-anchor` moves it as one chunk (note
   14 lays out `dy`; export writes explicit `x`/`y` per segment as always, so nothing new
@@ -65,7 +68,8 @@ under any size or font. Nothing new enters the export subset.
   with its own evidence: the third line of a tick label is over 1.5 em from its tick, and a line of a
   left-aligned stack may happen to centre on something. So consecutive labels (document order) form
   one block when each is the next line of the one before: same angle, size (within 1 %),
-  `font-family`, `-style`, `-weight` and fill, its baseline 0.8–1.45 em further across (ggplot2's
+  `font-family`, `-style` and `-weight` (any fill, issue 38: a grey sample size under a group
+  name), its baseline 0.8–1.45 em further across (ggplot2's
   `lineheight` 0.9 to matplotlib's and R's 1.2; matplotlib's legend entries are 1.5 em apart) and
   its extent overlapping. A block is decided as one: start evidence on any line keeps it all at
   start; otherwise the decided lines (after the column veto) must agree on one anchor (else all
@@ -97,6 +101,12 @@ under any size or font. Nothing new enters the export subset.
   three-line x ticks and the two-line x and y axis titles middle, the two-line y ticks of a
   horizontal bar chart end at one point; the left-aligned two-line title and annotation and the
   legend stay start.
+  `matplotlib-colour-runs` (issue 38, `scripts/svg-fixtures/matplotlib-colour-runs.py`; the same
+  plot as a PDF imports alike): the three-colour title (three texts chained with `annotate`, as
+  in matplotlib's gallery) one label with `fill` tspans, centred over its axes; three-line group
+  labels whose grey last line is far from the tick all middle on the tick; a two-line title with a
+  grey second line middle; the legend entries in their lines' colours (`labelcolor="linecolor"`)
+  apart and start. No other golden changed.
 - **Stored figures are left as they are.** Inference runs only at import, on the plot file's
   geometry plus the source width, and the source width is not in a stored asset; re-running the
   rules on saved assets would rely on the estimate alone and could move labels in figures their
@@ -104,6 +114,5 @@ under any size or font. Nothing new enters the export subset.
   width difference of a label (a point or two for an axis title), and re-importing the plot
   gives it the anchors. So there is no migration and no `.jfig` schema change: the anchors are
   plain SVG attributes inside the asset, which old versions already read.
-- **Not handled:** labels at other angles; runs that change colour (within a line, or a line of
-  another colour in a block); lines with a pitch outside 0.8–1.45 em or out of document order;
+- **Not handled:** labels at other angles; runs or lines that differ in `fill-opacity`; lines with a pitch outside 0.8–1.45 em or out of document order;
   mathtext matplotlib keeps as outlines (note 12).

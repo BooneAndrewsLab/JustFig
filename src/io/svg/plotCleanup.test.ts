@@ -280,12 +280,12 @@ describe('text merging', () => {
     expect(t[0]?.attrs['transform']).toBe('rotate(-90 20 80)');
   });
 
-  it('leaves apart: tick labels, other baselines, sizes, colours and centred text', () => {
+  it('leaves apart: tick labels, other baselines, sizes, opacities and centred text', () => {
     const cases = [
       '<text x="10" y="50">0</text><text x="60" y="50">1</text>',
       '<text x="10" y="50">a</text><text x="16" y="70">b</text>',
       '<text x="10" y="50" font-size="10">a</text><text x="16" y="50" font-size="7">2</text>',
-      '<text x="10" y="50" fill="red">a</text><text x="16" y="50">b</text>',
+      '<text x="10" y="50" fill-opacity="0.5">a</text><text x="16" y="50">b</text>',
       '<text x="10" y="50" text-anchor="middle">a</text><text x="16" y="50" text-anchor="middle">b</text>',
       '<text x="10" y="50">a</text><path d="M0 0L5 5" stroke="#000"/><text x="16" y="50">b</text>',
     ];
@@ -423,6 +423,51 @@ describe('label alignment', () => {
     ]);
   });
 
+  it('joins runs that change colour (issue 38), each tspan with its own fill', () => {
+    const s = plot(
+      svg(
+        '<g fill="#4c72b0">' +
+          lbl(10, 50, 'Wild type', 4.4) +
+          lbl(56, 50, 'vs', 1.1, 'fill="#000000"') +
+          lbl(70, 50, 'mutant', 3.6, 'fill="#dd8452" font-style="italic"') +
+          '</g>',
+      ),
+    );
+    const t = texts(s.root);
+    expect(t).toHaveLength(1);
+    expect(t[0]?.children).toEqual([
+      'Wild type ',
+      { tag: 'tspan', attrs: { fill: '#000000' }, children: ['vs '] },
+      { tag: 'tspan', attrs: { fill: '#dd8452', 'font-style': 'italic' }, children: ['mutant'] },
+    ]);
+  });
+
+  it('centres a title of three colours and a grey last line with their label (matplotlib)', () => {
+    const t = texts(plot(fixture('matplotlib-colour-runs')).root);
+    const find = (s: string, i = 0): SvgNode | undefined => t.filter((n) => label(n) === s)[i];
+    // Rainbow title (three texts chained end to end): one label, centred over the axes.
+    const title = find('Wild type');
+    expect(title?.attrs).toMatchObject({ fill: '#4c72b0', 'text-anchor': 'middle' });
+    expect(title?.children.slice(1)).toEqual([
+      { tag: 'tspan', attrs: { fill: '#000000' }, children: [' vs '] },
+      { tag: 'tspan', attrs: { fill: '#dd8452' }, children: ['mutant'] },
+    ]);
+    // Three-line group labels: the grey sample size, far from the tick, centres with its label.
+    for (const lines of [
+      ['control', 'siRNA', 'n = 12'],
+      ['knockdown', 'A', 'n = 9'],
+    ]) {
+      const at = lines.map((s) => [anchorOf(find(s)), xOf(find(s))]);
+      expect(at[0]?.[0]).toBe('middle');
+      expect(at).toEqual([at[0], at[0], at[0]]);
+    }
+    expect(find('n = 12')?.attrs['fill']).toBe('#808080');
+    // Two-line title, its second line grey; legend entries in their lines' colours stay apart.
+    expect(xOf(find('48 h, n = 3'))).toBe(xOf(find('Viability')));
+    expect(anchorOf(find('48 h, n = 3'))).toBe('middle');
+    for (const s of ['wild type', 'mutant']) expect(anchorOf(find(s)), s).toBe('start');
+  });
+
   it('anchors a label of several runs as one, on its combined source width', () => {
     // 10³ under a tick at x = 50: "10" from 43, its exponent ending at 57.
     const tick = '<path d="M50 60V64" stroke="#000"/>';
@@ -452,9 +497,13 @@ describe('label alignment', () => {
       lbl(10, 50, '10', 1.1) + lbl(21, 42, '3', 0.6, 'font-size="7"'),
       // A same-size run off the baseline.
       lbl(10, 50, 'a', 0.6) + lbl(16, 46, 'b', 0.6, 'font-style="italic"'),
-      // Too far along, or another colour.
+      // Too far along: also coloured entries of a legend in a row, their handles between them.
       lbl(10, 50, 'a', 0.6) + lbl(30, 50, 'b', 0.6, 'font-style="italic"'),
-      lbl(10, 50, 'a', 0.6) + lbl(16, 50, 'b', 0.6, 'font-style="italic" fill="#ff0000"'),
+      lbl(10, 50, 'a', 0.6, 'fill="#4c72b0"') +
+        '<path d="M18 47H34" stroke="#dd8452"/>' +
+        lbl(36, 50, 'b', 0.6, 'fill="#dd8452"'),
+      // Another opacity.
+      lbl(10, 50, 'a', 0.6) + lbl(16, 50, 'b', 0.6, 'fill-opacity="0.5"'),
     ];
     for (const c of cases) expect(texts(plot(svg(c)).root), c).toHaveLength(2);
     // Positioned tspans whose runs do not read as one line keep their positions.
@@ -526,10 +575,18 @@ describe('label alignment', () => {
     expect(texts(handle.root).map(anchorOf)).toEqual(['start', 'start']);
   });
 
+  it('aligns a line of another colour with its label (issue 38)', () => {
+    const tick = '<path d="M50 60V64" stroke="#000"/>';
+    const s = plot(svg(tick + lbl(44, 76, 'WT', 1.2) + lbl(35, 88, 'n = 12', 3, 'fill="#808080"')));
+    expect(texts(s.root).map((n) => [anchorOf(n), xOf(n)])).toEqual([
+      ['middle', 50],
+      ['middle', 50],
+    ]);
+  });
+
   it('does not join lines of another style, size or pitch into one label', () => {
     const tick = '<path d="M50 60V64" stroke="#000"/>';
     const second = [
-      lbl(35, 88, 'day 14', 3, 'fill="#ff0000"'),
       lbl(35, 88, 'day 14', 3, 'font-style="italic"'),
       lbl(38.5, 88, 'day 14', 3.3, 'font-size="9"'),
       lbl(35, 96, 'day 14', 3), // 2 em: another label
@@ -698,6 +755,7 @@ describe('stability', () => {
     'matplotlib-text',
     'matplotlib-log',
     'matplotlib-multiline',
+    'matplotlib-colour-runs',
     'r-cairo',
     'r-svglite',
   ]) {

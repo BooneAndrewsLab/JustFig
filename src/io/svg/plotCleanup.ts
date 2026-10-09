@@ -509,6 +509,8 @@ function piece(n: SvgNode, inh: Inherited): Piece | null {
 
 /** The font attributes the runs of one label may differ in. */
 const RUN_FONT = ['font-family', 'font-size', 'font-style', 'font-weight'] as const;
+/** What the runs of one label may differ in: the font, and the colour (issue 38). */
+const RUN_STYLE = [...RUN_FONT, 'fill'] as const;
 /** A smaller run (a script) may sit this many em of the label's size off its baseline. */
 const SCRIPT_SHIFT = 0.6;
 
@@ -587,7 +589,7 @@ function spacedTexts(runs: readonly Run[]): string[] {
  * One `<text>` for the runs of a label (valid per `oneLine`): at the first
  * run's start on the base run's baseline (`origin` is the first run's start
  * on the page, `angle` the label's), later runs flowing on as tspans with the
- * font attributes that differ from the base run's and a `dy` where the
+ * font attributes and fill that differ from the base run's and a `dy` where the
  * baseline moves, so the label stays joined up and can be anchored as one
  * chunk in any font. `attrs` resolve to the base run's font; `srcEnd` is the
  * source's own extent from the first run's start, when known.
@@ -607,7 +609,7 @@ function flowText(
   runs.forEach((r, i) => {
     const t = texts[i] ?? r.text;
     const font: Record<string, string> = {};
-    for (const k of RUN_FONT) if (get(r.font, k) !== get(b.font, k)) font[k] = get(r.font, k);
+    for (const k of RUN_STYLE) if (get(r.font, k) !== get(b.font, k)) font[k] = get(r.font, k);
     const off = Number(fmt(r.v - b.v));
     const dy = Number(fmt(off - shift));
     shift = off;
@@ -637,7 +639,7 @@ function flowText(
   return el('text', out, kids);
 }
 
-const POSITIONED_RUN = new Set<string>(['x', 'y', ...RUN_FONT]);
+const POSITIONED_RUN = new Set<string>(['x', 'y', ...RUN_STYLE]);
 
 /**
  * A start-anchored label written as tspans at their own positions (matplotlib
@@ -679,13 +681,13 @@ function flowPositioned(n: SvgNode, inh: Inherited): SvgNode | null {
   const fs = len(get(own, 'font-size'));
   const srcEnd = adv !== null && fs !== null ? adv * fs - dx : null;
   const attrs = without(n.attrs, 'x', 'y', 'transform', ADVANCE_ATTR);
-  for (const k of RUN_FONT) if (get(b.font, k) !== get(own, k)) attrs[k] = get(b.font, k);
+  for (const k of RUN_STYLE) if (get(b.font, k) !== get(own, k)) attrs[k] = get(b.font, k);
   return flowText(attrs, runs, origin, angle, srcEnd);
 }
 
 /**
  * Merges runs of consecutive sibling text pieces that continue one another
- * (`oneLine`): same attributes and angle, apart from the font of a run. Pieces
+ * (`oneLine`): same attributes and angle, apart from a run's font and fill. Pieces
  * of one style become one plain label (a gap wider than `SPACE_GAP` em becomes
  * a space); mixed styles and scripts (a PDF's mathtext) become one flowing
  * label with tspans (`flowText`), as do labels written as positioned tspans.
@@ -730,7 +732,7 @@ function mergeTexts(n: SvgNode, inh: Inherited): SvgNode {
     const font = inherit(here, p.node.attrs);
     const adv = len(p.node.attrs[ADVANCE_ATTR]);
     const g = JSON.stringify([
-      without(p.node.attrs, 'x', 'y', 'transform', ADVANCE_ATTR, ...RUN_FONT),
+      without(p.node.attrs, 'x', 'y', 'transform', ADVANCE_ATTR, ...RUN_STYLE),
       p.angle,
     ]);
     const first = run[0];
@@ -861,7 +863,7 @@ interface Label {
   /** Width as the source drew it, user units. */
   readonly w: number;
   readonly tol: number;
-  /** Font family, style, weight and fill: lines of one label share them. */
+  /** Font family, style and weight: lines of one label share them (not the colour, issue 38). */
   readonly style: string;
 }
 
@@ -1010,7 +1012,7 @@ function blockAnchors(block: readonly Label[], own: readonly (Anchor | 'start')[
   return block.map((l) => ({ anchor: kind, at: local(l, px, py)[0] }));
 }
 
-const FLOW_RUN = new Set<string>(['dy', ...RUN_FONT]);
+const FLOW_RUN = new Set<string>(['dy', ...RUN_STYLE]);
 
 /**
  * A start-anchored one-line label at 0° or a `rotate(angle x y)` about its
@@ -1077,7 +1079,7 @@ function anchorLabels(root: SvgNode, vb: ViewBox): SvgNode {
             const est = p.est;
             const w = adv !== null && adv > 0 ? adv * fs : est;
             const tol = TOL * fs + (adv !== null && adv > 0 ? 0 : 0.03 * w);
-            const style = ['font-family', 'font-style', 'font-weight', 'fill']
+            const style = ['font-family', 'font-style', 'font-weight']
               .map((k) => get(own, k))
               .join('|');
             labels.push({ node: c, x: p.x, y: p.y, angle, fs, w, tol, style });
