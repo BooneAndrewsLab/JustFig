@@ -63,7 +63,13 @@ function presetThumbnail(p: Preset): string {
   }
 }
 
-export function GalleryDialog({ onClose }: { onClose: () => void }) {
+export function GalleryDialog({
+  onClose,
+  onSaveTemplate,
+}: {
+  onClose: () => void;
+  onSaveTemplate: () => void;
+}) {
   const [tab, setTab] = useState<GalleryTab>('template');
   const thumbs = useMemo(() => new Map(GALLERY.map((e) => [e.id, thumbnail(e)])), []);
   const [presets, setPresets] = useState<KeptPreset[] | null>(null);
@@ -305,6 +311,13 @@ export function GalleryDialog({ onClose }: { onClose: () => void }) {
             </button>
           </>
         )}
+        <button
+          type="button"
+          title="For contributors: write this figure or selection as the source of a built-in gallery entry"
+          onClick={onSaveTemplate}
+        >
+          Save as template source…
+        </button>
         <button type="button" onClick={onClose}>
           Cancel
         </button>

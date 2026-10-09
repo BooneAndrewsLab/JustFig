@@ -15,6 +15,7 @@ import { CropDialog } from './dialogs/CropDialog';
 import { GridDialog } from './dialogs/GridDialog';
 import { GuideDialog } from './dialogs/GuideDialog';
 import { RecentDialog } from './dialogs/RecentDialog';
+import { SaveTemplateDialog } from './dialogs/SaveTemplateDialog';
 import { SavePresetDialog } from './dialogs/SavePresetDialog';
 import { KeyBindingsDialog } from './dialogs/KeyBindingsDialog';
 import { PdfPageDialog } from './dialogs/PdfPageDialog';
@@ -41,6 +42,7 @@ type DialogId =
   | 'crop'
   | 'channels'
   | 'save-preset'
+  | 'save-template'
   | null;
 
 /** The one selected object's name, for the status line a screen reader announces. */
@@ -371,6 +373,16 @@ export function App() {
       )}
       {dialog === 'gallery' && (
         <GalleryDialog
+          onSaveTemplate={() => {
+            setDialog('save-template');
+          }}
+          onClose={() => {
+            setDialog(null);
+          }}
+        />
+      )}
+      {dialog === 'save-template' && (
+        <SaveTemplateDialog
           onClose={() => {
             setDialog(null);
           }}

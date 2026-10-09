@@ -35,3 +35,7 @@ The **My presets** tab of the gallery shows your presets, newest first. Choosing
 Each preset has **Rename**, **Export** and **Delete** buttons. Delete asks first (Delete this preset?). This browser keeps up to 100 presets; when it is full, delete some before saving more. Nothing is dropped on its own.
 
 To share presets with your lab, use **Export all presets** (or Export on one preset). That downloads a `.jfigpresets` file. Someone else opens the gallery's My presets tab and chooses **Import presets…** to add the file's presets to theirs. Presets they already have, with the same name and content, are skipped. A file that is damaged or is not a presets file is refused, and nothing is added.
+
+## Save as template source (for contributors)
+
+The built-in templates and examples are code in the repository. To add one without writing it by hand, draw it in the app, open **Templates…** and choose **Save as template source…**. The Save as template source dialog turns the selected objects (or, with nothing selected, the whole current page) into the TypeScript of a gallery entry. Give it a title, an id (lowercase words joined by hyphens), a description and a kind, then **Copy source** or **Download .ts file**. Save the file in `src/gallery/`, add the entry to `GALLERY` in `gallery.ts` and run `npm run check`. The entry keeps the objects, palette, page size and any icons or pictures they use, and arrows stay attached. Nothing about the figure is sent anywhere.
