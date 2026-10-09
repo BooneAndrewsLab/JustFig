@@ -195,6 +195,13 @@ function bindTargetAt(x: number, y: number, page: Page): Obj | undefined {
   return undefined;
 }
 
+/**
+ * The page each tab last fitted (note 25): a tab coming forward keeps its own
+ * zoom and scroll instead of being fitted again, though the canvas is
+ * remounted for it. Lasts for the page load, like the views it guards.
+ */
+const fittedPage = new Map<string, string>();
+
 export function Canvas() {
   const s = useAppState();
   const fig = figure(s);
@@ -209,7 +216,6 @@ export function Canvas() {
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [pen, setPen] = useState<PathNode[]>([]);
   const [space, setSpace] = useState(false);
-  const fitted = useRef<string | null>(null);
 
   // A resize step that kept plot text took this long to reach the screen: redrawing a large
   // plot at every step would stutter, so after two slow ones it is scaled until release.
@@ -240,10 +246,10 @@ export function Canvas() {
   // Fit the page to the window when a page is first shown. `size` starts at 0 (not a guess) so the
   // fit waits for the measured canvas instead of fitting to a placeholder.
   useEffect(() => {
-    if (fitted.current === page.id || size.w < 50) return;
-    fitted.current = page.id;
+    if (fittedPage.get(s.front) === page.id || size.w < 50) return;
+    fittedPage.set(s.front, page.id);
     fitPage(page, size);
-  }, [page, size]);
+  }, [page, size, s.front]);
 
   // Space held: pan with any tool.
   useEffect(() => {
@@ -692,7 +698,7 @@ export function Canvas() {
   const panning = space;
 
   return (
-    <main className="canvas-wrap" aria-label="Canvas">
+    <main className="canvas-wrap" id="figure-canvas" aria-label="Canvas">
       <div className="ruler-corner" title="Ruler units">
         {s.units}
       </div>

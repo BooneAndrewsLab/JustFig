@@ -5,6 +5,7 @@ JustFig is a free figure editor that runs entirely in your browser. There is no 
 ## The screen
 
 - **Top bar:** the figure title, then the file buttons, undo and redo, zoom, and on the right Guide, Shortcuts…, Attribution and Export….
+- **Tab strip:** under the top bar. **Recent…**, then one tab per open figure, then **+** for a new one (see [Several figures at once](17-several-figures.md)).
 - **Left:** the Icons panel. At its top is the Scientific objects shelf (see [Scientific objects](08-objects.md)), below it the icon search and categories (see [Icons](07-icons.md)).
 - **Tool palette:** a narrow column of tools next to the canvas (see [Drawing](02-drawing.md)).
 - **Canvas:** your page, with rulers along the top and left edges in millimetres or inches. The Pages bar sits under it.
@@ -13,10 +14,10 @@ JustFig is a free figure editor that runs entirely in your browser. There is no 
 
 ## The top-bar buttons
 
-- **New** starts an empty figure. If you have unsaved changes it asks first.
+- **New** starts an empty figure in a new tab. The figures you had open stay open in their tabs.
 - **Templates…** opens the Templates and examples dialog (see [Templates and examples](10-templates.md)).
 - **Open…** opens a figure file (`.jfig`). Any other file you choose here, such as an SVG or a PNG, is imported onto the page instead.
-- **Recent…** opens the Recent figures dialog (shortcut `Shift+O`): every figure JustFig has kept in this browser, newest first, each with a small picture of its first page and the time it was last changed. **Open** brings one back, **Rename** changes its title, **Download .jfig** saves it as a file, and **Delete** removes it, with its saved versions, after asking "Delete this figure?" in a second dialog. The figure you have open can be opened, renamed and downloaded but not deleted.
+- **Recent…**, at the start of the tab strip, opens the Recent figures dialog (shortcut `Shift+O`): every figure JustFig has kept in this browser, newest first, each with a small picture of its first page and the time it was last changed. **Open** brings one back, **Rename** changes its title, **Download .jfig** saves it as a file, and **Delete** removes it, with its saved versions, after asking "Delete this figure?" in a second dialog. **Open** on a figure that is already open brings its tab forward. Figures open in a tab are marked "Open now" or "Open in a tab"; they can be renamed and downloaded but not deleted.
 - **Versions…** opens the Saved versions dialog for the figure you have open (see Saved versions below).
 - **Save** downloads the figure as a `.jfig` file named after the figure title.
 - **Import…** places an SVG, PNG or JPEG on the page (see [Importing and other apps](11-import-and-other-apps.md)).
@@ -37,11 +38,11 @@ A new figure is a single page of 183 mm width (the Nature two-column size). Chan
 
 ## Saving and autosave
 
-JustFig keeps a copy of your figure in the browser as you work. This autosave happens about a second after your last change, and again when you switch to another tab. When you come back to JustFig on the same computer and browser, your last figure is there.
+JustFig keeps a copy of your figure in the browser as you work. This autosave happens about a second after your last change, and again when you switch to another tab. When you come back to JustFig on the same computer and browser, the figures you had open are there again, each in its tab.
 
-**New**, **Templates…** and opening a file never lose the figure you were working on: it is written to the browser first and stays in Recent figures. JustFig keeps the 30 most recently changed figures, and drops the oldest when there are more or when they take more than about 150 MB. Autosave is still a safety net, not a filing system. It does not help if you clear the browser's site data, use a private window, or open JustFig on another computer. Use **Save** to get a `.jfig` file you can keep, email or open later. The status line shows "Saved to file" once you have done so, and "Kept in this browser" after you change the figure again.
+**New**, **Templates…** and opening a file never lose the figure you were working on: it stays open in its tab, and autosave keeps every open figure, not only the one in front. Closing a tab writes its figure to the browser first, and it stays in Recent figures. JustFig keeps the 30 most recently changed figures, and drops the oldest when there are more or when they take more than about 150 MB. Autosave is still a safety net, not a filing system. It does not help if you clear the browser's site data, use a private window, or open JustFig on another computer. Use **Save** to get a `.jfig` file you can keep, email or open later. The status line shows "Saved to file" once you have done so, and "Kept in this browser" after you change the figure again.
 
-If you have never saved the figure as a file, the browser asks for confirmation before you close the tab.
+If a figure open in any tab has changes and has never been saved as a file, the browser asks for confirmation before you close the browser tab.
 
 ## Saved versions
 

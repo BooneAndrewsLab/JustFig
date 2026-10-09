@@ -4,8 +4,9 @@ JustFig is designed so that most of it works without a mouse, and so that a scre
 
 ## Moving around
 
-- **Tab** and **Shift+Tab** move through the top bar, the icon panel, the tools, the Inspector, the Layers panel and the Pages bar. Every button and field is reachable and has a name a screen reader can read.
+- **Tab** and **Shift+Tab** move through the top bar, the figure tab strip, the icon panel, the tools, the Inspector, the Layers panel and the Pages bar. Every button and field is reachable and has a name a screen reader can read.
 - The tools are buttons that say whether they are pressed. You can also switch tool by key (V, R, E, L, P, A, T, F, H).
+- The figure tab strip is a list of tabs: Tab reaches the tab in front, the arrow keys, Home and End move between figures, and Delete closes one. A screen reader reads each tab's title and whether it is unsaved. Alt+1 to Alt+9 bring a tab forward from anywhere.
 - Dialogs trap focus: Tab stays inside until you close them with **Escape** or a button, and focus then returns to where you were.
 - The status line at the bottom announces what is selected, and messages such as "Credit line copied."
 

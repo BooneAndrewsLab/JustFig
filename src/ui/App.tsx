@@ -24,11 +24,12 @@ import { IconBrowser } from './panels/IconBrowser';
 import { Inspector } from './panels/Inspector';
 import { LayersPanel } from './panels/LayersPanel';
 import { NotesPanel } from './panels/NotesPanel';
+import { TabStrip } from './panels/TabStrip';
 import { ToolPalette } from './panels/ToolPalette';
 import { resolveBindings, withKey } from './keyBindings';
 import { onCopy, onKeyDown, onPaste } from './shortcuts';
 import { importToCanvas, newFigure, openFile, saveFile } from './state/session';
-import { currentPage, figure, selectedObjects, store } from './state/store';
+import { currentPage, figure, isUnsaved, selectedObjects, store } from './state/store';
 import { useAppState } from './state/useAppState';
 import { usePdfPageRequest } from './state/pdfPagePicker';
 
@@ -111,17 +112,17 @@ export function App() {
     };
   }, []);
 
-  const unsaved = s.downloaded !== fig && s.history.canUndo;
+  // Autosave keeps a copy; the prompt only guards a figure, in any tab, never saved as a file.
+  const neverSaved = s.tabs.some((t) => isUnsaved(t) && t.downloaded === null);
   useEffect(() => {
     const warn = (e: BeforeUnloadEvent) => {
-      // Autosave keeps a copy; the prompt only guards a figure never saved as a file.
-      if (unsaved && s.downloaded === null) e.preventDefault();
+      if (neverSaved) e.preventDefault();
     };
     window.addEventListener('beforeunload', warn);
     return () => {
       window.removeEventListener('beforeunload', warn);
     };
-  }, [unsaved, s.downloaded]);
+  }, [neverSaved]);
 
   const bound = resolveBindings(s.keyBindings);
   const undo = store.undoLabel();
@@ -148,11 +149,7 @@ export function App() {
           }}
         />
         <div className="toolbar-group">
-          <button
-            type="button"
-            title="Start a new figure (the current one stays in Recent figures)"
-            onClick={newFigure}
-          >
+          <button type="button" title="Start a new figure in a tab of its own" onClick={newFigure}>
             New
           </button>
           <button
@@ -170,15 +167,6 @@ export function App() {
             onClick={() => openInput.current?.click()}
           >
             Open…
-          </button>
-          <button
-            type="button"
-            title={withKey('Reopen a figure kept in this browser', 'recent', bound)}
-            onClick={() => {
-              setDialog('recent');
-            }}
-          >
-            Recent…
           </button>
           <button
             type="button"
@@ -324,13 +312,18 @@ export function App() {
           }}
         />
       </header>
+      <TabStrip
+        onRecent={() => {
+          setDialog('recent');
+        }}
+      />
       <IconBrowser
         onCredits={() => {
           setDialog('credits');
         }}
       />
       <ToolPalette />
-      <Canvas />
+      <Canvas key={s.front} />
       <aside className="side" aria-label="Inspector">
         <Inspector
           onArrangeGrid={() => {

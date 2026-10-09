@@ -6,6 +6,7 @@
 import { BRAND } from '@/brand';
 import { addObjects, allIds, deleteObjects, updateDoc } from '@/core/edits/edits';
 import { placeImport } from '@/core/edits/placeImport';
+import { openOver } from '@/core/edits/version';
 import { boundsOf } from '@/core/geometry/transform';
 import { cloneObjects } from '@/core/model/clone';
 import { createDoc, createText, defaultRun, frame } from '@/core/model/factory';
@@ -53,6 +54,7 @@ import { bakedSwatches } from '@/palette/recolor';
 
 import { analytics } from '../analytics';
 import { Autosaver } from './autosave';
+import { keptTabs, rememberTabs, rememberedTabs, reopenTabs } from './openTabs';
 import { choosePdfPage } from './pdfPagePicker';
 import { currentPage, figure, selectedObjects, store } from './store';
 import { renderThumbnail } from './thumbnail';
@@ -87,39 +89,19 @@ export const safeName = (title: string): string =>
 
 let saver: Autosaver | null = null;
 
-const CURRENT_KEY = 'justfig.current';
-
-/** The figure the user last had open: opening an old one from Recent figures must survive a reload. */
-function rememberCurrent(id: string): void {
-  try {
-    globalThis.localStorage.setItem(CURRENT_KEY, id);
-  } catch {
-    // Blocked storage: a reload restores the most recently changed figure instead.
-  }
-}
-
-function rememberedCurrent(): string | null {
-  try {
-    return globalThis.localStorage.getItem(CURRENT_KEY);
-  } catch {
-    return null;
-  }
-}
-
-/** Restores the last figure from the browser and starts autosaving. */
+/** Restores the open figures from the browser and starts autosaving. */
 export async function startSession(): Promise<void> {
   const storage = getStorage();
   try {
-    const wanted = rememberedCurrent();
     const kept = await Promise.race([
-      (async () => (wanted ? await storage.load(wanted) : null) ?? (await storage.latest()))(),
+      keptTabs(storage, rememberedTabs()),
       new Promise<null>((resolve) => {
         setTimeout(() => {
           resolve(null);
         }, 1500);
       }),
     ]);
-    if (kept) store.load(kept, { hasFile: kept.downloaded });
+    if (kept) reopenTabs(store, kept);
   } catch {
     // A wedged IndexedDB must not block the app.
   }
@@ -132,31 +114,45 @@ export async function startSession(): Promise<void> {
     },
     renderThumbnail,
   );
-  saver.markSaved(figure(store.getState()));
-  store.subscribe(() => {
-    rememberCurrent(figure(store.getState()).doc.id);
-  });
+  rememberTabs(store);
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') void saver?.flush();
   });
 }
 
-/** Writes the current figure to the browser now: every switch to another figure goes through here first. */
+/**
+ * Writes every changed figure to the browser now: anything that closes a tab
+ * or replaces its figure goes through here first. The pending figures are
+ * taken at once, so the store may drop them before the write finishes.
+ */
 export async function flushCurrent(): Promise<void> {
   await saver?.flush();
 }
 
+/** A new empty figure in a tab of its own (an untouched one is reused). */
 export function newFigure(): void {
-  // flush() takes the pending change before load() replaces it; the write finishes on its own.
-  void saver?.flush();
-  store.load({ doc: createDoc(), assets: {} });
+  void flushCurrent();
+  store.open({ doc: createDoc(), assets: {} }, { fresh: true });
 }
 
-/** A new figure from a gallery entry (note 08). */
+/** A new figure from a gallery entry (note 08), in a tab of its own. */
 export function openGallery(e: { build: () => Figure }): void {
-  void saver?.flush();
-  store.load(e.build());
+  void flushCurrent();
+  store.open(e.build());
 }
+
+/** Closes a tab; its figure is written to the browser first and stays in Recent figures. */
+export function closeTab(key: string): void {
+  const t = store.getState().tabs.find((x) => x.key === key);
+  if (!t) return;
+  void flushCurrent();
+  store.close(key);
+  analytics.trackOnce('tabs', 'close');
+}
+
+/** Ids of the figures open in tabs. */
+export const openIds = (): ReadonlySet<string> =>
+  new Set<string>(store.getState().tabs.map((t) => figure(t).doc.id));
 
 // --- Presets (note 22) -------------------------------------------------------------
 
@@ -264,16 +260,21 @@ export async function listRecent(): Promise<FigureSummary[]> {
 /** The id of the figure on the canvas. */
 export const currentId = (): string => figure(store.getState()).doc.id;
 
+/** Opens a kept figure: its tab comes forward if it is open, else it opens in a tab. */
 export async function openRecent(id: string): Promise<boolean> {
-  if (id === currentId()) return true;
+  const open = store.tabOf(id);
+  if (open !== undefined) {
+    store.activate(open);
+    return true;
+  }
   await flushCurrent();
   const kept = await getStorage().load(id);
   if (!kept) {
     store.notify('That figure can no longer be opened (it may be from a newer version).', 'error');
     return false;
   }
-  store.load(kept, { hasFile: kept.downloaded });
-  saver?.markSaved(figure(store.getState()));
+  saver?.markSaved(kept);
+  store.open(kept, { hasFile: kept.downloaded });
   analytics.track('file', 'open-recent');
   return true;
 }
@@ -281,10 +282,12 @@ export async function openRecent(id: string): Promise<boolean> {
 export async function renameRecent(id: string, title: string): Promise<void> {
   const name = title.trim();
   if (!name) return;
-  if (id === currentId()) {
+  const tab = store.tabOf(id);
+  if (tab !== undefined) {
+    // Open in a tab, front or not: the tab is renamed, and autosave writes it.
     store.edit(
       updateDoc('Rename figure', (d) => ({ ...d, title: name })),
-      { coalesce: 'title' },
+      { coalesce: 'title', tab },
     );
     await flushCurrent();
   } else {
@@ -293,13 +296,23 @@ export async function renameRecent(id: string, title: string): Promise<void> {
 }
 
 export async function deleteRecent(id: string): Promise<void> {
+  // A figure open in a tab is not deleted: autosave would only write it back.
+  if (store.tabOf(id) !== undefined) return;
   await getStorage().remove(id);
 }
 
 export async function downloadRecent(id: string): Promise<void> {
-  if (id === currentId()) {
+  const tab = store.getState().tabs.find((t) => figure(t).doc.id === id);
+  if (tab) {
     await flushCurrent();
-    saveFile();
+    const f = figure(tab);
+    download(
+      writeJfig(figureWithSnapshots(f), APP),
+      `${safeName(f.doc.title)}${BRAND.fileExt}`,
+      BRAND.mime,
+    );
+    store.markDownloaded(tab.key);
+    analytics.track('file', 'download');
     return;
   }
   const kept = await getStorage().load(id);
@@ -313,6 +326,10 @@ export async function downloadRecent(id: string): Promise<void> {
     BRAND.mime,
   );
 }
+
+const sameFigure = (a: Figure, b: Figure): boolean =>
+  JSON.stringify(a.doc) === JSON.stringify(b.doc) &&
+  JSON.stringify(a.assets) === JSON.stringify(b.assets);
 
 export async function openFile(file: File): Promise<void> {
   try {
@@ -328,8 +345,18 @@ export async function openFile(file: File): Promise<void> {
       return;
     }
     const saved = readJfig(text);
-    await saver?.flush();
-    store.load(saved, { hasFile: true });
+    await flushCurrent();
+    const open = store.tabOf(saved.doc.id);
+    if (open !== undefined) {
+      // The same figure is open: bring it forward, and take the file's content as one step.
+      store.activate(open);
+      if (!sameFigure(figure(store.getState()), saved)) {
+        store.edit(openOver(file.name, saved));
+        store.markDownloaded(open);
+      }
+    } else {
+      store.open(saved, { hasFile: true });
+    }
     analytics.track('file', 'open');
   } catch (e: unknown) {
     store.notify(e instanceof Error ? e.message : 'Could not open that file.', 'error');

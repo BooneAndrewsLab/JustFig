@@ -1,10 +1,12 @@
 /**
  * The app's one store (note 01, after BarelySig's ui/state/store.ts): the
- * figure with its history, the open page, selection, tool, view and the
- * notice line. Read from React with `useAppState` (useSyncExternalStore);
- * the figure changes only through `edit`, so every change is a named
- * step. A continuous gesture passes a coalesce key and its start figure,
- * and becomes one undo step (PlasmidPop's History.push contract).
+ * open figures, one tab each with its history, page, selection and view
+ * (note 25), and what the app shares: tool, preferences and the notice line.
+ * Read from React with `useAppState` (useSyncExternalStore), which sees the
+ * front tab flattened over the shared state. A figure changes only through
+ * `edit`, so every change is a named step. A continuous gesture passes a
+ * coalesce key and its start figure, and becomes one undo step
+ * (PlasmidPop's History.push contract).
  */
 import { type Edit, EditError } from '@/core/edits/edits';
 import { History } from '@/core/history/history';
@@ -49,12 +51,30 @@ export interface Notice {
   readonly seq: number;
 }
 
-export interface AppState {
+/** What each open figure keeps for itself (note 25): one per tab. */
+export interface TabState {
+  /** The tab's own id for as long as it is open; the figure's `doc.id` can change under it. */
+  readonly key: string;
   readonly history: History<Figure>;
   readonly pageId: Id;
   readonly selection: readonly Id[];
-  readonly tool: ToolId;
+  /** The text object being edited in the overlay, if any. */
+  readonly editingText: Id | null;
+  /** The review note open in the Notes panel. */
+  readonly activeNote: Id | null;
+  /** A note placed but not yet written. */
+  readonly noteDraft: NoteDraft | null;
+  /** The figure as last downloaded or opened from a file; null if never. */
+  readonly downloaded: Figure | null;
+  /** Zoom and scroll, so a tab comes back where it was left. */
   readonly view: View;
+  /** An empty New figure: while untouched, the next figure opened takes its tab. */
+  readonly fresh: boolean;
+}
+
+/** What the whole app shares, whichever tab is in front. */
+export interface SharedState {
+  readonly tool: ToolId;
   readonly units: Unit;
   readonly snap: boolean;
   /** Resizing an imported plot keeps its text and line sizes (note 17); remembered per browser. */
@@ -63,33 +83,54 @@ export interface AppState {
   readonly vision: Vision;
   /** The user's changed shortcuts (note 09), action id → binding; remembered per browser. */
   readonly keyBindings: Readonly<Record<string, string>>;
-  /** The text object being edited in the overlay, if any. */
-  readonly editingText: Id | null;
   readonly notice: Notice | null;
   /** Review note markers on the canvas (note 24); remembered per browser. Never exported either way. */
   readonly showNotes: boolean;
-  /** The review note open in the Notes panel. */
-  readonly activeNote: Id | null;
-  /** A note placed but not yet written. */
-  readonly noteDraft: NoteDraft | null;
-  /** The figure as last downloaded or opened from a file; null if never. */
-  readonly downloaded: Figure | null;
 }
+
+type DocFields = Omit<TabState, 'key' | 'fresh'>;
+
+/** The front tab flattened over the shared state, as every view reads it, plus the tabs. */
+export interface AppState extends DocFields, SharedState {
+  /** Every open tab, in strip order. */
+  readonly tabs: readonly TabState[];
+  /** The front tab's key. */
+  readonly front: string;
+}
+
+const DOC_KEYS: ReadonlySet<string> = new Set<keyof DocFields>([
+  'history',
+  'pageId',
+  'selection',
+  'editingText',
+  'activeNote',
+  'noteDraft',
+  'downloaded',
+  'view',
+]);
 
 export const NOTICE_MS = 5000;
 /** Edits with one coalesce key this close together are one undo step. */
 const COALESCE_MS = 600_000;
 
-export const figure = (s: AppState): Figure => s.history.present;
+export const figure = (s: Pick<TabState, 'history'>): Figure => s.history.present;
 
-export function currentPage(s: AppState): Page {
+/** Changed since it was last saved to a file (the tab's dot). */
+export const isUnsaved = (t: Pick<TabState, 'history' | 'downloaded'>): boolean =>
+  t.downloaded !== t.history.present && t.history.canUndo;
+
+/** A fresh tab nothing has happened in yet: the next figure opened may take it. */
+export const isUntouched = (t: TabState): boolean =>
+  t.fresh && !t.history.canUndo && !t.history.canRedo && t.downloaded === null;
+
+export function currentPage(s: Pick<TabState, 'history' | 'pageId'>): Page {
   const doc = s.history.present.doc;
   const p = doc.pages.find((x) => x.id === s.pageId) ?? doc.pages[0];
   if (!p) throw new Error('figure without pages');
   return p;
 }
 
-export function selectedObjects(s: AppState): Obj[] {
+export function selectedObjects(s: Pick<TabState, 'history' | 'pageId' | 'selection'>): Obj[] {
   const p = currentPage(s);
   return s.selection.map((id) => findObj(p, id)).filter((o): o is Obj => o !== undefined);
 }
@@ -101,9 +142,20 @@ export interface EditOptions {
   readonly from?: Figure;
   /** Leave the selection alone even when the edit names one. */
   readonly keepSelection?: boolean;
+  /** Apply in this tab instead of the front one (renaming a figure open behind). */
+  readonly tab?: string;
+}
+
+export interface OpenOptions {
+  /** Opened from (or as) a file: it counts as saved to file. */
+  readonly hasFile?: boolean;
+  /** An empty New figure (see `TabState.fresh`). */
+  readonly fresh?: boolean;
 }
 
 const emptyFigure = (): Figure => ({ doc: createDoc(), assets: {} });
+
+const START_VIEW: View = { zoom: 1, x: 40, y: 40 };
 
 function initialUnits(): Unit {
   try {
@@ -130,31 +182,50 @@ function initialPlotSizing(): PlotSizing {
   }
 }
 
+/** Page, selection and notes still valid in a figure (after undo, a page delete…). */
+function fix(t: TabState, f: Figure, selection: readonly Id[]): TabState {
+  const page = f.doc.pages.find((p) => p.id === t.pageId) ?? f.doc.pages[0];
+  const pageId = page?.id ?? t.pageId;
+  const keep = page ? selection.filter((id) => findObj(page, id) !== undefined) : [];
+  const editing = t.editingText;
+  const active = t.activeNote;
+  const draft = t.noteDraft;
+  return {
+    ...t,
+    pageId,
+    selection: keep,
+    editingText: editing !== null && page && findObj(page, editing) ? editing : null,
+    activeNote: active !== null && f.doc.notes.some((n) => n.id === active) ? active : null,
+    noteDraft: draft && f.doc.pages.some((p) => p.id === draft.page) ? draft : null,
+  };
+}
+
 export class AppStore {
+  private tabs: readonly TabState[];
+  private frontKey: string;
+  private shared: SharedState;
   private state: AppState;
   private readonly listeners = new Set<() => void>();
   private seq = 0;
+  private tabSeq = 0;
   private noticeTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(initial: Figure = emptyFigure()) {
-    this.state = {
-      history: History.create(initial, { limit: 300 }),
-      pageId: initial.doc.pages[0]?.id ?? ('' as Id),
-      selection: [],
+  /** With no figure, the app's start: one fresh empty tab. */
+  constructor(initial?: Figure) {
+    const first = this.newTab(initial ?? emptyFigure(), { fresh: initial === undefined });
+    this.tabs = [first];
+    this.frontKey = first.key;
+    this.shared = {
       tool: 'select',
-      view: { zoom: 1, x: 40, y: 40 },
       units: initialUnits(),
       snap: true,
       plotSizing: initialPlotSizing(),
       vision: 'normal',
       keyBindings: loadCustomBindings(),
-      editingText: null,
       notice: null,
       showNotes: initialShowNotes(),
-      activeNote: null,
-      noteDraft: null,
-      downloaded: null,
     };
+    this.state = this.flatten();
   }
 
   readonly getState = (): AppState => this.state;
@@ -166,7 +237,9 @@ export class AppStore {
 
   /** Applies an edit as one undo step (or merges into a gesture). Returns whether it applied. */
   edit(e: Edit, opts: EditOptions = {}): boolean {
-    const base = opts.from ?? this.state.history.present;
+    const t = this.tab(opts.tab ?? this.frontKey);
+    if (!t) return false;
+    const base = opts.from ?? t.history.present;
     let next: Figure;
     try {
       // Bound arrows follow their targets, whatever the edit was (note 06), and
@@ -181,10 +254,10 @@ export class AppStore {
       opts.coalesce === undefined
         ? undefined
         : { follows: opts.coalesce, key: opts.coalesce, withinMs: COALESCE_MS };
-    const history = this.state.history.push(next, e.label, Date.now(), coalesce);
+    const history = t.history.push(next, e.label, Date.now(), coalesce);
     const selection =
-      opts.keepSelection === true || e.select === undefined ? this.state.selection : e.select;
-    this.set({ history, ...this.fix(history.present, selection) });
+      opts.keepSelection === true || e.select === undefined ? t.selection : e.select;
+    this.replaceTab(fix({ ...t, history }, history.present, selection));
     return true;
   }
 
@@ -201,14 +274,16 @@ export class AppStore {
   undo(): void {
     if (!this.state.history.canUndo) return;
     const history = this.state.history.undo();
-    this.set({ history, ...this.fix(history.present, this.state.selection) });
+    const t = this.front();
+    this.replaceTab(fix({ ...t, history }, history.present, t.selection));
     analytics.trackOnce('history', 'undo');
   }
 
   redo(): void {
     if (!this.state.history.canRedo) return;
     const history = this.state.history.redo();
-    this.set({ history, ...this.fix(history.present, this.state.selection) });
+    const t = this.front();
+    this.replaceTab(fix({ ...t, history }, history.present, t.selection));
     analytics.trackOnce('history', 'redo');
   }
 
@@ -222,18 +297,97 @@ export class AppStore {
     return l === undefined ? null : `Redo ${l}`;
   }
 
-  /** Replaces the figure (open, new, restore); history starts afresh. */
-  load(f: Figure, opts: { readonly hasFile?: boolean } = {}): void {
-    this.set({
-      history: History.create(f, { limit: 300 }),
-      pageId: f.doc.pages[0]?.id ?? ('' as Id),
-      selection: [],
-      editingText: null,
-      activeNote: null,
-      noteDraft: null,
-      downloaded: opts.hasFile === true ? f : null,
-    });
+  /** Replaces the front tab's figure; its history starts afresh. The caller flushes autosave first. */
+  load(f: Figure, opts: OpenOptions = {}): void {
+    const t = this.front();
+    this.replaceTab({ ...this.newTab(f, opts), key: t.key });
   }
+
+  // --- tabs (note 25) --------------------------------------------------------------
+
+  /** The key of the tab holding this document, if one does. */
+  tabOf(docId: string): string | undefined {
+    return this.tabs.find((t) => t.history.present.doc.id === docId)?.key;
+  }
+
+  /**
+   * Opens a figure and brings it forward: the tab already holding its
+   * document, else an untouched fresh front tab (taken over), else a new tab
+   * at the end. Returns the tab's key. The caller flushes autosave first.
+   */
+  open(f: Figure, opts: OpenOptions = {}): string {
+    const have = this.tabOf(f.doc.id);
+    if (have !== undefined) {
+      this.activate(have);
+      return have;
+    }
+    const front = this.front();
+    const tab = this.newTab(f, opts);
+    if (isUntouched(front) && opts.fresh !== true) {
+      const taken = { ...tab, key: front.key };
+      this.replaceTab(taken);
+      return taken.key;
+    }
+    if (isUntouched(front) && opts.fresh === true) return front.key;
+    this.tabs = [...this.tabs, tab];
+    this.frontKey = tab.key;
+    this.publish();
+    if (this.tabs.length === 2) analytics.trackOnce('tabs', 'second');
+    return tab.key;
+  }
+
+  /** Brings a tab forward; a half-done text edit or note draft in the one left is dropped. */
+  activate(key: string): void {
+    if (key === this.frontKey || !this.tab(key)) return;
+    this.tabs = this.tabs.map((t) =>
+      t.key === this.frontKey ? { ...t, editingText: null, noteDraft: null } : t,
+    );
+    this.frontKey = key;
+    this.publish();
+  }
+
+  /** Brings the tab at this place in the strip forward (Alt+1…9). */
+  activateAt(index: number): void {
+    const t = this.tabs[index];
+    if (t) this.activate(t.key);
+  }
+
+  /** Closes a tab; the one to its right (else left) comes forward. The caller flushes autosave first. */
+  close(key: string): void {
+    const at = this.tabs.findIndex((t) => t.key === key);
+    if (at < 0) return;
+    const rest = this.tabs.filter((t) => t.key !== key);
+    if (rest.length === 0) {
+      const t = this.newTab(emptyFigure(), { fresh: true });
+      this.tabs = [t];
+      this.frontKey = t.key;
+    } else {
+      this.tabs = rest;
+      const next = rest[at] ?? rest[at - 1];
+      if (key === this.frontKey && next) this.frontKey = next.key;
+    }
+    this.publish();
+  }
+
+  /** Moves a tab to another place in the strip (counted without it). */
+  move(key: string, index: number): void {
+    const t = this.tab(key);
+    if (!t) return;
+    const rest = this.tabs.filter((x) => x.key !== key);
+    const at = Math.max(0, Math.min(rest.length, index));
+    const next = [...rest.slice(0, at), t, ...rest.slice(at)];
+    if (next.every((x, i) => x === this.tabs[i])) return;
+    this.tabs = next;
+    this.publish();
+  }
+
+  /** Moves the front tab one place left (-1) or right (+1). */
+  moveFront(by: -1 | 1): void {
+    const at = this.tabs.findIndex((t) => t.key === this.frontKey);
+    this.move(this.frontKey, at + by);
+  }
+
+  // --- the front tab and the shared state --------------------------------------------
 
   select(ids: readonly Id[]): void {
     const same =
@@ -329,8 +483,10 @@ export class AppStore {
     this.set({ editingText: id });
   }
 
-  markDownloaded(): void {
-    this.set({ downloaded: this.state.history.present, history: this.state.history.seal() });
+  /** The tab's figure was just saved to a file (default: the front tab's). */
+  markDownloaded(key: string = this.frontKey): void {
+    const t = this.tab(key);
+    if (t) this.replaceTab({ ...t, downloaded: t.history.present, history: t.history.seal() });
   }
 
   notify(text: string, tone: NoticeTone = 'info'): void {
@@ -344,28 +500,69 @@ export class AppStore {
     }, NOTICE_MS);
   }
 
-  /** Page and selection still valid in a figure (after undo, a page delete…). */
-  private fix(
-    f: Figure,
-    selection: readonly Id[],
-  ): Pick<AppState, 'pageId' | 'selection' | 'editingText' | 'activeNote' | 'noteDraft'> {
-    const page = f.doc.pages.find((p) => p.id === this.state.pageId) ?? f.doc.pages[0];
-    const pageId = page?.id ?? this.state.pageId;
-    const keep = page ? selection.filter((id) => findObj(page, id) !== undefined) : [];
-    const editing = this.state.editingText;
-    const active = this.state.activeNote;
-    const draft = this.state.noteDraft;
+  private newTab(f: Figure, opts: OpenOptions): TabState {
+    this.tabSeq += 1;
     return {
-      pageId,
-      selection: keep,
-      editingText: editing !== null && page && findObj(page, editing) ? editing : null,
-      activeNote: active !== null && f.doc.notes.some((n) => n.id === active) ? active : null,
-      noteDraft: draft && f.doc.pages.some((p) => p.id === draft.page) ? draft : null,
+      key: `tab-${String(this.tabSeq)}`,
+      history: History.create(f, { limit: 300 }),
+      pageId: f.doc.pages[0]?.id ?? ('' as Id),
+      selection: [],
+      editingText: null,
+      activeNote: null,
+      noteDraft: null,
+      downloaded: opts.hasFile === true ? f : null,
+      view: START_VIEW,
+      fresh: opts.fresh === true,
     };
   }
 
-  private set(patch: Partial<AppState>): void {
-    this.state = { ...this.state, ...patch };
+  private tab(key: string): TabState | undefined {
+    return this.tabs.find((t) => t.key === key);
+  }
+
+  private front(): TabState {
+    const t = this.tab(this.frontKey);
+    if (!t) throw new Error('no front tab');
+    return t;
+  }
+
+  private replaceTab(next: TabState): void {
+    this.tabs = this.tabs.map((t) => (t.key === next.key ? next : t));
+    this.publish();
+  }
+
+  /** Splits a patch between the front tab and the shared state. */
+  private set(patch: Partial<DocFields & SharedState>): void {
+    const doc: Record<string, unknown> = {};
+    const shared: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(patch)) (DOC_KEYS.has(k) ? doc : shared)[k] = v;
+    if (Object.keys(doc).length > 0) {
+      const t = this.front();
+      this.tabs = this.tabs.map((x) => (x === t ? { ...t, ...doc } : x));
+    }
+    if (Object.keys(shared).length > 0) this.shared = { ...this.shared, ...shared };
+    this.publish();
+  }
+
+  private flatten(): AppState {
+    const t = this.front();
+    return {
+      ...this.shared,
+      history: t.history,
+      pageId: t.pageId,
+      selection: t.selection,
+      editingText: t.editingText,
+      activeNote: t.activeNote,
+      noteDraft: t.noteDraft,
+      downloaded: t.downloaded,
+      view: t.view,
+      tabs: this.tabs,
+      front: t.key,
+    };
+  }
+
+  private publish(): void {
+    this.state = this.flatten();
     this.listeners.forEach((l) => {
       l();
     });

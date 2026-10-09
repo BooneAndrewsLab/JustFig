@@ -14,7 +14,7 @@ import {
 
 import { canvasSize, fitPage, zoomAt } from './canvas/view';
 import { actionFor, resolveBindings } from './keyBindings';
-import { copySelection, duplicateSelection, pasteText, saveFile } from './state/session';
+import { closeTab, copySelection, duplicateSelection, pasteText, saveFile } from './state/session';
 import { type ToolId, currentPage, selectedObjects, store } from './state/store';
 
 export function isTyping(t: EventTarget | null): boolean {
@@ -149,7 +149,22 @@ export function onKeyDown(e: KeyboardEvent, open: ShortcutTargets): void {
     'zoom-out': () => {
       zoom(1 / 1.25);
     },
+    'tab-close': () => {
+      closeTab(s.front);
+    },
+    'tab-left': () => {
+      store.moveFront(-1);
+    },
+    'tab-right': () => {
+      store.moveFront(1);
+    },
   };
+  const tab = /^tab-(\d)$/.exec(id)?.[1];
+  if (tab !== undefined) {
+    handled();
+    store.activateAt(Number(tab) - 1);
+    return;
+  }
   const run = actions[id];
   if (run) {
     handled();

@@ -1,6 +1,6 @@
 # Templates and examples
 
-**Templates…** in the top bar opens the Templates and examples dialog. It has three tabs: Templates, Examples and My presets. Templates and examples have each with cards that show a live preview. Choosing a template or example starts a new figure from it; your current figure stays in Recent figures.
+**Templates…** in the top bar opens the Templates and examples dialog. It has three tabs: Templates, Examples and My presets. Templates and examples have each with cards that show a live preview. Choosing a template or example starts a new figure from it in a new tab; your current figure stays open in its tab.
 
 ## Templates
 

@@ -12,6 +12,7 @@ import {
   deleteRecent,
   downloadRecent,
   listRecent,
+  openIds,
   openRecent,
   renameRecent,
 } from '../state/session';
@@ -24,6 +25,7 @@ export function RecentDialog({ onClose }: { onClose: () => void }) {
   const [deleting, setDeleting] = useState<FigureSummary | null>(null);
   const [failed, setFailed] = useState(false);
   const here = currentId();
+  const open = openIds();
 
   const refresh = useCallback(async () => {
     try {
@@ -132,7 +134,7 @@ export function RecentDialog({ onClose }: { onClose: () => void }) {
                 <strong>{r.title || 'Untitled'}</strong>
               )}
               <span className="note">
-                {r.id === here ? 'Open now · ' : ''}
+                {r.id === here ? 'Open now · ' : open.has(r.id) ? 'Open in a tab · ' : ''}
                 <time dateTime={new Date(r.updatedAt).toISOString()}>
                   {new Date(r.updatedAt).toLocaleString()}
                 </time>
@@ -181,7 +183,7 @@ export function RecentDialog({ onClose }: { onClose: () => void }) {
                   >
                     Download .jfig
                   </button>
-                  {r.id !== here && (
+                  {!open.has(r.id) && (
                     <button
                       type="button"
                       aria-label={`Delete ${r.title}`}

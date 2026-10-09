@@ -73,6 +73,8 @@ export const EVENTS = {
   /** The built-in palette id as the name. */
   palette: ['apply', 'link'],
   keys: ['change', 'reset'],
+  /** Several figures open (note 25): a second tab opened, a tab closed or dragged. */
+  tabs: ['second', 'close', 'move'],
   /** The guide page id as the name. */
   guide: ['open'],
   embedded: ['import'],

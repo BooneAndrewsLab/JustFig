@@ -19,7 +19,7 @@ export interface KeyAction {
   /** What the shortcut editor and the guide call it. */
   readonly label: string;
   /** Which part of the app it belongs to, for the listing. */
-  readonly group: 'Tools' | 'Edit' | 'Arrange' | 'File' | 'View' | 'Fixed';
+  readonly group: 'Tools' | 'Edit' | 'Arrange' | 'File' | 'View' | 'Tabs' | 'Fixed';
   readonly defaultBinding: string;
   /**
    * The key cannot be changed: the ones the browser and every app share
@@ -74,6 +74,25 @@ export const KEY_ACTIONS: readonly KeyAction[] = [
   { id: 'zoom-in', label: 'Zoom in', group: 'View', defaultBinding: 'shift+Equal' },
   { id: 'zoom-out', label: 'Zoom out', group: 'View', defaultBinding: 'Minus' },
   { id: 'guide', label: 'The user guide', group: 'View', defaultBinding: 'shift+Slash', note: '?' },
+  ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n): KeyAction => ({
+    id: `tab-${String(n)}`,
+    label: `Show figure tab ${String(n)}`,
+    group: 'Tabs',
+    defaultBinding: `alt+Digit${String(n)}`,
+  })),
+  { id: 'tab-close', label: 'Close the figure tab', group: 'Tabs', defaultBinding: 'alt+KeyW' },
+  {
+    id: 'tab-left',
+    label: 'Move the figure tab left',
+    group: 'Tabs',
+    defaultBinding: 'alt+shift+PageUp',
+  },
+  {
+    id: 'tab-right',
+    label: 'Move the figure tab right',
+    group: 'Tabs',
+    defaultBinding: 'alt+shift+PageDown',
+  },
   {
     id: 'save',
     label: 'Download the figure file',

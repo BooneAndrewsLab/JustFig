@@ -82,7 +82,8 @@ export class FigureStorage {
   async save(
     figure: Figure,
     app: { name: string; version: string },
-    opts: { now?: number; downloaded?: boolean } = {},
+    /** `keep`: figures open in other tabs, which eviction must not drop either (note 25). */
+    opts: { now?: number; downloaded?: boolean; keep?: readonly string[] } = {},
   ): Promise<void> {
     const id = figure.doc.id;
     const text = writeJfig(figure, app);
@@ -98,15 +99,16 @@ export class FigureStorage {
         thumb: old?.thumb ?? null,
       });
     });
-    await this.evict(id);
+    await this.evict([id, ...(opts.keep ?? [])]);
   }
 
   /**
-   * Deletes the oldest figures past the caps, never `keep` and never a figure
-   * with saved versions (note 23): those were kept on purpose.
+   * Deletes the oldest figures past the caps, never one in `keep` (just saved,
+   * or open in a tab) and never a figure with saved versions (note 23): those
+   * were kept on purpose.
    */
   async evict(
-    keep: string,
+    keep: string | readonly string[],
     maxFigures = MAX_FIGURES,
     maxChars = MAX_TOTAL_CHARS,
   ): Promise<string[]> {
@@ -116,12 +118,13 @@ export class FigureStorage {
         (k): k is string => typeof k === 'string',
       ),
     );
+    const kept = new Set(typeof keep === 'string' ? [keep] : keep);
     const gone: string[] = [];
     let count = rows.length;
     let total = rows.reduce((n, r) => n + r.text.length + (r.thumb?.length ?? 0), 0);
     for (let i = rows.length - 1; i >= 0 && (count > maxFigures || total > maxChars); i -= 1) {
       const r = rows[i];
-      if (!r || r.id === keep || pinned.has(r.id)) continue;
+      if (!r || kept.has(r.id) || pinned.has(r.id)) continue;
       gone.push(r.id);
       count -= 1;
       total -= r.text.length + (r.thumb?.length ?? 0);

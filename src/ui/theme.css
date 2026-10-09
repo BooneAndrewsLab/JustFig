@@ -95,10 +95,11 @@ select {
 
 .app {
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto auto 1fr auto;
   grid-template-columns: 220px 44px 1fr 260px;
   grid-template-areas:
     'top top top top'
+    'tabs tabs tabs tabs'
     'icons tools canvas side'
     'status status status status';
   height: 100%;
@@ -112,6 +113,83 @@ select {
   padding: 5px 10px;
   background: var(--panel);
   border-bottom: 1px solid var(--rule);
+}
+
+/* The open figures (note 25). */
+.tabstrip {
+  grid-area: tabs;
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  padding: 3px 10px 0;
+  background: var(--panel);
+  border-bottom: 1px solid var(--rule);
+  min-width: 0;
+}
+
+.tabstrip-recent,
+.tabstrip-new {
+  margin-bottom: 3px;
+}
+
+.tabstrip-list {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  min-width: 0;
+}
+
+.tabstrip-tab {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 14em;
+  padding: 3px 4px 3px 10px;
+  border: 1px solid var(--rule);
+  border-bottom: none;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: var(--ground);
+  cursor: pointer;
+  user-select: none;
+}
+
+.tabstrip-tab.active {
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+
+.tabstrip-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.tabstrip-tab.drop-before {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.tabstrip-tab.drop-after {
+  box-shadow: inset -3px 0 0 var(--accent);
+}
+
+.tabstrip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tabstrip-dot {
+  color: var(--accent);
+}
+
+.tabstrip-close {
+  padding: 0 4px;
+  border-radius: var(--radius);
+  color: var(--ink-2);
+}
+
+.tabstrip-close:hover {
+  background: var(--rule);
+  color: var(--ink);
 }
 
 .topbar .brand {
