@@ -24,6 +24,7 @@ import { IconBrowser } from './panels/IconBrowser';
 import { Inspector } from './panels/Inspector';
 import { LayersPanel } from './panels/LayersPanel';
 import { NotesPanel } from './panels/NotesPanel';
+import { SaveFailureBanner } from './panels/SaveFailureBanner';
 import { TabStrip } from './panels/TabStrip';
 import { ToolPalette } from './panels/ToolPalette';
 import { resolveBindings, withKey } from './keyBindings';
@@ -312,6 +313,7 @@ export function App() {
           }}
         />
       </header>
+      <SaveFailureBanner />
       <TabStrip
         onRecent={() => {
           setDialog('recent');

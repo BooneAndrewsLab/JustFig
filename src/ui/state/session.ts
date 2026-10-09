@@ -46,6 +46,7 @@ import {
 import {
   type FigureSummary,
   StoreFullError,
+  requestPersistence,
   cleanName,
   getPresetStore,
   getStorage,
@@ -105,15 +106,14 @@ export async function startSession(): Promise<void> {
   } catch {
     // A wedged IndexedDB must not block the app.
   }
-  saver = new Autosaver(
-    store,
-    storage,
-    APP,
-    () => {
-      store.notify('Could not keep a copy in this browser; save the file to be safe.', 'warning');
+  saver = new Autosaver(store, storage, APP, undefined, renderThumbnail, {
+    unsaved: (ids) => {
+      store.setUnsaved(ids);
     },
-    renderThumbnail,
-  );
+    firstSave: () => {
+      void requestPersistence();
+    },
+  });
   rememberTabs(store);
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') void saver?.flush();
@@ -127,6 +127,20 @@ export async function startSession(): Promise<void> {
  */
 export async function flushCurrent(): Promise<void> {
   await saver?.flush();
+}
+
+/** Downloads the open figure with this document id as a `.jfig`, for the unsaved banner (note 02). */
+export function downloadCopy(id: string): void {
+  const tab = store.getState().tabs.find((t) => figure(t).doc.id === id);
+  if (!tab) return;
+  const f = figure(tab);
+  download(
+    writeJfig(figureWithSnapshots(f), APP),
+    `${safeName(f.doc.title)}${BRAND.fileExt}`,
+    BRAND.mime,
+  );
+  store.markDownloaded(tab.key);
+  analytics.track('file', 'download');
 }
 
 /** A new empty figure in a tab of its own (an untouched one is reused). */

@@ -86,6 +86,8 @@ export interface SharedState {
   readonly notice: Notice | null;
   /** Review note markers on the canvas (note 24); remembered per browser. Never exported either way. */
   readonly showNotes: boolean;
+  /** Document ids of open figures whose last autosave failed (note 02); empty when all is kept. */
+  readonly unsaved: readonly string[];
 }
 
 type DocFields = Omit<TabState, 'key' | 'fresh'>;
@@ -224,6 +226,7 @@ export class AppStore {
       keyBindings: loadCustomBindings(),
       notice: null,
       showNotes: initialShowNotes(),
+      unsaved: [],
     };
     this.state = this.flatten();
   }
@@ -487,6 +490,13 @@ export class AppStore {
   markDownloaded(key: string = this.frontKey): void {
     const t = this.tab(key);
     if (t) this.replaceTab({ ...t, downloaded: t.history.present, history: t.history.seal() });
+  }
+
+  /** Which figures autosave could not write; the banner shows them until a save succeeds. */
+  setUnsaved(ids: readonly string[]): void {
+    const now = this.shared.unsaved;
+    if (now.length === ids.length && now.every((id, i) => id === ids[i])) return;
+    this.set({ unsaved: ids });
   }
 
   notify(text: string, tone: NoticeTone = 'info'): void {

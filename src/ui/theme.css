@@ -95,10 +95,11 @@ select {
 
 .app {
   display: grid;
-  grid-template-rows: auto auto 1fr auto;
+  grid-template-rows: auto auto auto 1fr auto;
   grid-template-columns: 220px 44px 1fr 260px;
   grid-template-areas:
     'top top top top'
+    'banner banner banner banner'
     'tabs tabs tabs tabs'
     'icons tools canvas side'
     'status status status status';
@@ -1348,4 +1349,21 @@ button.link {
   padding: 0 2px;
   color: var(--accent);
   text-decoration: underline;
+}
+
+.save-banner {
+  grid-area: banner;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 6px 12px;
+  color: var(--error);
+  background: var(--panel);
+  border-bottom: 2px solid var(--error);
+  font-weight: 600;
+}
+
+.save-banner[hidden] {
+  display: none;
 }

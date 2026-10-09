@@ -1,11 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { addObjects } from '@/core/edits/edits';
 import { createDoc, createRect, frame } from '@/core/model/factory';
 import type { Figure } from '@/core/model/types';
-import { FigureDb, FigureStorage } from '@/io/storage';
+import { FigureDb, FigureStorage, StoreFullError } from '@/io/storage';
 
-import { Autosaver } from './autosave';
+import { Autosaver, RETRY_DELAY } from './autosave';
 import { keptTabs, rememberTabs, rememberedTabs, reopenTabs, TABS_KEY } from './openTabs';
 import { AppStore, currentPage, figure } from './store';
 
@@ -142,5 +142,98 @@ describe('open tabs across a reload (note 25)', () => {
     expect(rememberedTabs(kv)).toEqual({ ids: ['abc'], front: 'abc' });
     kv.setItem(TABS_KEY, 'not json');
     expect(rememberedTabs(kv)).toEqual({ ids: [], front: null });
+  });
+});
+
+describe('Autosaver failures (note 02)', () => {
+  /** A storage whose writes throw while `fail` is set, as a full disk or quota does. */
+  function flaky(fail: { error: Error | null }): FigureStorage {
+    const storage = newStorage();
+    const save = storage.save.bind(storage);
+    storage.save = async (...args) => {
+      if (fail.error) throw fail.error;
+      await save(...args);
+    };
+    return storage;
+  }
+
+  it.each([
+    ['a quota error', new DOMException('full', 'QuotaExceededError')],
+    ['a full store', new StoreFullError('The store is full.')],
+  ])('reports the figure as unsaved on %s, and clears after a save works', async (_n, error) => {
+    const fail = { error: error as Error | null };
+    const store = new AppStore();
+    const reports: (readonly string[])[] = [];
+    const first = vi.fn();
+    const saver = new Autosaver(store, flaky(fail), APP, undefined, undefined, {
+      unsaved: (ids) => reports.push(ids),
+      firstSave: first,
+    });
+    draw(store);
+    const a = figure(store.getState()).doc.id;
+    await saver.flush();
+    expect(reports.at(-1)).toEqual([a]);
+    expect(first).not.toHaveBeenCalled();
+
+    // A second tab that also fails is listed too; the first stays.
+    store.open(blank());
+    draw(store);
+    const b = figure(store.getState()).doc.id;
+    await saver.flush();
+    expect(reports.at(-1)?.slice().sort()).toEqual([a, b].sort());
+
+    fail.error = null;
+    await saver.flush();
+    expect(reports.at(-1)).toEqual([]);
+    expect(first).toHaveBeenCalledTimes(1);
+    saver.dispose();
+  });
+
+  it('tries a failed figure again without another change', async () => {
+    vi.useFakeTimers();
+    try {
+      const fail = { error: new DOMException('full', 'QuotaExceededError') as Error | null };
+      const store = new AppStore();
+      const reports: (readonly string[])[] = [];
+      // In memory, since Dexie's own timers do not run under fake ones.
+      let written = 0;
+      const storage = {
+        save: async () => {
+          await Promise.resolve();
+          if (fail.error) throw fail.error;
+          written += 1;
+        },
+      } as unknown as FigureStorage;
+      const saver = new Autosaver(store, storage, APP, undefined, undefined, {
+        unsaved: (ids) => reports.push(ids),
+      });
+      draw(store);
+      await saver.flush();
+      expect(reports.at(-1)).toHaveLength(1);
+      fail.error = null;
+      await vi.advanceTimersByTimeAsync(RETRY_DELAY + 100);
+      expect(reports.at(-1)).toEqual([]);
+      expect(written).toBe(1);
+      saver.dispose();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('stops reporting a figure whose tab was closed', async () => {
+    const fail = { error: new DOMException('full', 'QuotaExceededError') as Error | null };
+    const store = new AppStore();
+    const reports: (readonly string[])[] = [];
+    const saver = new Autosaver(store, flaky(fail), APP, undefined, undefined, {
+      unsaved: (ids) => reports.push(ids),
+    });
+    draw(store);
+    store.open(blank());
+    const first = store.getState().tabs[0];
+    await saver.flush();
+    expect(reports.at(-1)).toHaveLength(1);
+    if (first) store.close(first.key);
+    expect(reports.at(-1)).toEqual([]);
+    saver.dispose();
   });
 });

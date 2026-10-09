@@ -1,5 +1,5 @@
 import Dexie from 'dexie';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { createDoc } from '@/core/model/factory';
 import type { Figure } from '@/core/model/types';
@@ -12,6 +12,8 @@ import {
   StoreFullError,
   VERSION_CAPS,
   cleanName,
+  requestPersistence,
+  storageUsage,
 } from './storage';
 
 const APP = { name: 't', version: '0' };
@@ -230,5 +232,41 @@ describe('NamedStore (saved versions, note 23)', () => {
     const caps = { maxRows: 1, maxChars: 1, what: 'x' };
     expect((await new NamedStore(db.presets, caps).list()).map((r) => r.name)).toEqual(['Box']);
     expect(await new NamedStore(db.versions, caps).list(old.doc.id)).toEqual([]);
+  });
+});
+
+describe('durable storage (note 02)', () => {
+  it('asks for persistence once, and copes with a browser that has none', async () => {
+    const persist = vi.fn().mockResolvedValue(true);
+    expect(
+      await requestPersistence({ storage: { persist, persisted: () => Promise.resolve(false) } }),
+    ).toBe(true);
+    expect(persist).toHaveBeenCalledTimes(1);
+    const again = vi.fn();
+    expect(
+      await requestPersistence({
+        storage: { persist: again, persisted: () => Promise.resolve(true) },
+      }),
+    ).toBe(true);
+    expect(again).not.toHaveBeenCalled();
+    expect(await requestPersistence({})).toBe(false);
+    expect(
+      await requestPersistence({ storage: { persist: () => Promise.reject(new Error('no')) } }),
+    ).toBe(false);
+  });
+
+  it('reads the usage estimate, or null without one', async () => {
+    const estimate = () => Promise.resolve({ usage: 5, quota: 100 });
+    expect(
+      await storageUsage({ storage: { estimate, persisted: () => Promise.resolve(true) } }),
+    ).toEqual({
+      usage: 5,
+      quota: 100,
+      persistent: true,
+    });
+    expect(await storageUsage({})).toBeNull();
+    expect(
+      await storageUsage({ storage: { estimate: () => Promise.reject(new Error('x')) } }),
+    ).toBeNull();
   });
 });

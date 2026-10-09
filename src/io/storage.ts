@@ -320,6 +320,43 @@ function readStored(r: StoredFigure): KeptFigure | null {
   }
 }
 
+/**
+ * Asks the browser not to clear the site's data under storage pressure (note 02). Called once after
+ * the first real save; where the API is missing or refuses, nothing changes. Returns whether storage is persistent.
+ */
+export async function requestPersistence(
+  nav: { storage?: Partial<StorageManager> } = globalThis.navigator,
+): Promise<boolean> {
+  try {
+    if (!nav.storage?.persist) return false;
+    if (nav.storage.persisted && (await nav.storage.persisted())) return true;
+    return await nav.storage.persist();
+  } catch {
+    return false;
+  }
+}
+
+export interface StorageUsage {
+  /** Bytes this site uses, and the browser's estimate of what it may use; either can be missing. */
+  readonly usage: number | null;
+  readonly quota: number | null;
+  readonly persistent: boolean | null;
+}
+
+/** `navigator.storage.estimate()` for Recent figures; `null` where the browser has no estimate. */
+export async function storageUsage(
+  nav: { storage?: Partial<StorageManager> } = globalThis.navigator,
+): Promise<StorageUsage | null> {
+  try {
+    if (!nav.storage?.estimate) return null;
+    const e = await nav.storage.estimate();
+    const persistent = nav.storage.persisted ? await nav.storage.persisted() : null;
+    return { usage: e.usage ?? null, quota: e.quota ?? null, persistent };
+  } catch {
+    return null;
+  }
+}
+
 let shared: FigureStorage | null = null;
 let sharedDb: FigureDb | null = null;
 

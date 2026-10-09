@@ -5,7 +5,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 
-import { type FigureSummary, MAX_FIGURES } from '@/io/storage';
+import { type FigureSummary, MAX_FIGURES, type StorageUsage, storageUsage } from '@/io/storage';
 
 import {
   currentId,
@@ -18,12 +18,19 @@ import {
 } from '../state/session';
 import { Dialog } from './Dialog';
 
+function formatBytes(n: number): string {
+  if (n < 1024 * 1024) return `${String(Math.max(1, Math.round(n / 1024)))} KB`;
+  if (n < 1024 ** 3) return `${(n / 1024 ** 2).toFixed(1)} MB`;
+  return `${(n / 1024 ** 3).toFixed(1)} GB`;
+}
+
 export function RecentDialog({ onClose }: { onClose: () => void }) {
   const [rows, setRows] = useState<FigureSummary[] | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [deleting, setDeleting] = useState<FigureSummary | null>(null);
   const [failed, setFailed] = useState(false);
+  const [usage, setUsage] = useState<StorageUsage | null>(null);
   const here = currentId();
   const open = openIds();
 
@@ -48,6 +55,16 @@ export function RecentDialog({ onClose }: { onClose: () => void }) {
       live = false;
     };
   }, []);
+
+  useEffect(() => {
+    let live = true;
+    void storageUsage().then((u) => {
+      if (live) setUsage(u);
+    });
+    return () => {
+      live = false;
+    };
+  }, [rows]);
 
   if (deleting) {
     return (
@@ -99,6 +116,18 @@ export function RecentDialog({ onClose }: { onClose: () => void }) {
         kept; older ones are dropped, except figures with saved versions. Save a file for anything
         you want to keep for good.
       </p>
+      {usage?.usage != null && (
+        <p className="note" data-testid="storage-usage">
+          This browser has {formatBytes(usage.usage)}
+          {usage.quota != null ? ` of about ${formatBytes(usage.quota)} available` : ''} in use by
+          the app.{' '}
+          {usage.persistent === true
+            ? 'The browser has agreed to keep it.'
+            : usage.persistent === false
+              ? 'The browser may clear it if the computer runs low on space.'
+              : ''}
+        </p>
+      )}
       {failed && (
         <p className="warn" role="alert">
           This browser would not let the app read its kept figures.

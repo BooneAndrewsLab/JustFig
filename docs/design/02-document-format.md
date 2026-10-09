@@ -145,6 +145,22 @@ becomes one entry of the list (tested). Writes keep the row's thumbnail until a 
 - **Rename** rewrites the row's title and the `.jfig` text and keeps the modified time.
   **Delete** is confirmed in an in-app dialog and is not offered for the open figure.
 
+### Durable storage and failed saves
+
+After the first write that works, the app calls `navigator.storage.persist()` once
+(`requestPersistence`, guarded where the API is missing or throws), so the browser is less likely
+to evict the database under pressure. Recent figures shows `navigator.storage.estimate()` usage and
+quota, and whether storage is persistent (`storageUsage`).
+
+A write that throws (a `QuotaExceededError` from IndexedDB, or a `StoreFullError`) is never a passing
+notice. `Autosaver` keeps a set of figure ids whose last write failed, reports it through its
+`hooks.unsaved` callback into `store.unsaved`, and puts the figure back in its queue to retry every
+`RETRY_DELAY` (10 s) unless a newer change has queued it. A figure whose tab closes drops out of the set.
+The `SaveFailureBanner` (a persistent `role="alert"` above the tab strip, keyboard reachable) names the
+front figure first, then the others, with **Download a copy** per figure for up to three and a count
+beyond; it clears when each figure's write later succeeds. Tested with a storage that throws, and
+in `e2e/save-failure.spec.ts`.
+
 ### Presets
 
 Schema v3 of the database adds a `presets` table for saved selections (note 22). Presets are

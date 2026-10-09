@@ -6,7 +6,9 @@
  * keyed the same way, not by tab, so a figure whose tab was just closed or
  * taken over is still written by the next flush. A small thumbnail of a
  * figure's first page is refreshed at most every THUMB_INTERVAL ms, after the
- * save itself so the save is never delayed.
+ * save itself so the save is never delayed. A write that fails (quota, a full
+ * store) is reported through `hooks.unsaved` per figure, retried every
+ * RETRY_DELAY, and reported clear once it succeeds.
  */
 import type { Figure } from '@/core/model/types';
 import type { FigureStorage } from '@/io/storage';
@@ -15,6 +17,8 @@ import type { AppStore, TabState } from './store';
 
 export const AUTOSAVE_DELAY = 1000;
 export const THUMB_INTERVAL = 15_000;
+/** A failed write is tried again after this long, if the figure has not changed meanwhile. */
+export const RETRY_DELAY = 10_000;
 
 function worthSaving(t: TabState): boolean {
   return t.history.canUndo || t.history.canRedo || t.downloaded !== null;
@@ -36,6 +40,10 @@ export class Autosaver {
   private lastThumb = 0;
   private thumbTimer: ReturnType<typeof setTimeout> | undefined;
   private readonly thumbsDue = new Set<string>();
+  /** Figures whose last write failed, by document id. */
+  private readonly failed = new Set<string>();
+  private retryTimer: ReturnType<typeof setTimeout> | undefined;
+  private everSaved = false;
 
   constructor(
     private readonly store: AppStore,
@@ -44,6 +52,15 @@ export class Autosaver {
     private readonly onError: (e: unknown) => void = () => undefined,
     /** Renders a small image of the first page; omitted where there is no DOM. */
     private readonly thumbnail?: (f: Figure) => Promise<string | null>,
+    /**
+     * `unsaved`: the ids of figures whose latest write failed, called whenever that set changes
+     * (empty once all succeed). `firstSave`: after the first write that worked, to ask the browser
+     * for durable storage.
+     */
+    private readonly hooks: {
+      unsaved?: (ids: readonly string[]) => void;
+      firstSave?: () => void;
+    } = {},
   ) {
     for (const t of store.getState().tabs) this.markSaved(t.history.present);
     this.unsubscribe = store.subscribe(() => {
@@ -70,11 +87,31 @@ export class Autosaver {
     // Forget what was written for figures no longer open (they hold their pictures).
     const open = new Set<string>(tabs.map((t) => t.history.present.doc.id));
     for (const id of this.saved.keys()) if (!open.has(id)) this.saved.delete(id);
+    this.forgetClosed(open);
     if (!queued) return;
     if (this.timer !== undefined) clearTimeout(this.timer);
     this.timer = setTimeout(() => {
       void this.flush();
     }, AUTOSAVE_DELAY);
+  }
+
+  private forgetClosed(open: ReadonlySet<string>): void {
+    let dropped = false;
+    for (const id of this.failed) {
+      if (!open.has(id)) {
+        this.failed.delete(id);
+        dropped = true;
+      }
+    }
+    if (dropped) this.reportUnsaved();
+  }
+
+  private reportUnsaved(): void {
+    const ids = this.store
+      .getState()
+      .tabs.map((t) => t.history.present.doc.id)
+      .filter((id) => this.failed.has(id));
+    this.hooks.unsaved?.(ids);
   }
 
   /**
@@ -98,11 +135,29 @@ export class Autosaver {
       await this.storage.save(p.figure, this.app, { downloaded: p.downloaded, keep });
       if (keep.includes(id)) this.saved.set(id, p.figure);
     } catch (e: unknown) {
+      this.failed.add(id);
+      this.reportUnsaved();
       this.onError(e);
+      // Not lost: tried again soon, unless a newer change has queued the figure already.
+      if (!this.pending.has(id)) this.pending.set(id, p);
+      this.scheduleRetry();
       return;
+    }
+    if (this.failed.delete(id)) this.reportUnsaved();
+    if (!this.everSaved) {
+      this.everSaved = true;
+      this.hooks.firstSave?.();
     }
     this.thumbsDue.add(id);
     this.scheduleThumb(p.figure);
+  }
+
+  private scheduleRetry(): void {
+    if (this.retryTimer !== undefined) return;
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = undefined;
+      void this.flush();
+    }, RETRY_DELAY);
   }
 
   /** At most one round of thumbnails per THUMB_INTERVAL; changes inside it are drawn when it ends. */
@@ -142,6 +197,7 @@ export class Autosaver {
   dispose(): void {
     if (this.timer !== undefined) clearTimeout(this.timer);
     if (this.thumbTimer !== undefined) clearTimeout(this.thumbTimer);
+    if (this.retryTimer !== undefined) clearTimeout(this.retryTimer);
     this.unsubscribe();
   }
 }
