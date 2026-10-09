@@ -66,6 +66,7 @@ describe('the user guide', () => {
       'Open…',
       'Save',
       'Import…',
+      'Versions…',
       'Attribution',
       'Export…',
       'Guide',

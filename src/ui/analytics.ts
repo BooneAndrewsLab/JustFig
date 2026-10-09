@@ -64,6 +64,8 @@ export const EVENTS = {
   check: ['select'],
   attribution: ['open', 'copy', 'add-text'],
   preset: ['save', 'place', 'export', 'import'],
+  /** Saved versions of a figure (note 23); never a name. */
+  version: ['save', 'restore', 'compare'],
   /** `open`: the entry id (app vocabulary) as the name. `source`: Save as template source. */
   gallery: ['open', 'source'],
   /** The built-in palette id as the name. */

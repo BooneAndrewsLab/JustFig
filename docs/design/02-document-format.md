@@ -145,3 +145,9 @@ becomes one entry of the list (tested). Writes keep the row's thumbnail until a 
 
 Schema v3 of the database adds a `presets` table for saved selections (note 22). Presets are
 capped too but never evicted: a save past the cap is refused, since the user kept them on purpose.
+
+### Saved versions
+
+Schema v4 adds a `versions` table (note 23): named copies of a figure's `.jfig` text, keyed to
+their figure by an indexed `owner` (its `doc.id`). Refused past their caps like presets. Eviction
+above skips any figure that has saved versions, and deleting a figure deletes its versions.

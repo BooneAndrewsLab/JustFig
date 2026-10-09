@@ -5,7 +5,14 @@ import { createDoc } from '@/core/model/factory';
 import type { Figure } from '@/core/model/types';
 
 import { writeJfig } from './jfig';
-import { FigureDb, FigureStorage, NamedStore, StoreFullError, cleanName } from './storage';
+import {
+  FigureDb,
+  FigureStorage,
+  NamedStore,
+  StoreFullError,
+  VERSION_CAPS,
+  cleanName,
+} from './storage';
 
 const APP = { name: 't', version: '0' };
 const dbName = () => `t-${String(Math.random())}`;
@@ -155,5 +162,73 @@ describe('NamedStore (presets)', () => {
   it('cleans names', () => {
     expect(cleanName('  a\t b ', 'f')).toBe('a b');
     expect(cleanName(' ', 'f')).toBe('f');
+  });
+});
+
+describe('NamedStore (saved versions, note 23)', () => {
+  const setup = (caps = VERSION_CAPS) => {
+    const db = new FigureDb(dbName());
+    return { db, figures: new FigureStorage(db), versions: new NamedStore(db.versions, caps) };
+  };
+
+  it('lists the versions of one figure only, newest first', async () => {
+    const { versions } = setup();
+    await versions.add([{ name: 'a1', text: 'x' }], { owner: 'A', now: 1 });
+    await versions.add([{ name: 'b1', text: 'x' }], { owner: 'B', now: 2 });
+    await versions.add([{ name: 'a2', text: 'x' }], { owner: 'A', now: 3 });
+    expect((await versions.list('A')).map((r) => r.name)).toEqual(['a2', 'a1']);
+    expect((await versions.list('B')).map((r) => r.name)).toEqual(['b1']);
+    expect((await versions.list()).length).toBe(3);
+  });
+
+  it('refuses past the per-figure cap, other figures unaffected', async () => {
+    const { versions } = setup({
+      maxRows: 10,
+      maxChars: 100,
+      what: 'saved versions',
+      maxPerOwner: 2,
+    });
+    await versions.add([{ name: '1', text: 'x' }], { owner: 'A' });
+    await versions.add([{ name: '2', text: 'x' }], { owner: 'A' });
+    await expect(versions.add([{ name: '3', text: 'x' }], { owner: 'A' })).rejects.toThrow(
+      /up to 2 saved versions of one figure/,
+    );
+    await versions.add([{ name: '1', text: 'x' }], { owner: 'B' });
+    expect((await versions.list('A')).length).toBe(2);
+  });
+
+  it('never evicts a figure with saved versions; deleting a figure deletes its versions', async () => {
+    const { figures, versions } = setup();
+    const figs = [fig('1'), fig('2'), fig('3'), fig('4')];
+    for (const [i, f] of figs.entries()) await figures.save(f, APP, { now: 10 + i });
+    const [one, two] = figs.map((f) => f.doc.id);
+    await versions.add([{ name: 'sent to PI', text: 'x' }], { owner: one ?? '' });
+    const gone = await figures.evict(figs[3]?.doc.id ?? '', 2);
+    expect(gone).toEqual([two, figs[2]?.doc.id]);
+    expect((await figures.list()).map((r) => r.title).sort()).toEqual(['1', '4']);
+    await figures.remove(one ?? '');
+    expect(await versions.list(one ?? '')).toEqual([]);
+  });
+
+  it('opens a v3 database with its figures and presets and an empty versions table', async () => {
+    const name = dbName();
+    const v3 = new Dexie(name);
+    v3.version(3).stores({ figures: 'id, updatedAt', presets: 'id, updatedAt' });
+    const old = fig('Kept');
+    await v3.table('figures').put({
+      id: old.doc.id,
+      title: 'Kept',
+      text: writeJfig(old, APP),
+      downloaded: false,
+      updatedAt: 1,
+      thumb: null,
+    });
+    await v3.table('presets').put({ id: 'k_1', name: 'Box', text: '{}', updatedAt: 2 });
+    v3.close();
+    const db = new FigureDb(name);
+    expect((await new FigureStorage(db).list()).map((r) => r.title)).toEqual(['Kept']);
+    const caps = { maxRows: 1, maxChars: 1, what: 'x' };
+    expect((await new NamedStore(db.presets, caps).list()).map((r) => r.name)).toEqual(['Box']);
+    expect(await new NamedStore(db.versions, caps).list(old.doc.id)).toEqual([]);
   });
 });

@@ -17,6 +17,7 @@ import { GuideDialog } from './dialogs/GuideDialog';
 import { RecentDialog } from './dialogs/RecentDialog';
 import { SaveTemplateDialog } from './dialogs/SaveTemplateDialog';
 import { SavePresetDialog } from './dialogs/SavePresetDialog';
+import { VersionsDialog } from './dialogs/VersionsDialog';
 import { KeyBindingsDialog } from './dialogs/KeyBindingsDialog';
 import { PdfPageDialog } from './dialogs/PdfPageDialog';
 import { IconBrowser } from './panels/IconBrowser';
@@ -43,6 +44,7 @@ type DialogId =
   | 'channels'
   | 'save-preset'
   | 'save-template'
+  | 'versions'
   | null;
 
 /** The one selected object's name, for the status line a screen reader announces. */
@@ -176,6 +178,15 @@ export function App() {
             }}
           >
             Recent…
+          </button>
+          <button
+            type="button"
+            title="Save a named version of this figure, or compare and restore one"
+            onClick={() => {
+              setDialog('versions');
+            }}
+          >
+            Versions…
           </button>
           <button
             type="button"
@@ -366,6 +377,13 @@ export function App() {
       )}
       {dialog === 'recent' && (
         <RecentDialog
+          onClose={() => {
+            setDialog(null);
+          }}
+        />
+      )}
+      {dialog === 'versions' && (
+        <VersionsDialog
           onClose={() => {
             setDialog(null);
           }}

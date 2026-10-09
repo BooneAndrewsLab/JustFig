@@ -48,6 +48,7 @@ export const DB_NAME = 'justfig';
 export class FigureDb extends Dexie {
   declare figures: EntityTable<StoredFigure, 'id'>;
   declare presets: EntityTable<NamedRow, 'id'>;
+  declare versions: EntityTable<NamedRow, 'id'>;
 
   constructor(name = DB_NAME) {
     super(name);
@@ -66,6 +67,12 @@ export class FigureDb extends Dexie {
       );
     // v3 adds saved presets (note 22); figures are untouched.
     this.version(3).stores({ figures: 'id, updatedAt', presets: 'id, updatedAt' });
+    // v4 adds saved versions of a figure (note 23), indexed by the figure they belong to.
+    this.version(4).stores({
+      figures: 'id, updatedAt',
+      presets: 'id, updatedAt',
+      versions: 'id, updatedAt, owner',
+    });
   }
 }
 
@@ -94,19 +101,27 @@ export class FigureStorage {
     await this.evict(id);
   }
 
-  /** Deletes the oldest figures past the caps, never `keep`. */
+  /**
+   * Deletes the oldest figures past the caps, never `keep` and never a figure
+   * with saved versions (note 23): those were kept on purpose.
+   */
   async evict(
     keep: string,
     maxFigures = MAX_FIGURES,
     maxChars = MAX_TOTAL_CHARS,
   ): Promise<string[]> {
     const rows = await this.db.figures.orderBy('updatedAt').reverse().toArray();
+    const pinned = new Set(
+      (await this.db.versions.orderBy('owner').uniqueKeys()).filter(
+        (k): k is string => typeof k === 'string',
+      ),
+    );
     const gone: string[] = [];
     let count = rows.length;
     let total = rows.reduce((n, r) => n + r.text.length + (r.thumb?.length ?? 0), 0);
     for (let i = rows.length - 1; i >= 0 && (count > maxFigures || total > maxChars); i -= 1) {
       const r = rows[i];
-      if (!r || r.id === keep) continue;
+      if (!r || r.id === keep || pinned.has(r.id)) continue;
       gone.push(r.id);
       count -= 1;
       total -= r.text.length + (r.thumb?.length ?? 0);
@@ -159,12 +174,16 @@ export class FigureStorage {
     return (await this.db.figures.get(id))?.text ?? null;
   }
 
+  /** Deletes a figure and its saved versions (note 23). */
   async remove(id: string): Promise<void> {
-    await this.db.figures.delete(id);
+    await this.db.transaction('rw', this.db.figures, this.db.versions, async () => {
+      await this.db.figures.delete(id);
+      await this.db.versions.where('owner').equals(id).delete();
+    });
   }
 }
 
-// --- named things the user keeps on purpose (presets; later snapshots) ----------------
+// --- named things the user keeps on purpose (presets, saved versions) -----------------
 
 /** A row the user named and kept on purpose: the text is a file format with its migrations. */
 export interface NamedRow {
@@ -172,6 +191,8 @@ export interface NamedRow {
   readonly name: string;
   readonly text: string;
   readonly updatedAt: number;
+  /** What the row belongs to (a saved version: its figure's `doc.id`); absent for presets. */
+  readonly owner?: string;
 }
 
 export interface NamedSummary {
@@ -188,6 +209,8 @@ export interface NamedCaps {
   readonly maxChars: number;
   /** What the rows are, plural, for the message ("presets"). */
   readonly what: string;
+  /** Most rows one owner may have, when rows have owners. */
+  readonly maxPerOwner?: number;
 }
 
 /** A save that would pass a cap; the message is for the user. */
@@ -205,8 +228,8 @@ export function cleanName(name: string, fallback: string): string {
 }
 
 /**
- * Rows the user names and keeps on purpose (presets now; named snapshots
- * later). Unlike autosaved figures nothing is evicted: a save that would pass
+ * Rows the user names and keeps on purpose (presets; saved versions, which
+ * belong to a figure through `owner`). Unlike autosaved figures nothing is evicted: a save that would pass
  * a cap is refused with a message, and the user deletes what they no longer need.
  */
 export class NamedStore {
@@ -218,14 +241,30 @@ export class NamedStore {
   /** Adds rows all at once, or none when they would pass a cap. Returns their ids. */
   async add(
     rows: readonly { name: string; text: string }[],
-    opts: { now?: number } = {},
+    opts: { now?: number; owner?: string } = {},
   ): Promise<string[]> {
     const now = opts.now ?? Date.now();
-    const made = rows.map((r) => ({ id: newId('k'), name: r.name, text: r.text, updatedAt: now }));
+    const { owner } = opts;
+    const made: NamedRow[] = rows.map((r) => ({
+      id: newId('k'),
+      name: r.name,
+      text: r.text,
+      updatedAt: now,
+      ...(owner === undefined ? {} : { owner }),
+    }));
     await this.table.db.transaction('rw', this.table, async () => {
       const all = await this.table.toArray();
       const count = all.length + made.length;
       const chars = [...all, ...made].reduce((n, r) => n + r.text.length, 0);
+      const mine = all.filter((r) => r.owner === owner).length + made.length;
+      if (
+        owner !== undefined &&
+        this.caps.maxPerOwner !== undefined &&
+        mine > this.caps.maxPerOwner
+      )
+        throw new StoreFullError(
+          `This browser keeps up to ${String(this.caps.maxPerOwner)} ${this.caps.what} of one figure. Delete some first.`,
+        );
       if (count > this.caps.maxRows)
         throw new StoreFullError(
           `This browser keeps up to ${String(this.caps.maxRows)} ${this.caps.what}. Delete some first.`,
@@ -239,13 +278,15 @@ export class NamedStore {
     return made.map((r) => r.id);
   }
 
-  /** Every row, newest first. */
-  async all(): Promise<NamedRow[]> {
-    return this.table.orderBy('updatedAt').reverse().toArray();
+  /** Every row, or every row of `owner`, newest first. */
+  async all(owner?: string): Promise<NamedRow[]> {
+    if (owner === undefined) return this.table.orderBy('updatedAt').reverse().toArray();
+    const rows = await this.table.where('owner').equals(owner).toArray();
+    return rows.sort((a, b) => b.updatedAt - a.updatedAt);
   }
 
-  async list(): Promise<NamedSummary[]> {
-    return (await this.all()).map((r) => ({
+  async list(owner?: string): Promise<NamedSummary[]> {
+    return (await this.all(owner)).map((r) => ({
       id: r.id,
       name: r.name,
       updatedAt: r.updatedAt,
@@ -294,9 +335,24 @@ export function getStorage(): FigureStorage {
 export const PRESET_CAPS: NamedCaps = { maxRows: 100, maxChars: 30_000_000, what: 'presets' };
 
 let presets: NamedStore | null = null;
+let versions: NamedStore | null = null;
 
 /** The app's saved presets, in the same database as the figures. */
 export function getPresetStore(): NamedStore {
   presets ??= new NamedStore(db().presets, PRESET_CAPS);
   return presets;
+}
+
+/** Limits of saved versions (note 23): refused past them, like presets. */
+export const VERSION_CAPS: NamedCaps = {
+  maxRows: 200,
+  maxChars: 60_000_000,
+  what: 'saved versions',
+  maxPerOwner: 30,
+};
+
+/** The app's saved versions of figures, in the same database as the figures. */
+export function getVersionStore(): NamedStore {
+  versions ??= new NamedStore(db().versions, VERSION_CAPS);
+  return versions;
 }

@@ -56,8 +56,8 @@ export function RecentDialog({ onClose }: { onClose: () => void }) {
         }}
       >
         <p>
-          Delete <strong>{deleting.title}</strong> from this browser? It cannot be brought back
-          unless you have saved it as a file.
+          Delete <strong>{deleting.title}</strong> and its saved versions from this browser? It
+          cannot be brought back unless you have saved it as a file.
         </p>
         <div className="actions">
           <button
@@ -94,7 +94,8 @@ export function RecentDialog({ onClose }: { onClose: () => void }) {
     <Dialog title="Recent figures" onClose={onClose}>
       <p className="note">
         Figures are kept in this browser as you work. The {String(MAX_FIGURES)} most recent are
-        kept; older ones are dropped. Save a file for anything you want to keep for good.
+        kept; older ones are dropped, except figures with saved versions. Save a file for anything
+        you want to keep for good.
       </p>
       {failed && (
         <p className="warn" role="alert">

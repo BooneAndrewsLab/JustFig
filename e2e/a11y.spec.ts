@@ -39,6 +39,7 @@ test('the dialogs and the Inspector of each kind of selection have none either',
     ['Export…', 'Export figure'],
     ['Attribution', 'Attribution'],
     ['Recent…', 'Recent figures'],
+    ['Versions…', 'Saved versions'],
   ] as const) {
     await page.getByRole('button', { name: button, exact: true }).click();
     const dialog = page.getByRole('dialog').first();
@@ -65,6 +66,20 @@ test('the dialogs and the Inspector of each kind of selection have none either',
   await page.getByRole('tab', { name: 'My presets' }).click();
   await expect(page.locator('.preset-item')).toHaveCount(1);
   problems.push(...(await audit(page, '.dialog')).map((p) => `My presets: ${p}`));
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  // Saved versions with one version in the list, then comparing it.
+  await page.getByRole('button', { name: 'Versions…', exact: true }).click();
+  await page.getByRole('button', { name: 'Save version' }).click();
+  await expect(page.locator('.version-row')).toHaveCount(1);
+  problems.push(...(await audit(page, '.dialog')).map((p) => `Saved versions: ${p}`));
+  await page
+    .locator('.version-row')
+    .getByRole('button', { name: /^Compare/ })
+    .click();
+  await expect(page.getByRole('dialog', { name: 'Compare versions' })).toBeVisible();
+  problems.push(...(await audit(page, '.dialog')).map((p) => `Compare versions: ${p}`));
+  await page.keyboard.press('Escape');
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(problems).toEqual([]);
