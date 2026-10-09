@@ -9,6 +9,7 @@ import { petriDish } from './petri';
 import { plasmidMap } from './plasmid';
 import { placeholderPlot } from './plot';
 import { scaleBar } from './scaleBar';
+import { timeline } from './timeline';
 import { wellPlate } from './wellPlate';
 
 export const KINDS: readonly ProceduralKind[] = [
@@ -23,5 +24,6 @@ export const KINDS: readonly ProceduralKind[] = [
   gel,
   gelLabels,
   scaleBar,
+  timeline,
   placeholderPlot,
 ];

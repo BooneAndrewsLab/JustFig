@@ -69,18 +69,19 @@ one `<path>`; a full 1536-well plate is about ten DOM nodes, a 2,000-lipid bilay
 
 ## The kinds (`procedural/kinds/`)
 
-| Kind              | Title             | Notes                                                                                                                                                                                                                                                                                  |
-| ----------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `cell`            | Cell              | Oval or irregular outline; nucleus, nucleolus, ER, Golgi toggles; counts of mitochondria, lysosomes, vesicles; a slot per organelle; seeded placement                                                                                                                                  |
-| `bilayer`         | Lipid bilayer     | Follows a path (open, or closed as a vesicle); head size, tail length, leaflet gap, straight or kinked tails; at most 6,000 positions                                                                                                                                                  |
-| `receptors`       | Membrane proteins | Follows a path; RTK, GPCR, channel, transporter or Y-shaped receptor, spaced along an optional membrane band, on either side                                                                                                                                                           |
-| `helix`           | DNA / RNA         | Follows a path; double helix with groove offset, or single-stranded RNA; base ticks                                                                                                                                                                                                    |
-| `plasmidMap`      | Plasmid map       | Circular or linear; features as arrows with labels pushed apart, ticks, name and length; the PlasmidPop import target (note 05)                                                                                                                                                        |
-| `proteinDomains`  | Protein domains   | Backbone, domains to scale (box, rounded, oval, hexagon), residue ruler, N/C                                                                                                                                                                                                           |
-| `wellPlate`       | Well plate        | 6 to 1536 wells, round or square, labels; well-map editor (paint, erase, paste from a spreadsheet or open/drop a .csv/.tsv (it fills the paste box, same parser, Apply to commit; 1 MB, UTF-8/UTF-16 text only): hex as is, numbers on a colourblind-safe ramp, words one colour each) |
-| `petriDish`       | Petri dish        | Scattered, streak (three zones), spot dilutions, pinned grid, lawn or empty; seeded                                                                                                                                                                                                    |
-| `gel`             | Agarose gel       | 1 kb or 100 bp ladder, lanes of bands typed as `3000, 1500:0.4` (size:intensity), log-scale migration, stained or inverted look; intensities are colour blends, not opacity                                                                                                            |
-| `placeholderPlot` | Placeholder plot  | PCA, UMAP, scatter or bar of invented points for schematics; 1–8 groups (name, colour), points per group, spread, point size, axes, automatic or typed axis labels, legend or bar names, error bars and dots on bars; seeded (see below)                                               |
+| Kind              | Title               | Notes                                                                                                                                                                                                                                                                                  |
+| ----------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cell`            | Cell                | Oval or irregular outline; nucleus, nucleolus, ER, Golgi toggles; counts of mitochondria, lysosomes, vesicles; a slot per organelle; seeded placement                                                                                                                                  |
+| `bilayer`         | Lipid bilayer       | Follows a path (open, or closed as a vesicle); head size, tail length, leaflet gap, straight or kinked tails; at most 6,000 positions                                                                                                                                                  |
+| `receptors`       | Membrane proteins   | Follows a path; RTK, GPCR, channel, transporter or Y-shaped receptor, spaced along an optional membrane band, on either side                                                                                                                                                           |
+| `helix`           | DNA / RNA           | Follows a path; double helix with groove offset, or single-stranded RNA; base ticks                                                                                                                                                                                                    |
+| `plasmidMap`      | Plasmid map         | Circular or linear; features as arrows with labels pushed apart, ticks, name and length; the PlasmidPop import target (note 05)                                                                                                                                                        |
+| `proteinDomains`  | Protein domains     | Backbone, domains to scale (box, rounded, oval, hexagon), residue ruler, N/C                                                                                                                                                                                                           |
+| `wellPlate`       | Well plate          | 6 to 1536 wells, round or square, labels; well-map editor (paint, erase, paste from a spreadsheet or open/drop a .csv/.tsv (it fills the paste box, same parser, Apply to commit; 1 MB, UTF-8/UTF-16 text only): hex as is, numbers on a colourblind-safe ramp, words one colour each) |
+| `petriDish`       | Petri dish          | Scattered, streak (three zones), spot dilutions, pinned grid, lawn or empty; seeded                                                                                                                                                                                                    |
+| `gel`             | Agarose gel         | 1 kb or 100 bp ladder, lanes of bands typed as `3000, 1500:0.4` (size:intensity), log-scale migration, stained or inverted look; intensities are colour blends, not opacity                                                                                                            |
+| `timeline`        | Experiment timeline | Axis start/end in hours, days or weeks; events (tick, triangle or bracket, stacked in rows when labels collide) on one side, periods as bars in lanes on the other; text in points (see below)                                                                                         |
+| `placeholderPlot` | Placeholder plot    | PCA, UMAP, scatter or bar of invented points for schematics; 1–8 groups (name, colour), points per group, spread, point size, axes, automatic or typed axis labels, legend or bar names, error bars and dots on bars; seeded (see below)                                               |
 
 **Placeholder plots are seeded and say nothing.** `placeholderPlot` exists for schematics
 and graphical abstracts that need a plot shape before there is data (issue #8). Every point comes
@@ -93,6 +94,23 @@ the point radius, so nothing leaves the frame. There are no tick numbers on purp
 placeholder must not look like a measured result. PCA's axis labels carry a plausible
 variance share from the seed. Group colours are free `color` fields defaulting to Okabe–Ito, so
 palettes never recolour them (the rule for procedural colour params); the axes and text are slots.
+
+**Timelines are laid out in points, not in the frame.** `timeline` (issue #52) is the
+"day 0 injection, day 7 boost, day 14 harvest" drawing. Only the axis length follows the
+frame's width; text size, marker size, row height and bar height are in points from **Text
+size**, and the stack (event label rows, markers, axis, tick labels, period lanes) is centred
+vertically in the frame, so a resize never squashes text. Rows and lanes are greedy: each event
+label (width estimated at 0.56 em per character, as there are no font metrics in a pure render)
+goes in the first row it does not collide with, and outer rows get a thin stem to their marker;
+periods do the same in lanes, counting a label written beside a bar that is too short for it.
+Every mark is a fill (axis, ticks, stems and brackets are thin rects), so the drawing is exactly
+one `<path>` per colour. The automatic tick step prefers a week of days or a day of hours when
+that gives at least two and few enough ticks, then a 1-2-5 step of whole units; a typed step
+that would give more than 200 ticks falls back to it. Minor ticks mark each whole unit up to 31.
+`fix` keeps the axis at least 0.001 long (a zero span would divide by zero). Events and periods
+outside the axis are not drawn; event colours are free hex (`''` is the Markers slot), so
+palettes never recolour them. `overhang` allows for every event on its own row, every period on
+its own lane and the longest label, since text keeps its size on a frame of 1 pt.
 
 **Found from icon search.** Icons are fixed drawings; a kind is redrawn from settings, and some
 names overlap ("cell", "petri", "plate"). So an icon search also runs `matchKinds`

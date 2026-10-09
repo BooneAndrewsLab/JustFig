@@ -32,6 +32,9 @@ describe('matchKinds', () => {
     expect(ids('membrane')).toEqual(['receptors', 'bilayer']);
     expect(ids('umap')).toEqual(['placeholderPlot']);
     expect(ids('pca plot')).toEqual(['placeholderPlot']);
+    expect(ids('timeline')).toEqual(['timeline']);
+    expect(ids('dosing schedule')).toEqual(['timeline']);
+    expect(ids('injection')).toEqual(['timeline']);
   });
 
   it('needs every word of the query to match', () => {

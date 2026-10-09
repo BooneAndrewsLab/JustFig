@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 90">
+<path d="M14.44 30H340.92V30.8H14.44ZM340.92 27.84L348.12 30.4L340.92 32.96ZM41.29 30.4H42.01V32.38H41.29ZM68.49 30.4H69.21V32.38H68.49ZM95.7 30.4H96.42V32.38H95.7ZM150.11 30.4H150.83V32.38H150.11ZM177.32 30.4H178.04V32.38H177.32ZM204.53 30.4H205.25V32.38H204.53ZM258.94 30.4H259.66V32.38H258.94ZM286.15 30.4H286.87V32.38H286.15ZM313.35 30.4H314.07V32.38H313.35ZM14.08 30.4H14.8V34H14.08ZM122.91 30.4H123.63V34H122.91ZM231.73 30.4H232.45V34H231.73ZM340.56 30.4H341.28V34H340.56Z" fill="#1f2933"/>
+<path d="M13.56 22.8H15.32V34H13.56ZM68.41 22.8H69.29V27.74H68.41ZM286.07 22.8H286.95V27.74H286.07ZM68.41 22.8H286.95V23.68H68.41ZM340.92 30L337.56 22.8L344.28 22.8Z" fill="#d55e00"/>
+<path d="M17.64 49.2H337.72A3.2 3.2 0 0 1 340.92 52.4V58.8A3.2 3.2 0 0 1 337.72 62H17.64A3.2 3.2 0 0 1 14.44 58.8V52.4A3.2 3.2 0 0 1 17.64 49.2Z" fill="#f0e442"/>
+<path d="M126.47 65.2H147.27A3.2 3.2 0 0 1 150.47 68.4V74.8A3.2 3.2 0 0 1 147.27 78H126.47A3.2 3.2 0 0 1 123.27 74.8V68.4A3.2 3.2 0 0 1 126.47 65.2Z" fill="#cc79a7"/>
+<path d="M316.91 65.2H337.72A3.2 3.2 0 0 1 340.92 68.4V74.8A3.2 3.2 0 0 1 337.72 78H316.91A3.2 3.2 0 0 1 313.71 74.8V68.4A3.2 3.2 0 0 1 316.91 65.2Z" fill="#009e73"/>
+<g transform="translate(0.88 36.4)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Week 0</tspan></text></g>
+<g transform="translate(109.71 36.4)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Week 4</tspan></text></g>
+<g transform="translate(218.53 36.4)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Week 8</tspan></text></g>
+<g transform="translate(325.13 36.4)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Week 12</tspan></text></g>
+<g transform="translate(5.55 11.47)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Graft</tspan></text></g>
+<g transform="translate(144.11 11.47)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Tumour monitoring</tspan></text></g>
+<g transform="translate(325.13 11.47)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Endpoint</tspan></text></g>
+<g transform="translate(156.11 51.6)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">High-fat diet</tspan></text></g>
+<g transform="translate(153.67 67.6)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Antibody</tspan></text></g>
+<g transform="translate(278.94 67.6)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Washout</tspan></text></g>
+</svg>

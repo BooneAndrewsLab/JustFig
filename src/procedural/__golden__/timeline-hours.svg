@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 90">
+<path d="M7.72 35.2H347.64V36H7.72ZM7.36 35.6H8.08V39.2H7.36ZM177.32 35.6H178.04V39.2H177.32ZM347.28 35.6H348V39.2H347.28Z" fill="#1f2933"/>
+<path d="M7.72 35.2L4.36 28L11.08 28ZM50.21 35.2L46.85 28L53.57 28ZM50.01 16.4H50.41V28H50.01ZM347.64 35.2L344.28 28L351 28Z" fill="#d55e00"/>
+<path d="M64.37 35.2L61.01 28L67.73 28ZM67.57 70.4H344.44A3.2 3.2 0 0 1 347.64 73.6V80A3.2 3.2 0 0 1 344.44 83.2H67.57A3.2 3.2 0 0 1 64.37 80V73.6A3.2 3.2 0 0 1 67.57 70.4Z" fill="#0072b2"/>
+<path d="M53.41 54.4H174.48A3.2 3.2 0 0 1 177.68 57.6V64A3.2 3.2 0 0 1 174.48 67.2H53.41A3.2 3.2 0 0 1 50.21 64V57.6A3.2 3.2 0 0 1 53.41 54.4Z" fill="#e69f00"/>
+<path d="M322.51 54.4H344.44A3.2 3.2 0 0 1 347.64 57.6V64A3.2 3.2 0 0 1 344.44 67.2H322.51A3.2 3.2 0 0 1 319.31 64V57.6A3.2 3.2 0 0 1 322.51 54.4Z" fill="#009e73"/>
+<g transform="translate(2.16 41.6)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">0 h</tspan></text></g>
+<g transform="translate(169.89 41.6)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">24 h</tspan></text></g>
+<g transform="translate(339.85 41.6)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">48 h</tspan></text></g>
+<g transform="translate(3.49 16.67)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Transfect</tspan></text></g>
+<g transform="translate(25.08 6.27)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Media change</tspan></text></g>
+<g transform="translate(55.7 16.67)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Drug</tspan></text></g>
+<g transform="translate(339.19 16.67)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Lyse</tspan></text></g>
+<g transform="translate(93.94 56.8)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Serum-free</tspan></text></g>
+<g transform="translate(197.34 72.8)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#ffffff">Drug</tspan></text></g>
+<g transform="translate(324.36 56.8)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#ffffff">BrdU</tspan></text></g>
+</svg>

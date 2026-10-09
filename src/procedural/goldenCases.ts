@@ -70,6 +70,52 @@ export const GOLDEN_CASES: Readonly<Record<string, Readonly<Record<string, Parti
     bar: { plot: 'bar' },
     bare: { plot: 'bar', axes: false, axisLabels: false, errorBars: false, dots: false },
   },
+  timeline: {
+    below: {
+      side: 'below',
+      tickLabels: 'unit',
+      events: [
+        { label: 'Seed', time: 0, marker: 'tick', end: 0, color: '' },
+        { label: 'Imaging', time: 4, marker: 'bracket', end: 6, color: '#0072b2' },
+        { label: 'Fix', time: 7, marker: 'tick', end: 7, color: '' },
+      ],
+      ranges: [],
+      end: 7,
+    },
+    hours: {
+      unit: 'hours',
+      start: 0,
+      end: 48,
+      arrow: false,
+      events: [
+        { label: 'Transfect', time: 0, marker: 'triangle', end: 0, color: '' },
+        { label: 'Media change', time: 6, marker: 'triangle', end: 6, color: '' },
+        { label: 'Drug', time: 8, marker: 'triangle', end: 8, color: '#0072b2' },
+        { label: 'Lyse', time: 48, marker: 'triangle', end: 48, color: '' },
+      ],
+      ranges: [
+        { label: 'Serum-free', start: 6, end: 24, color: '#e69f00' },
+        { label: 'Drug', start: 8, end: 48, color: '#0072b2' },
+        { label: 'BrdU', start: 44, end: 48, color: '#009e73' },
+      ],
+    },
+    weeks: {
+      unit: 'weeks',
+      end: 12,
+      step: 4,
+      events: [
+        { label: 'Graft', time: 0, marker: 'tick', end: 0, color: '' },
+        { label: 'Tumour monitoring', time: 2, marker: 'bracket', end: 10, color: '' },
+        { label: 'Endpoint', time: 12, marker: 'triangle', end: 12, color: '' },
+      ],
+      ranges: [
+        { label: 'High-fat diet', start: 0, end: 12, color: '#f0e442' },
+        { label: 'Antibody', start: 4, end: 5, color: '#cc79a7' },
+        { label: 'Washout', start: 11, end: 12, color: '#009e73' },
+      ],
+    },
+    bare: { tickLabels: 'none', arrow: false, ranges: [], events: [] },
+  },
   cell: {
     irregular: { shape: 'irregular', er: false, mitochondria: 10, seed: 11 },
   },

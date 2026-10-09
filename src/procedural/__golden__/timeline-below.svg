@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 90">
+<path d="M3.24 42.4H328.48V43.2H3.24ZM328.48 40.24L335.68 42.8L328.48 45.36ZM2.88 39.2H3.6V42.8H2.88ZM49.34 39.2H50.06V42.8H49.34ZM95.81 39.2H96.53V42.8H95.81ZM142.27 39.2H142.99V42.8H142.27ZM188.73 39.2H189.45V42.8H188.73ZM235.19 39.2H235.91V42.8H235.19ZM281.66 39.2H282.38V42.8H281.66ZM328.12 39.2H328.84V42.8H328.12Z" fill="#1f2933"/>
+<path d="M2.36 39.2H4.12V50.4H2.36ZM327.6 39.2H329.36V50.4H327.6Z" fill="#d55e00"/>
+<path d="M188.65 45.46H189.53V50.4H188.65ZM281.58 45.46H282.46V50.4H281.58ZM188.65 49.52H282.46V50.4H188.65Z" fill="#0072b2"/>
+<g transform="translate(1.02 28.27)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">0</tspan></text></g>
+<g transform="translate(47.48 28.27)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">1</tspan></text></g>
+<g transform="translate(93.94 28.27)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">2</tspan></text></g>
+<g transform="translate(140.4 28.27)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">3</tspan></text></g>
+<g transform="translate(186.87 28.27)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">4</tspan></text></g>
+<g transform="translate(233.33 28.27)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">5</tspan></text></g>
+<g transform="translate(279.79 28.27)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">6</tspan></text></g>
+<g transform="translate(326.26 28.27)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">7</tspan></text></g>
+<g transform="translate(339.68 38.8)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">days</tspan></text></g>
+<g transform="translate(-0.38 53.2)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Seed</tspan></text></g>
+<g transform="translate(221.32 53.2)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Imaging</tspan></text></g>
+<g transform="translate(323.15 53.2)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Fix</tspan></text></g>
+</svg>

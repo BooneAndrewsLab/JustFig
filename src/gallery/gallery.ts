@@ -178,15 +178,37 @@ function workflow(): Figure {
   const dish = placed(createProcedural(kind('petriDish'), { x: 0, y: 0 }), 20, 70, 120, 120);
   const plate = placed(createProcedural(kind('wellPlate'), { x: 0, y: 0 }), 175, 70, 190, 127);
   const readout = createRect(frame(400, 100, 100, 60), style(sw('step'), ink), 6);
+  const schedule = placed(
+    createProcedural(
+      kind('timeline'),
+      { x: 0, y: 0 },
+      {
+        end: 3,
+        unit: 'days',
+        events: [
+          { label: 'Seed', time: 0, marker: 'triangle', end: 0, color: '' },
+          { label: 'Treat', time: 1, marker: 'triangle', end: 1, color: '' },
+          { label: 'Read out', time: 3, marker: 'triangle', end: 3, color: '' },
+        ],
+        ranges: [{ label: 'Drug', start: 1, end: 3, color: '#56b4e9' }],
+      },
+    ),
+    20,
+    250,
+    480,
+    90,
+  );
   const steps = [
     label(30, 40, '1. Culture', { color: ink, bold: true }),
     label(190, 40, '2. Treat in a 96-well plate', { color: ink, bold: true }),
     label(390, 40, '3. Read out', { color: ink, bold: true }),
+    label(30, 245, 'Schedule', { color: ink, bold: true }),
   ];
   return figureOf({ ...createDoc('Experimental workflow'), palette }, [
     dish,
     plate,
     readout,
+    schedule,
     ...steps,
     centred(readout, 'Plate reader', { color: ink }),
     link(dish, plate, sw('accent')),
@@ -245,7 +267,8 @@ export const GALLERY: readonly GalleryEntry[] = [
   {
     id: 'experimental-workflow',
     title: 'Experimental workflow',
-    description: 'Culture, treatment in a 96-well plate and read-out, joined by attached arrows.',
+    description:
+      'Culture, treatment in a 96-well plate and read-out, joined by attached arrows, over a timeline of the schedule.',
     kind: 'example',
     build: workflow,
   },
