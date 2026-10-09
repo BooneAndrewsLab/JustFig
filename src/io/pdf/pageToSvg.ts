@@ -25,8 +25,10 @@
  *   whose `href` is `pdf-image:N`, N indexing the returned pixels, which the
  *   caller encodes as PNG (issue 24); import then places it as a picture of
  *   its own under the plot. A rectangular clip crops its pixels; pixels
- *   outside any other clip become see-through. Image masks are left out
- *   and tiling patterns (hatching) become grey, each reported in the warnings.
+ *   outside any other clip become see-through. Image masks are left out,
+ *   reported in the warnings.
+ * - Tiling patterns (hatching; issue 37, `./tiling`): the cell's operators run
+ *   once per cell over the filled path, each cut to the cell and the path.
  * - Shadings (`sh`, and shading patterns as fills; issue 25): axial and
  *   radial ones become bands of flat colour, mesh ones (matplotlib's Gouraud
  *   shading) flat triangles grouped by colour, cut to the clip like paths.
@@ -58,6 +60,7 @@ import {
 import { fontFromPsName } from '../svg/glyphText';
 import { pathRect } from '../svg/pathData';
 import { type Shading, averageColour, rasterMesh, readShading, shadingBands } from './shading';
+import { MAX_PAGE_TILE_OPS, type Tiling, joinPaths, readTiling, tileOffsets } from './tiling';
 import { ADVANCE_ATTR } from '../svg/plotCleanup';
 import type { Pixels } from '../png';
 import { boxRing, clipPicture } from '../pictureClip';
@@ -163,6 +166,8 @@ export const MAX_IMAGE_RECTS = 4000;
 export const MAX_CLIP_POINTS = 20000;
 /** Segments a straddling curve is cut into before clipping. */
 const CURVE_STEPS = 16;
+/** Patterns drawn inside a pattern's cell are left out (their cells would multiply). */
+const MAX_TILING_DEPTH = 1;
 const TOL = 1e-3;
 
 type Box = readonly [number, number, number, number]; // x0 y0 x1 y1
@@ -186,6 +191,8 @@ interface State {
   baseCtm: Matrix;
   /** A shading as the fill, in the space `m` maps to the page (`fill` is then its average colour). */
   fillShading: { sh: Shading; m: Matrix } | null;
+  /** A tiling pattern (hatching) as the fill, its matrix already mapping to the page. */
+  fillTiling: Tiling | null;
   font: PdfFont | null;
   fontSize: number;
   charSpacing: number;
@@ -438,6 +445,11 @@ const polyToSegs = (pts: readonly [number, number][], close: boolean): Seg[] => 
 const LINE_TOL = 0.5;
 /** Fills this close to it are kept whole. */
 const FILL_TOL = 0.1;
+/**
+ * Inside a pattern's cell lines are cut closer: hatching meets the edge of
+ * what it fills, and a line on the edge between two cells is kept by both.
+ */
+const CELL_TOL = 0.01;
 
 const ringSegs = (ring: readonly Pt[], close: boolean): Seg[] =>
   polyToSegs(
@@ -464,7 +476,7 @@ function cutFill(subs: readonly Seg[][], regions: readonly Region[]): Seg[] {
 }
 
 /** Stroke subpaths cut to clip shapes: whole when inside, else the pieces inside. */
-function cutStroke(subs: readonly Seg[][], regions: readonly Region[]): Seg[] {
+function cutStroke(subs: readonly Seg[][], regions: readonly Region[], tol = LINE_TOL): Seg[] {
   const kept: Seg[] = [];
   for (const sub of subs) {
     const b = segsBox(sub);
@@ -472,12 +484,12 @@ function cutStroke(subs: readonly Seg[][], regions: readonly Region[]): Seg[] {
     const { pts, closed } = polyline(sub, true);
     const first = pts[0];
     if (closed && first) pts.push(first);
-    if (regions.every((r) => ringsInside([pts], r, LINE_TOL))) {
+    if (regions.every((r) => ringsInside([pts], r, tol))) {
       kept.push(...sub);
       continue;
     }
     let pieces: Pt[][] = [pts];
-    for (const r of regions) pieces = pieces.flatMap((x) => clipLines(x, r, LINE_TOL));
+    for (const r of regions) pieces = pieces.flatMap((x) => clipLines(x, r, tol));
     for (const x of pieces) kept.push(...ringSegs(x, false));
   }
   return kept;
@@ -694,6 +706,7 @@ function fresh(viewport: Matrix): State {
     regions: [],
     baseCtm: viewport,
     fillShading: null,
+    fillTiling: null,
     font: null,
     fontSize: 0,
     charSpacing: 0,
@@ -783,6 +796,12 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
       if (!stroke) return;
       fill = false;
     }
+    if (fill && st.fillTiling) {
+      if (tile(st.fillTiling, subpaths(segs), evenOdd)) {
+        if (!stroke) return;
+        fill = false;
+      }
+    }
     const whole =
       (!clip || inside(box, clip)) &&
       regions.every((r) => ringsInside([boxRing(box)], r, FILL_TOL));
@@ -834,18 +853,23 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
           if (closed && first) pts.push(first);
           for (const piece of clipPolyline(pts, clip)) kept.push(...polyToSegs(piece, false));
         }
-      if (regions.length > 0) kept = cutStroke(subpaths(kept), regions);
+      if (regions.length > 0)
+        kept = cutStroke(subpaths(kept), regions, tilingDepth > 0 ? CELL_TOL : LINE_TOL);
       if (kept.length > 0)
         out.push(`<path d="${segsToD(kept)}" ${paintAttrs(false, true, false, IDENTITY)}/>`);
     }
   };
 
   /**
-   * A shading painted under the current clip (and inside `shape`, the
-   * subpaths of a path it fills): its bands, each cut like a filled path.
+   * The clip a pattern or shading fill is painted under: the current clip
+   * narrowed to `shape` (the subpaths of the path it fills) and to `extra`
+   * (a ring in page space); null when nothing is left.
    */
-  const shade = (sh: Shading, m: Matrix, shape: readonly Seg[][] | null, evenOdd: boolean) => {
-    if (!isFinite(determinant(m)) || determinant(m) === 0) return;
+  const fillArea = (
+    shape: readonly Seg[][] | null,
+    evenOdd: boolean,
+    extra: Pt[] | null,
+  ): { clip: Box; regions: Region[] } | null => {
     let clip: Box = st.clip ?? [0, 0, input.width, input.height];
     const regions = [...st.regions];
     const narrow = (rings: Pt[][], eo: boolean, b: Box) => {
@@ -861,19 +885,88 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
     };
     if (shape) {
       const b = segsBox(shape.flat());
-      if (!b) return;
+      if (!b) return null;
       narrow(
         shape.map((sub) => polyline(sub, true).pts),
         evenOdd,
         b,
       );
     }
-    if (sh.bbox) {
-      const ring = boxRing(sh.bbox).map(([x, y]) => apply(m, x, y));
-      const b = segsBox(ringSegs(ring, true));
-      if (b) narrow([ring], false, b);
+    if (extra) {
+      const b = segsBox(ringSegs(extra, true));
+      if (b) narrow([extra], false, b);
     }
-    if (clip[2] <= clip[0] || clip[3] <= clip[1]) return;
+    if (clip[2] <= clip[0] || clip[3] <= clip[1]) return null;
+    return { clip, regions };
+  };
+
+  /** How deep pattern cells are nested (a pattern drawn inside a pattern's cell). */
+  let tilingDepth = 0;
+  /** `restore` pops no lower than this (raised while a pattern's cell runs). */
+  let stackFloor = 0;
+  /** Cell operators the page's pattern fills may still run. */
+  let tileBudget = MAX_PAGE_TILE_OPS;
+  /**
+   * A tiling pattern (hatching) filling `shape` under the current clip: its
+   * cell's operators run once per cell that can touch it, each cut to the
+   * cell's box and the shape, the paths written joined by paint. False when
+   * there are too many cells: the caller paints a flat fill instead.
+   */
+  const tile = (t: Tiling, shape: readonly Seg[][], evenOdd: boolean): boolean => {
+    const area = fillArea(shape, evenOdd, null);
+    if (!area) return true;
+    if (tilingDepth >= MAX_TILING_DEPTH) {
+      warnings.add('Patterns drawn inside patterns were left out.');
+      return true;
+    }
+    const offsets = tileOffsets(t, t.matrix, area.clip, tileBudget);
+    if (!offsets) {
+      warnings.add('A very fine pattern fill became one colour.');
+      return false;
+    }
+    tileBudget -= offsets.length * Math.max(1, t.ops.fnArray.length);
+    const start = out.length;
+    const saved = stack.length;
+    const outerFloor = stackFloor;
+    const outer = st;
+    const outerClip = pendingClip;
+    const [bx0, by0, bx1, by1] = t.bbox;
+    const cellBox = [0, bx0, by0, 1, bx1, by0, 1, bx1, by1, 1, bx0, by1, 4];
+    tilingDepth++;
+    for (const [dx, dy] of offsets) {
+      const ctm = multiply(t.matrix, [1, 0, 0, 1, dx, dy]);
+      st = {
+        ...fresh(ctm),
+        clip: area.clip,
+        regions: area.regions,
+        fillAlpha: outer.fillAlpha,
+        strokeAlpha: outer.fillAlpha,
+      };
+      if (t.colour) st = { ...st, fill: t.colour, stroke: t.colour, colourLocked: true };
+      setClip(cellBox, false);
+      pendingClip = null;
+      stackFloor = saved; // a cell's unpaired restore cannot reach the page's states
+      run(t.ops, 0);
+      stack.length = saved;
+    }
+    tilingDepth--;
+    stackFloor = outerFloor;
+    st = outer;
+    pendingClip = outerClip;
+    out.splice(start, out.length - start, ...joinPaths(out.slice(start)));
+    return true;
+  };
+
+  /**
+   * A shading painted under the current clip (and inside `shape`, the
+   * subpaths of a path it fills): its bands, each cut like a filled path.
+   */
+  const shade = (sh: Shading, m: Matrix, shape: readonly Seg[][] | null, evenOdd: boolean) => {
+    if (!isFinite(determinant(m)) || determinant(m) === 0) return;
+    const extra = sh.bbox ? boxRing(sh.bbox).map(([x, y]) => apply(m, x, y)) : null;
+    const area = fillArea(shape, evenOdd, extra);
+    if (!area) return;
+    const { clip, regions } = area;
     stack.push(st);
     st = { ...st, clip, regions, fillShading: null };
     if (sh.kind === 'mesh') {
@@ -1134,7 +1227,7 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
           break;
         case 'restore':
         case 'endGroup':
-          st = stack.pop() ?? st;
+          if (stack.length > stackFloor) st = stack.pop() ?? st;
           break;
         case 'paintFormXObjectBegin': {
           stack.push(st);
@@ -1214,6 +1307,7 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
           if (!st.colourLocked) {
             st.fill = typeof args[0] === 'string' ? args[0] : '#000000';
             st.fillShading = null;
+            st.fillTiling = null;
           }
           break;
         case 'setStrokeRGBColor':
@@ -1223,6 +1317,7 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
           if (!st.colourLocked) {
             st.fill = 'none';
             st.fillShading = null;
+            st.fillTiling = null;
           }
           break;
         case 'setStrokeTransparent':
@@ -1237,11 +1332,15 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
             args[0] === 'Shading' && typeof args[1] === 'string'
               ? readShading(input.pattern?.(args[1]))
               : null;
-          if (!sh) warnings.add('Hatching and other pattern fills became grey.');
-          const colour = sh ? averageColour(sh) : '#808080';
+          const tiling = fills ? readTiling(args) : null;
+          if (!sh && !tiling) warnings.add('Hatching and other pattern fills became grey.');
+          const colour = sh ? averageColour(sh) : (tiling?.colour ?? '#808080');
           if (fills) {
             st.fill = colour;
             st.fillShading = sh ? { sh, m: multiply(st.baseCtm, mat(args[2]) ?? IDENTITY) } : null;
+            st.fillTiling = tiling
+              ? { ...tiling, matrix: multiply(st.baseCtm, tiling.matrix) }
+              : null;
           } else {
             st.stroke = colour;
             if (sh) warnings.add('Gradient lines became their average colour.');
@@ -1361,7 +1460,13 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
           }
           for (const [colour, alpha, data] of rects) {
             stack.push(st);
-            st = { ...st, fill: colour, fillShading: null, fillAlpha: alpha * st.fillAlpha };
+            st = {
+              ...st,
+              fill: colour,
+              fillShading: null,
+              fillTiling: null,
+              fillAlpha: alpha * st.fillAlpha,
+            };
             paint(data, st.ctm, true, false, false);
             st = stack.pop() ?? st;
           }

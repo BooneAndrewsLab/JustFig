@@ -328,7 +328,7 @@ describe('shadings (issue 25)', () => {
     expect(Math.min(...at(159, 0))).toBeGreaterThan(240);
   });
 
-  it('a gradient on lines is its average colour; hatching is grey', () => {
+  it('a gradient on lines is its average colour; an unreadable pattern is grey', () => {
     const lines = convert(
       [
         ['setStrokeColorN', ['Shading', 'p', null]],

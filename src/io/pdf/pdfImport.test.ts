@@ -70,6 +70,8 @@ const FIXTURES = [
   'matplotlib-shading',
   'r-gradient',
   'r-see-through',
+  'matplotlib-hatch',
+  'r-pattern',
 ] as const;
 
 describe('real plots', () => {

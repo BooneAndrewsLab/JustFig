@@ -80,7 +80,26 @@ scaling text, issue 3) sees no difference between the two.
   show as facets: they are drawn as pixels (2 per unit, at most 1024² of them, colours
   interpolated across each triangle as viewers do) and become a picture, cropped and masked
   like any other. On text and strokes a shading is its average colour (with a warning for
-  strokes); tiling patterns (hatching) still become grey, with a warning.
+  strokes).
+- **Tiling patterns** (hatching; issue 37; `src/io/pdf/tiling.ts`): pdf.js hands the pattern
+  to `scn` whole, `['TilingPattern', colour, cellOps, matrix, bbox, xstep, ystep, paintType]`.
+  Filling a path with one runs the cell's operators once per cell whose box can touch the
+  filled area (the path narrowed by the current clip, as for shadings), each from a fresh
+  graphics state under `baseCtm × matrix × translate(i·xstep, j·ystep)`, clipped to the cell's
+  `/BBox` and to the path, so hatching becomes plain lines and shapes and the export subset
+  needs no `<pattern>`. Uncoloured patterns (paint type 2) take `scn`'s colour, their own
+  colour operators locked as in a `d1` glyph. Inside a cell lines are cut at 0.01 px instead
+  of the usual 0.5 px tolerance (hatching meets the bar's edge; a line on the edge between two
+  cells is kept by both). What the cells wrote is joined into one path per paint, in
+  first-seen order (cells do not overlap in what plotting libraries write, so the reorder is
+  invisible), and pieces that paint nothing are dropped: matplotlib also fills its hatch
+  lines, which, cut to a cell, are rings of no area. The work is bounded: at most 5000 cells
+  and 200 000 cell operators per fill and 1 000 000 per page; a finer pattern becomes a flat
+  fill (grey, or the uncoloured pattern's colour) with a warning. A pattern inside a pattern's
+  cell is left out (its cells would multiply), with a warning; a cell's unpaired `Q` cannot
+  pop the page's states. Strokes and text in a tiling pattern stay grey, with a warning for
+  strokes. Fixtures: matplotlib `hatch=` bars and a hatched `fill_between`
+  (`scripts/pdf-fixtures/hatch.py`), R grid's repeating `pattern()` fills (`r-pattern.R`).
 - **Text:** each show-text run becomes `<text transform="matrix(…)" font-size="1" data-advance="…">` (its width from the PDF's own advances, for alignment inference, note 15), which plot
   cleanup turns into x/y, font size and `rotate()`. Family, weight and style come from the font
   name (subset prefix and `MT`/`PS` suffixes dropped, then `fontFromPsName` from note 12) and
