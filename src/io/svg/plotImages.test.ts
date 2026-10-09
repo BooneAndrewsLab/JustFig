@@ -106,14 +106,18 @@ describe('plot pictures', () => {
     expect(under.map((n) => [n.tag, n.attrs['fill'], n.attrs['stroke']])).toEqual([
       ['rect', '#ebebeb', 'none'],
       ['path', 'none', '#ffffff'],
+      // The curve's dip under it (issue 42).
+      ['path', 'none', '#00ff00'],
     ]);
     expect(under[1]?.attrs['d']).toBe('M20 30L60 30');
-    // In the plot: the panel holed, the grid line cut, the curve and the line drawn after kept.
+    // In the plot: the panel holed, the grid line and the curve cut, the line drawn after kept.
     expect(all.find((n) => n.attrs['fill'] === '#ebebeb')?.attrs['fill-rule']).toBe('evenodd');
     expect(all.find((n) => n.attrs['stroke'] === '#ffffff')?.attrs['d']).toBe(
       'M0 30L20 30M60 30L100 30',
     );
-    expect(all.some((n) => n.attrs['stroke'] === '#00ff00')).toBe(true);
+    expect(String(all.find((n) => n.attrs['stroke'] === '#00ff00')?.attrs['d'])).toMatch(
+      /^M0 30L[^M]*M[^M]*L100 30$/,
+    );
     expect(all.some((n) => n.attrs['stroke'] === '#0000ff')).toBe(true);
   });
 
@@ -334,6 +338,162 @@ describe('turned and overlapping see-through pictures (issue 40)', () => {
     // No grid line crosses a picture: what was under them is in their backdrops.
     for (const p of pics)
       for (const [x, y] of gridPoints) expect(within(p.frame, x, y)).toBe(false);
+  });
+});
+
+describe('curves and fills partly under a picture (issue 42)', () => {
+  const rgba = base64(
+    encodePngSync({ width: 2, height: 2, channels: 4, data: new Uint8Array(16).fill(128) }),
+  );
+  /** The points of straight path data. */
+  const ptsOf = (d: unknown): [number, number][] => {
+    const v = (String(d).match(/-?[\d.]+/g) ?? []).map(Number);
+    return v.flatMap((_, i) =>
+      i % 2 === 0 ? [[v[i] ?? 0, v[i + 1] ?? 0] as [number, number]] : [],
+    );
+  };
+  const byPaint = <T extends { attrs: Record<string, unknown> }>(
+    ns: readonly T[],
+    fill: string,
+    stroke: string,
+  ) => ns.find((n) => n.attrs['fill'] === fill && n.attrs['stroke'] === stroke);
+  // A filled, outlined circle half under the picture (x 10–50) and a curve across it.
+  const shapes =
+    '<circle cx="10" cy="30" r="8" fill="#ff0000" stroke="#000000"/>' +
+    '<path d="M0 60C20 0 40 0 60 60" fill="none" stroke="#00ff00"/>';
+
+  it('cuts them where an opaque picture is, a filled outline into its fill and its outline', () => {
+    const { r, all } = nodes(
+      svg(
+        shapes +
+          `<image x="10" y="10" width="40" height="40" preserveAspectRatio="none" xlink:href="${href(OPAQUE)}"/>`,
+      ),
+    );
+    expect(r.warnings).toEqual([]);
+    expect(r.pictures?.[0]?.backdrop).toBeUndefined();
+    const fill = byPaint(all, '#ff0000', 'none');
+    const outline = byPaint(all, 'none', '#000000');
+    expect(fill?.tag).toBe('path');
+    expect(outline?.tag).toBe('path');
+    // Only the left half is left; the outline is open where it was cut (no stroked cut edge).
+    for (const d of [fill?.attrs['d'], outline?.attrs['d']])
+      for (const [x] of ptsOf(d)) expect(x).toBeLessThanOrEqual(10.001);
+    expect(String(outline?.attrs['d'])).not.toMatch(/Z/);
+    expect(Math.min(...ptsOf(fill?.attrs['d']).map(([x]) => x))).toBeCloseTo(2, 1);
+    // The curve: its ends outside the picture, nothing of it inside.
+    const curve = all.find((n) => n.attrs['stroke'] === '#00ff00');
+    const pts = ptsOf(curve?.attrs['d']);
+    expect(pts[0]).toEqual([0, 60]);
+    expect(pts[pts.length - 1]).toEqual([60, 60]);
+    for (const [x, y] of pts)
+      expect(x <= 10.001 || x >= 49.999 || y <= 10.001 || y >= 49.999).toBe(true);
+  });
+
+  it('moves the parts under a see-through picture into its backdrop', () => {
+    const { r, all } = nodes(
+      svg(
+        shapes +
+          `<image x="10" y="10" width="40" height="40" preserveAspectRatio="none" xlink:href="${href(rgba)}"/>`,
+      ),
+    );
+    const under = [
+      ...walkNodes(sanitizeSvg(r.pictures?.[0]?.backdrop?.asset.svg ?? '').root),
+    ].slice(1);
+    expect(under.map((n) => [n.tag, n.attrs['fill'], n.attrs['stroke']])).toEqual([
+      ['path', '#ff0000', 'none'],
+      ['path', 'none', '#000000'],
+      ['path', 'none', '#00ff00'],
+    ]);
+    for (const n of under)
+      for (const [x, y] of ptsOf(n.attrs['d'])) {
+        expect(x).toBeGreaterThanOrEqual(9.999);
+        expect(x).toBeLessThanOrEqual(50.001);
+        expect(y).toBeGreaterThanOrEqual(9.999);
+      }
+    expect(Math.max(...ptsOf(under[0]?.attrs['d']).map(([x]) => x))).toBeCloseTo(18, 1);
+    // What is left in the plot meets it.
+    expect(
+      Math.max(...ptsOf(byPaint(all, '#ff0000', 'none')?.attrs['d']).map(([x]) => x)),
+    ).toBeCloseTo(10, 3);
+  });
+
+  it('cuts along a turned picture, and leaves out of a backdrop what is over an earlier one', () => {
+    const { r, all } = nodes(
+      svg(
+        '<rect x="0" y="35" width="100" height="10" fill="#0000ff"/>' +
+          '<path d="M0 40Q50 30 100 40" fill="none" stroke="#00ff00"/>' +
+          `<image x="10" y="20" width="30" height="40" preserveAspectRatio="none" xlink:href="${href(rgba)}"/>` +
+          `<image x="50" y="30" width="20" height="20" preserveAspectRatio="none" transform="rotate(45 60 40)" xlink:href="${href(rgba)}"/>` +
+          `<image x="30" y="20" width="30" height="40" preserveAspectRatio="none" xlink:href="${href(rgba)}"/>`,
+      ),
+    );
+    const [first, turned, last] = (r.pictures ?? []).map((p) =>
+      [...walkNodes(sanitizeSvg(p.backdrop?.asset.svg ?? '').root)].slice(1),
+    );
+    // A little inside the turned picture (half its diagonal is 14.142).
+    const turnedQuad = makeRegion(
+      [
+        [
+          [60, 40 - 14.1],
+          [60 + 14.1, 40],
+          [60, 40 + 14.1],
+          [60 - 14.1, 40],
+        ],
+      ],
+      false,
+    );
+    expect(turnedQuad).not.toBeNull();
+    /** Whether a point is in the (non-zero) fill of straight closed path data. */
+    const filledAt = (d: unknown, x: number, y: number): boolean => {
+      const rings = String(d)
+        .split('M')
+        .filter((t) => t.trim() !== '')
+        .map((t) => ptsOf(t));
+      const region = makeRegion(rings, false);
+      return region !== null && contains(region, [x, y]);
+    };
+    // The bar in the plot: cut out under all three pictures, kept beside them.
+    const bar = all.find((n) => n.attrs['fill'] === '#0000ff');
+    expect(bar?.tag).toBe('path');
+    for (const [x, y, kept] of [
+      [5, 40, true],
+      [25, 40, false],
+      [50, 40, false],
+      [65, 40, false],
+      [72, 40, false],
+      [72, 36, true],
+      [90, 40, true],
+    ] as const)
+      expect(filledAt(bar?.attrs['d'], x, y)).toBe(kept);
+    // The curve in the plot: nothing of it left inside a picture.
+    const curve = all.find((n) => n.attrs['stroke'] === '#00ff00');
+    expect(String(curve?.attrs['d']).match(/M/g)).toHaveLength(2);
+    for (const [x, y] of ptsOf(curve?.attrs['d'])) {
+      expect(x > 10.001 && x < 59.999 && y > 20.001 && y < 59.999).toBe(false);
+      expect(turnedQuad !== null && contains(turnedQuad, [x, y])).toBe(false);
+    }
+    // Each backdrop holds the bar's and the curve's pieces under it.
+    const paints = [
+      ['#0000ff', 'none'],
+      ['none', '#00ff00'],
+    ];
+    expect(first?.map((n) => [n.attrs['fill'], n.attrs['stroke']])).toEqual(paints);
+    expect(filledAt(first?.[0]?.attrs['d'], 25, 40)).toBe(true);
+    // The turned one: in its own frame, by one group.
+    expect(turned?.[0]?.tag).toBe('g');
+    expect(turned?.slice(1).map((n) => [n.attrs['fill'], n.attrs['stroke']])).toEqual(paints);
+    // The last overlaps both earlier ones: its pieces leave them out.
+    expect(last?.map((n) => [n.attrs['fill'], n.attrs['stroke']])).toEqual(paints);
+    for (const [x, y, kept] of [
+      [42, 37, true],
+      [35, 40, false],
+      [55, 40, false],
+    ] as const)
+      expect(filledAt(last?.[0]?.attrs['d'], x, y)).toBe(kept);
+    for (const [x, y] of ptsOf(last?.[1]?.attrs['d'])) {
+      expect(x).toBeGreaterThanOrEqual(39.999);
+      expect(turnedQuad !== null && contains(turnedQuad, [x, y])).toBe(false);
+    }
   });
 });
 

@@ -17,7 +17,7 @@
  *   hidden by it, so it is dropped.
  * A see-through picture (alpha, or drawn at partial opacity) gets a
  * **backdrop** (issue 35): what the plot drew under it, inside its box (the
- * background's colour, the pieces of straight lines, shapes wholly inside),
+ * background's colour, the pieces of lines, curves and fills, shapes wholly inside),
  * as a small vector picture placed right under it. With that, it hides what
  * was under it like an opaque one, so the plot is cut the same way and its
  * clear pixels show the panel colour and the grid lines beneath, not the
@@ -26,8 +26,9 @@
  * overlaps an earlier one, its backdrop leaves that part out (it would cover
  * the earlier picture) and what the plot drew there stays over it. Holes
  * cut for several pictures in one background never overlap. A slanted
- * picture (placed without its slant) hides nothing. Curves and fills only
- * partly under a picture stay over it.
+ * picture (placed without its slant) hides nothing. Curves and fills partly
+ * under a picture (issue 42) are cut where it is like lines, a filled and
+ * stroked shape split into its fill and an open outline (no stroked cut edges).
  */
 import { type AttrValue, type SvgNode, el } from '@/render/svgNode';
 
@@ -45,9 +46,10 @@ import {
   matrixString,
   parseTransform,
 } from './matrix';
-import { parsePath, pathRect } from './pathData';
+import { type Seg, parsePath, pathRect, pathString } from './pathData';
 import { type Pt, clipRing, makeRegion } from './clipRegion';
-import { CLIP_ATTR, readClips } from './svgClip';
+import { CLIP_ATTR, GEOMETRY, MAX_CUT_WORK, leafSegs, readClips } from './svgClip';
+import { cutPath, segsBox } from '../pathClip';
 import { boxRing, clipPicture, clipsNothing } from '../pictureClip';
 import {
   base64,
@@ -406,6 +408,49 @@ function quadLess(c: Cover, others: readonly Cover[]): Pt[][] {
   return rings;
 }
 
+/** What is left of a shape cut by pictures: its fill's rings and its stroke's pieces. */
+interface Cut {
+  readonly fill: readonly Seg[];
+  readonly stroke: readonly Seg[];
+}
+
+/**
+ * A shape (fill and stroke as `paint` says, path data in plot units) cut to
+ * the picture's cover `rings` (issue 42): the part `inside` them or the part
+ * outside. Null when it is all on that side (kept as it is).
+ */
+function cutShape(
+  segs: readonly Seg[],
+  rings: readonly (readonly Pt[])[],
+  paint: { readonly fill: boolean; readonly stroke: boolean },
+  inside: boolean,
+): Cut | null {
+  const sb = segsBox(segs);
+  if (!sb) return { fill: [], stroke: [] };
+  let region;
+  if (inside) region = makeRegion(rings, false);
+  else {
+    const all = [...rings.flat(), [sb[0], sb[1]] as const, [sb[2], sb[3]] as const];
+    const xs = all.map((q) => q[0]);
+    const ys = all.map((q) => q[1]);
+    const big = boxRing([
+      Math.min(...xs) - 1,
+      Math.min(...ys) - 1,
+      Math.max(...xs) + 1,
+      Math.max(...ys) + 1,
+    ]);
+    region = makeRegion([big, ...rings], true);
+  }
+  if (!region) return inside ? { fill: [], stroke: [] } : null;
+  return cutPath(segs, null, [region], paint, 0);
+}
+
+/** Too detailed to cut to these rings (`MAX_CUT_WORK`): it is left over the picture. */
+const tooDetailed = (segs: readonly Seg[], rings: readonly (readonly Pt[])[]): boolean =>
+  segs.reduce((k, x) => k + (x.c === 'C' || x.c === 'Q' ? 64 : 1), 0) *
+    rings.reduce((k, r) => k + r.length, 4) >
+  MAX_CUT_WORK;
+
 const ringsPath = (rings: readonly (readonly Pt[])[]): string =>
   rings.map((pts) => `M${pts.map(([x, y]) => `${fmt(x)} ${fmt(y)}`).join(' L')} Z`).join(' ');
 
@@ -540,10 +585,19 @@ export function takeImages(
       if ((a[i] ?? 0) !== (b[i] ?? 0)) return (a[i] ?? 0) < (b[i] ?? 0);
     return a.length < b.length;
   };
-  /** Per leaf: dropped, holes to cut into its fill (and by which pictures), or what is left of its lines. */
+  /**
+   * Per leaf: dropped, holes to cut into its fill (and by which pictures), or what is left of
+   * its lines, or of its curves and fills (`cut`).
+   */
   const fate = new Map<
     string,
-    { drop: boolean; holes: (readonly Pt[])[]; holedBy: number[]; lines?: readonly Line[] }
+    {
+      drop: boolean;
+      holes: (readonly Pt[])[];
+      holedBy: number[];
+      lines?: readonly Line[];
+      cut?: Cut;
+    }
   >();
   const picBoxes = pics.map((pic): Box => {
     const xs = pic.quad.map((q) => q[0]);
@@ -620,12 +674,61 @@ export function takeImages(
         if (b && insideCover(b, c, EDGE_TOL) && others.every((o) => apart(boxRing(b), o.quad, 0))) {
           f.drop = true;
           if (see) under.push(copy(l, l.node.attrs));
-        } else if (b && l.fill === 'none' && isIdentity(l.matrix)) {
+        } else if (b && isIdentity(l.matrix) && !apart(boxRing(b), c.quad, 0)) {
+          const all = l.fill === 'none' ? straightPieces(l.node) : null;
+          if (!all) {
+            // A curve or a fill partly under it (issue 42): cut where the picture is, less
+            // the earlier pictures a see-through one leaves its part over.
+            const segs = l.node.attrs['transform'] === undefined ? leafSegs(l.node) : null;
+            const rings = others.length === 0 ? [c.quad] : quadLess(c, others);
+            const rounded =
+              l.node.tag === 'rect' &&
+              (l.node.attrs['rx'] !== undefined || l.node.attrs['ry'] !== undefined);
+            const paint = {
+              fill: l.fill !== 'none' && l.node.tag !== 'line',
+              stroke: l.stroke !== 'none',
+            };
+            if (!segs || rounded || rings.length === 0 || !(paint.fill || paint.stroke)) {
+              fate.set(k, f);
+              continue;
+            }
+            if (tooDetailed(segs, rings)) {
+              warn('A very detailed shape partly under a picture in the plot was left over it.');
+              fate.set(k, f);
+              continue;
+            }
+            const left = f.cut
+              ? {
+                  fill:
+                    cutShape(f.cut.fill, rings, { fill: true, stroke: false }, false)?.fill ??
+                    f.cut.fill,
+                  stroke:
+                    cutShape(f.cut.stroke, rings, { fill: false, stroke: true }, false)?.stroke ??
+                    f.cut.stroke,
+                }
+              : cutShape(segs, rings, paint, false);
+            if (left) f.cut = left;
+            if (see) {
+              const ins = cutShape(segs, rings, paint, true);
+              const rest = Object.fromEntries(
+                Object.entries(l.node.attrs).filter(([a]) => !GEOMETRY.has(a)),
+              );
+              if (!ins) under.push(copy(l, l.node.attrs));
+              else {
+                const attrs = copy(l, rest).attrs;
+                if (ins.fill.length > 0)
+                  under.push(el('path', { ...attrs, d: pathString(ins.fill), stroke: 'none' }));
+                if (ins.stroke.length > 0)
+                  under.push(el('path', { ...attrs, d: pathString(ins.stroke), fill: 'none' }));
+              }
+            }
+            fate.set(k, f);
+            continue;
+          }
           // A line partly under it (a grid line): the part under it is hidden.
-          const all = straightPieces(l.node);
           const lines = f.lines ?? all;
-          if (lines) f.lines = lines.flatMap((x) => piecesOut(x, c, others));
-          const ins = see ? (all ?? []).flatMap((x) => piecesIn(x, c, others)) : [];
+          f.lines = lines.flatMap((x) => piecesOut(x, c, others));
+          const ins = see ? all.flatMap((x) => piecesIn(x, c, others)) : [];
           if (ins.length > 0) {
             const geometry = ['x1', 'y1', 'x2', 'y2', 'points', 'd'];
             const rest = Object.fromEntries(
@@ -673,6 +776,15 @@ export function takeImages(
         Object.entries(n.attrs).filter(([a]) => !geometry.includes(a)),
       );
       return [el('path', { ...rest, d })];
+    }
+    if (f.cut) {
+      const rest = Object.fromEntries(Object.entries(n.attrs).filter(([a]) => !GEOMETRY.has(a)));
+      const out: SvgNode[] = [];
+      if (f.cut.fill.length > 0)
+        out.push(el('path', { ...rest, d: pathString(f.cut.fill), stroke: 'none' }));
+      if (f.cut.stroke.length > 0)
+        out.push(el('path', { ...rest, d: pathString(f.cut.stroke), fill: 'none' }));
+      return out;
     }
     if (f.holes.length === 0) return [n];
     const r = rectOf(n);

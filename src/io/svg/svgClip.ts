@@ -34,7 +34,7 @@ const MAX_CLIP_POINTS = 20000;
  * A path cut to a clip shape costs its points times the shape's: beyond this
  * it is cut to the shape's box instead (a rectangle costs its points only).
  */
-const MAX_CUT_WORK = 20_000_000;
+export const MAX_CUT_WORK = 20_000_000;
 
 /** One clip: its outline (absolute segments) and fill rule. Several clips intersect. */
 export interface PictureClip {
@@ -261,7 +261,7 @@ export function readClips(attr: string, space: Matrix): ReadClips | null {
   return { box, regions };
 }
 
-const GEOMETRY = new Set([
+export const GEOMETRY = new Set([
   'd',
   'x',
   'y',
@@ -280,7 +280,7 @@ const GEOMETRY = new Set([
 ]);
 
 /** A shape's outline as path data in its own user space (lines and polylines open). */
-function leafSegs(n: SvgNode): Seg[] | null {
+export function leafSegs(n: SvgNode): Seg[] | null {
   const a = n.attrs;
   if (n.tag === 'line') {
     const [x1, y1, x2, y2] = ['x1', 'y1', 'x2', 'y2'].map((k) => num(a[k]));
