@@ -1077,3 +1077,21 @@ button.link {
   max-width: 100%;
   max-height: 260px;
 }
+
+.export-checks {
+  margin: 4px 0;
+  padding-left: 0;
+  list-style: none;
+  max-height: 30vh;
+  overflow: auto;
+  font-size: 12px;
+}
+
+.export-checks ul {
+  margin: 2px 0 6px;
+  padding-left: 16px;
+}
+
+.export-checks li {
+  margin: 2px 0;
+}

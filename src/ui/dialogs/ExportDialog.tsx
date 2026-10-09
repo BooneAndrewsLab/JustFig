@@ -3,14 +3,26 @@
  * page). The credit line is on by default (the figure's setting) and can
  * be turned off per export.
  */
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { setCreditFooter } from '@/core/edits/edits';
+import type { Id } from '@/core/model/ids';
+import type { Page } from '@/core/model/types';
+import { JOURNALS, PAGE_PRESETS } from '@/core/presets/pages';
 import { formatLength } from '@/core/units';
+import {
+  type CheckRule,
+  type CheckWarning,
+  MIN_DPI,
+  MIN_STROKE_PT,
+  checkPage,
+  minTextFor,
+} from '@/export/checks';
 import { MAX_PIXELS, rasterLimit, rasterSize } from '@/export/raster';
 import { panelCrops } from '@/export/panels';
 import { pageCredit } from '@/export/svg';
 
+import { analytics } from '../analytics';
 import { type ExportFormat, runExport } from '../state/session';
 import { currentPage, figure, store } from '../state/store';
 import { useAppState } from '../state/useAppState';
@@ -26,6 +38,144 @@ const FORMATS: readonly { id: ExportFormat; label: string; note: string }[] = [
     note: 'Image with LZW compression and DPI recorded, as many journals ask.',
   },
 ];
+
+const RULE_TITLES: Record<CheckRule, string> = {
+  'journal-width': 'Page width',
+  'text-size': 'Small text',
+  'stroke-width': 'Thin lines',
+  'image-dpi': 'Low-resolution pictures',
+  overlap: 'Overlapping text',
+};
+const RULE_ORDER: readonly CheckRule[] = [
+  'journal-width',
+  'text-size',
+  'stroke-width',
+  'image-dpi',
+  'overlap',
+];
+/** Warnings listed per rule before "Select all". */
+const SHOWN = 5;
+
+/** The journal last chosen in this session (undefined: none chosen yet). */
+let lastJournal: string | null | undefined;
+
+const presetJournal = (page: Page): string | null =>
+  PAGE_PRESETS.find((p) => p.id === page.size.preset)?.journal ?? null;
+
+/**
+ * Checks before export (issue 4): warnings grouped by rule. Choosing one
+ * selects what it is about (switching page if needed) and closes the dialog,
+ * so the selection shows on the canvas.
+ */
+function ExportChecks({
+  allPages,
+  initialJournal,
+  onShow,
+}: {
+  allPages: boolean;
+  initialJournal: string | null;
+  onShow: (pageId: Id, ids: readonly Id[], rule: CheckRule) => void;
+}) {
+  const s = useAppState();
+  const fig = figure(s);
+  const page = currentPage(s);
+  const [journal, setJournal] = useState(lastJournal === undefined ? initialJournal : lastJournal);
+  const pages = allPages ? fig.doc.pages : [page];
+  const warnings = useMemo(
+    () => (allPages ? fig.doc.pages : [page]).flatMap((p) => checkPage(fig, p, { journal })),
+    [fig, page, allPages, journal],
+  );
+  const groups = RULE_ORDER.map((r) => [r, warnings.filter((w) => w.rule === r)] as const).filter(
+    ([, ws]) => ws.length > 0,
+  );
+  const pageName = (w: CheckWarning): string =>
+    pages.length > 1 ? `${fig.doc.pages.find((p) => p.id === w.pageId)?.name ?? ''}: ` : '';
+  return (
+    <fieldset>
+      <legend>Check before export</legend>
+      <div className="row">
+        <label htmlFor="check-journal">Journal</label>
+        <select
+          id="check-journal"
+          value={journal ?? ''}
+          onChange={(e) => {
+            const j = e.target.value === '' ? null : e.target.value;
+            lastJournal = j;
+            setJournal(j);
+          }}
+        >
+          <option value="">None</option>
+          {JOURNALS.map((j) => (
+            <option key={j} value={j}>
+              {j}
+            </option>
+          ))}
+        </select>
+      </div>
+      <p className="note">
+        Looks for text under {String(minTextFor(journal))} pt, lines under {String(MIN_STROKE_PT)}{' '}
+        pt, pictures under {String(MIN_DPI)} dpi and overlapping text
+        {journal === null ? '' : `, and the page width against ${journal}'s columns`}. Warnings
+        only: you can still export. Choose one to select what it is about.
+      </p>
+      {groups.length === 0 ? (
+        <p className="note" role="status">
+          No problems found.
+        </p>
+      ) : (
+        <ul className="export-checks" aria-label="Warnings">
+          {groups.map(([rule, ws]) => {
+            const first = ws[0];
+            const samePage = first ? ws.filter((w) => w.pageId === first.pageId) : [];
+            const all = [...new Set(samePage.flatMap((w) => w.ids))];
+            return (
+              <li key={rule}>
+                <b>
+                  {RULE_TITLES[rule]} ({String(ws.length)})
+                </b>
+                <ul>
+                  {ws.slice(0, SHOWN).map((w, i) => (
+                    <li key={`${w.pageId}-${String(i)}`}>
+                      {w.ids.length > 0 ? (
+                        <button
+                          type="button"
+                          className="link warn"
+                          onClick={() => {
+                            onShow(w.pageId, w.ids, rule);
+                          }}
+                        >
+                          {pageName(w)}
+                          {w.message}
+                        </button>
+                      ) : (
+                        <span className="warn">
+                          {pageName(w)}
+                          {w.message}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                {ws.length > SHOWN && first && all.length > 0 && (
+                  <button
+                    type="button"
+                    className="link"
+                    onClick={() => {
+                      onShow(first.pageId, all, rule);
+                    }}
+                  >
+                    Select all {String(all.length)}
+                    {pages.length > 1 ? ' on this page' : ''}
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </fieldset>
+  );
+}
 
 export function ExportDialog({ onClose }: { onClose: () => void }) {
   const s = useAppState();
@@ -58,6 +208,13 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
     : null;
   const tooBig = px !== null && rasterLimit(px.w, px.h) !== null;
   const tiled = px !== null && !tooBig && px.w * px.h > MAX_PIXELS;
+
+  const showWarning = (pageId: Id, ids: readonly Id[], rule: CheckRule) => {
+    if (pageId !== s.pageId) store.setPage(pageId);
+    store.select(ids);
+    analytics.track('check', 'select', rule);
+    onClose();
+  };
 
   const go = async () => {
     setBusy(true);
@@ -224,6 +381,11 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
           .
         </p>
       </fieldset>
+      <ExportChecks
+        allPages={format === 'pdf' && allPages}
+        initialJournal={presetJournal(page)}
+        onShow={showWarning}
+      />
       <div className="actions">
         <button type="button" onClick={onClose}>
           Cancel

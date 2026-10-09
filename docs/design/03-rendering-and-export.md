@@ -110,6 +110,43 @@ therefore go through the same band path (and tiling) as a page.
 - **No panels**: the option is disabled with the reason beside it, and `exportPanelsZip` refuses.
 - Analytics: `export` / `panels` with the format as the name.
 
+## Checks before export
+
+The export dialog's **Check before export** section ([#4](https://github.com/BooneAndrewsLab/JustFig/issues/4);
+`export/checks.ts`) lists warnings, never blockers. `checkPage(figure, page, { journal })` is pure
+and runs on the current page (every page for an all-pages PDF). Rules:
+
+- **Text size, line width, picture resolution** are measured on the renderer's own output:
+  `pageToNode` in screen mode (for each object's `data-id`), text mode, walked with the
+  accumulated `transform` matrix and the inherited `font-size`, `stroke` and `stroke-width`. So
+  text and lines inside icons, imported plots and procedural objects are measured as drawn, with
+  the fit-to-frame scale applied; the effective size is the value times the matrix's geometric
+  mean scale (`scaleOf`). Screen hit areas (`data-hit`) and transparent strokes are skipped.
+  Each object gets one warning with its smallest value (an imported plot is one warning, not one
+  per tick label). Pictures are `<image>` nodes, so pictures inside imported plots count too:
+  pixels come from the PNG or JPEG header of the data URI (`imageSize`), dpi from the placed
+  width and height (the lower axis wins for a stretched picture).
+- **Limits**: text 6 pt (5 pt for Nature, whose guide asks for 5–7 pt), lines 0.25 pt, pictures
+  300 dpi. They are constants, not settings; journals agree closely enough.
+- **Journal width**: the dialog's **Journal** list (None, or a journal with column presets, from
+  `PagePreset.journal`) defaults to the journal of the page's size preset, and remembers the
+  choice for the session. A page wider than the journal's widest column is warned about, and the
+  other rules are then checked at the scale the journal will shrink it to (`journalScale`). A
+  page up to 15% wider than a narrower column is warned as "just over" it (likely meant to fit).
+  Widths between columns otherwise pass: many journals take intermediate widths. Heights are not
+  checked: the presets' heights are defaults, not published maxima.
+- **Overlap** is kept to cases that are almost always mistakes, measured on the text layout
+  (the SvgNode has no glyph widths): text over text, text (and panel labels) crossing a panel's
+  edge, a panel label outside its own panel, and text running off the page. Boxes are per line,
+  from 0.8 em above to 0.2 em below the baseline, not frames or line boxes, so stacked labels
+  whose leading touches and fixed-width boxes with empty space pass; overlaps under 0.5 pt are
+  ignored. Text over shapes, pictures and icons is not warned about (labels on shapes are the
+  point of a figure), nor are overlapping shapes. Rotated text uses its bounding box per line.
+- **Interaction**: warnings are grouped by rule, five shown per rule with **Select all**.
+  Choosing one switches to its page if needed, selects its objects (both texts of an overlap)
+  and closes the dialog, so the selection shows on the canvas. Page-wide warnings (journal
+  width) are plain text. Analytics: `check` / `select` with the rule id as the name.
+
 ## Attribution footer
 
 The export dialog's **Include credit line** option is **on by default**, as the user decided

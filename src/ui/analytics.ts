@@ -60,6 +60,8 @@ export const EVENTS = {
   /** Kind names are app vocabulary, not figure content. */
   procedural: ['place', 'convert', 'from-path', 'fragment-paste'],
   export: ['svg', 'pdf', 'png', 'tiff', 'panels'],
+  /** A check warning chosen in the Export dialog; the rule id (app vocabulary) as the name. */
+  check: ['select'],
   attribution: ['open', 'copy', 'add-text'],
   /** The entry id (app vocabulary) as the name. */
   gallery: ['open'],

@@ -29,6 +29,18 @@ For a journal, send the PDF if they take one, or a TIFF at the dpi they specify.
 
 RGB only: journals convert to CMYK, and colours may shift slightly.
 
+## Check before export
+
+The **Check before export** section of the Export figure dialog lists what journals often send back. They are warnings only: you can always export.
+
+- **Small text**: text smaller than 6 pt (5 pt when the journal is Nature), including text inside icons and imported plots at the size it is drawn.
+- **Thin lines**: lines thinner than 0.25 pt, which may vanish in print.
+- **Low-resolution pictures**: pictures under 300 dpi at the size they are placed. Make the picture smaller on the page, or import a larger one.
+- **Overlapping text**: text on top of other text or a panel label, text crossing the edge of a panel (a per-panel export cuts it), a panel label outside its panel, and text running off the page. Text over shapes and pictures is not flagged.
+- **Page width**: choose the journal in the **Journal** list (it starts at the journal of the page size you picked, if any). JustFig warns when the page is wider than the journal's widest figure, and then checks the sizes above at the scale the journal will shrink it to. It also warns when the page is just over a column width, for example 95 mm for Nature's 89 mm column.
+
+Choose a warning (click it, or Tab to it and press Enter) to close the dialog with the object it is about selected, on its page. When there are more than five of a kind, **Select all** selects them together. With **All pages** on for a PDF, every page is checked.
+
 ## Journal page sizes
 
 Set the page size before you draw, with the **Size** list in the Page section of the Inspector. It includes column widths for Nature (1 and 2 columns), Cell (1 column and full width), Science (1, 2 and 3 columns), PNAS (1 and 2 columns), PLOS, and eLife (1 and 2 columns), as well as A4, US Letter and a 16:9 slide. Always check the journal's current guidelines, since they change.

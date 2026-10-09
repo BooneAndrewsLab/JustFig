@@ -116,7 +116,8 @@ function hitStroke(d: string, sw: number): SvgNode {
   });
 }
 
-function labelText(label: string, style: PanelLabelStyle): Text {
+/** A panel label as a text object at the origin (drawn at the panel's top-left plus the style offset). */
+export function labelText(label: string, style: PanelLabelStyle): Text {
   return {
     id: '' as Id,
     type: 'text',

@@ -12,26 +12,121 @@ export interface PagePreset {
   readonly group: 'Paper' | 'Journal' | 'Screen';
   readonly wMm: number;
   readonly hMm: number;
+  /** The journal a Journal preset's column width belongs to (export checks, note 03). */
+  readonly journal?: string;
 }
 
 export const PAGE_PRESETS: readonly PagePreset[] = [
   { id: 'a4', label: 'A4 portrait', group: 'Paper', wMm: 210, hMm: 297 },
   { id: 'a4-landscape', label: 'A4 landscape', group: 'Paper', wMm: 297, hMm: 210 },
   { id: 'letter', label: 'US Letter portrait', group: 'Paper', wMm: 215.9, hMm: 279.4 },
-  { id: 'nature-1', label: 'Nature, 1 column (89 mm)', group: 'Journal', wMm: 89, hMm: 89 },
-  { id: 'nature-2', label: 'Nature, 2 columns (183 mm)', group: 'Journal', wMm: 183, hMm: 140 },
-  { id: 'cell-1', label: 'Cell, 1 column (85 mm)', group: 'Journal', wMm: 85, hMm: 85 },
-  { id: 'cell-2', label: 'Cell, full width (174 mm)', group: 'Journal', wMm: 174, hMm: 130 },
-  { id: 'science-1', label: 'Science, 1 column (57 mm)', group: 'Journal', wMm: 57, hMm: 57 },
-  { id: 'science-2', label: 'Science, 2 columns (121 mm)', group: 'Journal', wMm: 121, hMm: 100 },
-  { id: 'science-3', label: 'Science, 3 columns (184 mm)', group: 'Journal', wMm: 184, hMm: 140 },
-  { id: 'pnas-1', label: 'PNAS, 1 column (87 mm)', group: 'Journal', wMm: 87, hMm: 87 },
-  { id: 'pnas-2', label: 'PNAS, 2 columns (178 mm)', group: 'Journal', wMm: 178, hMm: 130 },
-  { id: 'plos', label: 'PLOS, full width (190.5 mm)', group: 'Journal', wMm: 190.5, hMm: 140 },
-  { id: 'elife-1', label: 'eLife, 1 column (85 mm)', group: 'Journal', wMm: 85, hMm: 85 },
-  { id: 'elife-2', label: 'eLife, 2 columns (178 mm)', group: 'Journal', wMm: 178, hMm: 130 },
+  {
+    id: 'nature-1',
+    label: 'Nature, 1 column (89 mm)',
+    group: 'Journal',
+    wMm: 89,
+    hMm: 89,
+    journal: 'Nature',
+  },
+  {
+    id: 'nature-2',
+    label: 'Nature, 2 columns (183 mm)',
+    group: 'Journal',
+    wMm: 183,
+    hMm: 140,
+    journal: 'Nature',
+  },
+  {
+    id: 'cell-1',
+    label: 'Cell, 1 column (85 mm)',
+    group: 'Journal',
+    wMm: 85,
+    hMm: 85,
+    journal: 'Cell',
+  },
+  {
+    id: 'cell-2',
+    label: 'Cell, full width (174 mm)',
+    group: 'Journal',
+    wMm: 174,
+    hMm: 130,
+    journal: 'Cell',
+  },
+  {
+    id: 'science-1',
+    label: 'Science, 1 column (57 mm)',
+    group: 'Journal',
+    wMm: 57,
+    hMm: 57,
+    journal: 'Science',
+  },
+  {
+    id: 'science-2',
+    label: 'Science, 2 columns (121 mm)',
+    group: 'Journal',
+    wMm: 121,
+    hMm: 100,
+    journal: 'Science',
+  },
+  {
+    id: 'science-3',
+    label: 'Science, 3 columns (184 mm)',
+    group: 'Journal',
+    wMm: 184,
+    hMm: 140,
+    journal: 'Science',
+  },
+  {
+    id: 'pnas-1',
+    label: 'PNAS, 1 column (87 mm)',
+    group: 'Journal',
+    wMm: 87,
+    hMm: 87,
+    journal: 'PNAS',
+  },
+  {
+    id: 'pnas-2',
+    label: 'PNAS, 2 columns (178 mm)',
+    group: 'Journal',
+    wMm: 178,
+    hMm: 130,
+    journal: 'PNAS',
+  },
+  {
+    id: 'plos',
+    label: 'PLOS, full width (190.5 mm)',
+    group: 'Journal',
+    wMm: 190.5,
+    hMm: 140,
+    journal: 'PLOS',
+  },
+  {
+    id: 'elife-1',
+    label: 'eLife, 1 column (85 mm)',
+    group: 'Journal',
+    wMm: 85,
+    hMm: 85,
+    journal: 'eLife',
+  },
+  {
+    id: 'elife-2',
+    label: 'eLife, 2 columns (178 mm)',
+    group: 'Journal',
+    wMm: 178,
+    hMm: 130,
+    journal: 'eLife',
+  },
   { id: 'slide-16-9', label: 'Slide 16:9 (254 × 142.9 mm)', group: 'Screen', wMm: 254, hMm: 142.9 },
 ];
+
+/** Journals with column-width presets, in list order. */
+export const JOURNALS: readonly string[] = [
+  ...new Set(PAGE_PRESETS.flatMap((p) => (p.journal === undefined ? [] : [p.journal]))),
+];
+
+/** A journal's column-width presets, narrowest first. */
+export const journalColumns = (journal: string): PagePreset[] =>
+  PAGE_PRESETS.filter((p) => p.journal === journal).sort((a, b) => a.wMm - b.wMm);
 
 export const DEFAULT_PRESET = 'nature-2';
 
