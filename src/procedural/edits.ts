@@ -3,6 +3,7 @@
  * params, making one from a drawn path, and "Convert to shapes".
  */
 import { type Edit, EditError, updateObjects } from '@/core/edits/edits';
+import { refit } from '@/core/geometry/transform';
 import { frame } from '@/core/model/factory';
 import { type Id, newId } from '@/core/model/ids';
 import { mapPageObjs } from '@/core/model/tree';
@@ -135,6 +136,44 @@ export function convertObjects(pageId: Id, objs: readonly Obj[], palette: readon
       const page = f.doc.pages.find((p) => p.id === pageId);
       if (!page) throw new EditError('That page no longer exists.');
       const next = mapPageObjs(page, (o) => repl.get(o.id) ?? o);
+      return { ...f, doc: { ...f.doc, pages: f.doc.pages.map((p) => (p === page ? next : p)) } };
+    },
+  };
+}
+
+/**
+ * "Label lanes" on a picture of a gel (note 18): gel lane labels over the
+ * picture's box, grouped with it so they move and resize together. The
+ * labels are selected, ready to type lane names into.
+ */
+export function labelGelImage(pageId: Id, image: Obj): Edit {
+  if (image.type !== 'image') throw new EditError('Select a picture of a gel to label its lanes.');
+  const k = getKind('gelLabels');
+  if (!k) throw new EditError('Gel lane labels are not available.');
+  const made = createProcedural(k, { x: 0, y: 0 });
+  const groupId = newId('o');
+  return {
+    label: 'Label gel lanes',
+    select: [made.id],
+    apply: (f) => {
+      const page = f.doc.pages.find((p) => p.id === pageId);
+      if (!page) throw new EditError('That page no longer exists.');
+      const state = { found: false };
+      const next = mapPageObjs(page, (o) => {
+        if (o.id !== image.id) return o;
+        state.found = true;
+        // Flips stay with the picture: mirrored labels would be unreadable.
+        const { flipX: _x, flipY: _y, ...box } = o.frame;
+        const labels: Procedural = { ...made, frame: box };
+        return refit({
+          id: groupId,
+          type: 'group',
+          frame: { x: 0, y: 0, w: 0, h: 0, rotation: 0 },
+          opacity: 1,
+          children: [o, labels],
+        });
+      });
+      if (!state.found) throw new EditError('That picture no longer exists.');
       return { ...f, doc: { ...f.doc, pages: f.doc.pages.map((p) => (p === page ? next : p)) } };
     },
   };

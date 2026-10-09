@@ -27,6 +27,7 @@ Select an object to see its settings in the Inspector. Resize it with its handle
 | Well plate        | A 6- to 1536-well plate with a colour for each well. See "The well-map editor" below.                                                                                                                                                                                                                                                                            |
 | Petri dish        | An agar plate with colonies. See below.                                                                                                                                                                                                                                                                                                                          |
 | Agarose gel       | A gel with a ladder and lanes of bands. See below.                                                                                                                                                                                                                                                                                                               |
+| Gel lane labels   | Lane labels and ladder sizes for a photo of a real gel or blot. See below.                                                                                                                                                                                                                                                                                       |
 | Placeholder plot  | A PCA, UMAP, scatter or bar plot of made-up points, for a schematic or graphical abstract before you have real data. See below.                                                                                                                                                                                                                                  |
 
 Every object also has a **Colours** section with a control for each of its parts (for example Plate, Empty wells, Outlines and Labels for a plate). **Reset colours** goes back to the defaults.
@@ -48,6 +49,12 @@ Set the protein **Length** in aa. Each domain in the **Domains** list has a Name
 ### Agarose gel
 
 Choose the **Ladder**: 1 kb ladder, 100 bp ladder or None. Under **Lanes**, give each lane a **Label**, tick **Ladder lane** to make it a ladder, and type the fragment sizes in **Bands (bp)**, separated by commas. Add an intensity after a colon to make a band fainter: `3000, 1200:0.4, 700` is three bands, the middle one at 40% strength. Bands are placed on a log scale as on a real gel. **Look** is Stained (light bands on dark) or Inverted (dark bands on light); you can also show **Lane labels**, **Ladder sizes** and **Wells**.
+
+### Gel lane labels
+
+For a photo of a real gel or blot. Select the picture and click **Label gel lanes** in its **Image** section: lane labels and ladder sizes are put over the picture and grouped with it, so they move, resize and rotate with it, and the labels are selected for you to fill in (later, open the group in the Layers panel to select them again). You can also place **Gel lane labels** from the shelf and size its box to the lanes yourself.
+
+Under **Lanes**, give each lane a **Label** (an empty label leaves that lane unlabelled); add or remove rows to match the number of lanes on the photo. The lanes are evenly spaced from **First lane at** to **Last lane at**, the centres of the first and last lane as a percentage of the picture's width: adjust the two until every label sits over its lane. **Label angle** is Level, Slanted (45°) or Upright (90°) for long names. Each of the **Ladder sizes** has a **Label**, such as "3 kb", and a **Height**, how far down the picture its band is, as a percentage; **Sizes on** puts them on the Left or Right, with **Size ticks** pointing at the bands. **Text size** is in points and stays the same when you resize the picture, while the labels stay on their lanes.
 
 ### Placeholder plot
 

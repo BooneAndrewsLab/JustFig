@@ -3,6 +3,7 @@ import type { ProceduralKind } from '../types';
 import { cell } from './cell';
 import { proteinDomains } from './domains';
 import { gel } from './gel';
+import { gelLabels } from './gelLabels';
 import { bilayer, helix, receptors } from './pathKinds';
 import { petriDish } from './petri';
 import { plasmidMap } from './plasmid';
@@ -19,5 +20,6 @@ export const KINDS: readonly ProceduralKind[] = [
   wellPlate,
   petriDish,
   gel,
+  gelLabels,
   placeholderPlot,
 ];

@@ -51,8 +51,10 @@ import {
 } from '@/core/model/types';
 import { PAGE_PRESETS, presetSize } from '@/core/presets/pages';
 import { recipeFile } from '@/io/barelysig';
+import { labelGelImage } from '@/procedural/edits';
 import { formatLength, fromUnit, toUnit } from '@/core/units';
 
+import { analytics } from '../analytics';
 import { type AppState, currentPage, figure, selectedObjects, store } from '../state/store';
 import { download, safeName } from '../state/session';
 import { useAppState } from '../state/useAppState';
@@ -1220,6 +1222,20 @@ function ImageSection({ s, image }: { s: AppState; image: Extract<Obj, { type: '
           }}
         />
       </div>
+      {asset.kind === 'image' && (
+        <div className="row">
+          <button
+            type="button"
+            title="Add lane labels and ladder sizes over this gel picture, grouped with it"
+            onClick={() => {
+              if (store.edit(labelGelImage(currentPage(s).id, image)))
+                analytics.track('procedural', 'gel-labels');
+            }}
+          >
+            Label gel lanes
+          </button>
+        </div>
+      )}
     </Section>
   );
 }

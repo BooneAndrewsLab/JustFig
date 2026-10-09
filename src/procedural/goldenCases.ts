@@ -47,6 +47,10 @@ export const GOLDEN_CASES: Readonly<Record<string, Readonly<Record<string, Parti
   gel: {
     inverted: { look: 'inverted', ladder: '100bp' },
   },
+  gelLabels: {
+    slanted: { angle: 45, side: 'right', ticks: false, first: 20, last: 80 },
+    upright: { angle: 90, size: 6, lanes: [{ label: 'Ladder' }, { label: '' }, { label: 'WT' }] },
+  },
   placeholderPlot: {
     umap: { plot: 'umap', points: 120, seed: 12 },
     scatter: { plot: 'scatter', legend: false, xLabel: 'Dose (µM)', yLabel: 'Response' },

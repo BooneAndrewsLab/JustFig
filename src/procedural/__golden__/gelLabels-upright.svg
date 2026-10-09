@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 140">
+<g transform="matrix(0 -1 1 0 13 -2.4)"><text xml:space="preserve"><tspan x="0" y="5.08" font-family="Arimo" font-size="6" fill="#1f2933">Ladder</tspan></text></g>
+<g transform="matrix(0 -1 1 0 181 -2.4)"><text xml:space="preserve"><tspan x="0" y="5.08" font-family="Arimo" font-size="6" fill="#1f2933">WT</tspan></text></g>
+<g transform="translate(-20.68 18)"><text xml:space="preserve"><tspan x="0" y="5.08" font-family="Arimo" font-size="6" fill="#1f2933">10 kb</tspan></text></g>
+<g transform="translate(-17.34 53)"><text xml:space="preserve"><tspan x="0" y="5.08" font-family="Arimo" font-size="6" fill="#1f2933">3 kb</tspan></text></g>
+<g transform="translate(-17.34 92.2)"><text xml:space="preserve"><tspan x="0" y="5.08" font-family="Arimo" font-size="6" fill="#1f2933">1 kb</tspan></text></g>
+<path d="M-3.6 21L0 21M-3.6 56L0 56M-3.6 95.2L0 95.2" fill="none" stroke="#1f2933" stroke-width="0.5" stroke-linecap="butt"/>
+</svg>

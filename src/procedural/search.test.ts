@@ -14,7 +14,7 @@ describe('matchKinds', () => {
   it('finds a kind by its title, case-insensitively', () => {
     expect(ids('Cell')).toContain('cell');
     expect(ids('petri')).toEqual(['petriDish']);
-    expect(ids('gel')).toEqual(['gel']);
+    expect(ids('gel')).toEqual(['gel', 'gelLabels']);
   });
 
   it('ranks a title match above a keyword match', () => {
