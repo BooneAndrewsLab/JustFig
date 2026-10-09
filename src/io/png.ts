@@ -4,8 +4,10 @@
  * image data is compressed with the platform's `CompressionStream`
  * ('deflate' is the zlib format PNG wants), rows filtered with the usual
  * minimum-sum heuristic. Also reads the header of a PNG or JPEG to tell
- * whether it can have see-through pixels.
+ * whether it can have see-through pixels, and a PNG's alpha channel to tell
+ * whether it has any (issue 35: matplotlib writes RGBA even for a heatmap).
  */
+import { unzlibSync } from 'fflate';
 
 /** Pixels, rows top first, 8 bits per channel: 3 (RGB) or 4 (RGBA) channels. */
 export interface Pixels {
@@ -131,6 +133,69 @@ export function isOpaqueImage(bytes: Uint8Array): boolean {
     if (type === 'tRNS') return false;
     if (type === 'IDAT' || type === 'IEND') return true;
     i += 12 + len;
+  }
+  return false;
+}
+
+/**
+ * Whether a non-interlaced PNG with an alpha channel (8 or 16 bits) has a
+ * pixel that is not fully opaque; true when unsure (another kind, a
+ * transparency chunk, damaged data), false for a JPEG or a PNG without alpha.
+ */
+export function hasClearPixels(bytes: Uint8Array): boolean {
+  if (isOpaqueImage(bytes)) return false;
+  if (bytes.length < 33 || bytes[0] !== 0x89 || bytes[1] !== 0x50) return true;
+  const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const width = v.getUint32(16);
+  const height = v.getUint32(20);
+  const depth = bytes[24] ?? 0;
+  const colourType = bytes[25];
+  if ((colourType !== 4 && colourType !== 6) || (depth !== 8 && depth !== 16) || bytes[28] !== 0)
+    return true;
+  const parts: Uint8Array[] = [];
+  for (let i = 8; i + 8 <= bytes.length;) {
+    const len = v.getUint32(i);
+    const type = String.fromCharCode(...bytes.subarray(i + 4, i + 8));
+    if (type === 'tRNS') return true;
+    if (type === 'IDAT') parts.push(bytes.subarray(i + 8, i + 8 + len));
+    if (type === 'IEND') break;
+    i += 12 + len;
+  }
+  let raw: Uint8Array;
+  try {
+    const all = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
+    let at = 0;
+    for (const p of parts) {
+      all.set(p, at);
+      at += p.length;
+    }
+    raw = unzlibSync(all);
+  } catch {
+    return true;
+  }
+  const bpp = ((colourType === 6 ? 4 : 2) * depth) / 8;
+  const stride = width * bpp;
+  if (raw.length < height * (stride + 1)) return true;
+  const alpha = (colourType === 6 ? 3 : 1) * (depth / 8);
+  let prev = new Uint8Array(stride);
+  let row = new Uint8Array(stride);
+  for (let y = 0; y < height; y++) {
+    const f = raw[y * (stride + 1)];
+    const src = raw.subarray(y * (stride + 1) + 1, (y + 1) * (stride + 1));
+    for (let i = 0; i < stride; i++) {
+      const x = src[i] ?? 0;
+      const a = i >= bpp ? (row[i - bpp] ?? 0) : 0;
+      const b = prev[i] ?? 0;
+      const c = i >= bpp ? (prev[i - bpp] ?? 0) : 0;
+      const pred =
+        f === 0 ? 0 : f === 1 ? a : f === 2 ? b : f === 3 ? (a + b) >> 1 : paeth(a, b, c);
+      row[i] = (x + pred) & 0xff;
+    }
+    for (let i = alpha; i < stride; i += bpp) {
+      if (row[i] !== 255) return true;
+      if (depth === 16 && row[i + 1] !== 255) return true;
+    }
+    [prev, row] = [row, prev];
   }
   return false;
 }

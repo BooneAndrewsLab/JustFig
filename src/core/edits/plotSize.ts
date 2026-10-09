@@ -11,7 +11,9 @@
  * size from its asset in `before`, so a drag recomputed from its start bakes
  * once per step from the original, never from an earlier step. Pictures in
  * the plot's group that lay over it (an imported plot's embedded pictures,
- * issue 24) follow the panel under them instead of scaling with the group.
+ * issue 24) follow the panel under them instead of scaling with the group,
+ * and so does a see-through picture's backdrop (issue 35): an `svgImport`
+ * right under a picture with the same box, which is not a plot of its own.
  */
 import { hashAsset } from '@/io/assets';
 import { fmt } from '@/io/svg/matrix';
@@ -193,6 +195,28 @@ export function swapAssets(
 const sameSize = (a: Frame, b: Frame): boolean =>
   Math.abs(a.w - b.w) <= 1e-9 * Math.max(1, a.w) && Math.abs(a.h - b.h) <= 1e-9 * Math.max(1, a.h);
 
+const sameBox = (a: Frame, b: Frame): boolean =>
+  Math.abs(a.x - b.x) < 1e-6 &&
+  Math.abs(a.y - b.y) < 1e-6 &&
+  Math.abs(a.w - b.w) < 1e-6 &&
+  Math.abs(a.h - b.h) < 1e-6;
+
+/**
+ * Whether a group's child `i` is a see-through picture's backdrop (issue
+ * 35): an imported SVG right under a raster picture with the same box.
+ */
+function isBackdrop(children: readonly Obj[], i: number, assets: Figure['assets']): boolean {
+  const o = children[i];
+  const next = children[i + 1];
+  return (
+    o?.type === 'image' &&
+    next?.type === 'image' &&
+    assets[o.asset]?.kind === 'svgImport' &&
+    assets[next.asset]?.kind === 'image' &&
+    sameBox(o.frame, next.frame)
+  );
+}
+
 /**
  * `after` (a resize of `before`) with every imported plot on the page whose
  * frame changed size redrawn to keep its text and line sizes.
@@ -204,9 +228,15 @@ export function keepPlotText(before: Figure, after: Figure, pageId: Id): Figure 
   const old = new Map<Id, Obj>();
   /** The group each object is in, before. */
   const parent = new Map<Id, Obj>();
+  /** Backdrops of see-through pictures, before: they follow, never resize as plots. */
+  const backdrops = new Set<Id>();
   for (const o of pageObjects(pb)) {
     if (o.type === 'image') old.set(o.id, o);
-    if (o.type === 'group') for (const c of o.children) parent.set(c.id, o);
+    if (o.type === 'group')
+      o.children.forEach((c, i) => {
+        parent.set(c.id, o);
+        if (isBackdrop(o.children, i, before.assets)) backdrops.add(c.id);
+      });
   }
   const added: Record<string, Asset> = {};
   const replaced = new Set<string>();
@@ -217,6 +247,7 @@ export function keepPlotText(before: Figure, after: Figure, pageId: Id): Figure 
     if (o.type !== 'image') continue;
     const was = old.get(o.id);
     if (was?.type !== 'image' || was.asset !== o.asset || sameSize(was.frame, o.frame)) continue;
+    if (backdrops.has(o.id)) continue;
     const asset = before.assets[o.asset];
     if (asset?.kind !== 'svgImport') continue;
     const r = resizing(asset, was.frame, o.frame);
@@ -227,7 +258,8 @@ export function keepPlotText(before: Figure, after: Figure, pageId: Id): Figure 
     changed.set(o.id, hash);
     const g = parent.get(o.id);
     for (const pic of g?.type === 'group' ? g.children : []) {
-      if (pic.type !== 'image' || before.assets[pic.asset]?.kind !== 'image') continue;
+      if (pic.type !== 'image') continue;
+      if (before.assets[pic.asset]?.kind !== 'image' && !backdrops.has(pic.id)) continue;
       const f = followPlot(pic.frame, was.frame, o.frame, r);
       if (f) follow.set(pic.id, f);
     }

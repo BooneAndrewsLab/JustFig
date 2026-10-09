@@ -15,10 +15,19 @@
  *   picture covers all of it (its stroke, if any, stays);
  * - anything else drawn before an opaque picture and wholly inside it is
  *   hidden by it, so it is dropped.
- * Strokes and shapes only partly under a picture stay over it (gridlines
- * under a rasterized scatter layer end up over its dots).
+ * A see-through picture (alpha, or drawn at partial opacity) that is not
+ * turned gets a **backdrop** (issue 35): what the plot drew under it, inside
+ * its box (the background's colour, the pieces of straight lines, shapes
+ * wholly inside), as a small vector picture placed right under it. With
+ * that, it hides what was under it like an opaque one, so the plot is cut
+ * the same way and its clear pixels show the panel colour and the grid lines
+ * beneath, not the page. One that overlaps an earlier picture gets none (a
+ * backdrop would cover it). Curves and fills only partly under a picture
+ * stay over it.
  */
-import { type SvgNode, el } from '@/render/svgNode';
+import { type AttrValue, type SvgNode, el } from '@/render/svgNode';
+
+type Attrs = Readonly<Record<string, AttrValue | undefined>>;
 
 import {
   IDENTITY,
@@ -28,12 +37,13 @@ import {
   isAxisAligned,
   isIdentity,
   multiply,
+  matrixString,
   parseTransform,
 } from './matrix';
 import { parsePath, pathRect } from './pathData';
-import { fromBase64, imageSize, isOpaqueImage } from '../png';
+import { fromBase64, hasClearPixels, imageSize, isOpaqueImage } from '../png';
 
-type Box = readonly [number, number, number, number];
+export type Box = readonly [number, number, number, number];
 
 /** A picture taken out of a plot. */
 export interface PlotImage {
@@ -45,6 +55,11 @@ export interface PlotImage {
   /** Its unit square (u right, v down, row 0 at v = 0) → the plot's user units. */
   readonly matrix: Matrix;
   readonly opacity: number;
+  /**
+   * What the plot drew under a see-through picture, inside `box` (plot
+   * units, axis-aligned, the picture's own box): drawn right under it.
+   */
+  readonly backdrop?: { readonly box: Box; readonly nodes: readonly SvgNode[] };
 }
 
 /** How near (user units) a shape's edge must be to a picture's to count as the same edge. */
@@ -104,12 +119,21 @@ function readPicture(href: string): Pick<PlotImage, 'mime' | 'dataBase64' | 'wid
     head = new Uint8Array(0);
   }
   const size = imageSize(head);
+  let opaque = isOpaqueImage(head);
+  if (!opaque && mime === 'image/png') {
+    // An alpha channel every pixel of which is opaque (matplotlib's heatmaps): opaque.
+    try {
+      opaque = !hasClearPixels(fromBase64(dataBase64.replace(/=+$/, '')));
+    } catch {
+      opaque = false;
+    }
+  }
   return {
     mime,
     dataBase64,
     width: size?.width ?? 0,
     height: size?.height ?? 0,
-    opaque: isOpaqueImage(head),
+    opaque,
   };
 }
 
@@ -120,7 +144,28 @@ interface Leaf {
   readonly fill: string;
   readonly stroke: string;
   readonly opacity: number;
+  /** Presentation attributes it inherits from its groups (not fill, stroke, opacity). */
+  readonly inherited: Attrs;
 }
+
+/** Attributes a backdrop copy of a leaf does not take from its groups. */
+const NOT_INHERITED = new Set([
+  'transform',
+  'opacity',
+  'fill',
+  'stroke',
+  'id',
+  'class',
+  'viewBox',
+  'width',
+  'height',
+  'x',
+  'y',
+  'xmlns',
+  'xmlns:xlink',
+  'version',
+  'preserveAspectRatio',
+]);
 
 const key = (p: readonly number[]): string => p.join('.');
 
@@ -181,11 +226,11 @@ function straightPieces(n: SvgNode): Line[] | null {
   return out;
 }
 
-/** The parts of a straight piece outside a box (Liang–Barsky for the part inside). */
-function outside(l: Line, b: Box): Line[] {
-  const [x0, y0, x1, y1] = l;
-  const dx = x1 - x0;
-  const dy = y1 - y0;
+/** The part of a straight piece inside a box (Liang–Barsky), as [t0, t1], or null. */
+function clipT(l: Line, b: Box): [number, number] | null {
+  const [x0, y0] = l;
+  const dx = l[2] - x0;
+  const dy = l[3] - y0;
   let t0 = 0;
   let t1 = 1;
   const edges: [number, number][] = [
@@ -196,15 +241,34 @@ function outside(l: Line, b: Box): Line[] {
   ];
   for (const [p, q] of edges) {
     if (p === 0) {
-      if (q < 0) return [l];
+      if (q < 0) return null;
     } else {
       const t = q / p;
       if (p < 0) t0 = Math.max(t0, t);
       else t1 = Math.min(t1, t);
     }
   }
-  if (t0 >= t1) return [l];
-  const at = (t: number): [number, number] => [x0 + dx * t, y0 + dy * t];
+  return t0 < t1 ? [t0, t1] : null;
+}
+
+const pointAt = (l: Line, t: number): [number, number] => [
+  l[0] + (l[2] - l[0]) * t,
+  l[1] + (l[3] - l[1]) * t,
+];
+
+/** The part of a straight piece inside a box, or null. */
+function inside(l: Line, b: Box): Line | null {
+  const t = clipT(l, b);
+  return t ? [...pointAt(l, t[0]), ...pointAt(l, t[1])] : null;
+}
+
+/** The parts of a straight piece outside a box. */
+function outside(l: Line, b: Box): Line[] {
+  const t = clipT(l, b);
+  if (!t) return [l];
+  const [t0, t1] = t;
+  const [x0, y0, x1, y1] = l;
+  const at = (u: number): [number, number] => pointAt(l, u);
   const parts: Line[] = [];
   if (t0 > 1e-9) parts.push([x0, y0, ...at(t0)]);
   if (t1 < 1 - 1e-9) parts.push([...at(t1), x1, y1]);
@@ -233,6 +297,11 @@ export function takeImages(
     quad: [number, number][];
     opaque: boolean;
   }[] = [];
+  const inheritable = (inh: Attrs, attrs: Attrs): Attrs => {
+    const out: Record<string, AttrValue | undefined> = { ...inh };
+    for (const [a, v] of Object.entries(attrs)) if (!NOT_INHERITED.has(a)) out[a] = v;
+    return out;
+  };
   const visit = (
     n: SvgNode,
     path: readonly number[],
@@ -240,6 +309,7 @@ export function takeImages(
     fill: string,
     stroke: string,
     opacity: number,
+    inh: Attrs,
   ): void => {
     n.children.forEach((c, i) => {
       if (typeof c === 'string') return;
@@ -248,11 +318,19 @@ export function takeImages(
       const s = c.attrs['stroke'] === undefined ? stroke : String(c.attrs['stroke']);
       const op = opacity * num(c.attrs['opacity'], 1);
       if (c.tag === 'g') {
-        visit(c, p, multiply(m, own(c)), f, s, op);
+        visit(c, p, multiply(m, own(c)), f, s, op, inheritable(inh, c.attrs));
         return;
       }
       if (c.tag !== 'image') {
-        leaves.push({ path: p, node: c, matrix: m, fill: f, stroke: s, opacity: op });
+        leaves.push({
+          path: p,
+          node: c,
+          matrix: m,
+          fill: f,
+          stroke: s,
+          opacity: op,
+          inherited: inh,
+        });
         return;
       }
       const pic = readPicture(String(c.attrs['href'] ?? ''));
@@ -280,7 +358,7 @@ export function takeImages(
       });
     });
   };
-  visit(root, [], IDENTITY, '#000000', 'none', 1);
+  visit(root, [], IDENTITY, '#000000', 'none', 1, inheritable({}, root.attrs));
   if (pics.length === 0) return { root, images: [] };
 
   const before = (a: readonly number[], b: readonly number[]): boolean => {
@@ -293,11 +371,35 @@ export function takeImages(
     string,
     { drop: boolean; holes: [number, number][][]; lines?: readonly Line[] }
   >();
-  for (const pic of pics) {
+  const picBoxes = pics.map((pic): Box => {
     const xs = pic.quad.map((q) => q[0]);
     const ys = pic.quad.map((q) => q[1]);
-    const pb: Box = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
-    const square = isAxisAligned(pic.image.matrix);
+    return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+  });
+  const overlaps = (a: Box, b: Box): boolean =>
+    a[0] < b[2] - EDGE_TOL &&
+    b[0] < a[2] - EDGE_TOL &&
+    a[1] < b[3] - EDGE_TOL &&
+    b[1] < a[3] - EDGE_TOL;
+  const backdrops = new Map<number, SvgNode[]>();
+  pics.forEach((pic, i) => {
+    const pb = picBoxes[i] ?? [0, 0, 0, 0];
+    const m = pic.image.matrix;
+    const square = isAxisAligned(m);
+    // A see-through picture that is not turned, clear of earlier ones, gets a backdrop.
+    const see =
+      !pic.opaque && square && m[0] > 0 && !picBoxes.slice(0, i).some((b) => overlaps(b, pb));
+    const hides = (pic.opaque && square) || see;
+    const under: SvgNode[] = [];
+    /** A copy of a leaf for the backdrop, with what it inherits made its own. */
+    const copy = (l: Leaf, attrs: Attrs, n = l.node): SvgNode => {
+      const node = el(
+        n.tag,
+        { ...l.inherited, ...attrs, fill: l.fill, stroke: l.stroke, opacity: fmt(l.opacity) },
+        n.children,
+      );
+      return isIdentity(l.matrix) ? node : el('g', { transform: matrixString(l.matrix) }, [node]);
+    };
     for (const l of leaves) {
       if (!before(l.path, pic.path)) continue;
       const k = key(l.path);
@@ -305,20 +407,56 @@ export function takeImages(
       const rect = l.fill !== 'none' && isIdentity(l.matrix) ? rectOf(l.node) : null;
       if (rect && within(pb, rect, EDGE_TOL)) {
         // A background around the picture: cut it out (or drop the fill it hides entirely).
-        if (pic.opaque && square && within(rect, pb, EDGE_TOL)) f.drop = true;
+        if (hides && within(rect, pb, EDGE_TOL)) f.drop = true;
         else f.holes.push(pic.quad);
-      } else if (pic.opaque && square && l.node.tag !== 'text') {
+        if (see) {
+          const rest = Object.fromEntries(
+            Object.entries(l.node.attrs).filter(
+              ([a]) => !['x', 'y', 'width', 'height', 'rx', 'ry', 'd', 'transform'].includes(a),
+            ),
+          );
+          const box = { x: fmt(pb[0]), y: fmt(pb[1]), width: fmt(pb[2] - pb[0]) };
+          under.push(
+            el('rect', {
+              ...copy(l, rest).attrs,
+              ...box,
+              height: fmt(pb[3] - pb[1]),
+              stroke: 'none',
+            }),
+          );
+        }
+      } else if (hides && l.node.tag !== 'text') {
         const b = boxes.get(k);
-        if (b && within(b, pb, EDGE_TOL)) f.drop = true;
-        else if (b && l.fill === 'none' && isIdentity(l.matrix)) {
+        if (b && within(b, pb, EDGE_TOL)) {
+          f.drop = true;
+          if (see) under.push(copy(l, l.node.attrs));
+        } else if (b && l.fill === 'none' && isIdentity(l.matrix)) {
           // A line partly under it (a grid line): the part under it is hidden.
-          const lines = f.lines ?? straightPieces(l.node);
+          const all = straightPieces(l.node);
+          const lines = f.lines ?? all;
           if (lines) f.lines = lines.flatMap((x) => outside(x, pb));
+          const ins = see
+            ? (all ?? []).flatMap((x) => {
+                const piece = inside(x, pb);
+                return piece ? [piece] : [];
+              })
+            : [];
+          if (ins.length > 0) {
+            const geometry = ['x1', 'y1', 'x2', 'y2', 'points', 'd'];
+            const rest = Object.fromEntries(
+              Object.entries(l.node.attrs).filter(([a]) => !geometry.includes(a)),
+            );
+            const d = ins
+              .map(([x0, y0, x1, y1]) => `M${fmt(x0)} ${fmt(y0)}L${fmt(x1)} ${fmt(y1)}`)
+              .join('');
+            under.push(copy(l, { ...rest, d }, el('path', {})));
+          }
         }
       }
       fate.set(k, f);
     }
-  }
+    if (under.length > 0) backdrops.set(i, under);
+  });
 
   const byKey = new Map(leaves.map((l) => [key(l.path), l]));
   const rebuild = (n: SvgNode, path: readonly number[]): SvgNode[] => {
@@ -369,5 +507,12 @@ export function takeImages(
     return stroked ? [filled, el(n.tag, { ...n.attrs, fill: 'none' }, n.children)] : [filled];
   };
   const [out] = rebuild(root, []);
-  return { root: out ?? root, images: pics.map((p) => p.image) };
+  return {
+    root: out ?? root,
+    images: pics.map((p, i) => {
+      const nodes = backdrops.get(i);
+      const box = picBoxes[i];
+      return nodes && box ? { ...p.image, backdrop: { box, nodes } } : p.image;
+    }),
+  };
 }

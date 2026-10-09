@@ -126,6 +126,9 @@ text) is closed in the same work.
   stretch: a rasterized scatter layer's dots get wider with an uneven resize, unlike vector
   markers. Restyling keeps them where they are (`growFrame` keeps the shared part in place).
   A picture's frame is recomputed from the start of the gesture like the plot's asset.
+  A see-through picture's backdrop (note 12, issue 35) is an `svgImport` too, but is told from a
+  plot by its place (`isBackdrop`: right under a raster picture with the same box): it is never
+  resized as a plot, and follows like its picture, so it keeps the same frame.
 - **Not handled:** panels a stroke joins (a line drawn across them, an axis line along two that
   touch) scale as one, gap included; members of a shared band whose edges differ follow the
   nearest one's edge. Roles, panels and legends are guesses from geometry, as in note 16.

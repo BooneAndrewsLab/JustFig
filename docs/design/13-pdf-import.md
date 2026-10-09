@@ -137,7 +137,9 @@ scaling text, issue 3) sees no difference between the two.
   fill, CMYK dashes, transparency, a 3 × 2 image), and for issue 25 `matplotlib-shading.pdf`
   (`scripts/pdf-fixtures/shading.py`, run with `python -I`: a polar plot whose line and fill
   are cut to its circle, a Gouraud `pcolormesh`) and `r-gradient.pdf` (`r-gradient.R`: grid's
-  circular clipping path, `linearGradient()` and `radialGradient()` fills); `shapes.test.ts`
+  circular clipping path, `linearGradient()` and `radialGradient()` fills), and for issue 35
+  `r-see-through.pdf` (`r-see-through.R`: a soft-masked `annotation_raster` of soft dots over
+  ggplot2's grey panel and grid, which gets a backdrop, note 12); `shapes.test.ts`
   holds those and the synthetic clip-shape and shading cases. No Prism file could be generated here; Prism
   writes ordinary embedded TrueType text, the same path as cairo. The converter's clipping,
   text splitting/joining, outline fallback and image cropping are also tested on synthetic

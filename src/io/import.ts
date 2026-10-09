@@ -12,6 +12,7 @@ import { el, nodeToSvgString } from '@/render/svgNode';
 
 import { hashAsset } from './assets';
 import { base64, imageSize } from './png';
+import { fmt } from './svg/matrix';
 import { SvgImportError, sanitizeSvg } from './svg/sanitize';
 import type { PlotImage } from './svg/plotImages';
 
@@ -22,6 +23,15 @@ export interface ImportedPicture {
   /** Relative to the plot's top-left as placed, points. */
   readonly frame: Frame;
   readonly opacity: number;
+  /**
+   * What the plot drew under a see-through picture, inside its box (issue
+   * 35): a small `svgImport` placed right under it, frame as `frame`'s box.
+   */
+  readonly backdrop?: {
+    readonly hash: string;
+    readonly asset: Extract<Asset, { kind: 'svgImport' }>;
+    readonly frame: Frame;
+  };
 }
 
 export interface Imported {
@@ -110,7 +120,34 @@ function placedPicture(
     rotation,
     ...(det < 0 ? { flipY: true } : {}),
   };
-  return { picture: { hash: hashAsset(asset), asset, frame, opacity: p.opacity }, slanted };
+  const picture: ImportedPicture = { hash: hashAsset(asset), asset, frame, opacity: p.opacity };
+  if (!p.backdrop) return { picture, slanted };
+  const [x0, y0, x1, y1] = p.backdrop.box;
+  // Sanitised, so the stored SVG is exactly what rendering will parse it into.
+  const tidy = sanitizeSvg(
+    nodeToSvgString(
+      el('svg', { viewBox: [x0, y0, x1 - x0, y1 - y0].map(fmt).join(' ') }, p.backdrop.nodes),
+    ),
+  ).root;
+  const svg = nodeToSvgString(
+    el('svg', { xmlns: 'http://www.w3.org/2000/svg', ...tidy.attrs }, tidy.children),
+  );
+  const back: Extract<Asset, { kind: 'svgImport' }> = {
+    kind: 'svgImport',
+    svg,
+    meta: { name: `${name} backdrop`, width: (x1 - x0) * k, height: (y1 - y0) * k },
+  };
+  const backFrame: Frame = {
+    x: (x0 - vb[0]) * k,
+    y: (y0 - vb[1]) * k,
+    w: (x1 - x0) * k,
+    h: (y1 - y0) * k,
+    rotation: 0,
+  };
+  return {
+    picture: { ...picture, backdrop: { hash: hashAsset(back), asset: back, frame: backFrame } },
+    slanted,
+  };
 }
 
 export function importRaster(bytes: Uint8Array, name: string): Imported {

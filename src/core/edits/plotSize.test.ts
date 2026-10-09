@@ -220,11 +220,20 @@ describe('restyled plots keep their bounds around their text (issue 30)', () => 
     const fig = placeImport(page.id, imp, { x: 200, y: 150 }).apply({ doc, assets: {} });
     const g = fig.doc.pages[0]?.layers[0]?.children[0];
     if (g?.type !== 'group') throw new Error('no group');
-    // Pictures first (under the plot), each where it was in the plot.
-    expect(g.children.map((c) => c.name)).toEqual(['Picture 1', 'Picture 2', 'Picture 3', 'Plot']);
-    const plot = g.children[3];
-    const [field, cells] = g.children;
-    if (!plot || !field || !cells) throw new Error('missing');
+    // Pictures first (under the plot), each where it was in the plot; the see-through
+    // scatter layer over what the plot drew under it (issue 35).
+    expect(g.children.map((c) => c.name)).toEqual([
+      'Picture 1',
+      'Picture 2 backdrop',
+      'Picture 2',
+      'Picture 3',
+      'Plot',
+    ]);
+    const plot = g.children[4];
+    const [field, back, cells] = g.children;
+    if (!plot || !field || !cells || !back) throw new Error('missing');
+    for (const k of ['x', 'y', 'w', 'h'] as const)
+      expect(back.frame[k]).toBeCloseTo(cells.frame[k], 6);
     expect(plot.frame).toMatchObject({ x: 200 - imp.w / 2, y: 150 - imp.h / 2, w: imp.w });
     expect(field.frame.x - plot.frame.x).toBeCloseTo(imp.pictures?.[0]?.frame.x ?? NaN, 9);
 
@@ -243,6 +252,8 @@ describe('restyled plots keep their bounds around their text (issue 30)', () => 
       return o.frame;
     };
     const [p1, f1, c1] = [at(plot.id), at(field.id), at(cells.id)];
+    // The backdrop moves with its picture, not resized as a plot of its own.
+    for (const k of ['x', 'y', 'w', 'h'] as const) expect(at(back.id)[k]).toBeCloseTo(c1[k], 6);
     // The heatmap stays on its axis lines, which move and scale with the panel, and
     // grows more than the group (the margins keep their size).
     const spines = (f: Figure, o: Obj): number[] => {

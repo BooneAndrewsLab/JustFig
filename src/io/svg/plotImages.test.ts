@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { walkNodes } from '@/render/svgNode';
 
 import { importSvgText } from '../import';
-import { base64, encodePng } from '../png';
+import { base64, encodePng, hasClearPixels } from '../png';
 import { sanitizeSvg } from './sanitize';
 
 /** 8 × 8 RGB: opaque. */
@@ -49,7 +49,7 @@ describe('plot pictures', () => {
     expect(all.some((n) => n.attrs['stroke'] === '#0000ff')).toBe(true);
   });
 
-  it('keeps what lies under a see-through picture, and only a frame of a covered background', async () => {
+  it('moves what lies under a see-through picture to its backdrop (issue 35)', async () => {
     const rgba = base64(
       await encodePng({ width: 2, height: 2, channels: 4, data: new Uint8Array(16).fill(128) }),
     );
@@ -62,16 +62,77 @@ describe('plot pictures', () => {
           `<image x="60" y="10" width="40" height="20" xlink:href="${href(OPAQUE)}"/>`,
       ),
     );
-    expect(all.some((n) => n.attrs['stroke'] === '#ff0000')).toBe(true);
-    // Under the see-through picture: holed (its stroke stays, on its own element).
-    expect(all.filter((n) => n.attrs['fill-rule'] === 'evenodd')).toHaveLength(1);
-    // Under the opaque one, exactly its size: only the outline is left.
+    // Under the see-through picture: in its backdrop, out of the plot.
+    expect(all.some((n) => n.attrs['stroke'] === '#ff0000')).toBe(false);
+    const back = r.pictures?.[0]?.backdrop;
+    expect(back?.frame).toEqual(r.pictures?.[0] && { ...r.pictures[0].frame, rotation: 0 });
+    const under = [...walkNodes(sanitizeSvg(back?.asset.svg ?? '').root)].slice(1);
+    expect(under.map((n) => [n.tag, n.attrs['fill'], n.attrs['stroke']])).toEqual([
+      ['rect', '#ffffff', 'none'],
+      // (a whole shape under it, copied as it was: the fill a straight line never shows)
+      ['path', '#000000', '#ff0000'],
+    ]);
+    expect(r.pictures?.[1]?.backdrop).toBeUndefined();
+    // Under both, exactly their size: only the outlines are left.
+    expect(all.filter((n) => n.attrs['fill-rule'] === 'evenodd')).toHaveLength(0);
     expect(
       all.filter((n) => n.attrs['fill'] === 'none' && n.attrs['stroke'] === '#000000'),
     ).toHaveLength(2);
     // `xMidYMid meet`: the square picture is drawn 20 × 20, centred.
     const [a, b] = (r.pictures ?? []).map((p) => p.frame);
     expect(b && a && [b.x - a.x, b.y - a.y, b.w, b.h]).toEqual([45, 0, 15, 15]);
+  });
+
+  it('gives a see-through picture on a grey panel a backdrop of the panel and the grid', async () => {
+    const rgba = base64(
+      await encodePng({ width: 2, height: 2, channels: 4, data: new Uint8Array(16).fill(128) }),
+    );
+    const { r, all } = nodes(
+      svg(
+        '<rect x="0" y="0" width="100" height="80" fill="#ebebeb"/>' +
+          '<path d="M0 30L100 30" stroke="#ffffff" fill="none"/>' +
+          '<path d="M0 30Q50 0 100 30" stroke="#00ff00" fill="none"/>' +
+          `<image x="20" y="20" width="40" height="40" preserveAspectRatio="none" xlink:href="${href(rgba)}"/>` +
+          '<path d="M0 40L100 40" stroke="#0000ff"/>',
+      ),
+    );
+    const pic = r.pictures?.[0];
+    expect(pic?.backdrop?.frame).toEqual(pic && { ...pic.frame, rotation: 0 });
+    const under = [...walkNodes(sanitizeSvg(pic?.backdrop?.asset.svg ?? '').root)].slice(1);
+    expect(under.map((n) => [n.tag, n.attrs['fill'], n.attrs['stroke']])).toEqual([
+      ['rect', '#ebebeb', 'none'],
+      ['path', 'none', '#ffffff'],
+    ]);
+    expect(under[1]?.attrs['d']).toBe('M20 30L60 30');
+    // In the plot: the panel holed, the grid line cut, the curve and the line drawn after kept.
+    expect(all.find((n) => n.attrs['fill'] === '#ebebeb')?.attrs['fill-rule']).toBe('evenodd');
+    expect(all.find((n) => n.attrs['stroke'] === '#ffffff')?.attrs['d']).toBe(
+      'M0 30L20 30M60 30L100 30',
+    );
+    expect(all.some((n) => n.attrs['stroke'] === '#00ff00')).toBe(true);
+    expect(all.some((n) => n.attrs['stroke'] === '#0000ff')).toBe(true);
+  });
+
+  it('counts a PNG whose alpha is all opaque as opaque', async () => {
+    const data = new Uint8Array(64).fill(255);
+    data[3] = 254;
+    const clear = await encodePng({ width: 4, height: 4, channels: 4, data });
+    const full = await encodePng({
+      width: 4,
+      height: 4,
+      channels: 4,
+      data: new Uint8Array(64).fill(255),
+    });
+    expect(hasClearPixels(clear)).toBe(true);
+    expect(hasClearPixels(full)).toBe(false);
+    const { r, all } = nodes(
+      svg(
+        '<rect x="0" y="0" width="100" height="80" fill="#eeeeee"/>' +
+          `<image x="0" y="0" width="100" height="80" preserveAspectRatio="none" xlink:href="${href(base64(full))}"/>`,
+      ),
+    );
+    expect(r.pictures?.[0]?.backdrop).toBeUndefined();
+    expect(all.some((n) => n.attrs['fill'] === '#eeeeee')).toBe(false);
   });
 
   it('drops a linked picture and places a mirrored one with a flip', () => {

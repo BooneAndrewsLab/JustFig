@@ -68,6 +68,7 @@ const FIXTURES = [
   'r-raster',
   'matplotlib-shading',
   'r-gradient',
+  'r-see-through',
 ] as const;
 
 describe('real plots', () => {
@@ -281,6 +282,42 @@ describe('pictures (issue 24)', () => {
         expect(mx > x0 + 0.5 && mx < x1 - 0.5 && my > y0 + 0.5 && my < y1 - 0.5).toBe(false);
       }
     }
+  });
+
+  it('ggplot2 see-through picture: a backdrop of the grey panel and its grid (issue 35)', async () => {
+    const imp = await imported('r-see-through');
+    expect(imp.warnings).toEqual([]);
+    const [pic, ...rest] = imp.pictures ?? [];
+    expect(rest).toEqual([]);
+    const back = pic?.backdrop;
+    if (!pic || !back) throw new Error('no backdrop');
+    expect(back.frame.x).toBeCloseTo(pic.frame.x, 6);
+    expect(back.frame.y).toBeCloseTo(pic.frame.y, 6);
+    expect(back.frame.w).toBeCloseTo(pic.frame.w, 6);
+    expect(back.frame.h).toBeCloseTo(pic.frame.h, 6);
+    // Under its clear pixels: the grey panel and the white grid lines inside its box.
+    const under = all(sanitizeSvg(back.asset.svg).root);
+    for (const n of under) expect(TAGS.has(n.tag), n.tag).toBe(true);
+    expect(under.some((n) => n.attrs['fill'] === '#ebebeb')).toBe(true);
+    expect(under.filter((n) => n.attrs['stroke'] === '#ffffff').length).toBeGreaterThan(0);
+    // In the plot: the panel holed for it, and no grid line crossing it any more.
+    const root = tree(imp);
+    expect(
+      all(root).some((n) => n.attrs['fill-rule'] === 'evenodd' && n.attrs['fill'] === '#ebebeb'),
+    ).toBe(true);
+    const vb = viewBox(imp);
+    const k = imp.w / (vb[2] ?? 1);
+    const [x0, y0] = [pic.frame.x / k + (vb[0] ?? 0), pic.frame.y / k + (vb[1] ?? 0)];
+    const [x1, y1] = [x0 + pic.frame.w / k, y0 + pic.frame.h / k];
+    const white = all(root).filter((x) => x.attrs['stroke'] === '#ffffff');
+    expect(white.length).toBeGreaterThan(3);
+    for (const n of white)
+      for (const m of String(n.attrs['d'] ?? '').matchAll(
+        /M([\d.-]+) ([\d.-]+)L([\d.-]+) ([\d.-]+)/g,
+      )) {
+        const [mx, my] = [(Number(m[1]) + Number(m[3])) / 2, (Number(m[2]) + Number(m[4])) / 2];
+        expect(mx > x0 + 0.5 && mx < x1 - 0.5 && my > y0 + 0.5 && my < y1 - 0.5).toBe(false);
+      }
   });
 
   it('writes a detailed image as an <image> for its pixels, cropped to a rectangular clip', () => {

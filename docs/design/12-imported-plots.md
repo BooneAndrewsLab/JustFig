@@ -84,18 +84,31 @@ Sans, sans-serif`, bold), `rotate(θ x y)` when rotated. Mathtext (`$…$`, issu
   was drawn **before** a picture is cut where the picture is: a filled axis-aligned rectangle
   around it (the axes background, a ggplot2 panel) gets an even-odd hole of the picture's
   shape, or loses its fill when an opaque picture (a JPEG, or a PNG without alpha or `tRNS`, at
-  full opacity) covers all of it; anything else drawn before an opaque picture and wholly
-  inside it is dropped, and a straight unfilled line partly under one (ggplot2's grid lines) loses
-  the part under it (Liang–Barsky). Curves and fills only partly under a picture, and anything
-  under a see-through one, stay over it (grid lines under a rasterized scatter layer end up over
-  its dots), and a see-through picture over a holed
-  coloured background shows the page through its clear pixels. SVG clipping is still ignored
-  (no `clipPath`), so a picture is placed whole. The crop includes the pictures.
+  full opacity, or a PNG whose alpha channel is all 255: matplotlib writes RGBA even for a
+  heatmap, so `hasClearPixels` inflates it with fflate and looks) covers all of it; anything else
+  drawn before an opaque picture and wholly inside it is dropped, and a straight unfilled line
+  partly under one (ggplot2's grid lines) loses the part under it (Liang–Barsky). Curves and fills
+  only partly under a picture stay over it. SVG clipping is still ignored (no `clipPath`), so a
+  picture is placed whole. The crop includes the pictures.
+- **Backdrops** (issue 35). A see-through picture (clear pixels, or partial opacity: a
+  `rasterized=True` scatter layer, ggrastr points) used to leave the grid lines under it on top
+  of its dots, and its clear pixels showed the page through the holed panel. Compositing the
+  panel colour into its pixels would need decoding and re-encoding them, would lose the grid
+  under them and would not follow a restyle; splitting the plot would break restyling and
+  resizing. Instead, one that is not turned (its matrix has no rotation; a mirror is fine) and
+  does not overlap an earlier picture gets a **backdrop**: a small `svgImport` asset, viewBox the
+  picture's box, holding what the plot drew under it inside that box (a rectangle of each
+  background around it, the inside pieces of its straight lines, whole shapes wholly inside;
+  inherited attributes, fill, stroke and accumulated opacity made explicit), placed as an image
+  object named "Picture N backdrop" right under the picture. The picture then hides what was
+  under it like an opaque one, and the plot is cut the same way. It is vector and stays in the
+  export subset (no mask, no clip). Resizing moves it like its picture (note 17); a picture
+  overlapping an earlier one keeps the old behaviour, since its backdrop would cover that one.
 - **Cropping:** the viewBox becomes the union of drawn boxes (control-point hulls for paths,
   padded by the stroke width, text boxes from the width estimate in the bundled font the label is drawn in (note 14) ×1.1 and −1 em/+0.3 em
   around the baseline), intersected with the original viewBox (what lay outside was never
   shown), so the placed size is the drawing's. Nothing drawn: unchanged.
-- **Tests:** `plotImages.test.ts` (holes, drops, `meet`, mirrored and linked pictures, and
+- **Tests:** `plotImages.test.ts` (holes, drops, backdrops, all-opaque alpha, `meet`, mirrored and linked pictures, and
   `matplotlib-images.svg` from `scripts/svg-fixtures/matplotlib-images.py`); real matplotlib 3.11 output (`fonttype` path and none, and `matplotlib-log.svg`:
   log axes and mathtext labels, made by `scripts/svg-fixtures/matplotlib-log.py`) and ggplot2
   via cairo `svg()` in `src/io/svg/fixtures/`, plus an svglite 2.1 file transcribed in its exact format
