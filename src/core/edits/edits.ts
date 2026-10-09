@@ -4,7 +4,7 @@
  * model/edits.ts). The store records each as one undo step, or merges a
  * continuous gesture into one via a coalesce key.
  */
-import { type Box, boxContains, center } from '../geometry/matrix';
+import { type Box, boxContains, center, unionBoxes } from '../geometry/matrix';
 import {
   boundsOf,
   flipObj,
@@ -308,12 +308,24 @@ export function flipObjects(
 
 export type AlignEdge = 'left' | 'hcenter' | 'right' | 'top' | 'vcenter' | 'bottom';
 
+/**
+ * Measures an object for alignment, distribution and grid layout: `objBounds`
+ * (the frame), or what it draws (`drawnBounds`, issue 44), which the app passes.
+ */
+export type BoxOf = (o: Obj) => Box;
+
 /** Aligns to the selection's bounds, or to the page when one object is selected. */
-export function alignObjects(pageId: Id, objs: readonly Obj[], edge: AlignEdge, page: Box): Edit {
-  const ref = objs.length === 1 ? page : boundsOf(objs);
+export function alignObjects(
+  pageId: Id,
+  objs: readonly Obj[],
+  edge: AlignEdge,
+  page: Box,
+  boxOf: BoxOf = objBounds,
+): Edit {
+  const ref = objs.length === 1 ? page : unionBoxes(objs.map(boxOf));
   const shifts = new Map<Id, { dx: number; dy: number }>();
   for (const o of objs) {
-    const b = objBounds(o);
+    const b = boxOf(o);
     const dx =
       edge === 'left'
         ? ref.x - b.x
@@ -342,11 +354,16 @@ export function alignObjects(pageId: Id, objs: readonly Obj[], edge: AlignEdge, 
 }
 
 /** Equal gaps between the objects along an axis, the outermost staying put. */
-export function distributeObjects(pageId: Id, objs: readonly Obj[], axis: 'x' | 'y'): Edit {
+export function distributeObjects(
+  pageId: Id,
+  objs: readonly Obj[],
+  axis: 'x' | 'y',
+  boxOf: BoxOf = objBounds,
+): Edit {
   const sorted = [...objs].sort((a, b) =>
-    axis === 'x' ? objBounds(a).x - objBounds(b).x : objBounds(a).y - objBounds(b).y,
+    axis === 'x' ? boxOf(a).x - boxOf(b).x : boxOf(a).y - boxOf(b).y,
   );
-  const boxes = sorted.map(objBounds);
+  const boxes = sorted.map(boxOf);
   const size = (b: Box) => (axis === 'x' ? b.w : b.h);
   const start = (b: Box) => (axis === 'x' ? b.x : b.y);
   const first = boxes[0];

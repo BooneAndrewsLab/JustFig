@@ -340,7 +340,7 @@ export function ProceduralSection({ s, obj }: { s: AppState; obj: Procedural }) 
   const page = currentPage(s);
   const r = resolveProcedural(obj);
   const convert = () => {
-    if (store.edit(convertObjects(page.id, [obj], fig.doc.palette)))
+    if (store.edit(convertObjects(page.id, [obj], fig.doc.palette, fig.assets)))
       analytics.track('procedural', 'convert');
   };
   if (!r)

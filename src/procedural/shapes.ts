@@ -4,12 +4,24 @@
  * procedural object into a Group of rects, ellipses, paths and text.
  */
 import { boundsOf, flipObj, refit, rotateObj, translateObj } from '@/core/geometry/transform';
-import { center } from '@/core/geometry/matrix';
+import { apply, center, frameMatrix } from '@/core/geometry/matrix';
 import type { Id } from '@/core/model/ids';
 import { newId } from '@/core/model/ids';
 import { frame, localise } from '@/core/model/factory';
-import type { Group, Image, Obj, Procedural, ShapeStyle, Swatch, Text } from '@/core/model/types';
+import type {
+  Asset,
+  Assets,
+  Frame,
+  Group,
+  Image,
+  Obj,
+  Procedural,
+  ShapeStyle,
+  Swatch,
+  Text,
+} from '@/core/model/types';
 import { layoutText } from '@/core/text/layout';
+import { parsedSvg } from '@/render/assets';
 
 import type { PathPrim, Prim, TextPrim } from './prims';
 import { getKind, proceduralPrims } from './registry';
@@ -114,19 +126,40 @@ const withIds = (o: Obj): Obj =>
     : { ...o, id: newId('o') };
 
 /**
+ * The frame a picture of a snapshot needs to sit where the object drew it: the
+ * snapshot's viewBox is frame-local and may reach past the frame (issue 44).
+ */
+function snapshotFrame(f: Frame, a: Extract<Asset, { kind: 'svgImport' }>): Frame {
+  const { width, height } = a.meta;
+  if (!(width > 0 && height > 0)) return f;
+  const [vx, vy, vw, vh] = parsedSvg(a.svg).viewBox;
+  const kx = f.w / width;
+  const ky = f.h / height;
+  const w = vw * kx;
+  const h = vh * ky;
+  const c = apply(frameMatrix(f), { x: (vx + vw / 2) * kx, y: (vy + vh / 2) * ky });
+  return { ...f, x: c.x - w / 2, y: c.y - h / 2, w, h };
+}
+
+/**
  * The object as plain shapes in page coordinates: a Group (or, for a kind
  * this version does not know, an Image of its snapshot). Null when there is
  * nothing to convert.
  */
-export function convertToShapes(o: Procedural, palette: readonly Swatch[]): Group | Image | null {
+export function convertToShapes(
+  o: Procedural,
+  palette: readonly Swatch[],
+  assets: Assets = {},
+): Group | Image | null {
   const prims = proceduralPrims(o, palette);
   if (!prims) {
     if (o.snapshot === undefined) return null;
+    const a = assets[o.snapshot];
     return {
       id: newId('o'),
       type: 'image',
       ...(o.name === undefined ? {} : { name: o.name }),
-      frame: o.frame,
+      frame: a?.kind === 'svgImport' ? snapshotFrame(o.frame, a) : o.frame,
       opacity: o.opacity,
       asset: o.snapshot,
     };

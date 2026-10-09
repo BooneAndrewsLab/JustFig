@@ -21,7 +21,7 @@ import { layoutText } from '@/core/text/layout';
 import { panelLabels } from '@/core/model/panels';
 
 import { endDirections, headLength, headShape, inset, shortened } from './arrows';
-import { iconNode, imageNode, svgImportNode } from './assets';
+import { iconNode, imageNode, snapshotNode, svgImportNode } from './assets';
 import { pathData } from './path';
 import { proceduralNodes } from './procedural';
 import { type AttrValue, type SvgNode, el, num } from './svgNode';
@@ -236,9 +236,7 @@ function content(o: Obj, ctx: RenderCtx): SvgNode[] {
       const nodes = proceduralNodes(o, ctx.textMode, ctx.screen, ctx.palette);
       if (nodes) return nodes;
       const a = o.snapshot === undefined ? undefined : ctx.assets[o.snapshot];
-      return a?.kind === 'svgImport'
-        ? [svgImportNode(a.svg, w, h, ctx.textMode)]
-        : [placeholder(w, h)];
+      return a?.kind === 'svgImport' ? [snapshotNode(a, w, h, ctx.textMode)] : [placeholder(w, h)];
     }
     case 'embedded': {
       const a = ctx.assets[o.snapshot];

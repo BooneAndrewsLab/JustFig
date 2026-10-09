@@ -24,7 +24,21 @@ spaced lanes of a picture, ladder sizes down one side, and labels that move with
   would need a model field, a `.jfig` schema bump and reconcile code for what a group already
   does; and auto-detecting lanes from the pixels (guesswork on smeared or tilted gels; the two
   percentages are quick to set by eye).
-- **Known limits.** Selection boxes and `objBounds` are the frame, so the selection outline,
-  align/distribute and grid layout ignore the hanging labels; an app that does not know the kind
-  draws its snapshot, which is clipped to the frame and so shows no labels. Unevenly spaced lanes
-  (a gap in the comb) need two label objects or plain text.
+- **Hanging labels count where they show** (issue 44, for every kind that draws past its frame,
+  not just this one). `objBounds` stays the frame: it is the geometry that resizing, binding and
+  the Inspector's X/Y/W/H work on, and handles on a box that includes fixed-size text would make a
+  resize drag miss. `drawnBounds` (`src/procedural/bounds.ts`) is the frame plus the box of the
+  kind's primitives (text measured with our layout, strokes padded), turned with the frame and
+  unioned through groups. Align, distribute and Arrange in grid take it as their `boxOf` (core
+  edits default to `objBounds` and do not import procedural code; the UI passes it). The canvas
+  draws a dashed outline of it when the selection draws past its handles' box. Grid layout fits
+  the drawn box into the cell: labels keep their point size, so a scaled object's drawn box misses
+  by (1 − scale) × the labels' reach; a few more uniform steps from where it landed close that to
+  under 0.01 pt, keeping the photo's aspect ratio. The snapshot's viewBox covers the drawn box
+  (note 04), so an app without the kind shows the labels too.
+- **Uneven lanes** (a gap in the comb): each lane has a `shift`, percent of the width off its even
+  place, clamped to the picture. A new item field with a default, so no `version` bump (note 04:
+  old documents decode to 0). Rejected: a lane-position list replacing first/last (one gap would
+  mean typing every lane), and a "gap after lane N" field (combs with several gaps).
+- **Known limits.** Clicking the hanging labels does not select the object (its hit area is the
+  frame), and snapping still uses frames.

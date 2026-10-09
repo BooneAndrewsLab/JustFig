@@ -10,7 +10,11 @@ import { hashAsset } from '@/io/assets';
 import { proceduralNodes } from '@/render/procedural';
 import { nodeToSvgString } from '@/render/svgNode';
 
+import { drawnLocalBox } from './bounds';
 import { resolveProcedural } from './registry';
+
+const down = (v: number): number => Math.floor(v * 100) / 100;
+const up = (v: number): number => Math.ceil(v * 100) / 100;
 
 const cache = new WeakMap<Obj, { hash: string; asset: Asset }>();
 
@@ -18,10 +22,17 @@ function snapshotOf(o: Extract<Obj, { type: 'procedural' }>, palette: readonly S
   const hit = cache.get(o);
   if (hit) return hit;
   const nodes = proceduralNodes(o, 'outline', false, palette);
-  if (!nodes) return null;
+  const box = drawnLocalBox(o, palette);
+  if (!nodes || !box) return null;
   const { w, h } = o.frame;
+  // The viewBox is frame-local and covers what hangs past the frame (issue 44);
+  // meta width × height is the frame, which places it (`snapshotNode`).
+  const x0 = down(box.x);
+  const y0 = down(box.y);
+  const bw = Math.round((up(box.x + box.w) - x0) * 100) / 100;
+  const bh = Math.round((up(box.y + box.h) - y0) * 100) / 100;
   const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${String(w)}" height="${String(h)}" viewBox="0 0 ${String(w)} ${String(h)}">` +
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${String(bw)}" height="${String(bh)}" viewBox="${String(x0)} ${String(y0)} ${String(bw)} ${String(bh)}">` +
     nodes.map((n) => nodeToSvgString(n)).join('') +
     '</svg>';
   const asset: Asset = {

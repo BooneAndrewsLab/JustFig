@@ -334,7 +334,16 @@ export function placeProcedural(kind: string, at?: { x: number; y: number }): vo
 /** "Convert to shapes" on every procedural object selected. */
 export function convertSelection(): void {
   const s = store.getState();
-  if (store.edit(convertObjects(currentPage(s).id, selectedObjects(s), figure(s).doc.palette)))
+  if (
+    store.edit(
+      convertObjects(
+        currentPage(s).id,
+        selectedObjects(s),
+        figure(s).doc.palette,
+        figure(s).assets,
+      ),
+    )
+  )
     analytics.track('procedural', 'convert');
 }
 

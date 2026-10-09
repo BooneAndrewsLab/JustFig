@@ -123,7 +123,11 @@ There is no node editing of the path yet (Phase 4 with arrow binding, or later).
 When a figure is saved, or objects are copied, every procedural object of a known kind gets an
 SVG picture of itself (outlined text) as an `svgImport` asset in `snapshot`. An app that does not
 know the kind (an older version, or a sibling reading a fragment) draws that instead of a
-placeholder and keeps the object untouched. Snapshots have no credit, so they never appear in
+placeholder and keeps the object untouched. The snapshot's viewBox is frame-local and covers the
+frame plus everything drawn past it (`drawnBounds`, issue 44); its `meta` width × height is the
+frame, which sets the scale (`snapshotNode`), so labels hanging outside are drawn where they were.
+Older snapshots, whose viewBox is the frame, draw the same either way. Converting an unknown kind
+to a picture gives the Image the snapshot's whole box. Snapshots have no credit, so they never appear in
 the attribution line; the asset is dropped on save when unused. Attribution stays derived from
 `doc.assets` only, and procedural kinds draw nothing from the icon library, so converting one to
 shapes neither adds nor removes credits (tested in `procedural/fragment.test.ts`).

@@ -50,6 +50,14 @@ export const GOLDEN_CASES: Readonly<Record<string, Readonly<Record<string, Parti
   gelLabels: {
     slanted: { angle: 45, side: 'right', ticks: false, first: 20, last: 80 },
     upright: { angle: 90, size: 6, lanes: [{ label: 'Ladder' }, { label: '' }, { label: 'WT' }] },
+    'comb-gap': {
+      lanes: [
+        { label: 'L', shift: 0 },
+        { label: '1', shift: 0 },
+        { label: '2', shift: 6 },
+        { label: '3', shift: 6 },
+      ],
+    },
   },
   scaleBar: {
     'top-left': { corner: 'tl', pixelSize: 0.065, imageWidth: 2048, length: 0.5, thickness: 2 },

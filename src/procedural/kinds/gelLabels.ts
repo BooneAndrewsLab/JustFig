@@ -16,7 +16,8 @@ export interface SizeMark {
 }
 
 export interface GelLabelsParams {
-  readonly lanes: readonly { readonly label: string }[];
+  /** `shift`: percent of the width this lane sits off its even place (a gap in the comb). */
+  readonly lanes: readonly { readonly label: string; readonly shift: number }[];
   /** Centres of the first and last lane, percent of the picture's width. */
   readonly first: number;
   readonly last: number;
@@ -48,11 +49,24 @@ export const gelLabels = defineKind<GelLabelsParams>({
       type: 'list',
       min: 1,
       max: 40,
-      item: [{ key: 'label', label: 'Label', type: 'text', maxLength: 24, default: '' }],
-      default: ['L', '1', '2', '3', '4', '5'].map((label) => ({ label })),
+      item: [
+        { key: 'label', label: 'Label', type: 'text', maxLength: 24, default: '' },
+        {
+          key: 'shift',
+          label: 'Shift',
+          help: 'Moves this lane off its even place, for a gap in the comb (percent of the width).',
+          type: 'number',
+          min: -50,
+          max: 50,
+          step: 0.5,
+          unit: '%',
+          default: 0,
+        },
+      ],
+      default: ['L', '1', '2', '3', '4', '5'].map((label) => ({ label, shift: 0 })),
       itemTitle: (it: Item, i: number) =>
         `Lane ${String(i + 1)}${typeof it['label'] === 'string' && it['label'] !== '' ? ` “${it['label']}”` : ''}`,
-      newItem: (_p, items) => ({ label: String(items.length) }),
+      newItem: (_p, items) => ({ label: String(items.length), shift: 0 }),
     },
     {
       key: 'first',
@@ -68,7 +82,7 @@ export const gelLabels = defineKind<GelLabelsParams>({
     {
       key: 'last',
       label: 'Last lane at',
-      help: 'Centre of the last lane; the lanes in between are evenly spaced.',
+      help: 'Centre of the last lane; the lanes in between are evenly spaced (unless shifted).',
       type: 'number',
       min: 0,
       max: 100,
@@ -156,7 +170,8 @@ export const gelLabels = defineKind<GelLabelsParams>({
     p.lanes.forEach((l, k) => {
       if (l.label.trim() === '') return;
       const t = n > 1 ? k / (n - 1) : 0;
-      const x = (w * (p.first + (p.last - p.first) * t)) / 100;
+      const at = p.first + (p.last - p.first) * t + l.shift;
+      const x = (w * Math.min(100, Math.max(0, at))) / 100;
       out.push(
         p.angle === 0
           ? text(l.label, x, -gap, p.size, ink, { baseline: 'alphabetic' })

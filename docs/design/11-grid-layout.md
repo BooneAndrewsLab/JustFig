@@ -28,6 +28,8 @@ in its own lettered panel. Templates give empty layouts; this one starts from th
   clipped, and scales each object, keeping its proportions, to its column width. Rows and
   columns: the dialog keeps rows × columns ≥ the count (changing one recomputes the other);
   the edit refuses a grid too small. Empty trailing cells stay empty (no placeholder panels).
+  Objects are measured by what they draw (`boxOf`, the app passes `drawnBounds`; issue 44), so
+  lane labels hanging over a gel photo stay inside its cell (note 18).
 - **Letters:** "Leave room for panel letters" (default on) keeps a band of the label style's
   `offset.y + size` above each object in its cell, so the bold letter at the panel's top-left
   does not sit on the content. Not added for a selected panel (its frame already holds its

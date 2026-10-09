@@ -73,3 +73,30 @@ describe('labelGelImage', () => {
     expect(() => labelGelImage(page.id, { ...image, type: 'rect' } as never)).toThrow();
   });
 });
+
+describe('lane shift (#44)', () => {
+  const at = (lanes: unknown): number[] =>
+    laneXs({
+      ...image,
+      type: 'procedural',
+      kind: 'gelLabels',
+      kindVersion: 1,
+      params: { lanes, first: 10, last: 70 },
+      slots: {},
+      frame: { x: 0, y: 0, w: 100, h: 50, rotation: 0 },
+    });
+
+  it('moves one lane off its even place, kept on the picture, and old lanes decode unshifted', () => {
+    expect(at([{ label: 'a' }, { label: 'b' }, { label: 'c' }, { label: 'd' }])).toEqual([
+      10, 30, 50, 70,
+    ]);
+    expect(
+      at([
+        { label: 'a', shift: 0 },
+        { label: 'b', shift: 0 },
+        { label: 'c', shift: 8 },
+        { label: 'd', shift: 50 },
+      ]),
+    ).toEqual([10, 30, 58, 100]);
+  });
+});

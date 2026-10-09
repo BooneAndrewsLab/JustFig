@@ -145,6 +145,28 @@ export function svgImportNode(svg: string, w: number, h: number, mode: TextMode)
   return fitted(s, w, h, root.children, root);
 }
 
+/**
+ * A procedural object's snapshot (note 04) in a w × h frame. Its viewBox is
+ * in frame-local points of a `meta.width` × `meta.height` frame and may reach
+ * past it (labels hanging outside, issue 44), so the frame size, not the
+ * viewBox, sets the scale. Older snapshots' viewBox is that frame: the same.
+ */
+export function snapshotNode(
+  asset: Extract<Asset, { kind: 'svgImport' }>,
+  w: number,
+  h: number,
+  mode: TextMode,
+): SvgNode {
+  const { width, height } = asset.meta;
+  const fit = svgImportNode(asset.svg, w, h, mode);
+  if (!(width > 0 && height > 0)) return fit;
+  return el(
+    'g',
+    { ...fit.attrs, transform: `scale(${num4(w / width)} ${num4(h / height)})` },
+    fit.children,
+  );
+}
+
 export function imageNode(asset: Extract<Asset, { kind: 'image' }>, w: number, h: number): SvgNode {
   return el('image', {
     x: 0,

@@ -14,7 +14,7 @@ import {
   rotateObjects,
 } from '@/core/edits/edits';
 import type { PlotSizing } from '@/core/edits/plotSize';
-import { type Box, center, frameBounds } from '@/core/geometry/matrix';
+import { type Box, center, frameBounds, unionBoxes } from '@/core/geometry/matrix';
 import { boundsOf, objBounds } from '@/core/geometry/transform';
 import {
   createArrow,
@@ -32,6 +32,7 @@ import { findObj } from '@/core/model/tree';
 import type { Figure, Obj, Page, PathNode, Vec2 } from '@/core/model/types';
 import { type Guide, snapBox, snapPoint } from '@/core/snapping/snap';
 import { fitText } from '@/core/text/layout';
+import { drawnBoundsIn } from '@/procedural/bounds';
 import { pathData } from '@/render/path';
 
 import { getLibrary, importToCanvas, placeIcon, placeProcedural } from '../state/session';
@@ -657,6 +658,17 @@ export function Canvas() {
 
   const sel = selectedObjects(s);
   const selBox = sel.length > 0 ? boundsOf(sel) : null;
+  // What the selection draws past its frames (gel lane labels, issue 44): a dashed outline.
+  const drawn = selBox ? unionBoxes(sel.map(drawnBoundsIn(fig.doc.palette))) : null;
+  const drawnBox =
+    selBox &&
+    drawn &&
+    (drawn.x < selBox.x - 0.5 ||
+      drawn.y < selBox.y - 0.5 ||
+      drawn.x + drawn.w > selBox.x + selBox.w + 0.5 ||
+      drawn.y + drawn.h > selBox.y + selBox.h + 0.5)
+      ? drawn
+      : null;
   const scr = (p: Vec2) => ({ x: p.x * v.zoom + v.x, y: p.y * v.zoom + v.y });
   const editing = s.editingText !== null ? findObj(page, s.editingText) : undefined;
   const panning = space;
@@ -818,6 +830,19 @@ export function Canvas() {
           </g>
           {selBox && s.tool === 'select' && s.editingText === null && (
             <g>
+              {drawnBox && (
+                <rect
+                  data-drawn-outline=""
+                  x={scr(drawnBox).x}
+                  y={scr(drawnBox).y}
+                  width={drawnBox.w * v.zoom}
+                  height={drawnBox.h * v.zoom}
+                  fill="none"
+                  stroke="#0072b2"
+                  strokeDasharray="3 3"
+                  pointerEvents="none"
+                />
+              )}
               <rect
                 x={scr(selBox).x}
                 y={scr(selBox).y}

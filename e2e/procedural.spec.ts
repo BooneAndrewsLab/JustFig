@@ -242,3 +242,39 @@ test('dragging a full 1536-well plate and a 2,000-lipid bilayer', async ({ page 
   expect(plateT.perMoveMs).toBeLessThan(100);
   expect(bilayerT.perMoveMs).toBeLessThan(100);
 });
+
+test('Label gel lanes groups a picture with labels, outlined where they hang (#44)', async ({
+  page,
+}) => {
+  const png = await page.evaluate(() => {
+    const c = document.createElement('canvas');
+    c.width = 120;
+    c.height = 80;
+    const g = c.getContext('2d');
+    if (g) {
+      g.fillStyle = '#222';
+      g.fillRect(0, 0, 120, 80);
+    }
+    return c.toDataURL('image/png').split(',')[1] ?? '';
+  });
+  await page.getByTestId('import-input').setInputFiles({
+    name: 'gel.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(png, 'base64'),
+  });
+  await expect(page.locator('.layers .item .name', { hasText: 'Image' })).toHaveCount(1);
+  await side(page).getByRole('button', { name: 'Label gel lanes' }).click();
+  // The labels are selected in a group with the picture, with their generated Inspector.
+  await expect(side(page).getByRole('region', { name: 'Gel lane labels options' })).toBeVisible();
+  await expect(page.getByRole('contentinfo')).toContainText('1 selected: Gel lane labels');
+  await expect(page.locator('.layers .item .name', { hasText: 'Group' })).toHaveCount(1);
+  // The selection's handles stay on the picture; a dashed outline takes in the labels above it.
+  const drawn = await page.locator('[data-drawn-outline]').boundingBox();
+  const handle = await page.locator('[data-handle="n"]').boundingBox();
+  expect(drawn && handle && drawn.y < handle.y).toBe(true);
+  // One undo step takes the labels away and leaves the picture.
+  await page.keyboard.press('Control+z');
+  await expect(page.locator('.layers .item .name', { hasText: 'Group' })).toHaveCount(0);
+  await expect(page.locator('.layers .item .name', { hasText: 'Image' })).toHaveCount(1);
+  await expect(page.locator('[data-drawn-outline]')).toHaveCount(0);
+});

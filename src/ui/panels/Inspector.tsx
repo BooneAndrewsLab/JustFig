@@ -51,6 +51,7 @@ import {
 } from '@/core/model/types';
 import { PAGE_PRESETS, presetSize } from '@/core/presets/pages';
 import { recipeFile } from '@/io/barelysig';
+import { drawnBoundsIn } from '@/procedural/bounds';
 import { addScaleBar, labelGelImage } from '@/procedural/edits';
 import { formatLength, fromUnit, toUnit } from '@/core/units';
 
@@ -540,7 +541,11 @@ function SelectionInspector({
               className="icon"
               title={sel.length === 1 ? `${title} (to the page)` : title}
               aria-label={title}
-              onClick={() => store.edit(alignObjects(page.id, sel, edge, pageBox))}
+              onClick={() =>
+                store.edit(
+                  alignObjects(page.id, sel, edge, pageBox, drawnBoundsIn(fig.doc.palette)),
+                )
+              }
             >
               {glyph}
             </button>
@@ -550,14 +555,18 @@ function SelectionInspector({
               <button
                 type="button"
                 title="Distribute horizontally"
-                onClick={() => store.edit(distributeObjects(page.id, sel, 'x'))}
+                onClick={() =>
+                  store.edit(distributeObjects(page.id, sel, 'x', drawnBoundsIn(fig.doc.palette)))
+                }
               >
                 ⋯
               </button>
               <button
                 type="button"
                 title="Distribute vertically"
-                onClick={() => store.edit(distributeObjects(page.id, sel, 'y'))}
+                onClick={() =>
+                  store.edit(distributeObjects(page.id, sel, 'y', drawnBoundsIn(fig.doc.palette)))
+                }
               >
                 ⋮
               </button>

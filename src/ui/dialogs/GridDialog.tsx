@@ -12,9 +12,10 @@ import {
   gridShape,
 } from '@/core/edits/grid';
 import { formatLength, fromUnit } from '@/core/units';
+import { drawnBoundsIn } from '@/procedural/bounds';
 
 import { analytics } from '../analytics';
-import { currentPage, selectedObjects, store } from '../state/store';
+import { currentPage, figure, selectedObjects, store } from '../state/store';
 import { useAppState } from '../state/useAppState';
 import { Dialog } from './Dialog';
 
@@ -44,6 +45,7 @@ export function GridDialog({ onClose }: { onClose: () => void }) {
         sel.map((o) => o.id),
         { ...shape, gutter: gutterPt, hAlign, vAlign, fitWidth, letterRoom },
         store.getState().plotSizing,
+        drawnBoundsIn(figure(s).doc.palette),
       ),
     );
     if (done) analytics.track('arrange', 'grid');

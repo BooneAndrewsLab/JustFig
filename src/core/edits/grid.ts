@@ -5,8 +5,8 @@
  * and scales the objects with the same `resizeOne` step as every resize,
  * so paths and arrows bake the scale and icons and images transform.
  */
-import type { Box } from '../geometry/matrix';
-import { boundsOf, objBounds, translateObj } from '../geometry/transform';
+import { type Box, unionBoxes } from '../geometry/matrix';
+import { objBounds, translateObj } from '../geometry/transform';
 import { createPanel } from '../model/factory';
 import type { Id } from '../model/ids';
 import { ROW_TOLERANCE, inReadingOrder } from '../model/panels';
@@ -140,6 +140,27 @@ function place(o: Obj, from: Box, to: Box): Obj {
 }
 
 /**
+ * `place` measured by `boxOf`. What an object draws past its frame (gel lane
+ * labels, issue 44) keeps its point size when the object scales, so after a
+ * scale its drawn box misses `to` by that part times (1 − scale). Each further
+ * uniform step from where it landed leaves (1 − that step) of the miss and
+ * keeps the picture's aspect ratio; a few steps bring it under 0.01 pt.
+ */
+function placeDrawn(o: Obj, from: Box, to: Box, boxOf: (o: Obj) => Box): Obj {
+  let r = place(o, from, to);
+  if (boxOf === objBounds) return r;
+  for (let i = 0; i < 6; i++) {
+    const b = boxOf(r);
+    if (b.w <= 0 || b.h <= 0) return r;
+    const k = Math.min(to.w / b.w, to.h / b.h);
+    const off = Math.max(Math.abs(b.x - to.x), Math.abs(b.y - to.y));
+    if (Math.abs(k - 1) * Math.max(b.w, b.h) < 0.01 && off < 0.01) return r;
+    r = place(r, b, { x: to.x, y: to.y, w: b.w * k, h: b.h * k });
+  }
+  return r;
+}
+
+/**
  * One named edit: each selected object (top-level or on a panel) goes into
  * its own new auto-lettered panel; a selected panel becomes a cell itself,
  * its contents moved (and scaled) with it. Objects are taken in reading
@@ -151,6 +172,7 @@ export function arrangeInGrid(
   ids: readonly Id[],
   opts: GridOptions,
   plots: PlotSizing = 'scale',
+  boxOf: (o: Obj) => Box = objBounds,
 ): Edit {
   const result: Id[] = [];
   return {
@@ -161,7 +183,7 @@ export function arrangeInGrid(
     apply: (f) => {
       const next = withPage(f, pageId, (p) => {
         result.length = 0;
-        return arrangePage(p, ids, opts, letterBand(f.doc.panelLabelStyle), result);
+        return arrangePage(p, ids, opts, letterBand(f.doc.panelLabelStyle), result, boxOf);
       });
       return plots === 'keep' ? keepPlotText(f, next, pageId) : next;
     },
@@ -174,6 +196,7 @@ function arrangePage(
   opts: GridOptions,
   band: number,
   out: Id[],
+  boxOf: (o: Obj) => Box,
 ): Page {
   const set = new Set(ids);
   const found: Obj[] = [];
@@ -194,14 +217,14 @@ function arrangePage(
       `${String(rows)} × ${String(cols)} cells cannot hold ${String(found.length)} objects.`,
     );
 
-  const ordered = inReadingOrder(found, objBounds, (first) =>
-    Math.max(ROW_TOLERANCE, objBounds(first).h / 2),
+  const ordered = inReadingOrder(found, boxOf, (first) =>
+    Math.max(ROW_TOLERANCE, boxOf(first).h / 2),
   );
   const items = ordered.map((o) => ({
-    box: objBounds(o),
+    box: boxOf(o),
     room: opts.letterRoom && o.type !== 'panel' ? band : 0,
   }));
-  const all = boundsOf(ordered);
+  const all = unionBoxes(items.map((it) => it.box));
   const places = gridLayout(items, {
     cols,
     gutter: opts.gutter,
@@ -224,7 +247,7 @@ function arrangePage(
             frame: { ...o.frame, ...frame },
             children: o.children.map((c) => place(c, item.box, at.target)),
           }
-        : { ...createPanel(frame), children: [place(o, item.box, at.target)] };
+        : { ...createPanel(frame), children: [placeDrawn(o, item.box, at.target, boxOf)] };
     replaced.set(o.id, panel);
     out.push(panel.id);
   });

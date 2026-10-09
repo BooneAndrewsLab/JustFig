@@ -24,6 +24,8 @@ With a selection, the Inspector's first section (named after the object, or "3 o
 - With **one** object they align it to the page, which is a quick way to centre something.
 - With **three or more**, two more buttons appear: **Distribute horizontally** and **Distribute vertically** space the objects evenly.
 
+Aligning, distributing and **Arrange in grid** go by what an object draws, so lane labels above a gel photo or a scale bar's label count as part of it: a labelled gel aligned to the top puts the tops of its labels on the line, not the top of the photo.
+
 For exact placement type values into **X**, **Y**, **W** and **H**.
 
 ## Group and ungroup

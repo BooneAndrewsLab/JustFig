@@ -8,6 +8,7 @@ import { frame } from '@/core/model/factory';
 import { type Id, newId } from '@/core/model/ids';
 import { mapPageObjs } from '@/core/model/tree';
 import type {
+  Assets,
   Figure,
   Image,
   Obj,
@@ -130,11 +131,16 @@ export function makeFromPath(pageId: Id, src: PathObj, kind: string): Edit {
  * shapes (one-way, one undo step). Objects of an unknown kind become an
  * image of their snapshot.
  */
-export function convertObjects(pageId: Id, objs: readonly Obj[], palette: readonly Swatch[]): Edit {
+export function convertObjects(
+  pageId: Id,
+  objs: readonly Obj[],
+  palette: readonly Swatch[],
+  assets: Assets = {},
+): Edit {
   const repl = new Map<Id, Obj>();
   for (const o of objs) {
     if (o.type !== 'procedural') continue;
-    const c = convertToShapes(o, palette);
+    const c = convertToShapes(o, palette, assets);
     if (c) repl.set(o.id, c);
   }
   if (repl.size === 0) throw new EditError('Nothing to convert.');
