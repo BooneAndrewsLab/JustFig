@@ -8,7 +8,7 @@ The **Scientific objects** shelf is at the top of the Icons panel. It can be fol
 
 - **Click** a tile to place the object in the middle of what you can see.
 - **Drag** a tile onto the canvas to drop it where you want it.
-- **Search** for one in the icon search box: typing "plate", "gel", "agarose" or "cell" lists the matching scientific objects above the icons, each tagged **Adjustable**. Click, drag or press Enter on one exactly as on the shelf.
+- **Search** for one in the icon search box: typing "plate", "gel", "agarose", "cell" or "umap" lists the matching scientific objects above the icons, each tagged **Adjustable**. Click, drag or press Enter on one exactly as on the shelf.
 
 A scientific object is not the same as an icon of the same thing. An icon is a fixed drawing: you can recolour, resize and rotate it, but its shape never changes. A scientific object is redrawn from its settings, such as the number of wells, the lanes and bands, which organelles are shown or the plasmid's features, and resizing redraws it instead of stretching it.
 
@@ -27,6 +27,7 @@ Select an object to see its settings in the Inspector. Resize it with its handle
 | Well plate        | A 6- to 1536-well plate with a colour for each well. See "The well-map editor" below.                                                                                                                                                                                                                                                                            |
 | Petri dish        | An agar plate with colonies. See below.                                                                                                                                                                                                                                                                                                                          |
 | Agarose gel       | A gel with a ladder and lanes of bands. See below.                                                                                                                                                                                                                                                                                                               |
+| Placeholder plot  | A PCA, UMAP, scatter or bar plot of made-up points, for a schematic or graphical abstract before you have real data. See below.                                                                                                                                                                                                                                  |
 
 Every object also has a **Colours** section with a control for each of its parts (for example Plate, Empty wells, Outlines and Labels for a plate). **Reset colours** goes back to the defaults.
 
@@ -47,6 +48,16 @@ Set the protein **Length** in aa. Each domain in the **Domains** list has a Name
 ### Agarose gel
 
 Choose the **Ladder**: 1 kb ladder, 100 bp ladder or None. Under **Lanes**, give each lane a **Label**, tick **Ladder lane** to make it a ladder, and type the fragment sizes in **Bands (bp)**, separated by commas. Add an intensity after a colon to make a band fainter: `3000, 1200:0.4, 700` is three bands, the middle one at 40% strength. Bands are placed on a log scale as on a real gel. **Look** is Stained (light bands on dark) or Inverted (dark bands on light); you can also show **Lane labels**, **Ladder sizes** and **Wells**.
+
+### Placeholder plot
+
+A plot-shaped drawing for when the figure needs "a UMAP goes here" rather than real data. The points are invented, so never use one where a reader could take it for a result.
+
+**Plot type** is PCA (tilted clusters with axes labelled PC1 and PC2 and their share of variance), UMAP (lumpy clusters with two short corner arrows), Scatter (a rising cloud per group) or Bar chart (one bar per group). Under **Groups**, give each group a **Name** and a **Colour**; there can be 1 to 8, and each is a cluster, a cloud or a bar. **Points per group** sets how many points each cluster has (not for bar charts), **Spread** how loose the clusters are (or how long the error bars), and **Point size** their size.
+
+**Axes** and **Axis labels** switch those on and off. Leave **x-axis label** and **y-axis label** empty for the usual labels of the plot type, or type your own, such as "Dose (µM)". **Group names** shows a legend beside the plot, or the names under the bars of a bar chart. A bar chart can also show **Error bars** and **Data points** (six dots per bar).
+
+**Arrangement** works as on the cell: the same number always draws the same points, so the plot never changes by itself. Use **Convert to shapes** to move single points by hand.
 
 ## The well-map editor
 

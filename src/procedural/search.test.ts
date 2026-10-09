@@ -30,6 +30,8 @@ describe('matchKinds', () => {
     expect(ids('agarose')).toEqual(['gel']);
     expect(ids('plates')).toEqual(['wellPlate', 'petriDish']);
     expect(ids('membrane')).toEqual(['receptors', 'bilayer']);
+    expect(ids('umap')).toEqual(['placeholderPlot']);
+    expect(ids('pca plot')).toEqual(['placeholderPlot']);
   });
 
   it('needs every word of the query to match', () => {

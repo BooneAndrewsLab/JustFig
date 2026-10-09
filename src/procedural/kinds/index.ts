@@ -6,6 +6,7 @@ import { gel } from './gel';
 import { bilayer, helix, receptors } from './pathKinds';
 import { petriDish } from './petri';
 import { plasmidMap } from './plasmid';
+import { placeholderPlot } from './plot';
 import { wellPlate } from './wellPlate';
 
 export const KINDS: readonly ProceduralKind[] = [
@@ -18,4 +19,5 @@ export const KINDS: readonly ProceduralKind[] = [
   wellPlate,
   petriDish,
   gel,
+  placeholderPlot,
 ];

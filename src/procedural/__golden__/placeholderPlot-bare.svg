@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 160">
+<g transform="translate(24.21 149.22)"><text xml:space="preserve"><tspan x="0" y="6.33" font-family="Arimo" font-size="7.48" fill="#1f2933">Control</tspan></text></g>
+<g transform="translate(87.11 149.22)"><text xml:space="preserve"><tspan x="0" y="6.33" font-family="Arimo" font-size="7.48" fill="#1f2933">Treated</tspan></text></g>
+<g transform="translate(148.14 149.22)"><text xml:space="preserve"><tspan x="0" y="6.33" font-family="Arimo" font-size="7.48" fill="#1f2933">Knockout</tspan></text></g>
+<path d="M16.51 61.98H56.02V144.16H16.51Z" fill="#0072b2"/>
+<path d="M80.24 79.13H119.76V144.16H80.24Z" fill="#d55e00"/>
+<path d="M143.98 59.21H183.49V144.16H143.98Z" fill="#009e73"/>
+</svg>

@@ -47,6 +47,12 @@ export const GOLDEN_CASES: Readonly<Record<string, Readonly<Record<string, Parti
   gel: {
     inverted: { look: 'inverted', ladder: '100bp' },
   },
+  placeholderPlot: {
+    umap: { plot: 'umap', points: 120, seed: 12 },
+    scatter: { plot: 'scatter', legend: false, xLabel: 'Dose (µM)', yLabel: 'Response' },
+    bar: { plot: 'bar' },
+    bare: { plot: 'bar', axes: false, axisLabels: false, errorBars: false, dots: false },
+  },
   cell: {
     irregular: { shape: 'irregular', er: false, mitochondria: 10, seed: 11 },
   },
