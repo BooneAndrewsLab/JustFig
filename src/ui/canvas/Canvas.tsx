@@ -203,7 +203,7 @@ export function Canvas() {
   /** When the current resize step started, to time it once it is on screen. */
   const resizeStep = useRef<number | null>(null);
   const [overlay, setOverlay] = useState<Overlay>({});
-  const [size, setSize] = useState({ w: 800, h: 600 });
+  const [size, setSize] = useState({ w: 0, h: 0 });
   const [pen, setPen] = useState<PathNode[]>([]);
   const [space, setSpace] = useState(false);
   const fitted = useRef<string | null>(null);
@@ -234,7 +234,8 @@ export function Canvas() {
     };
   }, []);
 
-  // Fit the page to the window when a page is first shown.
+  // Fit the page to the window when a page is first shown. `size` starts at 0 (not a guess) so the
+  // fit waits for the measured canvas instead of fitting to a placeholder.
   useEffect(() => {
     if (fitted.current === page.id || size.w < 50) return;
     fitted.current = page.id;
