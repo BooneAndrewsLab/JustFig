@@ -29,8 +29,9 @@ export function* docObjects(doc: Doc): Generator<Obj> {
 export function objectAssets(o: Obj): AssetHash[] {
   switch (o.type) {
     case 'icon':
-    case 'image':
       return [o.asset];
+    case 'image':
+      return o.cropped === undefined ? [o.asset] : [o.asset, o.cropped];
     case 'embedded':
       return [o.snapshot];
     case 'procedural':

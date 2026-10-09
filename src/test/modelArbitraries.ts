@@ -130,7 +130,21 @@ const leafArb: fc.Arbitrary<Obj> = fc.oneof(
   fc
     .tuple(baseArb, asset, fc.dictionary(fc.constantFrom('s1', 's2', 'outline'), paintArb))
     .map(([b, a, slots]): Obj => ({ ...b, type: 'icon', asset: a, slots, lockAspect: true })),
-  fc.tuple(baseArb, asset).map(([b, a]): Obj => ({ ...b, type: 'image', asset: a })),
+  fc
+    .tuple(
+      baseArb,
+      asset,
+      fc.option(
+        fc.tuple(fc.nat(50), fc.nat(50), fc.integer({ min: 1, max: 50 }), fc.nat(10), asset),
+        { nil: undefined },
+      ),
+    )
+    .map(([b, a, c]): Obj => ({
+      ...b,
+      type: 'image',
+      asset: a,
+      ...(c ? { crop: { x: c[0], y: c[1], w: c[2], h: c[3] }, cropped: c[4] } : {}),
+    })),
   fc
     .tuple(baseArb, fc.string(), fc.nat(5), json, asset)
     .map(([b, kind, kindVersion, params, snapshot]): Obj => ({

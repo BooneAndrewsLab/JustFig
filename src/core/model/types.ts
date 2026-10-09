@@ -151,8 +151,15 @@ export interface Rect4 {
 
 export interface Image extends Base {
   readonly type: 'image';
+  /** The whole picture, kept so a crop can be changed or undone (note 20). */
   readonly asset: AssetHash;
+  /** What is shown, in pixels of `asset` (its `meta` size); none = all of it. */
   readonly crop?: Rect4;
+  /**
+   * The pixels of `crop`, re-encoded as their own image asset (note 20): the
+   * export subset has no clipping, so this is what is drawn when `crop` is set.
+   */
+  readonly cropped?: AssetHash;
 }
 
 export interface Procedural extends Base {

@@ -31,10 +31,10 @@ account, figures never leave the computer. Design notes: `docs/design/`.
   and the IndexedDB name are permanent and separate.
 - **One renderer:** `objectToNode` (pure) → `SvgNode` → React on screen,
   `nodeToSvgString` for every export. Never draw an object any other way.
-- **Export subset:** plain SVG 1.1 presentation attributes only. No
-  `<marker>`, filters, masks, `foreignObject`, CSS variables, `<style>` in
-  exported pages, `vector-effect`, `baseline-shift`, `dominant-baseline`.
-  Arrowheads are path geometry; sub/sup are tspans with explicit x/y/size.
+- **Export subset:** plain SVG 1.1 presentation attributes only. No `<marker>`, filters, masks,
+  `foreignObject`, CSS variables, `<style>` in exported pages, `vector-effect`, `baseline-shift`,
+  `dominant-baseline`. Arrowheads are path geometry; sub/sup are tspans with explicit x/y/size;
+  a crop draws its re-encoded pixels (`Image.cropped`, note 20), never a clip.
 - **Text layout** is ours (opentype.js on `public/fonts/*.ttf`), never the
   browser's: every run is placed with explicit x/y, kerning off; imported SVG text too (note 14).
 - **Units:** the model is in points (1/72 in); the UI shows mm or inches.

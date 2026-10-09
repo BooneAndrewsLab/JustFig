@@ -28,9 +28,8 @@ follow-up issues (below).
   pixel size of 0.0645 µm would have read back as 0.06. They now show as many decimals as the
   field's `step` (generic, no per-kind UI).
 - **Known limits.** Ungrouping and then resizing the picture alone breaks the calibration (as it
-  breaks gel labels). `Image.crop` exists in the model but is not drawn by `objectToNode`, so
-  there is no in-app crop to account for yet; when there is, the bar must use the crop's width in
-  pixels instead of the asset's.
+  breaks gel labels). In-app crop (note 20) keeps the bar calibrated: a crop scales the bar's
+  `imageWidth` with the crop's width, and `addScaleBar` on a cropped picture takes `crop.w`.
 
 ## Follow-ups
 
@@ -39,7 +38,7 @@ follow-up issues (below).
   work in the browser (canvas decode, colourise, add, encode to a new PNG asset), a dialog to pick
   the channels and colours, and a decision on whether the composite stays re-editable (a recipe
   in the model) or is a baked asset.
-- **Crop and rotate in lockstep.** Needs in-app image crop first: `Image.crop` is in the model and
+- **Crop and rotate in lockstep.** Done in note 20. Needed in-app image crop first: `Image.crop` is in the model and
   decoder but no renderer or UI uses it, and drawing a crop within the export subset (no masks)
   means either a `clipPath` decision or re-encoding the cropped pixels as `pictureClip.ts` does
   for PDF import. Lockstep then is one edit applying the same crop/rotation to a set of images.

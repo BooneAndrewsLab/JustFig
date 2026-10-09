@@ -72,6 +72,7 @@ export const EVENTS = {
   guide: ['open'],
   embedded: ['import'],
   arrange: ['grid'],
+  image: ['crop'],
 } as const satisfies Readonly<Record<string, readonly string[]>>;
 
 export type EventCategory = keyof typeof EVENTS;

@@ -227,6 +227,9 @@ function content(o: Obj, ctx: RenderCtx): SvgNode[] {
       return a?.kind === 'icon' ? [iconNode(a, o.slots, ctx.palette, w, h)] : [placeholder(w, h)];
     }
     case 'image': {
+      // A crop draws its own re-encoded pixels (note 20): the export subset cannot clip.
+      const c = o.crop && o.cropped !== undefined ? ctx.assets[o.cropped] : undefined;
+      if (c?.kind === 'image') return [imageNode(c, w, h)];
       const a = ctx.assets[o.asset];
       if (a?.kind === 'image') return [imageNode(a, w, h)];
       if (a?.kind === 'svgImport') return [svgImportNode(a.svg, w, h, ctx.textMode)];

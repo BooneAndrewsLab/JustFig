@@ -34,6 +34,7 @@ import {
   styleTargets,
 } from '@/core/edits/style';
 import { needsModifiedNote } from '@/core/attribution/attribution';
+import { cropTargets, sharedSize } from '@/core/edits/crop';
 import { center } from '@/core/geometry/matrix';
 import { boundsOf, normAngle, objBounds, rebase, rotateObj } from '@/core/geometry/transform';
 import type { Id } from '@/core/model/ids';
@@ -147,13 +148,19 @@ function restyle(
   );
 }
 
-export function Inspector({ onArrangeGrid }: { onArrangeGrid: () => void }) {
+export function Inspector({
+  onArrangeGrid,
+  onCrop,
+}: {
+  onArrangeGrid: () => void;
+  onCrop: () => void;
+}) {
   const s = useAppState();
   const sel = selectedObjects(s);
   return sel.length === 0 ? (
     <PageInspector s={s} />
   ) : (
-    <SelectionInspector s={s} sel={sel} onArrangeGrid={onArrangeGrid} />
+    <SelectionInspector s={s} sel={sel} onArrangeGrid={onArrangeGrid} onCrop={onCrop} />
   );
 }
 
@@ -327,10 +334,12 @@ function SelectionInspector({
   s,
   sel,
   onArrangeGrid,
+  onCrop,
 }: {
   s: AppState;
   sel: readonly Obj[];
   onArrangeGrid: () => void;
+  onCrop: () => void;
 }) {
   const fig = figure(s);
   const page = currentPage(s);
@@ -682,6 +691,7 @@ function SelectionInspector({
       {one?.type === 'icon' && <IconSection s={s} icon={one} />}
       {one?.type === 'panel' && <PanelSection s={s} panel={one} />}
       {one?.type === 'image' && <ImageSection s={s} image={one} />}
+      <CropSection s={s} sel={sel} onCrop={onCrop} />
       {one?.type === 'embedded' && <EmbeddedSection obj={one} />}
       {one?.type === 'procedural' && <ProceduralSection s={s} obj={one} />}
       {one?.type === 'path' && <PathKindsSection s={s} path={one} />}
@@ -1187,6 +1197,34 @@ function PanelSection({ s, panel }: { s: AppState; panel: Extract<Obj, { type: '
           />{' '}
           Show border
         </label>
+      </div>
+    </Section>
+  );
+}
+
+/** Crop and rotate for the pictures in the selection, together (note 20). */
+function CropSection({ s, sel, onCrop }: { s: AppState; sel: readonly Obj[]; onCrop: () => void }) {
+  const assets = figure(s).assets;
+  const pics = cropTargets(sel, assets);
+  if (pics.length === 0) return null;
+  const size = sharedSize(pics, assets);
+  const cropped = pics.filter((o) => o.crop).length;
+  return (
+    <Section title="Crop and rotate">
+      <p className="note">
+        {size === null
+          ? `${String(pics.length)} pictures of different sizes: select pictures of one size (the channels of one field) to crop them together.`
+          : `${String(pics.length)} ${pics.length === 1 ? 'picture' : 'pictures'}, ${String(size.w)} × ${String(size.h)} px${cropped > 0 ? `, ${String(cropped)} cropped` : ''}.`}
+      </p>
+      <div className="row">
+        <button
+          type="button"
+          disabled={size === null}
+          title="Crop to a rectangle of pixels and set the angle, the same for every selected picture"
+          onClick={onCrop}
+        >
+          Crop and rotate…
+        </button>
       </div>
     </Section>
   );

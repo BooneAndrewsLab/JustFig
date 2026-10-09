@@ -300,6 +300,7 @@ export function object(v: unknown, p: Path): Obj {
             h: nonNeg(c['h'], q.key('h')),
           };
         }),
+        ...opt(o, 'cropped', p, str),
       };
     case 'procedural':
       return {

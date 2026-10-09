@@ -223,6 +223,8 @@ export function addScaleBar(pageId: Id, image: Obj): Edit {
   if (image.type !== 'image') throw new EditError('Select a micrograph to add a scale bar to.');
   return overImage(pageId, image, 'scaleBar', 'Add scale bar', (o, f) => {
     const a = f.assets[o.asset];
-    return a?.kind === 'image' && a.meta.width > 0 ? { imageWidth: Math.round(a.meta.width) } : {};
+    // A cropped picture shows only the crop's pixels across its box (note 20).
+    const w = o.crop?.w ?? (a?.kind === 'image' ? a.meta.width : 0);
+    return a?.kind === 'image' && w > 0 ? { imageWidth: Math.round(w) } : {};
   });
 }

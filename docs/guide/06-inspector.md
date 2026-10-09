@@ -73,6 +73,12 @@ For an icon from the library: one colour control for each recolourable part, nam
 
 For a PNG or JPEG the section is called **Image**; for an imported SVG it is **Imported SVG**. It shows the file name and has a **Credit** field. If you type a credit there, such as "Photo: A. Author", it is added to the figure's credit line. Pictures you import are not credited unless you fill this in. An Image also has **Label gel lanes**, which puts lane labels and ladder sizes over a photo of a gel and groups them with it, and **Add scale bar**, which puts a calibrated scale bar on a micrograph and groups it with it (see [Scientific objects](08-objects.md)). See [Importing and other apps](11-import-and-other-apps.md).
 
+### Crop and rotate
+
+Shown when the selection holds PNG or JPEG pictures, or groups with one in them (such as a picture grouped with its scale bar). **Crop and rotate…** opens the **Crop and rotate** dialog, which applies the same crop and the same angle to every selected picture at once: select the channels of one field (they must be the same size in pixels) to crop and turn them together.
+
+In the dialog, type the crop as **Left**, **Top**, **Width** and **Height** in pixels of the picture, or drag a rectangle on the preview to fill them in; **Whole picture** takes the crop off again. **Angle (°)** turns each picture about its centre. Click **Apply**. The pictures keep their scale: a crop makes the picture's box smaller, and the part you kept stays where it was on the page. A scale bar grouped with a picture (from **Add scale bar**) moves to the new box and stays calibrated, and so do gel lane labels. The whole picture is kept in the figure, so you can widen a crop later or undo it in one step. The crop is in the picture's own pixels, before it is turned, so a turned picture is cropped along its own edges.
+
 ### From BarelySig
 
 For a graph imported from BarelySig with its data. It explains that the graph is drawn from the picture BarelySig made, and has **Download .bsig for BarelySig**. See [Importing and other apps](11-import-and-other-apps.md).

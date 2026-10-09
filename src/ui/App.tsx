@@ -10,6 +10,7 @@ import { AttributionDialog } from './dialogs/AttributionDialog';
 import { CreditsDialog } from './dialogs/CreditsDialog';
 import { ExportDialog } from './dialogs/ExportDialog';
 import { GalleryDialog } from './dialogs/GalleryDialog';
+import { CropDialog } from './dialogs/CropDialog';
 import { GridDialog } from './dialogs/GridDialog';
 import { GuideDialog } from './dialogs/GuideDialog';
 import { RecentDialog } from './dialogs/RecentDialog';
@@ -27,7 +28,16 @@ import { useAppState } from './state/useAppState';
 import { usePdfPageRequest } from './state/pdfPagePicker';
 
 type DialogId =
-  'recent' | 'export' | 'attribution' | 'credits' | 'gallery' | 'keys' | 'guide' | 'grid' | null;
+  | 'recent'
+  | 'export'
+  | 'attribution'
+  | 'credits'
+  | 'gallery'
+  | 'keys'
+  | 'guide'
+  | 'grid'
+  | 'crop'
+  | null;
 
 /** The one selected object's name, for the status line a screen reader announces. */
 function selectionName(s: ReturnType<typeof useAppState>): string {
@@ -302,6 +312,9 @@ export function App() {
           onArrangeGrid={() => {
             setDialog('grid');
           }}
+          onCrop={() => {
+            setDialog('crop');
+          }}
         />
         <LayersPanel />
       </aside>
@@ -356,6 +369,13 @@ export function App() {
       )}
       {dialog === 'grid' && (
         <GridDialog
+          onClose={() => {
+            setDialog(null);
+          }}
+        />
+      )}
+      {dialog === 'crop' && (
+        <CropDialog
           onClose={() => {
             setDialog(null);
           }}
