@@ -102,7 +102,7 @@ export function downsample(src: Intensities, maxSide: number): Intensities {
   return { width, height, values };
 }
 
-async function canvasPixels(a: ImageAsset): Promise<Pixels> {
+export async function canvasPixels(a: ImageAsset): Promise<Pixels> {
   const bytes = fromBase64(a.dataBase64);
   const bitmap = await createImageBitmap(new Blob([new Uint8Array(bytes)], { type: a.mime }));
   try {

@@ -51,7 +51,14 @@ export function channelsOf(pics: readonly Image[]): Channel[] {
   };
   for (const o of pics) {
     if (o.channels) o.channels.forEach(add);
-    else add({ asset: o.asset, color: channelColour(out.length), on: true, min: 0, max: 255 });
+    else
+      add({
+        asset: o.levels?.base ?? o.asset,
+        color: channelColour(out.length),
+        on: true,
+        min: 0,
+        max: 255,
+      });
   }
   return out;
 }
@@ -60,21 +67,29 @@ export function channelsOf(pics: readonly Image[]): Channel[] {
 export interface BakedMerge {
   readonly merge: CroppedPicture;
   readonly cropped?: CroppedPicture;
+  /**
+   * The merge before the picture's levels (note 27), which `merge` is then the
+   * adjusted form of: needed for a picture that has levels, else absent.
+   */
+  readonly unadjusted?: CroppedPicture;
 }
 
 const assetsOf = (b: BakedMerge): Record<AssetHash, Asset> => ({
   [b.merge.hash]: b.merge.asset,
   ...(b.cropped ? { [b.cropped.hash]: b.cropped.asset } : {}),
+  ...(b.unadjusted ? { [b.unadjusted.hash]: b.unadjusted.asset } : {}),
 });
 
 /** `o` showing the merge `b` of `channels`, keeping its crop (re-baked). */
 function merged(o: Image, channels: readonly Channel[], b: BakedMerge): Image {
   if (channels.length === 0) throw new EditError('A merge needs at least one channel.');
-  const { cropped: _c, ...rest } = o;
+  const { cropped: _c, levels: _l, ...rest } = o;
   if (o.crop && !b.cropped) throw new EditError('The cropped merge is missing.');
+  if (o.levels && !b.unadjusted) throw new EditError('The unadjusted merge is missing.');
   return {
     ...rest,
     asset: b.merge.hash,
+    ...(o.levels && b.unadjusted ? { levels: { ...o.levels, base: b.unadjusted.hash } } : {}),
     ...(o.crop && b.cropped ? { cropped: b.cropped.hash } : {}),
     channels,
   };
@@ -180,7 +195,14 @@ export function mergeChannels(
       const head = unitOf(page, first);
       const firstBox = boundsOf([head.unit]);
 
-      const { crop: _crop, cropped: _cropped, channels: _ch, name: _n, ...base } = first;
+      const {
+        crop: _crop,
+        cropped: _cropped,
+        channels: _ch,
+        levels: _lv,
+        name: _n,
+        ...base
+      } = first;
       const pic: Image = merged(
         { ...base, ...(first.crop ? { crop: first.crop } : {}), id: imageId, name: 'Merge' },
         channels,

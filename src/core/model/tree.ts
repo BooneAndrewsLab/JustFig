@@ -35,6 +35,7 @@ export function objectAssets(o: Obj): AssetHash[] {
         o.asset,
         ...(o.cropped === undefined ? [] : [o.cropped]),
         ...(o.channels ?? []).map((c) => c.asset),
+        ...(o.levels === undefined ? [] : [o.levels.base]),
       ];
     case 'embedded':
       return [o.snapshot];

@@ -82,6 +82,12 @@ Select the channels (they must be the same size in pixels) and click **Merge cha
 
 The merge keeps its channels, so it can be changed later: select it and click **Channels…** to open the **Channels** dialog, where you can recolour a channel, change its range or turn it off, then **Apply**. **Channels…** on a single plain picture shows it in a colour (for example a channel in green beside the merge). A merge is ordinary pixels in exported files; the channels' own pictures stay in the figure file so it can be changed again. Cropping a merge with **Crop and rotate** works as for any picture: select the channels and the merge together to crop them all alike.
 
+### Levels
+
+Shown when one PNG or JPEG picture is selected. **Black at** and **Full at** set the brightness (0 to 255) shown as black and as full white, so a dim blot or micrograph can be brightened; **Invert** swaps dark and light; **Reset levels** goes back to the original. The sliders move with the arrow keys, and the picture updates as you change them. A whole drag of a slider is one step to undo, and so is Invert or Reset.
+
+The adjustment always applies to the whole picture, never to a part of it: journal image-integrity rules do not allow adjusting part of a picture, and a picture changed this way should say so in its legend. The original pixels stay in the figure and every change is made from them, so changing the levels again never stacks on the last change. The adjusted picture is ordinary pixels in exported files. On a merge (see Channels) the levels apply to the merged colours, after the merge; a crop (see Crop and rotate) is then of the adjusted picture. Changing the channels of a picture that has levels keeps its levels.
+
 ### Crop and rotate
 
 Shown when the selection holds PNG or JPEG pictures, or groups with one in them (such as a picture grouped with its scale bar). **Crop and rotate…** opens the **Crop and rotate** dialog, which applies the same crop and the same angle to every selected picture at once: select the channels of one field to crop and turn them together. The crop is typed in pixels of the first picture; pictures of a different size in pixels are cropped to the same part of themselves (the same fraction across and down).

@@ -13,6 +13,7 @@ import type { Channel } from '@/core/model/types';
 import { bakeMerge, blendChannels, channelIntensities, downsample, layersOf } from '@/io/channels';
 import type { Intensities } from '@/io/channels';
 import { bakeView } from '@/io/cropImage';
+import { bakeLevels } from '@/io/levels';
 
 import { analytics } from '../analytics';
 import { currentPage, figure, selectedObjects, store } from '../state/store';
@@ -109,7 +110,7 @@ export function ChannelsDialog({ onClose }: { onClose: () => void }) {
     setError(null);
     try {
       // A credit typed on an earlier merge stays with it.
-      const was = assets[first.asset];
+      const was = assets[first.levels?.base ?? first.asset];
       const credit =
         !merging && first.channels && was?.kind === 'image' ? was.meta.credit : undefined;
       const merge = await bakeMerge(channels, (h) => pixels.get(h), {
@@ -118,10 +119,16 @@ export function ChannelsDialog({ onClose }: { onClose: () => void }) {
         width: size.w,
         height: size.h,
       });
+      // A picture with levels (note 27) keeps them: merge, then levels, then crop.
+      const shown = !merging && first.levels ? await bakeLevels(merge.asset, first.levels) : merge;
       const cropped: CroppedPicture | undefined = first.crop
-        ? await bakeView(merge.asset, { turn: first.turn ?? 0, crop: first.crop })
+        ? await bakeView(shown.asset, { turn: first.turn ?? 0, crop: first.crop })
         : undefined;
-      const baked = { merge, ...(cropped ? { cropped } : {}) };
+      const baked = {
+        merge: shown,
+        ...(shown === merge ? {} : { unadjusted: merge }),
+        ...(cropped ? { cropped } : {}),
+      };
       const pageId = currentPage(store.getState()).id;
       const done = merging
         ? store.edit(

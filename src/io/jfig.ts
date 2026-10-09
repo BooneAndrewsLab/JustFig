@@ -17,6 +17,7 @@ import {
   type Frame,
   type Head,
   type IconMeta,
+  type Levels,
   type Layer,
   type Note,
   type NoteReply,
@@ -213,6 +214,19 @@ function run(v: unknown, p: Path): Run {
   };
 }
 
+function levels(v: unknown, p: Path): Levels {
+  const o = obj(v, p);
+  const min = int(o['min'], p.key('min'));
+  const max = int(o['max'], p.key('max'));
+  if (min < 0 || max > 255 || min >= max) p.fail('expected 0 ≤ min < max ≤ 255');
+  return {
+    min,
+    max,
+    invert: bool(o['invert'], p.key('invert')),
+    base: str(o['base'], p.key('base')),
+  };
+}
+
 function channel(v: unknown, p: Path): Channel {
   const o = obj(v, p);
   const level = (k: 'min' | 'max') => {
@@ -331,6 +345,7 @@ export function object(v: unknown, p: Path): Obj {
         ...opt(o, 'cropped', p, str),
         ...opt(o, 'turn', p, num),
         ...opt(o, 'channels', p, (x, q) => list(x, q, channel)),
+        ...opt(o, 'levels', p, levels),
       };
     case 'procedural':
       return {

@@ -33,6 +33,41 @@ describe('.jfig codec', () => {
     );
   });
 
+  it('reads levels on a picture and rejects an empty range', () => {
+    const doc = createDoc();
+    const hash = Object.keys(ASSETS)[0] ?? '';
+    const pic = (levels: unknown) =>
+      writeJfig(
+        {
+          doc: {
+            ...doc,
+            pages: doc.pages.map((p) => ({
+              ...p,
+              layers: p.layers.map((l) => ({
+                ...l,
+                children: [
+                  {
+                    id: newId('o'),
+                    type: 'image',
+                    asset: hash,
+                    frame: { x: 0, y: 0, w: 10, h: 10, rotation: 0 },
+                    opacity: 1,
+                    levels,
+                  } as Obj,
+                ],
+              })),
+            })),
+          },
+          assets: ASSETS,
+        },
+        APP,
+      );
+    const good = { min: 10, max: 200, invert: true, base: hash };
+    expect(() => readJfig(pic(good))).not.toThrow();
+    expect(() => readJfig(pic({ ...good, min: 200 }))).toThrow(/min < max/);
+    expect(() => readJfig(pic({ ...good, invert: 1 }))).toThrow(/invert/);
+  });
+
   it('keeps a "__proto__" key in raw params as data', () => {
     const params = JSON.parse('{"__proto__": "", "a": {"__proto__": 1}}') as unknown;
     const base = createDoc();

@@ -3,7 +3,7 @@
  * page and figure when nothing is selected. Every change is a named edit;
  * typing in one field merges into one undo step (coalesce per field).
  */
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useRef, useState } from 'react';
 
 import {
   alignObjects,
@@ -35,6 +35,7 @@ import {
 } from '@/core/edits/style';
 import { needsModifiedNote } from '@/core/attribution/attribution';
 import { cropTargets, sharedSize } from '@/core/edits/crop';
+import { type LevelsInput, isIdentity, setLevels } from '@/core/edits/levels';
 import { center } from '@/core/geometry/matrix';
 import { boundsOf, normAngle, objBounds, rebase, rotateObj } from '@/core/geometry/transform';
 import type { Id } from '@/core/model/ids';
@@ -52,6 +53,8 @@ import {
 } from '@/core/model/types';
 import { PAGE_PRESETS, presetSize } from '@/core/presets/pages';
 import { recipeFile } from '@/io/barelysig';
+import { bakeView } from '@/io/cropImage';
+import { bakeLevels } from '@/io/levels';
 import { drawnBoundsIn } from '@/procedural/bounds';
 import { addScaleBar, labelGelImage } from '@/procedural/edits';
 import { formatLength, fromUnit, toUnit } from '@/core/units';
@@ -714,6 +717,7 @@ function SelectionInspector({
       {one?.type === 'panel' && <PanelSection s={s} panel={one} />}
       {one?.type === 'image' && <ImageSection s={s} image={one} />}
       <ChannelsSection s={s} sel={sel} onChannels={onChannels} />
+      <LevelsSection s={s} sel={sel} />
       <CropSection s={s} sel={sel} onCrop={onCrop} />
       {one?.type === 'embedded' && <EmbeddedSection obj={one} />}
       {one?.type === 'procedural' && <ProceduralSection s={s} obj={one} />}
@@ -1270,6 +1274,133 @@ function ChannelsSection({
   );
 }
 
+/**
+ * Levels and invert for one picture (note 27): the whole picture, never a part
+ * (journal image-integrity rules). The unadjusted pixels stay in the figure, so
+ * each change is baked from them and never compounds; a drag is one undo step.
+ */
+function LevelsSection({ s, sel }: { s: AppState; sel: readonly Obj[] }) {
+  const assets = figure(s).assets;
+  const pics = cropTargets(sel, assets);
+  const pic = pics.length === 1 ? pics[0] : undefined;
+  const [draft, setDraft] = useState<LevelsInput | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const latest = useRef(0);
+  if (!pic) return null;
+  const now: LevelsInput = pic.levels ?? { min: 0, max: 255, invert: false };
+  const shown = draft ?? now;
+
+  const change = (patch: Partial<LevelsInput>) => {
+    let next = { ...shown, ...patch };
+    if (patch.min !== undefined) next = { ...next, min: Math.min(next.min, next.max - 1) };
+    if (patch.max !== undefined) next = { ...next, max: Math.max(next.max, next.min + 1) };
+    setDraft(next);
+    setError(null);
+    const run = ++latest.current;
+    // Only a slider drag coalesces (one undo step per drag, per slider); Invert and Reset are
+    // steps of their own.
+    const keys = Object.keys(patch);
+    const slider = keys.length === 1 && (keys[0] === 'min' || keys[0] === 'max') ? keys[0] : null;
+    void (async () => {
+      try {
+        const page = currentPage(store.getState()).id;
+        const fig = figure(store.getState());
+        const base = fig.assets[pic.levels?.base ?? pic.asset];
+        if (base?.kind !== 'image') throw new Error('The picture is missing.');
+        const adjusted = isIdentity(next) ? undefined : await bakeLevels(base, next);
+        const src = adjusted?.asset ?? base;
+        const cropped = pic.crop
+          ? await bakeView(src, { turn: pic.turn ?? 0, crop: pic.crop })
+          : undefined;
+        if (run !== latest.current) return;
+        store.edit(
+          setLevels(page, pic.id, next, {
+            ...(adjusted ? { adjusted } : {}),
+            ...(cropped ? { cropped } : {}),
+          }),
+          { ...(slider ? { coalesce: `levels-${slider}:${pic.id}` } : {}), keepSelection: true },
+        );
+        setDraft(null);
+      } catch (e: unknown) {
+        if (run === latest.current) {
+          setDraft(null);
+          setError(e instanceof Error ? e.message : String(e));
+        }
+      }
+    })();
+  };
+
+  return (
+    <Section title="Levels">
+      <p className="note">
+        Black point, white point and invert apply to the whole picture, never to a part of it
+        (journal image-integrity rules). The original pixels are kept, so you can always go back.
+      </p>
+      <div className="row">
+        <label>
+          Black at
+          <input
+            type="range"
+            min={0}
+            max={254}
+            step={1}
+            value={shown.min}
+            aria-label="Black at (levels)"
+            onChange={(e) => {
+              change({ min: Number(e.target.value) });
+            }}
+          />
+          <output>{shown.min}</output>
+        </label>
+      </div>
+      <div className="row">
+        <label>
+          Full at
+          <input
+            type="range"
+            min={1}
+            max={255}
+            step={1}
+            value={shown.max}
+            aria-label="Full at (levels)"
+            onChange={(e) => {
+              change({ max: Number(e.target.value) });
+            }}
+          />
+          <output>{shown.max}</output>
+        </label>
+      </div>
+      <div className="row">
+        <label>
+          <input
+            type="checkbox"
+            checked={shown.invert}
+            onChange={(e) => {
+              change({ invert: e.target.checked });
+            }}
+          />{' '}
+          Invert
+        </label>
+        <button
+          type="button"
+          disabled={isIdentity(shown)}
+          title="Back to the original pixels"
+          onClick={() => {
+            change({ min: 0, max: 255, invert: false });
+          }}
+        >
+          Reset levels
+        </button>
+      </div>
+      {error !== null && (
+        <p className="note" role="alert">
+          {error}
+        </p>
+      )}
+    </Section>
+  );
+}
+
 /** Crop and rotate for the pictures in the selection, together (note 20). */
 function CropSection({ s, sel, onCrop }: { s: AppState; sel: readonly Obj[]; onCrop: () => void }) {
   const assets = figure(s).assets;
@@ -1298,7 +1429,9 @@ function CropSection({ s, sel, onCrop }: { s: AppState; sel: readonly Obj[]; onC
 }
 
 function ImageSection({ s, image }: { s: AppState; image: Extract<Obj, { type: 'image' }> }) {
-  const asset = figure(s).assets[image.asset];
+  // With levels (note 27) the credit lives on the unadjusted picture.
+  const target = image.levels && !image.channels ? image.levels.base : image.asset;
+  const asset = figure(s).assets[target];
   if (!asset || asset.kind === 'icon') return null;
   return (
     <Section title={asset.kind === 'image' ? 'Image' : 'Imported SVG'}>
@@ -1316,14 +1449,14 @@ function ImageSection({ s, image }: { s: AppState; image: Extract<Obj, { type: '
               {
                 label: 'Image credit',
                 apply: (f) => {
-                  const a = f.assets[image.asset];
+                  const a = f.assets[target];
                   if (!a || a.kind === 'icon') return f;
                   const { credit: _c, ...meta } = a.meta;
                   return {
                     ...f,
                     assets: {
                       ...f.assets,
-                      [image.asset]: {
+                      [target]: {
                         ...a,
                         meta: credit.trim() === '' ? meta : { ...meta, credit },
                       },
@@ -1331,7 +1464,7 @@ function ImageSection({ s, image }: { s: AppState; image: Extract<Obj, { type: '
                   };
                 },
               },
-              { coalesce: `credit:${image.asset}` },
+              { coalesce: `credit:${target}` },
             );
           }}
         />

@@ -679,6 +679,10 @@
             "$ref": "#/definitions/Channel"
           },
           "description": "A pseudocoloured merge (note 21): the channels `asset` is baked from, kept so a channel can be recoloured, re-ranged or turned off later."
+        },
+        "levels": {
+          "$ref": "#/definitions/Levels",
+          "description": "Levels and invert over the whole picture (note 27): `asset` is `levels.base` adjusted, baked. Applied after a merge and before a crop."
         }
       },
       "required": [
@@ -747,6 +751,34 @@
       ],
       "additionalProperties": false,
       "description": "One channel of a merged picture (note 21): a single-channel picture shown in `color`, its display range `min`..`max` (0–255) stretched to full brightness."
+    },
+    "Levels": {
+      "type": "object",
+      "properties": {
+        "min": {
+          "type": "number",
+          "description": "Value shown black (0–254)."
+        },
+        "max": {
+          "type": "number",
+          "description": "Value shown full (1–255, above `min`)."
+        },
+        "invert": {
+          "type": "boolean"
+        },
+        "base": {
+          "$ref": "#/definitions/AssetHash",
+          "description": "The picture the levels were applied to, unadjusted."
+        }
+      },
+      "required": [
+        "min",
+        "max",
+        "invert",
+        "base"
+      ],
+      "additionalProperties": false,
+      "description": "Levels and invert for one picture (note 27): `min`..`max` (0–255) stretched to the full range on every colour component, then optionally inverted. `base` is the picture before this (the plain picture or the channel merge), kept so levels can be changed or removed without compounding; `Image.asset` is then the baked result."
     },
     "Procedural": {
       "type": "object",

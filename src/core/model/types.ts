@@ -166,6 +166,23 @@ export interface Channel {
   readonly max: number;
 }
 
+/**
+ * Levels and invert for one picture (note 27): `min`..`max` (0–255) stretched
+ * to the full range on every colour component, then optionally inverted.
+ * `base` is the picture before this (the plain picture or the channel merge),
+ * kept so levels can be changed or removed without compounding; `Image.asset`
+ * is then the baked result.
+ */
+export interface Levels {
+  /** Value shown black (0–254). */
+  readonly min: number;
+  /** Value shown full (1–255, above `min`). */
+  readonly max: number;
+  readonly invert: boolean;
+  /** The picture the levels were applied to, unadjusted. */
+  readonly base: AssetHash;
+}
+
 export interface Image extends Base {
   readonly type: 'image';
   /**
@@ -196,6 +213,11 @@ export interface Image extends Base {
    * so a channel can be recoloured, re-ranged or turned off later.
    */
   readonly channels?: readonly Channel[];
+  /**
+   * Levels and invert over the whole picture (note 27): `asset` is `levels.base`
+   * adjusted, baked. Applied after a merge and before a crop.
+   */
+  readonly levels?: Levels;
 }
 
 export interface Procedural extends Base {
