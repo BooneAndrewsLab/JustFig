@@ -97,7 +97,7 @@ export function canonical(v: unknown): Json {
         const x = (v as Record<string, unknown>)[k];
         return x === undefined ? [] : [[k, canonical(x)] as const];
       }),
-  ) as Record<string, Json>;
+  );
 }
 
 /** Assets the document uses, in hash order. */
