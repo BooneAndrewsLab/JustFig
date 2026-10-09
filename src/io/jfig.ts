@@ -88,12 +88,16 @@ export function canonical(v: unknown): Json {
     return v as Json;
   }
   if (Array.isArray(v)) return v.map(canonical);
-  const out: Record<string, Json> = {};
-  for (const k of Object.keys(v).sort(keyOrder)) {
-    const x = (v as Record<string, unknown>)[k];
-    if (x !== undefined) out[k] = canonical(x);
-  }
-  return out;
+  // fromEntries defines own properties, so a `__proto__` key in raw procedural params (plain
+  // JSON from a file) is kept as data rather than assigned as the prototype.
+  return Object.fromEntries(
+    Object.keys(v)
+      .sort(keyOrder)
+      .flatMap((k) => {
+        const x = (v as Record<string, unknown>)[k];
+        return x === undefined ? [] : [[k, canonical(x)] as const];
+      }),
+  ) as Record<string, Json>;
 }
 
 /** Assets the document uses, in hash order. */

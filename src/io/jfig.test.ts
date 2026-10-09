@@ -2,6 +2,7 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 
 import { createDoc } from '@/core/model/factory';
+import type { Obj } from '@/core/model/types';
 import { ASSETS, docArb, objArb } from '@/test/modelArbitraries';
 
 import {
@@ -29,6 +30,29 @@ describe('.jfig codec', () => {
       }),
       { numRuns: 200 },
     );
+  });
+
+  it('keeps a "__proto__" key in raw params as data', () => {
+    const params = JSON.parse('{"__proto__": "", "a": {"__proto__": 1}}') as unknown;
+    const base = createDoc();
+    const page = base.pages[0];
+    const layer = page?.layers[0];
+    if (!page || !layer) throw new Error('no layer');
+    const obj: Obj = {
+      id: 'o_0000000000000001',
+      type: 'procedural',
+      frame: { x: 0, y: 0, w: 10, h: 10, rotation: 0 },
+      opacity: 1,
+      kind: 'x',
+      kindVersion: 1,
+      params,
+      slots: {},
+    };
+    const doc = { ...base, pages: [{ ...page, layers: [{ ...layer, children: [obj] }] }] };
+    const back = readJfig(writeJfig({ doc, assets: ASSETS }, APP));
+    expect(back.doc).toEqual(doc);
+    const got = back.doc.pages[0]?.layers[0]?.children[0];
+    expect(Object.keys((got as { params: object }).params)).toEqual(['__proto__', 'a']);
   });
 
   it('writes the format id and schema first, and drops unused assets', () => {
