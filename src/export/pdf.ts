@@ -61,6 +61,30 @@ function svgElement(text: string): Element {
   return root;
 }
 
+/** svg2pdf matches each image's data URI with a backtracking regex that overflows the stack at about 12 MB (20 Mpx pictures). */
+const BIG_DATA_URI = 4_000_000;
+
+/**
+ * Points every large embedded picture at a blob URL instead (svg2pdf fetches
+ * it as bytes, no regex; the `#.ext` tells it the format). Returns the URLs
+ * to revoke once the page is drawn (note 29).
+ */
+export function externaliseBigImages(svg: Element): string[] {
+  const urls: string[] = [];
+  for (const img of Array.from(svg.getElementsByTagName('image'))) {
+    const href = img.getAttribute('xlink:href') ?? img.getAttribute('href') ?? '';
+    const m = /^data:image\/([a-z0-9.+-]+);base64,/i.exec(href.slice(0, 64));
+    if (href.length < BIG_DATA_URI || !m?.[1]) continue;
+    const bin = atob(href.slice(m[0].length));
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i);
+    const url = URL.createObjectURL(new Blob([bytes], { type: `image/${m[1]}` }));
+    urls.push(url);
+    img.setAttribute('xlink:href', `${url}#.${m[1]}`);
+  }
+  return urls;
+}
+
 export async function exportPdf(
   figure: Figure,
   pages: readonly Page[],
@@ -84,7 +108,13 @@ export async function exportPdf(
       pdf.addPage([w, h], orientation);
     }
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="${String(w)}" height="${String(h)}" viewBox="${String(root.x)} ${String(root.y)} ${String(w)} ${String(h)}">${nodeToSvgString(flattenOpacity(root.node), { stripData: true })}</svg>`;
-    await svg2pdf(svgElement(svg), pdf, { x: 0, y: 0, width: w, height: h });
+    const element = svgElement(svg);
+    const blobs = externaliseBigImages(element);
+    try {
+      await svg2pdf(element, pdf, { x: 0, y: 0, width: w, height: h });
+    } finally {
+      for (const u of blobs) URL.revokeObjectURL(u);
+    }
   }
   if (pdf === null) throw new Error('no pages to export');
   return new Uint8Array(pdf.output('arraybuffer'));
