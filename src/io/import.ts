@@ -25,7 +25,8 @@ export interface ImportedPicture {
   readonly opacity: number;
   /**
    * What the plot drew under a see-through picture, inside its box (issue
-   * 35): a small `svgImport` placed right under it, frame as `frame`'s box.
+   * 35): a small `svgImport` placed right under it, frame as `frame`'s box
+   * (or `frame` itself for a turned picture, issue 40).
    */
   readonly backdrop?: {
     readonly hash: string;
@@ -137,13 +138,16 @@ function placedPicture(
     svg,
     meta: { name: `${name} backdrop`, width: (x1 - x0) * k, height: (y1 - y0) * k },
   };
-  const backFrame: Frame = {
-    x: (x0 - vb[0]) * k,
-    y: (y0 - vb[1]) * k,
-    w: (x1 - x0) * k,
-    h: (y1 - y0) * k,
-    rotation: 0,
-  };
+  // A turned picture's backdrop is drawn in its frame (issue 40): it is placed with it.
+  const backFrame: Frame = p.backdrop.turned
+    ? frame
+    : {
+        x: (x0 - vb[0]) * k,
+        y: (y0 - vb[1]) * k,
+        w: (x1 - x0) * k,
+        h: (y1 - y0) * k,
+        rotation: 0,
+      };
   return {
     picture: { ...picture, backdrop: { hash: hashAsset(back), asset: back, frame: backFrame } },
     slanted,

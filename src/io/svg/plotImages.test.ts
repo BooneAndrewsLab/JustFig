@@ -1,7 +1,8 @@
 /**
  * Pictures inside imported SVG plots (issue 24): taken out of the plot with
  * their placement, and what the plot drew under them cut where they are;
- * cut to their SVG clip paths (issue 36).
+ * cut to their SVG clip paths (issue 36); backdrops of turned and
+ * overlapping see-through pictures (issue 40).
  */
 import { readFileSync } from 'node:fs';
 
@@ -11,6 +12,8 @@ import { walkNodes } from '@/render/svgNode';
 
 import { importSvgText } from '../import';
 import { base64, decodePng, encodePng, encodePngSync, fromBase64, hasClearPixels } from '../png';
+import { contains, makeRegion } from './clipRegion';
+import { IDENTITY, apply, parseTransform } from './matrix';
 import { sanitizeSvg } from './sanitize';
 
 /** 8 × 8 RGB: opaque. */
@@ -173,6 +176,164 @@ describe('plot pictures', () => {
       expect(p.frame.x + p.frame.w).toBeLessThan(imp.w);
     }
     expect(pics[0]?.asset.meta.name).toBe('matplotlib-images.svg (picture 1)');
+  });
+});
+
+describe('turned and overlapping see-through pictures (issue 40)', () => {
+  const rgba = base64(
+    encodePngSync({ width: 2, height: 2, channels: 4, data: new Uint8Array(16).fill(128) }),
+  );
+  /** The rings of a path of straight closed rings, and whether a point is in them (even-odd). */
+  const filledAt = (d: unknown, x: number, y: number): boolean => {
+    const rings = String(d)
+      .split('M')
+      .filter((r) => r.trim() !== '')
+      .map((r) => {
+        const v = (r.match(/-?[\d.]+/g) ?? []).map(Number);
+        return v.flatMap((_, i) => (i % 2 === 0 ? [[v[i] ?? 0, v[i + 1] ?? 0] as const] : []));
+      });
+    const region = makeRegion(rings, true);
+    return region !== null && contains(region, [x, y]);
+  };
+  const backdropOf = (p: { backdrop?: { asset: { svg: string } } } | undefined) =>
+    [...walkNodes(sanitizeSvg(p?.backdrop?.asset.svg ?? '').root)].slice(1);
+
+  it('gives a turned see-through picture a backdrop in its own frame', () => {
+    const { r, all } = nodes(
+      svg(
+        '<rect x="0" y="0" width="100" height="80" fill="#ebebeb"/>' +
+          '<path d="M0 40L100 40" stroke="#ffffff" fill="none"/>' +
+          `<image x="40" y="30" width="20" height="20" preserveAspectRatio="none" transform="rotate(45 50 40)" xlink:href="${href(rgba)}"/>`,
+      ),
+    );
+    const pic = r.pictures?.[0];
+    expect(pic?.frame.rotation).toBeCloseTo(45, 6);
+    // Placed with the picture's own frame, turned with it.
+    expect(pic?.backdrop?.frame).toEqual(pic?.frame);
+    expect(sanitizeSvg(pic?.backdrop?.asset.svg ?? '').root.attrs['viewBox']).toBe('0 0 20 20');
+    // What was under it, in plot units, turned into its frame by one group.
+    const [turn, ...under] = backdropOf(pic);
+    expect(turn?.tag).toBe('g');
+    const m = parseTransform(String(turn?.attrs['transform'])) ?? IDENTITY;
+    expect(under.map((n) => [n.tag, n.attrs['fill'], n.attrs['stroke']])).toEqual([
+      ['path', '#ebebeb', 'none'],
+      ['path', 'none', '#ffffff'],
+    ]);
+    // The grid line runs along the picture's diagonal: in its frame, corner to corner.
+    expect(under[1]?.attrs['d']).toBe('M35.858 40L64.142 40');
+    for (const [[x, y], at] of [
+      [
+        [35.858, 40],
+        [0, 20],
+      ],
+      [
+        [64.142, 40],
+        [20, 0],
+      ],
+    ] as const) {
+      const [u, v] = apply(m, x, y);
+      expect(u).toBeCloseTo(at[0], 2);
+      expect(v).toBeCloseTo(at[1], 2);
+    }
+    expect(filledAt(under[0]?.attrs['d'], 50, 40)).toBe(true);
+    expect(filledAt(under[0]?.attrs['d'], 40, 31)).toBe(false);
+    // In the plot: cut where the turned square is, the panel holed with its shape.
+    expect(all.find((n) => n.attrs['stroke'] === '#ffffff')?.attrs['d']).toBe(
+      'M0 40L35.858 40M64.142 40L100 40',
+    );
+    const panel = all.find((n) => n.attrs['fill'] === '#ebebeb')?.attrs['d'];
+    expect(filledAt(panel, 50, 40)).toBe(false);
+    expect(filledAt(panel, 40, 31)).toBe(true); // inside the box, outside the turned square
+  });
+
+  it('leaves out of a backdrop the part over an earlier picture', () => {
+    const { r, all } = nodes(
+      svg(
+        '<rect x="0" y="0" width="100" height="80" fill="#ebebeb"/>' +
+          '<path d="M0 30L100 30" stroke="#ffffff" fill="none"/>' +
+          `<image x="10" y="10" width="40" height="40" preserveAspectRatio="none" xlink:href="${href(rgba)}"/>` +
+          `<image x="30" y="20" width="40" height="40" preserveAspectRatio="none" xlink:href="${href(rgba)}"/>`,
+      ),
+    );
+    const [a, b] = (r.pictures ?? []).map(backdropOf);
+    expect(a?.map((n) => [n.tag, n.attrs['d']])).toEqual([
+      ['rect', undefined],
+      ['path', 'M10 30L50 30'],
+    ]);
+    // The second one's backdrop does not cover the first picture.
+    expect(b?.map((n) => n.tag)).toEqual(['path', 'path']);
+    expect(filledAt(b?.[0]?.attrs['d'], 60, 50)).toBe(true);
+    expect(filledAt(b?.[0]?.attrs['d'], 40, 30)).toBe(false);
+    expect(b?.[1]?.attrs['d']).toBe('M50 30L70 30');
+    // The plot: the line cut under both, the panel holed under both (the overlap too).
+    expect(all.find((n) => n.attrs['stroke'] === '#ffffff')?.attrs['d']).toBe(
+      'M0 30L10 30M70 30L100 30',
+    );
+    const panel = all.find((n) => n.attrs['fill'] === '#ebebeb')?.attrs['d'];
+    for (const [x, y] of [
+      [20, 20],
+      [40, 30],
+      [60, 50],
+    ] as const)
+      expect(filledAt(panel, x, y)).toBe(false);
+    expect(filledAt(panel, 5, 5)).toBe(true);
+  });
+
+  it('holes a background once where two opaque pictures overlap', () => {
+    const { all } = nodes(
+      svg(
+        '<rect x="0" y="0" width="100" height="80" fill="#ebebeb"/>' +
+          `<image x="10" y="10" width="40" height="40" preserveAspectRatio="none" xlink:href="${href(OPAQUE)}"/>` +
+          `<image x="30" y="20" width="40" height="40" preserveAspectRatio="none" xlink:href="${href(OPAQUE)}"/>`,
+      ),
+    );
+    const panel = all.find((n) => n.attrs['fill'] === '#ebebeb')?.attrs['d'];
+    // Even-odd filled the overlap of two holes back in, over both pictures.
+    expect(filledAt(panel, 40, 30)).toBe(false);
+    expect(filledAt(panel, 5, 5)).toBe(true);
+  });
+
+  it('matplotlib SVG: a turned picture and two overlapping ones, over the grid', () => {
+    const imp = importSvgText(
+      readFileSync(new URL('./fixtures/matplotlib-see-through.svg', import.meta.url), 'utf8'),
+      'matplotlib-see-through.svg',
+    );
+    expect(imp.warnings).toEqual([]);
+    const pics = imp.pictures ?? [];
+    expect(pics).toHaveLength(3);
+    expect(pics[0]?.frame.rotation).toBeCloseTo(-30, 4);
+    expect(pics[0]?.backdrop?.frame).toEqual(pics[0]?.frame);
+    for (const p of pics)
+      expect(backdropOf(p).some((n) => n.attrs['stroke'] === '#ffffff')).toBe(true);
+    // Plot units → the picture frames' points, and whether a point is well inside a frame.
+    const plot = sanitizeSvg(imp.asset.kind === 'svgImport' ? imp.asset.svg : '').root;
+    const vb = String(plot.attrs['viewBox']).split(' ').map(Number);
+    const k = imp.w / (vb[2] ?? 1);
+    const within = (f: (typeof pics)[number]['frame'], x: number, y: number): boolean => {
+      const px = (x - (vb[0] ?? 0)) * k - (f.x + f.w / 2);
+      const py = (y - (vb[1] ?? 0)) * k - (f.y + f.h / 2);
+      const t = (-f.rotation * Math.PI) / 180;
+      const u = px * Math.cos(t) - py * Math.sin(t);
+      const v = px * Math.sin(t) + py * Math.cos(t);
+      return Math.abs(u) < f.w / 2 - 0.1 && Math.abs(v) < f.h / 2 - 0.1;
+    };
+    /** Midpoints (and ends) of every straight piece of the white grid left in the plot. */
+    const gridPoints = [...walkNodes(plot)]
+      .filter((n) => n.attrs['stroke'] === '#ffffff')
+      .flatMap((n) =>
+        [
+          ...String(n.attrs['d']).matchAll(
+            /M\s*([-\d.]+)[\s,]+([-\d.]+)\s*L\s*([-\d.]+)[\s,]+([-\d.]+)/g,
+          ),
+        ].map((m) => {
+          const [x0, y0, x1, y1] = m.slice(1).map(Number) as [number, number, number, number];
+          return [(x0 + x1) / 2, (y0 + y1) / 2] as const;
+        }),
+      );
+    expect(gridPoints.length).toBeGreaterThan(20);
+    // No grid line crosses a picture: what was under them is in their backdrops.
+    for (const p of pics)
+      for (const [x, y] of gridPoints) expect(within(p.frame, x, y)).toBe(false);
   });
 });
 

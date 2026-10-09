@@ -110,15 +110,28 @@ Sans, sans-serif`, bold), `rotate(θ x y)` when rotated. Mathtext (`$…$`, issu
   of its dots, and its clear pixels showed the page through the holed panel. Compositing the
   panel colour into its pixels would need decoding and re-encoding them, would lose the grid
   under them and would not follow a restyle; splitting the plot would break restyling and
-  resizing. Instead, one that is not turned (its matrix has no rotation; a mirror is fine) and
-  does not overlap an earlier picture gets a **backdrop**: a small `svgImport` asset, viewBox the
-  picture's box, holding what the plot drew under it inside that box (a rectangle of each
-  background around it, the inside pieces of its straight lines, whole shapes wholly inside;
-  inherited attributes, fill, stroke and accumulated opacity made explicit), placed as an image
-  object named "Picture N backdrop" right under the picture. The picture then hides what was
-  under it like an opaque one, and the plot is cut the same way. It is vector and stays in the
-  export subset (no mask, no clip). Resizing moves it like its picture (note 17); a picture
-  overlapping an earlier one keeps the old behaviour, since its backdrop would cover that one.
+  resizing. Instead, it gets a **backdrop**: a small `svgImport` asset, viewBox the picture's
+  box, holding what the plot drew under it inside that box (a rectangle of each background
+  around it, the inside pieces of its straight lines, whole shapes wholly inside; inherited
+  attributes, fill, stroke and accumulated opacity made explicit), placed as an image object
+  named "Picture N backdrop" right under the picture. The picture then hides what was under it
+  like an opaque one, and the plot is cut the same way. It is vector and stays in the export
+  subset (no mask, no clip). Resizing moves it like its picture (note 17).
+  - _Turned_ pictures (issue 40; rotated, or mirrored and rotated) are cut along their own
+    edges: lines are clipped (Liang–Barsky) in the picture's frame (`Cover.toLocal`, a rigid
+    map, so tolerances stay in plot units), "wholly inside" is tested there, and backgrounds get
+    a hole of the turned quad. The backdrop's viewBox is `0 0 w h` in that frame (one group
+    carries the turn) and it is placed with the picture's own frame, rotation and flip included,
+    so it is the picture's box for `isBackdrop` and follows it alike. An opaque turned picture
+    now hides what is under it too. A slanted one (placed without its slant) hides nothing.
+  - _Overlapping_ pictures (issue 40): a backdrop drawn right under a later picture would cover
+    the earlier one, so it leaves out what any earlier picture's quad covers (separating-axis
+    test between the quads): line spans over earlier quads are subtracted, a whole shape counts
+    only if clear of them, and its background is the quad less theirs (`clipRing` with an
+    even-odd "everything but that quad" region per earlier picture). There, what the plot drew
+    stays over both pictures, as before. Holes several pictures cut in one background are kept
+    apart the same way (the later one's hole less the earlier ones'); even-odd filled the
+    overlap of two holes back in, over both pictures, which hit opaque ones too.
 - **Cropping:** the viewBox becomes the union of drawn boxes (control-point hulls for paths,
   padded by the stroke width, text boxes from the width estimate in the bundled font the label is drawn in (note 14) ×1.1 and −1 em/+0.3 em
   around the baseline), intersected with the original viewBox (what lay outside was never

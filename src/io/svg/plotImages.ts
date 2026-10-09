@@ -15,15 +15,19 @@
  *   picture covers all of it (its stroke, if any, stays);
  * - anything else drawn before an opaque picture and wholly inside it is
  *   hidden by it, so it is dropped.
- * A see-through picture (alpha, or drawn at partial opacity) that is not
- * turned gets a **backdrop** (issue 35): what the plot drew under it, inside
- * its box (the background's colour, the pieces of straight lines, shapes
- * wholly inside), as a small vector picture placed right under it. With
- * that, it hides what was under it like an opaque one, so the plot is cut
- * the same way and its clear pixels show the panel colour and the grid lines
- * beneath, not the page. One that overlaps an earlier picture gets none (a
- * backdrop would cover it). Curves and fills only partly under a picture
- * stay over it.
+ * A see-through picture (alpha, or drawn at partial opacity) gets a
+ * **backdrop** (issue 35): what the plot drew under it, inside its box (the
+ * background's colour, the pieces of straight lines, shapes wholly inside),
+ * as a small vector picture placed right under it. With that, it hides what
+ * was under it like an opaque one, so the plot is cut the same way and its
+ * clear pixels show the panel colour and the grid lines beneath, not the
+ * page. A turned picture (issue 40) is cut along its own edges and its
+ * backdrop is drawn in its own frame, turned with it. Where a picture
+ * overlaps an earlier one, its backdrop leaves that part out (it would cover
+ * the earlier picture) and what the plot drew there stays over it. Holes
+ * cut for several pictures in one background never overlap. A slanted
+ * picture (placed without its slant) hides nothing. Curves and fills only
+ * partly under a picture stay over it.
  */
 import { type AttrValue, type SvgNode, el } from '@/render/svgNode';
 
@@ -34,6 +38,7 @@ import {
   type Matrix,
   apply,
   fmt,
+  invert,
   isAxisAligned,
   isIdentity,
   multiply,
@@ -41,9 +46,9 @@ import {
   parseTransform,
 } from './matrix';
 import { parsePath, pathRect, transformPath } from './pathData';
-import { type Region, makeRegion } from './clipRegion';
+import { type Pt, type Region, clipRing, makeRegion } from './clipRegion';
 import { CLIP_ATTR, type PictureClip, segsRings } from './svgClip';
-import { clipPicture, clipsNothing } from '../pictureClip';
+import { boxRing, clipPicture, clipsNothing } from '../pictureClip';
 import {
   base64,
   decodePng,
@@ -67,10 +72,16 @@ export interface PlotImage {
   readonly matrix: Matrix;
   readonly opacity: number;
   /**
-   * What the plot drew under a see-through picture, inside `box` (plot
-   * units, axis-aligned, the picture's own box): drawn right under it.
+   * What the plot drew under a see-through picture, inside `box`: drawn
+   * right under it. Upright, `box` is the picture's own box in plot units;
+   * `turned` (issue 40), it is `[0, 0, w, h]` in the picture's own frame
+   * (the nodes carry the turn), to be placed with the picture's frame.
    */
-  readonly backdrop?: { readonly box: Box; readonly nodes: readonly SvgNode[] };
+  readonly backdrop?: {
+    readonly box: Box;
+    readonly nodes: readonly SvgNode[];
+    readonly turned?: true;
+  };
 }
 
 /** How near (user units) a shape's edge must be to a picture's to count as the same edge. */
@@ -269,30 +280,134 @@ const pointAt = (l: Line, t: number): [number, number] => [
   l[1] + (l[3] - l[1]) * t,
 ];
 
-/** The part of a straight piece inside a box, or null. */
-function inside(l: Line, b: Box): Line | null {
-  const t = clipT(l, b);
-  return t ? [...pointAt(l, t[0]), ...pointAt(l, t[1])] : null;
-}
-
-/** The parts of a straight piece outside a box. */
-function outside(l: Line, b: Box): Line[] {
-  const t = clipT(l, b);
-  if (!t) return [l];
-  const [t0, t1] = t;
-  const [x0, y0, x1, y1] = l;
-  const at = (u: number): [number, number] => pointAt(l, u);
-  const parts: Line[] = [];
-  if (t0 > 1e-9) parts.push([x0, y0, ...at(t0)]);
-  if (t1 < 1 - 1e-9) parts.push([...at(t1), x1, y1]);
-  return parts;
-}
-
 const within = (b: Box, outer: Box, tol: number): boolean =>
   b[0] >= outer[0] - tol &&
   b[1] >= outer[1] - tol &&
   b[2] <= outer[2] + tol &&
   b[3] <= outer[3] + tol;
+
+/**
+ * Where a picture covers the plot: its quad, and a frame in which it is the
+ * box `lbox` (plot units themselves when it is upright; otherwise turned,
+ * still in plot-sized units, so tolerances hold).
+ */
+interface Cover {
+  readonly quad: readonly Pt[];
+  /** Plot units → the frame `lbox` is in. */
+  readonly toLocal: Matrix;
+  readonly lbox: Box;
+  readonly upright: boolean;
+  /** Its sides are not at right angles: it is placed without its slant and hides nothing. */
+  readonly slanted: boolean;
+}
+
+function coverOf(m: Matrix, quad: readonly Pt[], pb: Box): Cover {
+  const upright = isAxisAligned(m);
+  const w = Math.hypot(m[0], m[1]);
+  const h = Math.hypot(m[2], m[3]);
+  const slanted = Math.abs(m[0] * m[2] + m[1] * m[3]) > 1e-3 * w * h;
+  if (upright || slanted || w === 0 || h === 0)
+    return { quad, toLocal: IDENTITY, lbox: pb, upright, slanted };
+  const turn = multiply(m, [1 / w, 0, 0, 1 / h, 0, 0]);
+  return { quad, toLocal: invert(turn), lbox: [0, 0, w, h], upright, slanted };
+}
+
+const mapLine = (m: Matrix, l: Line): Line => [...apply(m, l[0], l[1]), ...apply(m, l[2], l[3])];
+
+/** The part of a straight piece over a picture, as [t0, t1], or null. */
+const spanOver = (l: Line, c: Cover): [number, number] | null =>
+  clipT(isIdentity(c.toLocal) ? l : mapLine(c.toLocal, l), c.lbox);
+
+/** The parts of a straight piece over the picture `c` but not over any of `others`, in order. */
+function spansUnder(l: Line, c: Cover, others: readonly Cover[]): [number, number][] {
+  const s = spanOver(l, c);
+  if (!s) return [];
+  let out: [number, number][] = [s];
+  for (const o of others) {
+    const e = spanOver(l, o);
+    if (!e) continue;
+    out = out.flatMap(([a, b]): [number, number][] =>
+      (
+        [
+          [a, Math.min(b, e[0])],
+          [Math.max(a, e[1]), b],
+        ] as [number, number][]
+      ).filter(([x, y]) => y - x > 1e-9),
+    );
+  }
+  return out;
+}
+
+const piece = (l: Line, a: number, b: number): Line => {
+  const at = (t: number): [number, number] =>
+    t === 0 ? [l[0], l[1]] : t === 1 ? [l[2], l[3]] : pointAt(l, t);
+  return [...at(a), ...at(b)];
+};
+
+/** The parts of a straight piece under the picture `c` and clear of `others`. */
+const piecesIn = (l: Line, c: Cover, others: readonly Cover[]): Line[] =>
+  spansUnder(l, c, others).map(([a, b]) => piece(l, a, b));
+
+/** The rest of a straight piece. */
+function piecesOut(l: Line, c: Cover, others: readonly Cover[]): Line[] {
+  const parts: Line[] = [];
+  let cur = 0;
+  for (const [a, b] of spansUnder(l, c, others)) {
+    if (a - cur > 1e-9) parts.push(piece(l, cur, a));
+    cur = b;
+  }
+  if (1 - cur > 1e-9) parts.push(piece(l, cur, 1));
+  return parts;
+}
+
+/** Whether a box (plot units) lies within a picture, give or take `tol`. */
+function insideCover(b: Box, c: Cover, tol: number): boolean {
+  if (isIdentity(c.toLocal)) return within(b, c.lbox, tol);
+  const pts = boxRing(b).map(([x, y]) => apply(c.toLocal, x, y));
+  const xs = pts.map((q) => q[0]);
+  const ys = pts.map((q) => q[1]);
+  return within([Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)], c.lbox, tol);
+}
+
+/** Whether two convex polygons are apart, or overlap by no more than `tol` (separating axes). */
+function apart(a: readonly Pt[], b: readonly Pt[], tol: number): boolean {
+  for (const poly of [a, b])
+    for (let k = 0; k < poly.length; k++) {
+      const p = poly[k];
+      const q = poly[(k + 1) % poly.length];
+      if (!p || !q) continue;
+      const nx = q[1] - p[1];
+      const ny = p[0] - q[0];
+      const len = Math.hypot(nx, ny);
+      if (len === 0) continue;
+      const pa = a.map(([x, y]) => (x * nx + y * ny) / len);
+      const pb = b.map(([x, y]) => (x * nx + y * ny) / len);
+      if (Math.max(...pa) <= Math.min(...pb) + tol || Math.max(...pb) <= Math.min(...pa) + tol)
+        return true;
+    }
+  return false;
+}
+
+/** A picture's quad less those of `others`, as rings each winding once. */
+function quadLess(c: Cover, others: readonly Cover[]): Pt[][] {
+  let rings: Pt[][] = [[...c.quad]];
+  const xs = c.quad.map((q) => q[0]);
+  const ys = c.quad.map((q) => q[1]);
+  const big = boxRing([
+    Math.min(...xs) - 1,
+    Math.min(...ys) - 1,
+    Math.max(...xs) + 1,
+    Math.max(...ys) + 1,
+  ]);
+  for (const o of others) {
+    const region = makeRegion([big, o.quad], true);
+    if (region) rings = rings.flatMap((r) => clipRing(r, region));
+  }
+  return rings;
+}
+
+const ringsPath = (rings: readonly (readonly Pt[])[]): string =>
+  rings.map((pts) => `M${pts.map(([x, y]) => `${fmt(x)} ${fmt(y)}`).join(' L')} Z`).join(' ');
 
 /**
  * A picture cut to its SVG clip paths (issue 36): `space` maps the image's
@@ -448,30 +563,33 @@ export function takeImages(
       if ((a[i] ?? 0) !== (b[i] ?? 0)) return (a[i] ?? 0) < (b[i] ?? 0);
     return a.length < b.length;
   };
-  /** Per leaf: dropped, holes to cut into its fill, or what is left of its lines. */
+  /** Per leaf: dropped, holes to cut into its fill (and by which pictures), or what is left of its lines. */
   const fate = new Map<
     string,
-    { drop: boolean; holes: [number, number][][]; lines?: readonly Line[] }
+    { drop: boolean; holes: (readonly Pt[])[]; holedBy: number[]; lines?: readonly Line[] }
   >();
   const picBoxes = pics.map((pic): Box => {
     const xs = pic.quad.map((q) => q[0]);
     const ys = pic.quad.map((q) => q[1]);
     return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
   });
-  const overlaps = (a: Box, b: Box): boolean =>
-    a[0] < b[2] - EDGE_TOL &&
-    b[0] < a[2] - EDGE_TOL &&
-    a[1] < b[3] - EDGE_TOL &&
-    b[1] < a[3] - EDGE_TOL;
-  const backdrops = new Map<number, SvgNode[]>();
+  const covers = pics.map((pic, i) =>
+    coverOf(pic.image.matrix, pic.quad, picBoxes[i] ?? [0, 0, 0, 0]),
+  );
+  const meet = (i: number, j: number): boolean =>
+    !apart(covers[i]?.quad ?? [], covers[j]?.quad ?? [], EDGE_TOL);
+  const backdrops = new Map<number, { nodes: SvgNode[]; turned: boolean }>();
   pics.forEach((pic, i) => {
     const pb = picBoxes[i] ?? [0, 0, 0, 0];
-    const m = pic.image.matrix;
-    const square = isAxisAligned(m);
-    // A see-through picture that is not turned, clear of earlier ones, gets a backdrop.
-    const see =
-      !pic.opaque && square && m[0] > 0 && !picBoxes.slice(0, i).some((b) => overlaps(b, pb));
-    const hides = (pic.opaque && square) || see;
+    const c = covers[i];
+    if (!c) return;
+    // A see-through picture gets a backdrop (issue 35), turned too (issue 40). Where it
+    // overlaps an earlier picture the backdrop would cover that one: it leaves those parts
+    // out, and what the plot drew there stays over it, as before.
+    const see = !pic.opaque && !c.slanted;
+    const hides = (pic.opaque && !c.slanted) || see;
+    const earlier = covers.slice(0, i).filter((_, j) => meet(i, j));
+    const others = see ? earlier : [];
     const under: SvgNode[] = [];
     /** A copy of a leaf for the backdrop, with what it inherits made its own. */
     const copy = (l: Leaf, attrs: Attrs, n = l.node): SvgNode => {
@@ -485,44 +603,52 @@ export function takeImages(
     for (const l of leaves) {
       if (!before(l.path, pic.path)) continue;
       const k = key(l.path);
-      const f = fate.get(k) ?? { drop: false, holes: [] };
+      const f = fate.get(k) ?? { drop: false, holes: [], holedBy: [] };
       const rect = l.fill !== 'none' && isIdentity(l.matrix) ? rectOf(l.node) : null;
       if (rect && within(pb, rect, EDGE_TOL)) {
         // A background around the picture: cut it out (or drop the fill it hides entirely).
-        if (hides && within(rect, pb, EDGE_TOL)) f.drop = true;
-        else f.holes.push(pic.quad);
-        if (see) {
+        // Holes stay apart (even-odd would fill where two overlap).
+        const holed = see ? others : f.holedBy.filter((j) => meet(i, j)).map((j) => covers[j]);
+        const rings =
+          holed.length === 0
+            ? [c.quad]
+            : quadLess(
+                c,
+                holed.filter((o) => o !== undefined),
+              );
+        if (hides && others.length === 0 && insideCover(rect, c, EDGE_TOL)) f.drop = true;
+        else f.holes.push(...rings);
+        f.holedBy.push(i);
+        if (see && rings.length > 0) {
           const rest = Object.fromEntries(
             Object.entries(l.node.attrs).filter(
               ([a]) => !['x', 'y', 'width', 'height', 'rx', 'ry', 'd', 'transform'].includes(a),
             ),
           );
-          const box = { x: fmt(pb[0]), y: fmt(pb[1]), width: fmt(pb[2] - pb[0]) };
-          under.push(
-            el('rect', {
-              ...copy(l, rest).attrs,
-              ...box,
-              height: fmt(pb[3] - pb[1]),
-              stroke: 'none',
-            }),
-          );
+          if (c.upright && others.length === 0) {
+            const box = { x: fmt(pb[0]), y: fmt(pb[1]), width: fmt(pb[2] - pb[0]) };
+            under.push(
+              el('rect', {
+                ...copy(l, rest).attrs,
+                ...box,
+                height: fmt(pb[3] - pb[1]),
+                stroke: 'none',
+              }),
+            );
+          } else
+            under.push(el('path', { ...copy(l, rest).attrs, d: ringsPath(rings), stroke: 'none' }));
         }
       } else if (hides && l.node.tag !== 'text') {
         const b = boxes.get(k);
-        if (b && within(b, pb, EDGE_TOL)) {
+        if (b && insideCover(b, c, EDGE_TOL) && others.every((o) => apart(boxRing(b), o.quad, 0))) {
           f.drop = true;
           if (see) under.push(copy(l, l.node.attrs));
         } else if (b && l.fill === 'none' && isIdentity(l.matrix)) {
           // A line partly under it (a grid line): the part under it is hidden.
           const all = straightPieces(l.node);
           const lines = f.lines ?? all;
-          if (lines) f.lines = lines.flatMap((x) => outside(x, pb));
-          const ins = see
-            ? (all ?? []).flatMap((x) => {
-                const piece = inside(x, pb);
-                return piece ? [piece] : [];
-              })
-            : [];
+          if (lines) f.lines = lines.flatMap((x) => piecesOut(x, c, others));
+          const ins = see ? (all ?? []).flatMap((x) => piecesIn(x, c, others)) : [];
           if (ins.length > 0) {
             const geometry = ['x1', 'y1', 'x2', 'y2', 'points', 'd'];
             const rest = Object.fromEntries(
@@ -537,7 +663,7 @@ export function takeImages(
       }
       fate.set(k, f);
     }
-    if (under.length > 0) backdrops.set(i, under);
+    if (under.length > 0) backdrops.set(i, { nodes: under, turned: !c.upright });
   });
 
   const byKey = new Map(leaves.map((l) => [key(l.path), l]));
@@ -574,15 +700,7 @@ export function takeImages(
     if (f.holes.length === 0) return [n];
     const r = rectOf(n);
     if (!r) return [n];
-    const ring = (pts: readonly [number, number][]): string =>
-      `M${pts.map(([x, y]) => `${fmt(x)} ${fmt(y)}`).join(' L')} Z`;
-    const outer: [number, number][] = [
-      [r[0], r[1]],
-      [r[2], r[1]],
-      [r[2], r[3]],
-      [r[0], r[3]],
-    ];
-    const d = [outer, ...f.holes].map(ring).join(' ');
+    const d = ringsPath([boxRing(r), ...f.holes]);
     const geometry = ['x', 'y', 'width', 'height', 'rx', 'ry', 'd'];
     const rest = Object.fromEntries(Object.entries(n.attrs).filter(([a]) => !geometry.includes(a)));
     const filled = el('path', { ...rest, d, 'fill-rule': 'evenodd', stroke: 'none' });
@@ -592,9 +710,13 @@ export function takeImages(
   return {
     root: out ?? root,
     images: pics.map((p, i) => {
-      const nodes = backdrops.get(i);
-      const box = picBoxes[i];
-      return nodes && box ? { ...p.image, backdrop: { box, nodes } } : p.image;
+      const back = backdrops.get(i);
+      const c = covers[i];
+      if (!back || !c) return p.image;
+      if (!back.turned) return { ...p.image, backdrop: { box: c.lbox, nodes: back.nodes } };
+      // In the picture's own frame, so it can be placed with the picture's frame.
+      const nodes = [el('g', { transform: matrixString(c.toLocal) }, back.nodes)];
+      return { ...p.image, backdrop: { box: c.lbox, nodes, turned: true as const } };
     }),
   };
 }
