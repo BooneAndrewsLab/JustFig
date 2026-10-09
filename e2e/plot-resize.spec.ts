@@ -101,7 +101,8 @@ test('W and H from the keyboard keep text and line sizes; off, they scale; axe',
   await expect.poll(async () => Number(await field(page, 'W').inputValue())).toBe(w0 * 2);
   const [size] = await tickLook(page);
   expect(Number(size)).toBeGreaterThan(Number(look[0]) * 1.3);
-  // The choice is remembered.
+  // The choice is remembered (after the autosave, so the reload finds the figure).
+  await page.waitForTimeout(1500);
   await page.reload();
   await page.locator('.layers .item .name', { hasText: 'Image' }).first().click();
   await expect(keep(page)).not.toBeChecked();
