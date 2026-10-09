@@ -46,10 +46,13 @@ type Box = readonly [number, number, number, number];
 
 /**
  * What resizing does to one element, in region `in` (an index into
- * `PlotLayout.regions`): scale with it, or move as its map takes `at`.
+ * `PlotLayout.regions`): scale with it, or move as its map takes `at`; or,
+ * for a stroke that joins panels (an axis line along two, a line drawn across:
+ * issue 39), have each of its points mapped by the panel it lies in.
  */
 export type Action =
   | { readonly kind: 'scale'; readonly in: number }
+  | { readonly kind: 'join'; readonly in: number }
   | { readonly kind: 'move'; readonly at: readonly [number, number]; readonly in: number };
 
 /**
@@ -220,6 +223,21 @@ export function plotLayout(root: SvgNode, vb: ViewBox, parts: PlotParts): PlotLa
       second > 0 &&
       pathRect(segs.slice(0, second)) !== null
     );
+  };
+  /** Mapped point by point when it joins panels: lines and paths, and rectangles kept upright. */
+  const joinable = (l: DrawnLeaf): boolean => {
+    switch (l.node.tag) {
+      case 'path':
+        return segsOf(l.node) !== null;
+      case 'line':
+      case 'polyline':
+      case 'polygon':
+        return true;
+      case 'rect':
+        return isAxisAligned(multiply(l.parent, own(l.node)));
+      default:
+        return false;
+    }
   };
   /** A panel background or frame: a large axis-aligned rectangle. */
   const panel = (l: DrawnLeaf): boolean => big(l.box) && rectLike(l);
@@ -462,21 +480,24 @@ export function plotLayout(root: SvgNode, vb: ViewBox, parts: PlotParts): PlotLa
       } else if (base && !isText(l))
         actions.set(id, { kind: 'move', at: base, in: regionAt(base) });
       else if (piece !== undefined) actions.set(id, { kind: 'scale', in: piece });
-      else if (et) actions.set(id, { kind: 'move', at: et.base, in: et.at });
+      else if (pn.joins?.has(id)) {
+        if (!joinable(l)) return null;
+        actions.set(id, { kind: 'join', in: nearest(inner(l), false) });
+      } else if (et) actions.set(id, { kind: 'move', at: et.base, in: et.at });
       else if (isText(l) || outsideAll(l.box)) loose.push(l);
       else {
         const homes = panels.flatMap((p, i) => (overlaps(l.box, p) ? [i] : []));
-        if (strict && homes.length > 1) return null;
         const home = homes[0] ?? 0;
         const P = boxOf(home);
         const marker = Math.max(MARKER * Math.min(w(P), h(P)), MARKER_EM * (plotEm ?? 0));
+        const c: [number, number] = [(l.box[0] + l.box[2]) / 2, (l.box[1] + l.box[3]) / 2];
         if (Math.max(w(l.box), h(l.box)) <= marker && closed(l.node))
-          actions.set(id, {
-            kind: 'move',
-            at: [(l.box[0] + l.box[2]) / 2, (l.box[1] + l.box[3]) / 2],
-            in: home,
-          });
-        else actions.set(id, { kind: 'scale', in: home });
+          actions.set(id, { kind: 'move', at: c, in: homes.length > 1 ? regionAt(c) : home });
+        else if (homes.length < 2) actions.set(id, { kind: 'scale', in: home });
+        // Drawn across panels (a line from a zoomed region to its close-up): each of its
+        // points goes with the panel it lies in (issue 39); a shape that cannot fails the split.
+        else if (strict && !joinable(l)) return null;
+        else actions.set(id, { kind: 'join', in: home });
       }
     }
 
@@ -555,6 +576,8 @@ interface Panels {
   readonly boxes: readonly Box[];
   /** The shapes that make up each panel (frames, backgrounds, axis lines): they scale with it. */
   readonly pieces: ReadonlyMap<string, number>;
+  /** Axis lines along two panels that touch, or that only they joined: mapped piecewise. */
+  readonly joins?: ReadonlySet<string>;
 }
 
 /**
@@ -592,7 +615,12 @@ function splitPanels(
     const r = sets.find(i);
     groups.set(r, [...(groups.get(r) ?? []), p]);
   });
-  const parts = [...groups.values()].flatMap((g) => splitTouching(g, eps, isAxis));
+  const joins = new Set<string>();
+  const parts = [...groups.values()].flatMap((g) => {
+    const t = splitTouching(g, eps, isAxis);
+    for (const s of t.joins) joins.add(key(s.path));
+    return t.parts;
+  });
   if (parts.length < 2) return null;
   const boxes: Box[] = [];
   const byPiece = new Map<string, number>();
@@ -618,20 +646,20 @@ function splitPanels(
     for (const s of g) byPiece.set(key(s.path), boxes.length);
     boxes.push(box);
   }
-  return boxes.length < 2 ? null : { boxes, pieces: byPiece };
+  return boxes.length < 2 ? null : { boxes, pieces: byPiece, joins };
 }
 
 /**
  * Panels that touch (ggplot2 `panel.spacing = unit(0, "pt")`) split by their
  * own frames: the rectangles of a group that overlap one another, each set a
- * panel, when every other piece (an axis line) lies on one of them. Otherwise
- * (an axis line along two of them) the group stays one.
+ * panel with the axis lines that lie on it. An axis line along two of them
+ * (issue 39) joins them: it is no piece of either but is mapped piecewise.
  */
 function splitTouching(
   g: readonly DrawnLeaf[],
   eps: number,
   isAxis: (l: DrawnLeaf) => boolean,
-): DrawnLeaf[][] {
+): { parts: DrawnLeaf[][]; joins: DrawnLeaf[] } {
   const rects = g.filter((s) => !isAxis(s));
   const into = (a: Box, b: Box): boolean =>
     Math.min(a[2], b[2]) - Math.max(a[0], b[0]) > eps &&
@@ -647,16 +675,17 @@ function splitTouching(
     const k = sets.find(i);
     out.set(k, [...(out.get(k) ?? []), r]);
   });
-  if (out.size < 2) return [[...g]];
+  if (out.size < 2) return { parts: [[...g]], joins: [] };
   const sub = [...out.values()];
   const boxes = sub.map((x) => x.reduce<Box | null>((a, s) => union(a, inner(s)), null));
+  const joins: DrawnLeaf[] = [];
   for (const s of g) {
     if (!isAxis(s)) continue;
     const at = boxes.findIndex((b) => b !== null && inside(inner(s), b, eps));
-    if (at < 0) return [[...g]];
-    sub[at]?.push(s);
+    if (at < 0) joins.push(s);
+    else sub[at]?.push(s);
   }
-  return sub;
+  return { parts: sub, joins };
 }
 
 /**
@@ -812,6 +841,26 @@ function regionMaps(layout: PlotLayout, sx: number, sy: number): Matrix[] {
     return [ax, 0, 0, ay, bx, by];
   });
 }
+/** A point's map piecewise: by the panel it lies in, else where the spans take it. */
+type PointMap = (x: number, y: number) => [number, number];
+
+/** Where growth (sx, sy) takes a point of a stroke that joins panels (issue 39). */
+function joinMap(layout: PlotLayout, maps: readonly Matrix[], sx: number, sy: number): PointMap {
+  const tol = 1e-6 * Math.max(w(layout.area), h(layout.area));
+  return (x, y) => {
+    const i = layout.regions.findIndex(
+      (r) =>
+        !r.band &&
+        x >= r.box[0] - tol &&
+        x <= r.box[2] + tol &&
+        y >= r.box[1] - tol &&
+        y <= r.box[3] + tol,
+    );
+    const R = maps[i];
+    return R ? apply(R, x, y) : [along(layout.spans[0], sx, x), along(layout.spans[1], sy, y)];
+  };
+}
+
 /**
  * Where growth (sx, sy) takes a box drawn over the plot (a picture that was
  * inside it, issue 24): like the smallest shape around it (a panel's
@@ -843,6 +892,12 @@ export function mapPlotBox(layout: PlotLayout, sx: number, sy: number, box: Box)
     if (!act || l.node.tag === 'text' || !inside(box, b, tol)) continue;
     const area = w(b) * h(b);
     if (!around || area < around.area) around = { act, area };
+  }
+  if (around?.act.kind === 'join') {
+    const f = joinMap(layout, maps, sx, sy);
+    const [x0, y0] = f(box[0], box[1]);
+    const [x1, y1] = f(box[2], box[3]);
+    return [Math.min(x0, x1), Math.min(y0, y1), Math.max(x0, x1), Math.max(y0, y1)];
   }
   if (around) {
     const R = maps[around.act.in];
@@ -961,6 +1016,58 @@ function mapLocal(n: SvgNode, m: Matrix): SvgNode | null {
 }
 
 /**
+ * The element with each of its points mapped by `f` (in its own coordinates),
+ * its stroke width and dashes untouched; null when it has coordinates that
+ * cannot be mapped. A rectangle maps by its corners.
+ */
+function mapPoints(n: SvgNode, f: PointMap): SvgNode | null {
+  const set = (attrs: Attrs): SvgNode => el(n.tag, { ...n.attrs, ...attrs }, n.children);
+  const g = (name: string): number | null => (n.attrs[name] === undefined ? 0 : len(n.attrs[name]));
+  switch (n.tag) {
+    case 'path': {
+      const segs = segsOf(n);
+      if (!segs) return null;
+      const out = segs.map((sg): Seg => {
+        if (sg.c === 'Z') return sg;
+        const pts: number[] = [];
+        for (let i = 0; i < sg.p.length; i += 2) pts.push(...f(sg.p[i] ?? 0, sg.p[i + 1] ?? 0));
+        return { c: sg.c, p: pts } as unknown as Seg;
+      });
+      return set({ d: pathString(out) });
+    }
+    case 'line': {
+      const [x1, y1, x2, y2] = ['x1', 'y1', 'x2', 'y2'].map(g);
+      if (x1 == null || y1 == null || x2 == null || y2 == null) return null;
+      const [a, b] = f(x1, y1);
+      const [c, d] = f(x2, y2);
+      return set({ x1: fmt(a), y1: fmt(b), x2: fmt(c), y2: fmt(d) });
+    }
+    case 'polyline':
+    case 'polygon': {
+      const v = numList(n.attrs['points']);
+      if (!v) return null;
+      const out: number[] = [];
+      for (let i = 0; i + 1 < v.length; i += 2) out.push(...f(v[i] ?? 0, v[i + 1] ?? 0));
+      return set({ points: out.map(fmt).join(' ') });
+    }
+    case 'rect': {
+      const [x, y, rw, rh] = ['x', 'y', 'width', 'height'].map(g);
+      if (x == null || y == null || rw == null || rh == null) return null;
+      const [a, b] = f(x, y);
+      const [c, d] = f(x + rw, y + rh);
+      return set({
+        x: fmt(Math.min(a, c)),
+        y: fmt(Math.min(b, d)),
+        width: fmt(Math.abs(c - a)),
+        height: fmt(Math.abs(d - b)),
+      });
+    }
+    default:
+      return null;
+  }
+}
+
+/**
  * The plot with its area grown by (sx, sy) about its top-left and every
  * other element moved by its anchor (see the module comment), and its new
  * viewBox. The viewBox keeps its origin; the margins keep their size.
@@ -973,10 +1080,25 @@ export function resizePlot(
   sy: number,
 ): { root: SvgNode; viewBox: ViewBox } {
   const maps = regionMaps(layout, sx, sy);
+  const joined = joinMap(layout, maps, sx, sy);
   const edits = new Map<string, (n: SvgNode) => SvgNode>();
   for (const l of layout.leaves) {
     const act = layout.actions.get(key(l.path));
     if (!act) continue;
+    if (act.kind === 'join') {
+      edits.set(key(l.path), (n) => {
+        const m = multiply(l.parent, own(n));
+        const back = invert(m);
+        return (
+          mapPoints(n, (x, y) => {
+            const [gx, gy] = apply(m, x, y);
+            const [nx, ny] = joined(gx, gy);
+            return apply(back, nx, ny);
+          }) ?? n
+        );
+      });
+      continue;
+    }
     const R = maps[act.in];
     if (!R) continue;
     let map: Matrix;

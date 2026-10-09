@@ -79,6 +79,8 @@ const FIXTURES = [
   'r-facets.svg',
   'matplotlib-shared-colorbar.svg',
   'r-facets-touching.svg',
+  'r-facets-joined.svg',
+  'matplotlib-connected.svg',
   'matplotlib-type3.pdf',
   'r-pdf.pdf',
   'r-cairo.pdf',
@@ -237,6 +239,11 @@ describe('resizePlot on the fixtures', () => {
   };
   const panelsOf = (pl: Plot) => pl.layout.regions.filter((r) => !r.band).map((r) => r.box);
   const bandsOf = (pl: Plot) => pl.layout.regions.filter((r) => r.band);
+  const boxOf = (pl: Plot, id: string) => {
+    const b = drawnLeaves(pl.root, pl.viewBox).find((l) => l.path.join('.') === id)?.box;
+    if (!b) throw new Error(id);
+    return b;
+  };
   const mid = (b: readonly number[], i: 0 | 1) => ((b[i] ?? 0) + (b[i + 2] ?? 0)) / 2;
 
   it('matplotlib subplots: each panel scales, gaps and labels stay with their own axes', async () => {
@@ -422,7 +429,7 @@ describe('resizePlot on the fixtures', () => {
       expect(r.box[0]).toBeCloseTo(of[0], 2);
       expect(r.box[2]).toBeCloseTo(of[2], 2);
     });
-    // An axis line along both keeps them one panel.
+    // An axis line along both joins them, but they still scale apart (issue 39).
     const joined = analyse(
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 120">' +
         '<rect x="20" y="10" width="130" height="90" fill="#eee"/>' +
@@ -430,7 +437,41 @@ describe('resizePlot on the fixtures', () => {
         '<line x1="20" y1="100" x2="280" y2="100" stroke="#000"/>' +
         '</svg>',
     );
-    expect(joined.layout.regions).toEqual([{ box: [20, 10, 280, 100] }]);
+    expect(panelsOf(joined)).toEqual([
+      [20, 10, 150, 100],
+      [150, 10, 280, 100],
+    ]);
+    expect(joined.layout.actions.get('2')).toEqual({ kind: 'join', in: 0 });
+    const { svg: out } = resized(joined, 1.5, 1.2);
+    const [l, r] = panelsOf(analyse(out));
+    expect(/<line [^>]*/.exec(out)?.[0]).toContain(
+      `x1="${l?.[0]}" y1="${l?.[3]}" x2="${r?.[2]}" y2="${r?.[3]}"`,
+    );
+  });
+
+  it('ggplot2: one axis line drawn along two touching facets follows both', async () => {
+    const p = analyse(await load('r-facets-joined.svg'));
+    expect(panelsOf(p)).toHaveLength(2);
+    const joins = (pl: Plot) =>
+      [...pl.layout.actions].filter(([, a]) => a.kind === 'join').map(([id]) => id);
+    expect(joins(p)).toHaveLength(1);
+    for (const [fx, fy] of [
+      [1.6, 1],
+      [0.8, 1.3],
+    ] as const) {
+      const { plot: q, sx } = resized(p, fx, fy);
+      const [l, r] = panelsOf(q);
+      if (!l || !r) throw new Error('facets');
+      expect(r[0]).toBeCloseTo(l[2], 2);
+      const was = panelsOf(p)[1] ?? [0, 0, 0, 0];
+      expect(r[2] - r[0]).toBeCloseTo((was[2] - was[0]) * sx, 2);
+      // The line still runs along the bottom of both, end to end (its box includes its width).
+      const [id] = joins(q);
+      const line = boxOf(q, id ?? '');
+      expect(close(line[0], l[0], 1)).toBe(true);
+      expect(close(line[2], r[2], 1)).toBe(true);
+      expect(close((line[1] + line[3]) / 2, l[3])).toBe(true);
+    }
   });
 
   it('a strip over two panels keeps lying along both, gap included', () => {
@@ -451,23 +492,74 @@ describe('resizePlot on the fixtures', () => {
     expect((r?.[0] ?? 0) - (l?.[2] ?? 0)).toBeCloseTo(40, 2);
   });
 
-  it('panels joined by something drawn across them stay one area', () => {
+  it('a line drawn across two panels keeps each point on its own panel, gap kept', () => {
     const svg =
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 120">' +
       '<rect x="20" y="10" width="110" height="90" fill="#eee"/>' +
       '<line x1="20" y1="100" x2="130" y2="100" stroke="#000"/>' +
       '<rect x="170" y="10" width="110" height="90" fill="#eee"/>' +
       '<line x1="170" y1="100" x2="280" y2="100" stroke="#000"/>' +
-      '<polyline points="30,90 270,20" fill="none" stroke="#c00"/>' +
+      '<polyline points="30,90 150,50 270,20" fill="none" stroke="#c00"/>' +
       '</svg>';
     const p = analyse(svg);
-    expect(p.layout.regions).toEqual([{ box: [20, 10, 280, 100] }]);
-    // Without the line across, they are two panels.
-    const two = analyse(svg.replace(/<polyline[^>]*\/>/, ''));
-    expect(panelsOf(two)).toEqual([
+    expect(panelsOf(p)).toEqual([
       [20, 10, 130, 100],
       [170, 10, 280, 100],
     ]);
+    expect(p.layout.actions.get('4')).toEqual({ kind: 'join', in: 0 });
+    const { svg: out, sx, sy } = resized(p, 1.5, 1.4);
+    const pts = /points="([^"]*)"/.exec(out)?.[1]?.split(/[ ,]+/).map(Number) ?? [];
+    // The left end with the left panel, the right end with the right one, the middle in the gap.
+    const left = 20 + 10 * sx;
+    const right = 170 + 110 * (sx - 1) + 100 * sx;
+    const expected = [left, 10 + 80 * sy, 150 + 110 * (sx - 1), 10 + 40 * sy, right, 10 + 10 * sy];
+    pts.forEach((v, i) => {
+      expect(v).toBeCloseTo(expected[i] ?? NaN, 2);
+    });
+    expect(pts).toHaveLength(6);
+    // A shape that cannot be mapped point by point (a circle) still makes them one area.
+    const circle = analyse(svg.replace(/<polyline[^>]*\/>/, '<circle cx="150" cy="55" r="40"/>'));
+    expect(circle.layout.regions).toEqual([{ box: [20, 10, 280, 100] }]);
+  });
+
+  it('matplotlib: lines from a zoomed region to its close-up stay on both', async () => {
+    const p = analyse(await load('matplotlib-connected.svg'));
+    expect(panelsOf(p)).toHaveLength(2);
+    const joins = (pl: Plot) =>
+      [...pl.layout.actions].filter(([, a]) => a.kind === 'join').map(([id]) => id);
+    expect(joins(p)).toHaveLength(2);
+    // The zoomed region: the rectangle in the overview whose right edge the lines start from.
+    const leaves = drawnLeaves(p.root, p.viewBox);
+    const start = boxOf(p, joins(p)[0] ?? '')[0];
+    const zoomId = leaves
+      .filter((l) => {
+        const act = p.layout.actions.get(l.path.join('.'));
+        return act?.kind === 'scale' && act.in === 0 && close(l.box[2], start, 2);
+      })
+      .sort((x, y) => x.box[2] - x.box[0] - (y.box[2] - y.box[0]))[0]
+      ?.path.join('.');
+    for (const [fx, fy] of [
+      [1.5, 1.3],
+      [0.8, 0.9],
+    ] as const) {
+      const { plot: q } = resized(p, fx, fy);
+      const [, b] = panelsOf(q);
+      if (!b) throw new Error('close-up');
+      // Each still runs from the zoomed region's right edge to the close-up's left edge, from
+      // their top corners and from their bottom ones: its box is where it was against both.
+      const z0 = boxOf(p, zoomId ?? '');
+      const b0 = panelsOf(p)[1] ?? [0, 0, 0, 0];
+      const z = boxOf(q, zoomId ?? '');
+      for (const id of joins(q)) {
+        const e0 = boxOf(p, id);
+        const e = boxOf(q, id);
+        expect(e[0] - z[2]).toBeCloseTo(e0[0] - z0[2], 2);
+        expect(e[2] - b[0]).toBeCloseTo(e0[2] - b0[0], 2);
+        if (e0[1] < (z0[1] + z0[3]) / 2)
+          expect(e[1] - Math.min(z[1], b[1])).toBeCloseTo(e0[1] - Math.min(z0[1], b0[1]), 2);
+        else expect(e[3] - Math.max(z[3], b[3])).toBeCloseTo(e0[3] - Math.max(z0[3], b0[3]), 2);
+      }
+    }
   });
 
   it('a colour bar beside a lone panel keeps its width and its gap', () => {

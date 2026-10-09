@@ -78,20 +78,23 @@ text) is closed in the same work.
   legends on matplotlib SVG and PDF, R `pdf()` markers, a synthetic ggplot2-style legend,
   `matplotlib-subplots.svg` (2 × 2 with a colour bar and a one-entry legend) and
   `r-facets.svg` (ggplot2 `facet_wrap`), `matplotlib-shared-colorbar.svg` (a bar shared by a
-  column beside a wider panel) and `r-facets-touching.svg` (facets with no spacing), made by
+  column beside a wider panel), `r-facets-touching.svg` (facets with no spacing),
+  `r-facets-joined.svg` (one axis line along two touching facets) and `matplotlib-connected.svg`
+  (`ConnectionPatch` lines from a zoomed region to its close-up), made by
   `scripts/svg-fixtures/`, a strip over two panels, a lone panel's colour
-  bar and the fallback when a line joins two panels;
+  bar, a polyline across a gap and the fallback when a circle lies across two panels;
   `plotSize.test.ts` for the edits (copy-on-write, scale per point, drag determinism, groups,
   Match size, Arrange in grid, `growFrame`, issue 30); e2e `plot-resize.spec.ts` (W/H from the
   keyboard, the switch and its memory, export subset, axe, a timed drag with one undo step).
 - **Several panels** (issue 32). The area is split into **panels** when that is safe: area
   pieces (axis lines, and rectangles at least 10 % of the viewBox both ways that are not
   band-shaped) are grouped where they touch; a group whose rectangles fall into sets that only
-  touch (ggplot2 `panel.spacing = unit(0, "pt")`, issue 34) is split into one panel per set when
-  every axis line in it lies on one set (an axis line along two keeps them one); a group with no axis line and no straight stroke
+  touch (ggplot2 `panel.spacing = unit(0, "pt")`, issue 34) is split into one panel per set, each
+  with the axis lines on it; an axis line along two sets (or one that alone joined two groups
+  of rectangles) is no panel's piece but **joins** them (issue 39); a group with no axis line and no straight stroke
   along most of a side (a legend's background) is no panel; any other group under 10 % makes
   the split fail. With two or more panels, and no shape that would scale overlapping two of them
-  (a line drawn across the figure fails it), each axis gets **spans**, the panels' extents
+  but cannot be mapped point by point (a circle across two fails it), each axis gets **spans**, the panels' extents
   merged where they overlap: spans scale by one growth `(sx, sy)` about their own start and the
   gaps between them only move, so `sx = (vw' − margins − gaps) / Σ span widths`. Otherwise the
   plot is the one area above, unchanged. Every action names its **region**: a panel scales by
@@ -115,6 +118,13 @@ text) is closed in the same work.
   the band: every one of them gives way alike, so a column stays aligned. Along, a band's ends
   go where the spans take them and it scales between, so one across two spans keeps lying along
   them, the gap included (for a band inside one span this is the span's growth, as before).
+- **Joining strokes** (issue 39): an axis line along two panels, or a path, line, polyline,
+  polygon or upright rectangle overlapping two (a `ConnectionPatch` from a zoomed region to its
+  close-up), is mapped **point by point**: each point (a curve's control points too) by the map
+  of the panel it lies in, a point outside every panel where the spans take it (gaps move,
+  keep their size). So each end stays on its own panel; along two touching panels with no band
+  giving way the maps agree and such a line simply scales. A small closed shape across two
+  (a marker on the shared edge) still moves by its centre, with the region under it.
 - **Legends with one entry** move as one block when they have a title or a line key (1.2–3 em
   long, flat: matplotlib's handle); a lone marker beside a label may be an annotated point.
 - **Pictures** (issue 24). A panel background holed for a picture still counts as a rectangle. An imported plot's pictures are `image` objects in its group (note
@@ -129,6 +139,8 @@ text) is closed in the same work.
   A see-through picture's backdrop (note 12, issue 35) is an `svgImport` too, but is told from a
   plot by its place (`isBackdrop`: right under a raster picture with the same box): it is never
   resized as a plot, and follows like its picture, so it keeps the same frame.
-- **Not handled:** panels a stroke joins (a line drawn across them, an axis line along two that
-  touch) scale as one, gap included; members of a shared band whose edges differ follow the
+- **Not handled:** a shape across two panels that is not a path, line, polyline, polygon or
+  upright rectangle (a circle, an ellipse, a rotated rectangle) makes them scale as one area, gap
+  included; a joining stroke is not cut at panel edges, so a segment between its points stays
+  straight (where it crosses a gap, the gap's part of it is not kept to size); members of a shared band whose edges differ follow the
   nearest one's edge. Roles, panels and legends are guesses from geometry, as in note 16.
