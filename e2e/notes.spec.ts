@@ -74,6 +74,7 @@ test('notes on an object and on a point: write, follow, edit, resolve, reply, de
   await expect(notes(page).getByLabel('Note text')).toHaveCount(0);
   await page.keyboard.press('n');
   await page.mouse.click(empty.x, empty.y);
+  await expect(notes(page).getByLabel('Note text')).toBeFocused();
   await page.keyboard.type('Room for a legend');
   await page.keyboard.press('Control+Enter');
   await expect(markers(page)).toHaveCount(2);
@@ -133,6 +134,7 @@ test('notes survive saving and reopening the file, and no export carries them', 
   await rect(page, 30, 30, 60, 40);
   await page.keyboard.press('Escape');
   await notes(page).getByRole('button', { name: '+ Note' }).click();
+  await expect(notes(page).getByLabel('Note text')).toBeFocused();
   await page.keyboard.type('SECRET-REVIEW-NOTE');
   await page.keyboard.press('Control+Enter');
   await expect(markers(page)).toHaveCount(1);
