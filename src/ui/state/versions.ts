@@ -30,9 +30,10 @@ export async function saveVersion(name: string): Promise<boolean> {
   const clean = cleanName(name, UNTITLED_VERSION);
   try {
     // The figure itself must be kept too: its versions hang off its row.
-    await flushCurrent();
+    // The figure in front now, even if another tab comes forward while this is written (note 25).
     const s = store.getState();
     const f = figure(s);
+    await flushCurrent();
     const storage = getStorage();
     if ((await storage.text(f.doc.id)) === null)
       await storage.save(f, APP, { downloaded: s.downloaded === f });
@@ -68,13 +69,15 @@ export async function loadVersion(id: string): Promise<{ name: string; figure: F
  * flushed first, so the browser's copy holds what is replaced.
  */
 export async function restoreSavedVersion(id: string): Promise<boolean> {
+  // Into the tab it was asked for, whichever is in front once the version is read (note 25).
+  const tab = store.getState().front;
   await flushCurrent();
   const v = await loadVersion(id);
   if (!v) {
     store.notify('That version can no longer be read (it may be from a newer version).', 'error');
     return false;
   }
-  if (!store.edit(restoreVersion(v.name, v.figure))) return false;
+  if (!store.edit(restoreVersion(v.name, v.figure), { tab })) return false;
   store.notify(`Restored “${v.name}”. Undo brings back what you had.`);
   analytics.track('version', 'restore');
   return true;

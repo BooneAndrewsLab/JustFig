@@ -198,7 +198,8 @@ test('save, open, import an SVG, attribution, and autosave survive a reload', as
     schemaVersion: 2,
   });
   page.once('dialog', (d) => void d.accept());
-  await page.getByRole('button', { name: 'New' }).click();
+  // Close the figure (Alt+W), so opening the file really reads it back rather than bringing its tab forward.
+  await page.keyboard.press('Alt+w');
   await expect(page.locator('.layers .layer-head ~ ul .name')).toHaveCount(0);
   await page.getByTestId('open-input').setInputFiles(file);
   await expect(page.locator('.layers .layer-head ~ ul .name')).toHaveCount(4);

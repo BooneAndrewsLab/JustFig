@@ -65,7 +65,12 @@ test('make A, start B, reopen A from Recent figures; rename, download, delete', 
   await expect(page.getByLabel('Figure title')).toHaveValue('Figure A renamed');
   await expect(rects(page)).toHaveCount(2);
 
-  // B is still there; delete it through the in-app confirmation.
+  // B is still open in its tab (note 25); close it, then delete it through the in-app confirmation.
+  await page
+    .getByRole('tab', { name: /^Figure B/ })
+    .locator('.tabstrip-close')
+    .click();
+  await expect(page.getByRole('tablist', { name: 'Open figures' }).getByRole('tab')).toHaveCount(1);
   await page.getByRole('button', { name: 'Recent…' }).click();
   // The first page was drawn into a small thumbnail by now.
   await expect(dialog.locator('.recent-row img').first()).toBeVisible();

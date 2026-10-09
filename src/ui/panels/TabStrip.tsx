@@ -156,7 +156,7 @@ export function TabStrip({ onRecent }: { readonly onRecent: () => void }) {
       <button
         type="button"
         className="tabstrip-new"
-        aria-label="New figure in a tab"
+        aria-label="Add a figure tab"
         title="Start a new figure in a tab of its own"
         onClick={newFigure}
       >

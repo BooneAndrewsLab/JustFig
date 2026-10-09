@@ -159,7 +159,8 @@ test('notes survive saving and reopening the file, and no export carries them', 
     expect(readFileSync(path).toString('latin1')).not.toContain('SECRET-REVIEW-NOTE');
   }
 
-  await page.getByRole('button', { name: 'New' }).click();
+  // Close the figure (Alt+W), so opening the file really reads it back rather than bringing its tab forward.
+  await page.keyboard.press('Alt+w');
   await expect(heads(page)).toHaveCount(0);
   await page.getByTestId('open-input').setInputFiles(file);
   await expect(heads(page)).toHaveCount(1);

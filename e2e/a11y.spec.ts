@@ -29,6 +29,18 @@ test('the editor has no serious accessibility problems', async ({ page }) => {
   expect(await audit(page, '.icons-panel')).toEqual([]);
 });
 
+test('the figure tab strip is a proper tablist with no problems', async ({ page }) => {
+  await page.getByLabel('Figure title').fill('First');
+  await page.getByRole('button', { name: 'Add a figure tab' }).click();
+  const list = page.getByRole('tablist', { name: 'Open figures' });
+  await expect(list.getByRole('tab')).toHaveCount(2);
+  await expect(list.getByRole('tab', { selected: true })).toHaveAttribute(
+    'aria-controls',
+    'figure-canvas',
+  );
+  expect(await audit(page, '.tabstrip')).toEqual([]);
+});
+
 test('the dialogs and the Inspector of each kind of selection have none either', async ({
   page,
 }) => {
@@ -134,7 +146,7 @@ test('the well map, the layers, the pages and the dialogs work from the keyboard
 
   // A second page, reached with the arrow keys.
   await page.getByRole('button', { name: 'Add page' }).click();
-  const tabs = page.getByRole('tab');
+  const tabs = page.getByRole('tablist', { name: 'Pages' }).getByRole('tab');
   await expect(tabs).toHaveCount(2);
   await tabs.nth(1).focus();
   await page.keyboard.press('ArrowLeft');

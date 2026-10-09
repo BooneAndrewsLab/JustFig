@@ -327,9 +327,9 @@ export async function downloadRecent(id: string): Promise<void> {
   );
 }
 
+/** The same file content: compared as written (canonical key order, the assets kept). */
 const sameFigure = (a: Figure, b: Figure): boolean =>
-  JSON.stringify(a.doc) === JSON.stringify(b.doc) &&
-  JSON.stringify(a.assets) === JSON.stringify(b.assets);
+  writeJfig(figureWithSnapshots(a), APP) === writeJfig(figureWithSnapshots(b), APP);
 
 export async function openFile(file: File): Promise<void> {
   try {
