@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { resolvePaint } from '@/core/color/color';
 import { addObjects } from '@/core/edits/edits';
 import { createDoc, createRect, defaultRun, createText, frame, hex } from '@/core/model/factory';
+import { asId } from '@/core/model/ids';
 import { pageObjects } from '@/core/model/tree';
 import type { Figure, Obj } from '@/core/model/types';
 import { createProcedural } from '@/procedural/edits';
@@ -12,6 +13,7 @@ import { PALETTES, isNeutral, paletteById } from './palettes';
 import {
   addSwatch,
   applyPalette,
+  bakedSwatches,
   docColours,
   linkColours,
   removeSwatch,
@@ -30,15 +32,15 @@ function figure(): Figure {
       fill: hex('#e69f00'),
       stroke: hex('#1f2933'),
       strokeWidth: 1,
-      cap: 'butt',
-      join: 'miter',
+      cap: 'round',
+      join: 'round',
     }),
     createRect(frame(20, 0, 10, 10), {
       fill: hex('#56b4e9'),
       stroke: null,
       strokeWidth: 1,
-      cap: 'butt',
-      join: 'miter',
+      cap: 'round',
+      join: 'round',
     }),
     createText(0, 40, [[defaultRun('IL-6', { color: hex('#e69f00') })]]),
     createProcedural(plate, { x: 100, y: 100 }),
@@ -128,5 +130,30 @@ describe('palettes and swatch-linked recolouring (note 07)', () => {
     const f: Figure = { doc: createDoc(), assets: {} };
     const next = applyPalette(oi).apply(f);
     expect(next.doc.palette.map((s) => s.hex)).toEqual(expect.arrayContaining([...oi.colours]));
+  });
+});
+
+describe('bakedSwatches', () => {
+  it('replaces swatch links by their colours, in groups too, leaving fixed colours', () => {
+    const palette = [{ id: 'sw_a', name: 'A', hex: '#123456' }];
+    const linked = createRect(frame(0, 0, 1, 1), {
+      fill: { swatch: 'sw_a' },
+      stroke: hex('#abcdef'),
+      strokeWidth: 1,
+      cap: 'round',
+      join: 'round',
+    });
+    const text = createText(0, 0, [[defaultRun('x', { color: { swatch: 'sw_a' } })]]);
+    const group: Obj = {
+      id: asId('o_g'),
+      type: 'group',
+      frame: frame(0, 0, 1, 1),
+      opacity: 1,
+      children: [text],
+    };
+    const [r, g] = bakedSwatches([linked, group], palette);
+    expect(r).toMatchObject({ style: { fill: { hex: '#123456' }, stroke: { hex: '#abcdef' } } });
+    const inner = g?.type === 'group' ? g.children[0] : undefined;
+    expect(inner?.type === 'text' ? inner.runs[0]?.[0]?.color : null).toEqual({ hex: '#123456' });
   });
 });

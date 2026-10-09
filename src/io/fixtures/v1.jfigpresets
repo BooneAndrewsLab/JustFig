@@ -1,0 +1,110 @@
+{
+ "format": "justfig-presets",
+ "schemaVersion": 1,
+ "app": {
+  "name": "fixture",
+  "version": "0.1.0"
+ },
+ "assets": {
+  "h9637270e7a9ffbc9d998c81c50": {
+   "kind": "icon",
+   "meta": {
+    "id": "cell",
+    "author": "A. Author",
+    "library": "test",
+    "libraryVersion": "1.0.0",
+    "license": "CC-BY-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "originalUrl": "https://example.org/cell",
+    "shareAlike": false,
+    "source": "Test icons",
+    "title": "Cell"
+   },
+   "recolor": "slots",
+   "slots": [
+    {
+     "id": "a",
+     "default": "#ff0000",
+     "label": "Body"
+    }
+   ],
+   "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 10 10\"><path d=\"M0 0h10v10z\" fill=\"#ff0000\"/></svg>"
+  }
+ },
+ "presets": [
+  {
+   "name": "Cell and box",
+   "objects": [
+    {
+     "id": "o_0000000000000001",
+     "type": "rect",
+     "frame": {
+      "h": 30,
+      "rotation": 0,
+      "w": 40,
+      "x": 0,
+      "y": 0
+     },
+     "opacity": 1,
+     "rx": 0,
+     "style": {
+      "cap": "round",
+      "fill": {
+       "hex": "#56b4e9"
+      },
+      "join": "round",
+      "stroke": {
+       "hex": "#1f2933"
+      },
+      "strokeWidth": 1
+     }
+    },
+    {
+     "id": "o_0000000000000002",
+     "type": "icon",
+     "name": "Cell",
+     "asset": "h9637270e7a9ffbc9d998c81c50",
+     "frame": {
+      "h": 20,
+      "rotation": 0,
+      "w": 20,
+      "x": 10,
+      "y": 10
+     },
+     "lockAspect": true,
+     "opacity": 1,
+     "slots": {}
+    }
+   ]
+  },
+  {
+   "name": "Just a box",
+   "objects": [
+    {
+     "id": "o_0000000000000003",
+     "type": "rect",
+     "frame": {
+      "h": 5,
+      "rotation": 0,
+      "w": 5,
+      "x": 0,
+      "y": 0
+     },
+     "opacity": 1,
+     "rx": 0,
+     "style": {
+      "cap": "round",
+      "fill": {
+       "hex": "#56b4e9"
+      },
+      "join": "round",
+      "stroke": {
+       "hex": "#1f2933"
+      },
+      "strokeWidth": 1
+     }
+    }
+   ]
+  }
+ ]
+}

@@ -55,6 +55,18 @@ test('the dialogs and the Inspector of each kind of selection have none either',
   problems.push(...(await audit(page, '.dialog')).map((p) => `Arrange in grid: ${p}`));
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
+  // Save as preset, then the gallery's My presets tab with that preset in it.
+  await page.locator('.side').getByRole('button', { name: 'Save as preset…' }).click();
+  await expect(page.getByRole('dialog', { name: 'Save as preset' })).toBeVisible();
+  problems.push(...(await audit(page, '.dialog')).map((p) => `Save as preset: ${p}`));
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Templates…', exact: true }).click();
+  await page.getByRole('tab', { name: 'My presets' }).click();
+  await expect(page.locator('.preset-item')).toHaveCount(1);
+  problems.push(...(await audit(page, '.dialog')).map((p) => `My presets: ${p}`));
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(problems).toEqual([]);
 });
 

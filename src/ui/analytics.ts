@@ -63,6 +63,7 @@ export const EVENTS = {
   /** A check warning chosen in the Export dialog; the rule id (app vocabulary) as the name. */
   check: ['select'],
   attribution: ['open', 'copy', 'add-text'],
+  preset: ['save', 'place', 'export', 'import'],
   /** The entry id (app vocabulary) as the name. */
   gallery: ['open'],
   /** The built-in palette id as the name. */

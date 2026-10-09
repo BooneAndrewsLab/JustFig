@@ -5,7 +5,7 @@ import { createDoc } from '@/core/model/factory';
 import type { Figure } from '@/core/model/types';
 
 import { writeJfig } from './jfig';
-import { FigureDb, FigureStorage } from './storage';
+import { FigureDb, FigureStorage, NamedStore, StoreFullError, cleanName } from './storage';
 
 const APP = { name: 't', version: '0' };
 const dbName = () => `t-${String(Math.random())}`;
@@ -95,5 +95,65 @@ describe('FigureStorage', () => {
     await s.remove(a.doc.id);
     expect(await s.list()).toEqual([]);
     expect(await s.text(a.doc.id)).toBeNull();
+  });
+});
+
+describe('NamedStore (presets)', () => {
+  const store = (maxRows = 3, maxChars = 100) =>
+    new NamedStore(new FigureDb(dbName()).presets, { maxRows, maxChars, what: 'presets' });
+
+  it('adds, lists newest first, renames and removes', async () => {
+    const s = store();
+    const [a] = await s.add([{ name: 'A', text: 'aa' }], { now: 1 });
+    await s.add([{ name: 'B', text: 'b' }], { now: 2 });
+    expect((await s.list()).map((r) => [r.name, r.size])).toEqual([
+      ['B', 1],
+      ['A', 2],
+    ]);
+    await s.rename(a ?? '', 'A2');
+    expect((await s.get(a ?? ''))?.name).toBe('A2');
+    expect((await s.get(a ?? ''))?.updatedAt).toBe(1);
+    await s.remove(a ?? '');
+    expect((await s.list()).map((r) => r.name)).toEqual(['B']);
+  });
+
+  it('refuses a save past either cap, all or nothing, and evicts nothing', async () => {
+    const s = store(3, 10);
+    await s.add([{ name: 'A', text: '12345' }]);
+    await expect(
+      s.add([
+        { name: 'B', text: '1' },
+        { name: 'C', text: '1' },
+        { name: 'D', text: '1' },
+      ]),
+    ).rejects.toThrow(/up to 3 presets/);
+    await expect(s.add([{ name: 'B', text: '123456' }])).rejects.toBeInstanceOf(StoreFullError);
+    expect((await s.list()).map((r) => r.name)).toEqual(['A']);
+  });
+
+  it('opens a v2 database with its figures and an empty presets table', async () => {
+    const name = dbName();
+    const v2 = new Dexie(name);
+    v2.version(2).stores({ figures: 'id, updatedAt' });
+    const old = fig('Kept');
+    await v2.table('figures').put({
+      id: old.doc.id,
+      title: 'Kept',
+      text: writeJfig(old, APP),
+      downloaded: false,
+      updatedAt: 1,
+      thumb: null,
+    });
+    v2.close();
+    const db = new FigureDb(name);
+    expect((await new FigureStorage(db).list()).map((r) => r.title)).toEqual(['Kept']);
+    expect(await new NamedStore(db.presets, { maxRows: 1, maxChars: 1, what: 'x' }).list()).toEqual(
+      [],
+    );
+  });
+
+  it('cleans names', () => {
+    expect(cleanName('  a\t b ', 'f')).toBe('a b');
+    expect(cleanName(' ', 'f')).toBe('f');
   });
 });

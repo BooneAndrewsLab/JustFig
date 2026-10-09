@@ -32,7 +32,24 @@ import {
 import { convertObjects, createProcedural } from '@/procedural/edits';
 import { getKind } from '@/procedural/registry';
 import { figureWithSnapshots, withSnapshots } from '@/procedural/snapshot';
-import { type FigureSummary, getStorage } from '@/io/storage';
+import {
+  MAX_PRESETS_FILE_CHARS,
+  type Preset,
+  PRESETS_EXT,
+  UNTITLED_PRESET,
+  readPresetText,
+  readPresetsFile,
+  writePresetText,
+  writePresetsFile,
+} from '@/io/presets';
+import {
+  type FigureSummary,
+  StoreFullError,
+  cleanName,
+  getPresetStore,
+  getStorage,
+} from '@/io/storage';
+import { bakedSwatches } from '@/palette/recolor';
 
 import { analytics } from '../analytics';
 import { Autosaver } from './autosave';
@@ -139,6 +156,102 @@ export function newFigure(): void {
 export function openGallery(e: { build: () => Figure }): void {
   void saver?.flush();
   store.load(e.build());
+}
+
+// --- Presets (note 22) -------------------------------------------------------------
+
+export interface KeptPreset extends Preset {
+  readonly id: string;
+  readonly updatedAt: number;
+}
+
+/** Saves the selection as a named preset in this browser. False when nothing was saved. */
+export async function savePreset(name: string): Promise<boolean> {
+  const s = store.getState();
+  const objs = selectedObjects(s);
+  if (objs.length === 0) return false;
+  const fig = figure(s);
+  // Swatch links are baked: another figure's palette does not have these swatches.
+  const frag = selectionFragment(bakedSwatches(objs, fig.doc.palette), fig.assets, []);
+  const clean = cleanName(name, UNTITLED_PRESET);
+  try {
+    await getPresetStore().add([{ name: clean, text: writePresetText(frag) }]);
+  } catch (e: unknown) {
+    store.notify(e instanceof StoreFullError ? e.message : 'Could not save the preset.', 'error');
+    return false;
+  }
+  store.notify(`Saved preset “${clean}”. Find it in Templates… under My presets.`);
+  analytics.track('preset', 'save');
+  return true;
+}
+
+/** Every saved preset this version can read, newest first. */
+export async function listPresets(): Promise<KeptPreset[]> {
+  const rows = await getPresetStore().all();
+  return rows.flatMap((r) => {
+    try {
+      return [{ id: r.id, name: r.name, updatedAt: r.updatedAt, fragment: readPresetText(r.text) }];
+    } catch {
+      // A row this version can't read (newer app, or damaged) is left for the newer app.
+      return [];
+    }
+  });
+}
+
+/** Adds a preset to the current page, centred in the view, as one undo step. */
+export function placePreset(p: Preset): void {
+  importFragment(p.fragment, { at: viewCenter() }, `Place ${p.name}`);
+  analytics.track('preset', 'place');
+}
+
+export async function renamePreset(id: string, name: string): Promise<void> {
+  const clean = cleanName(name, '');
+  if (clean) await getPresetStore().rename(id, clean);
+}
+
+export async function deletePreset(id: string): Promise<void> {
+  await getPresetStore().remove(id);
+}
+
+/** Downloads presets as one file to share, named after `name`. */
+export function exportPresets(presets: readonly Preset[], name: string): void {
+  if (presets.length === 0) return;
+  download(writePresetsFile(presets, APP), `${safeName(name)}${PRESETS_EXT}`, BRAND.mime);
+  analytics.track('preset', 'export');
+}
+
+/**
+ * Adds the presets in a shared file to this browser's (all or none). One
+ * already kept under the same name with the same content is skipped.
+ * Returns how many were added, or null when the file was refused.
+ */
+export async function importPresets(file: File): Promise<number | null> {
+  try {
+    if (file.size > MAX_PRESETS_FILE_CHARS)
+      throw new JfigError('This presets file is too large to import.');
+    const incoming = readPresetsFile(await file.text());
+    const kept = new Set((await getPresetStore().all()).map((r) => `${r.name}\n${r.text}`));
+    const rows = incoming
+      .map((p) => ({ name: p.name, text: writePresetText(p.fragment) }))
+      .filter((r) => !kept.has(`${r.name}\n${r.text}`));
+    await getPresetStore().add(rows);
+    analytics.track('preset', 'import');
+    const n = rows.length;
+    store.notify(
+      n === 0
+        ? 'Those presets are already here.'
+        : `Added ${String(n)} preset${n === 1 ? '' : 's'}.`,
+    );
+    return n;
+  } catch (e: unknown) {
+    store.notify(
+      e instanceof JfigError || e instanceof StoreFullError
+        ? e.message
+        : 'Could not import that file.',
+      'error',
+    );
+    return null;
+  }
 }
 
 // --- Recent figures (note 02) -----------------------------------------------------
@@ -351,13 +464,21 @@ export function convertSelection(): void {
 
 let internalClipboard: string | null = null;
 
-function fragmentOf(objs: readonly Obj[], assets: Assets, palette: readonly Swatch[]): string {
-  // Snapshots let an app that does not know a procedural kind still show it.
+/** Objects with the assets they use, plus snapshots so an app that does not know a procedural kind still shows it. */
+function selectionFragment(
+  objs: readonly Obj[],
+  assets: Assets,
+  palette: readonly Swatch[],
+): Fragment {
   const snap = withSnapshots(objs, palette);
   const all = { ...assets, ...snap.assets };
   const used: Record<string, Assets[string]> = {};
   for (const o of snap.objs) for (const h of objectAssets(o)) if (all[h]) used[h] = all[h];
-  return writeFragment({ objects: snap.objs, assets: used });
+  return { objects: snap.objs, assets: used };
+}
+
+function fragmentOf(objs: readonly Obj[], assets: Assets, palette: readonly Swatch[]): string {
+  return writeFragment(selectionFragment(objs, assets, palette));
 }
 
 export function copySelection(cut = false): string | null {
@@ -405,6 +526,7 @@ export function pasteText(text: string | null, offset = 10): boolean {
 export function importFragment(
   frag: Fragment,
   place: { offset: number } | { at: { x: number; y: number } },
+  label = 'Paste',
 ): Obj[] {
   let dx = 0;
   let dy = 0;
@@ -419,7 +541,7 @@ export function importFragment(
   const objs = cloneObjects(frag.objects, dx, dy);
   store.edit({
     ...addObjects(currentPage(store.getState()).id, objs, frag.assets),
-    label: 'Paste',
+    label,
   });
   if (objs.some((o) => o.type === 'procedural')) analytics.track('procedural', 'fragment-paste');
   return objs;

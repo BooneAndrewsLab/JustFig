@@ -5,6 +5,7 @@
  */
 import Dexie, { type EntityTable } from 'dexie';
 
+import { newId } from '@/core/model/ids';
 import type { Figure } from '@/core/model/types';
 
 import { type SavedFigure, readJfig, writeJfig } from './jfig';
@@ -46,6 +47,7 @@ export const DB_NAME = 'justfig';
 
 export class FigureDb extends Dexie {
   declare figures: EntityTable<StoredFigure, 'id'>;
+  declare presets: EntityTable<NamedRow, 'id'>;
 
   constructor(name = DB_NAME) {
     super(name);
@@ -62,6 +64,8 @@ export class FigureDb extends Dexie {
             (r as { thumb?: string | null }).thumb ??= null;
           }),
       );
+    // v3 adds saved presets (note 22); figures are untouched.
+    this.version(3).stores({ figures: 'id, updatedAt', presets: 'id, updatedAt' });
   }
 }
 
@@ -160,6 +164,109 @@ export class FigureStorage {
   }
 }
 
+// --- named things the user keeps on purpose (presets; later snapshots) ----------------
+
+/** A row the user named and kept on purpose: the text is a file format with its migrations. */
+export interface NamedRow {
+  readonly id: string;
+  readonly name: string;
+  readonly text: string;
+  readonly updatedAt: number;
+}
+
+export interface NamedSummary {
+  readonly id: string;
+  readonly name: string;
+  readonly updatedAt: number;
+  /** Size of the stored text, in characters. */
+  readonly size: number;
+}
+
+/** Limits of a named store; past them a save is refused, never evicted (note 22). */
+export interface NamedCaps {
+  readonly maxRows: number;
+  readonly maxChars: number;
+  /** What the rows are, plural, for the message ("presets"). */
+  readonly what: string;
+}
+
+/** A save that would pass a cap; the message is for the user. */
+export class StoreFullError extends Error {
+  override readonly name = 'StoreFullError';
+}
+
+/** Longest name kept; longer ones are cut. */
+export const MAX_NAME = 80;
+
+/** A name as stored: whitespace collapsed, cut to `MAX_NAME`, never empty. */
+export function cleanName(name: string, fallback: string): string {
+  const s = name.replace(/\s+/g, ' ').trim().slice(0, MAX_NAME).trim();
+  return s === '' ? fallback : s;
+}
+
+/**
+ * Rows the user names and keeps on purpose (presets now; named snapshots
+ * later). Unlike autosaved figures nothing is evicted: a save that would pass
+ * a cap is refused with a message, and the user deletes what they no longer need.
+ */
+export class NamedStore {
+  constructor(
+    private readonly table: EntityTable<NamedRow, 'id'>,
+    readonly caps: NamedCaps,
+  ) {}
+
+  /** Adds rows all at once, or none when they would pass a cap. Returns their ids. */
+  async add(
+    rows: readonly { name: string; text: string }[],
+    opts: { now?: number } = {},
+  ): Promise<string[]> {
+    const now = opts.now ?? Date.now();
+    const made = rows.map((r) => ({ id: newId('k'), name: r.name, text: r.text, updatedAt: now }));
+    await this.table.db.transaction('rw', this.table, async () => {
+      const all = await this.table.toArray();
+      const count = all.length + made.length;
+      const chars = [...all, ...made].reduce((n, r) => n + r.text.length, 0);
+      if (count > this.caps.maxRows)
+        throw new StoreFullError(
+          `This browser keeps up to ${String(this.caps.maxRows)} ${this.caps.what}. Delete some first.`,
+        );
+      if (chars > this.caps.maxChars)
+        throw new StoreFullError(
+          `Your ${this.caps.what} would take too much room in this browser. Delete some first.`,
+        );
+      await this.table.bulkAdd(made);
+    });
+    return made.map((r) => r.id);
+  }
+
+  /** Every row, newest first. */
+  async all(): Promise<NamedRow[]> {
+    return this.table.orderBy('updatedAt').reverse().toArray();
+  }
+
+  async list(): Promise<NamedSummary[]> {
+    return (await this.all()).map((r) => ({
+      id: r.id,
+      name: r.name,
+      updatedAt: r.updatedAt,
+      size: r.text.length,
+    }));
+  }
+
+  async get(id: string): Promise<NamedRow | null> {
+    return (await this.table.get(id)) ?? null;
+  }
+
+  /** Renames a row; its text and modified time stay. */
+  async rename(id: string, name: string): Promise<void> {
+    await this.table.update(id, { name });
+  }
+
+  async remove(id: string): Promise<void> {
+    await this.table.delete(id);
+  }
+}
+
 function readStored(r: StoredFigure): KeptFigure | null {
   try {
     return { ...readJfig(r.text), downloaded: r.downloaded };
@@ -170,9 +277,26 @@ function readStored(r: StoredFigure): KeptFigure | null {
 }
 
 let shared: FigureStorage | null = null;
+let sharedDb: FigureDb | null = null;
+
+function db(): FigureDb {
+  sharedDb ??= new FigureDb();
+  return sharedDb;
+}
 
 /** The app's storage, created on first use so importing this module has no side effects. */
 export function getStorage(): FigureStorage {
-  shared ??= new FigureStorage();
+  shared ??= new FigureStorage(db());
   return shared;
+}
+
+/** Limits of saved presets (note 22). */
+export const PRESET_CAPS: NamedCaps = { maxRows: 100, maxChars: 30_000_000, what: 'presets' };
+
+let presets: NamedStore | null = null;
+
+/** The app's saved presets, in the same database as the figures. */
+export function getPresetStore(): NamedStore {
+  presets ??= new NamedStore(db().presets, PRESET_CAPS);
+  return presets;
 }

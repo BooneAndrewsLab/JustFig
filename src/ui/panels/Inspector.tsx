@@ -152,10 +152,12 @@ export function Inspector({
   onArrangeGrid,
   onCrop,
   onChannels,
+  onSavePreset,
 }: {
   onArrangeGrid: () => void;
   onCrop: () => void;
   onChannels: () => void;
+  onSavePreset: () => void;
 }) {
   const s = useAppState();
   const sel = selectedObjects(s);
@@ -168,6 +170,7 @@ export function Inspector({
       onArrangeGrid={onArrangeGrid}
       onCrop={onCrop}
       onChannels={onChannels}
+      onSavePreset={onSavePreset}
     />
   );
 }
@@ -344,12 +347,14 @@ function SelectionInspector({
   onArrangeGrid,
   onCrop,
   onChannels,
+  onSavePreset,
 }: {
   s: AppState;
   sel: readonly Obj[];
   onArrangeGrid: () => void;
   onCrop: () => void;
   onChannels: () => void;
+  onSavePreset: () => void;
 }) {
   const fig = figure(s);
   const page = currentPage(s);
@@ -603,6 +608,13 @@ function SelectionInspector({
               Ungroup
             </button>
           )}
+          <button
+            type="button"
+            title="Keep the selection in this browser to place again in any figure (Templates…, My presets)"
+            onClick={onSavePreset}
+          >
+            Save as preset…
+          </button>
         </div>
       </Section>
 

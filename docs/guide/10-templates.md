@@ -1,6 +1,6 @@
 # Templates and examples
 
-**Templates…** in the top bar opens the Templates and examples dialog. It has two tabs, each with cards that show a live preview. Choosing a card starts a new figure from it. If your current figure has unsaved changes, JustFig asks you to confirm first, so save it as a file if you want to keep it.
+**Templates…** in the top bar opens the Templates and examples dialog. It has three tabs: Templates, Examples and My presets. Templates and examples have each with cards that show a live preview. Choosing a template or example starts a new figure from it; your current figure stays in Recent figures.
 
 ## Templates
 
@@ -25,3 +25,13 @@ Examples are finished figures to take apart. Their colours are linked to the pal
 | Cloning and verification | A plasmid map and a diagnostic gel in two lettered panels.                                                                                                                                               |
 
 Try moving a box in the signalling pathway and watch its arrows follow. Select a plate or gel to see how its settings work (see [Scientific objects](08-objects.md)).
+
+## My presets
+
+A preset is a piece of a figure you made and want again: a labelled cell, a legend, a row of tubes with their arrows. Select the objects and choose **Save as preset…** in the Inspector. The Save as preset dialog asks for a name; the preset is kept in this browser, with copies of the icons and pictures it uses and their licence details, so credit lines still work wherever you place it.
+
+The **My presets** tab of the gallery shows your presets, newest first. Choosing one adds it to the current page, in the middle of the view, as one step you can undo. It does not start a new figure. Colours linked to palette swatches are saved as fixed colours, so a preset looks the same in any figure. Arrows attached to objects inside the preset stay attached; arrows attached to objects left out are detached.
+
+Each preset has **Rename**, **Export** and **Delete** buttons. Delete asks first (Delete this preset?). This browser keeps up to 100 presets; when it is full, delete some before saving more. Nothing is dropped on its own.
+
+To share presets with your lab, use **Export all presets** (or Export on one preset). That downloads a `.jfigpresets` file. Someone else opens the gallery's My presets tab and chooses **Import presets…** to add the file's presets to theirs. Presets they already have, with the same name and content, are skipped. A file that is damaged or is not a presets file is refused, and nothing is added.

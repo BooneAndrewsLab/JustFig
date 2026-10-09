@@ -9,7 +9,8 @@
 
 export type Id = string & { readonly __brand: 'Id' };
 
-export type IdPrefix = 'd' | 'pg' | 'ly' | 'o' | 'ts' | 'sw';
+/** `k_` is not in documents: it keys rows the user keeps on purpose (saved presets, note 22). */
+export type IdPrefix = 'd' | 'pg' | 'ly' | 'o' | 'ts' | 'sw' | 'k';
 
 /** Takes a string that is already an id, e.g. read from a file. */
 export const asId = (s: string): Id => s as Id;

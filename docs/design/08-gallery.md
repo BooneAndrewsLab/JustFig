@@ -41,9 +41,11 @@ The cost is that a contributor writes TypeScript rather than drawing in the app.
 
 ## The dialog
 
-Two tabs (Templates, Examples), each a grid of cards with a live thumbnail: the entry is built
+Three tabs: Templates and Examples, each a grid of cards with a live thumbnail: the entry is built
 and exported through `exportSvg` (text outlined, no footer) into an `<img>`, so the thumbnail is
-exactly what the figure is. Building all entries takes a few milliseconds.
+exactly what the figure is. Building all entries takes a few milliseconds. The third tab, My presets, holds
+the user's saved presets (note 22); choosing one adds it to the current page instead of starting a
+new figure.
 
 ## Tests
 

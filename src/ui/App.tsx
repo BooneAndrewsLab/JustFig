@@ -15,6 +15,7 @@ import { CropDialog } from './dialogs/CropDialog';
 import { GridDialog } from './dialogs/GridDialog';
 import { GuideDialog } from './dialogs/GuideDialog';
 import { RecentDialog } from './dialogs/RecentDialog';
+import { SavePresetDialog } from './dialogs/SavePresetDialog';
 import { KeyBindingsDialog } from './dialogs/KeyBindingsDialog';
 import { PdfPageDialog } from './dialogs/PdfPageDialog';
 import { IconBrowser } from './panels/IconBrowser';
@@ -39,12 +40,19 @@ type DialogId =
   | 'grid'
   | 'crop'
   | 'channels'
+  | 'save-preset'
   | null;
 
 /** The one selected object's name, for the status line a screen reader announces. */
 function selectionName(s: ReturnType<typeof useAppState>): string {
   const [one] = selectedObjects(s);
   return s.selection.length === 1 && one ? `: ${one.name ?? one.type}` : '';
+}
+
+/** A name to start from: the one selected object's name, else a generic one. */
+function presetName(s: ReturnType<typeof useAppState>): string {
+  const [one] = selectedObjects(s);
+  return s.selection.length === 1 && one?.name ? one.name : 'My preset';
 }
 
 export function App() {
@@ -320,6 +328,9 @@ export function App() {
           onChannels={() => {
             setDialog('channels');
           }}
+          onSavePreset={() => {
+            setDialog('save-preset');
+          }}
         />
         <LayersPanel />
       </aside>
@@ -360,6 +371,15 @@ export function App() {
       )}
       {dialog === 'gallery' && (
         <GalleryDialog
+          onClose={() => {
+            setDialog(null);
+          }}
+        />
+      )}
+      {dialog === 'save-preset' && (
+        <SavePresetDialog
+          suggested={presetName(s)}
+          count={s.selection.length}
           onClose={() => {
             setDialog(null);
           }}

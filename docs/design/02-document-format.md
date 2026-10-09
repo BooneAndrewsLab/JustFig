@@ -140,3 +140,8 @@ becomes one entry of the list (tested). Writes keep the row's thumbnail until a 
   in `localStorage` so a reload restores the figure last opened, not just the last changed.
 - **Rename** rewrites the row's title and the `.jfig` text and keeps the modified time.
   **Delete** is confirmed in an in-app dialog and is not offered for the open figure.
+
+### Presets
+
+Schema v3 of the database adds a `presets` table for saved selections (note 22). Presets are
+capped too but never evicted: a save past the cap is refused, since the user kept them on purpose.

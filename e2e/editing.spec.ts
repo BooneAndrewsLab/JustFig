@@ -189,7 +189,7 @@ test('save, open, import an SVG, attribution, and autosave survive a reload', as
   // Save downloads a figure file; opening it brings the same objects back.
   const [download] = await Promise.all([
     page.waitForEvent('download'),
-    page.getByRole('button', { name: 'Save' }).click(),
+    page.getByRole('button', { name: 'Save', exact: true }).click(),
   ]);
   const file = info.outputPath('fig.jfig');
   await download.saveAs(file);

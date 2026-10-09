@@ -6,6 +6,7 @@
  */
 import { resolvePaint } from '@/core/color/color';
 import { type Edit, updateDoc } from '@/core/edits/edits';
+import { createDoc, createLayer, createPage } from '@/core/model/factory';
 import { type Id, newId } from '@/core/model/ids';
 import { mapObjs } from '@/core/model/tree';
 import type { Doc, Obj, Paint, ShapeStyle, Swatch } from '@/core/model/types';
@@ -184,6 +185,17 @@ export const removeSwatch = (id: string): Edit =>
     const baked = mapDocPaints(d, (p) => ('swatch' in p && p.swatch === id ? { hex: s.hex } : p));
     return { ...baked, palette: d.palette.filter((x) => x.id !== id) };
   });
+
+/**
+ * Objects with every swatch link replaced by its colour, for use in another
+ * figure whose palette does not have those swatches (presets, note 22).
+ */
+export function bakedSwatches(objs: readonly Obj[], palette: readonly Swatch[]): Obj[] {
+  const page = { ...createPage(), layers: [{ ...createLayer(), children: objs }] };
+  const doc = { ...createDoc(), palette, pages: [page] };
+  const out = mapDocPaints(doc, (p) => ('swatch' in p ? { hex: resolvePaint(p, palette) } : p));
+  return [...(out.pages[0]?.layers[0]?.children ?? [])];
+}
 
 /** Every link undone: the figure keeps its look with fixed colours. */
 export const unlinkColours = (): Edit =>
