@@ -322,7 +322,8 @@ button.link {
 .canvas.tool-line,
 .canvas.tool-pen,
 .canvas.tool-arrow,
-.canvas.tool-panel {
+.canvas.tool-panel,
+.canvas.tool-note {
   cursor: crosshair;
 }
 
@@ -1173,4 +1174,100 @@ button.link {
 
 .export-checks li {
   margin: 2px 0;
+}
+
+/* Review notes (note 24) */
+.notes h2 .count {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: normal;
+}
+
+.notes textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  resize: vertical;
+}
+
+.notes .note-list {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+}
+
+.notes .note-page {
+  margin: 6px 0 2px;
+  font-size: 11px;
+  color: var(--ink-2);
+}
+
+.notes .note-head {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  padding: 2px 4px;
+}
+
+.notes li.active > .note-head {
+  background: var(--accent-soft);
+}
+
+.notes li.resolved > .note-head .note-excerpt {
+  color: var(--ink-2);
+  text-decoration: line-through;
+}
+
+.notes .note-num {
+  flex: none;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  background: #e69f00;
+  color: #1f2328;
+  font-size: 11px;
+  text-align: center;
+  line-height: 18px;
+}
+
+.notes .note-excerpt {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notes .note-body {
+  padding: 2px 4px 8px 28px;
+}
+
+.notes .note-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 2px 0 6px;
+}
+
+.notes .note-replies {
+  list-style: none;
+  margin: 0 0 6px;
+  padding: 0 0 0 8px;
+  border-left: 2px solid var(--rule);
+}
+
+.notes .note-reply {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.notes button.link {
+  border: 0;
+  background: transparent;
+  padding: 0 2px;
+  color: var(--accent);
+  text-decoration: underline;
 }

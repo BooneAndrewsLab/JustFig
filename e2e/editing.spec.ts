@@ -195,7 +195,7 @@ test('save, open, import an SVG, attribution, and autosave survive a reload', as
   await download.saveAs(file);
   expect(JSON.parse(readFileSync(file, 'utf8'))).toMatchObject({
     format: 'justfig',
-    schemaVersion: 1,
+    schemaVersion: 2,
   });
   page.once('dialog', (d) => void d.accept());
   await page.getByRole('button', { name: 'New' }).click();

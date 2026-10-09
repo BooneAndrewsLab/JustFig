@@ -28,6 +28,7 @@ import {
 } from '@/core/model/factory';
 import { asId, type Id } from '@/core/model/ids';
 import { bindable } from '@/core/model/binding';
+import { noteAnchor } from '@/core/model/notes';
 import { findObj } from '@/core/model/tree';
 import type { Figure, Obj, Page, PathNode, Swatch, Vec2 } from '@/core/model/types';
 import { type Guide, snapBox, snapPoint } from '@/core/snapping/snap';
@@ -40,6 +41,7 @@ import { type View, currentPage, figure, selectedObjects, store } from '../state
 import { useAppState } from '../state/useAppState';
 import { PagesBar } from '../panels/PagesBar';
 import { ICON_DRAG_TYPE, KIND_DRAG_TYPE, fitPage, zoomAt } from './view';
+import { NoteMarkers } from './NoteMarkers';
 import { PageView } from './PageView';
 import { Ruler } from './Rulers';
 import { TextEditor } from './TextEditor';
@@ -376,6 +378,17 @@ export function Canvas() {
       gesture.current = { kind: 'marquee', start: p, add: e.shiftKey };
       return;
     }
+    if (s.tool === 'note') {
+      // A review note (note 24): on the object clicked, else on the point.
+      const hit = pickTarget(e.target, page);
+      const o = hit ? findObj(page, hit) : undefined;
+      store.setNoteDraft(
+        o ? { page: page.id, at: noteAnchor(o), object: o.id } : { page: page.id, at: p },
+      );
+      if (!s.showNotes) store.setShowNotes(true);
+      store.setTool('select');
+      return;
+    }
     if (s.tool === 'pen') {
       const q = snapP(p).p;
       const first = pen[0];
@@ -566,6 +579,7 @@ export function Canvas() {
       }
       case 'select':
       case 'pen':
+      case 'note':
       case 'hand':
         return;
     }
@@ -832,6 +846,15 @@ export function Canvas() {
               );
             })}
           </g>
+          {s.showNotes && (
+            <NoteMarkers
+              doc={fig.doc}
+              page={page}
+              view={v}
+              active={s.activeNote}
+              draft={s.noteDraft}
+            />
+          )}
           {selBox && s.tool === 'select' && s.editingText === null && (
             <g>
               {drawnBox && (

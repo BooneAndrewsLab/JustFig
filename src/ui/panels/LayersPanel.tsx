@@ -4,16 +4,10 @@ import { useState } from 'react';
 import { addLayer, deleteLayer, moveLayer, updateLayer, updateObjects } from '@/core/edits/edits';
 import type { Id } from '@/core/model/ids';
 import type { Layer, Obj } from '@/core/model/types';
-import { plainText } from '@/core/text/layout';
 
 import { currentPage, store } from '../state/store';
 import { useAppState } from '../state/useAppState';
-
-function objName(o: Obj): string {
-  if (o.name) return o.name;
-  if (o.type === 'text') return `“${plainText(o).slice(0, 24)}”`;
-  return o.type.charAt(0).toUpperCase() + o.type.slice(1);
-}
+import { objName } from './objName';
 
 function ObjRow({
   o,

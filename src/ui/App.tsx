@@ -23,6 +23,7 @@ import { PdfPageDialog } from './dialogs/PdfPageDialog';
 import { IconBrowser } from './panels/IconBrowser';
 import { Inspector } from './panels/Inspector';
 import { LayersPanel } from './panels/LayersPanel';
+import { NotesPanel } from './panels/NotesPanel';
 import { ToolPalette } from './panels/ToolPalette';
 import { resolveBindings, withKey } from './keyBindings';
 import { onCopy, onKeyDown, onPaste } from './shortcuts';
@@ -346,6 +347,7 @@ export function App() {
           }}
         />
         <LayersPanel />
+        <NotesPanel />
       </aside>
       <footer className="status" aria-live="polite">
         <span>

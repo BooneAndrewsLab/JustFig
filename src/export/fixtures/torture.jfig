@@ -1,6 +1,6 @@
 {
  "format": "justfig",
- "schemaVersion": 1,
+ "schemaVersion": 2,
  "app": {
   "name": "fixture",
   "version": "0.0.0"
@@ -64,6 +64,7 @@
  "document": {
   "id": "d_0000000000000001",
   "creditFooter": true,
+  "notes": [],
   "pages": [
    {
     "id": "pg_0000000000000001",

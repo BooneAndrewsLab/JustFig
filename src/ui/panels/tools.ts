@@ -16,4 +16,5 @@ export const TOOLS: readonly { id: ToolId; label: string; glyph: string }[] = [
   { id: 'arrow', label: 'Arrow', glyph: '→' },
   { id: 'text', label: 'Text', glyph: 'T' },
   { id: 'panel', label: 'Panel (lettered A, B, C…)', glyph: '⊞' },
+  { id: 'note', label: 'Review note (click an object or a point)', glyph: '✎' },
 ];

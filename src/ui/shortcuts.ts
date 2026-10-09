@@ -48,6 +48,7 @@ const TOOL_ACTIONS: Readonly<Record<string, ToolId>> = {
   'tool-arrow': 'arrow',
   'tool-text': 'text',
   'tool-panel': 'panel',
+  'tool-note': 'note',
 };
 
 export function onKeyDown(e: KeyboardEvent, open: ShortcutTargets): void {

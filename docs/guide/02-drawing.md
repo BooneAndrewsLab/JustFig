@@ -4,19 +4,20 @@ The tool palette lists the tools. Hover over a tool to see its name and key. Aft
 
 ## The tools
 
-| Tool      | What it does                                                                                               |
-| --------- | ---------------------------------------------------------------------------------------------------------- |
-| Select    | Click an object to select it, drag to move it, drag on empty space to draw a selection box.                |
-| Pan       | Drag to move the view. Holding Space does the same with any tool.                                          |
-| Rectangle | Drag to draw. A plain click makes a 60 × 40 pt rectangle.                                                  |
-| Ellipse   | Drag to draw. A plain click makes a 50 × 50 pt circle.                                                     |
-| Line      | Drag from one end to the other. A plain click makes a 60 pt line.                                          |
-| Pen       | Click corners, or press and drag to pull out a smooth curve. See below.                                    |
-| Arrow     | Drag from the tail to the head. See [Arrows](03-arrows.md).                                                |
-| Text      | Click to type, or drag to set a width. See [Text](04-text.md).                                             |
-| Panel     | Drag to draw a lettered panel. A plain click makes a 200 × 150 pt panel. See [Arranging](05-arranging.md). |
+| Tool        | What it does                                                                                                   |
+| ----------- | -------------------------------------------------------------------------------------------------------------- |
+| Select      | Click an object to select it, drag to move it, drag on empty space to draw a selection box.                    |
+| Pan         | Drag to move the view. Holding Space does the same with any tool.                                              |
+| Rectangle   | Drag to draw. A plain click makes a 60 × 40 pt rectangle.                                                      |
+| Ellipse     | Drag to draw. A plain click makes a 50 × 50 pt circle.                                                         |
+| Line        | Drag from one end to the other. A plain click makes a 60 pt line.                                              |
+| Pen         | Click corners, or press and drag to pull out a smooth curve. See below.                                        |
+| Arrow       | Drag from the tail to the head. See [Arrows](03-arrows.md).                                                    |
+| Text        | Click to type, or drag to set a width. See [Text](04-text.md).                                                 |
+| Panel       | Drag to draw a lettered panel. A plain click makes a 200 × 150 pt panel. See [Arranging](05-arranging.md).     |
+| Review note | Click an object to pin a note to it, or an empty spot to pin it there. See [Review notes](16-review-notes.md). |
 
-The default keys are V, H, R, E, L, P, A, T and F. You can change them in Shortcuts….
+The default keys are V, H, R, E, L, P, A, T, F and N. You can change them in Shortcuts….
 
 New shapes get a fill and an outline in the default colours. Change them in the Style section of the Inspector.
 

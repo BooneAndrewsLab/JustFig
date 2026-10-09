@@ -85,6 +85,23 @@ test('the dialogs and the Inspector of each kind of selection have none either',
   expect(problems).toEqual([]);
 });
 
+test('the Notes panel, with a draft, an open note and a reply, has none (note 24)', async ({
+  page,
+}) => {
+  const notes = page.getByRole('region', { name: 'Notes' });
+  await notes.getByRole('button', { name: '+ Note' }).click();
+  await expect(notes.getByLabel('Note text')).toBeFocused();
+  expect(await audit(page, '.notes')).toEqual([]);
+  await page.keyboard.type('Bigger label');
+  await page.keyboard.press('Control+Enter');
+  await notes.getByLabel('Reply').fill('Done');
+  await notes.getByRole('button', { name: 'Reply', exact: true }).click();
+  await notes.getByRole('button', { name: 'Resolve' }).click();
+  await expect(notes.locator('.note-replies li')).toHaveCount(1);
+  expect(await audit(page, '.notes')).toEqual([]);
+  expect(await audit(page)).toEqual([]);
+});
+
 test('the well map, the layers, the pages and the dialogs work from the keyboard', async ({
   page,
 }) => {

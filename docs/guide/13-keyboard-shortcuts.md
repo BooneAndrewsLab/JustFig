@@ -13,6 +13,7 @@ Every shortcut in JustFig is in this table. **Ctrl** means **⌘** on a Mac. Sho
 | Arrow tool                                                       | `A`            |                                 |
 | Text tool                                                        | `T`            |                                 |
 | Panel tool                                                       | `F`            |                                 |
+| Review note tool                                                 | `N`            |                                 |
 | Select everything on the page                                    | `Ctrl+A`       |                                 |
 | Duplicate the selection                                          | `Ctrl+D`       |                                 |
 | Group the selection                                              | `Ctrl+G`       |                                 |

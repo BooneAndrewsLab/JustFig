@@ -30,6 +30,10 @@ JustFig is designed so that most of it works without a mouse, and so that a scre
 - Arrows are attached or detached with the arrow's section in the Inspector; the **Detach** buttons are ordinary buttons. Creating a new attachment needs the pointer.
 - Ctrl+Z and Ctrl+Y undo and redo. The tooltip of each button names the change.
 
+## Review notes
+
+The Notes panel lists every note. Tab to a note and press Enter to open it; **↑** and **↓** move between notes. **+ Note** starts a note on the selected object, or in the middle of the page when nothing is selected, and puts you in its text box; Ctrl+Enter adds it and Escape cancels. See [Review notes](16-review-notes.md).
+
 ## Pages
 
 With a page tab focused, **←** and **→** move to the previous and next page and **F2** renames it. The **+**, **Rename** and **Delete page** buttons work with Enter.

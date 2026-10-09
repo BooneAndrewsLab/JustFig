@@ -92,7 +92,10 @@ describe('presets file (sharing)', () => {
   it('round-trips names, objects and the assets each preset uses', () => {
     const all = presets();
     const text = writePresetsFile(all, APP);
-    expect(JSON.parse(text)).toMatchObject({ format: PRESETS_FORMAT, schemaVersion: 1 });
+    expect(JSON.parse(text)).toMatchObject({
+      format: PRESETS_FORMAT,
+      schemaVersion: SCHEMA_VERSION,
+    });
     const back = readPresetsFile(text);
     expect(back.map((p) => p.name)).toEqual(['Cell and box', 'Just a box']);
     const [first, second] = all;

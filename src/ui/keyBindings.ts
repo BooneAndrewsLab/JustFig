@@ -47,6 +47,7 @@ export const KEY_ACTIONS: readonly KeyAction[] = [
   { id: 'tool-arrow', label: 'Arrow tool', group: 'Tools', defaultBinding: 'KeyA' },
   { id: 'tool-text', label: 'Text tool', group: 'Tools', defaultBinding: 'KeyT' },
   { id: 'tool-panel', label: 'Panel tool', group: 'Tools', defaultBinding: 'KeyF' },
+  { id: 'tool-note', label: 'Review note tool', group: 'Tools', defaultBinding: 'KeyN' },
   {
     id: 'select-all',
     label: 'Select everything on the page',

@@ -77,4 +77,5 @@ never a name.
 
 - No thumbnail per version in the list (Compare renders on demand).
 - Versions are per browser; they do not travel with the file or between computers.
-- Review notes (#9) are a separate feature and get their own table.
+- Review notes (#9) are a separate feature: they live in the `.jfig` document (note 24), so a
+  version keeps the notes of its moment and restoring it brings them back.

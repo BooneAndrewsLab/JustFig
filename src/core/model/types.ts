@@ -282,6 +282,34 @@ export interface PanelLabelStyle {
   readonly offset: Vec2;
 }
 
+/** A reply under a review note (note 24). */
+export interface NoteReply {
+  readonly id: Id;
+  /** Plain text, shown as text only. */
+  readonly text: string;
+  /** Who wrote it, as they typed their name; '' when they gave none. */
+  readonly author: string;
+  /** When it was written, ms since 1970. */
+  readonly time: number;
+}
+
+/**
+ * A review note (note 24): a comment on a page, kept in the file, never
+ * drawn by the renderer and never exported.
+ */
+export interface Note extends NoteReply {
+  readonly page: Id;
+  /**
+   * Where the marker is, page points. For a note on an object it follows the
+   * object (`reconcileNotes`), so it stays put if the object is deleted.
+   */
+  readonly at: Vec2;
+  /** The object it is pinned to, if any. */
+  readonly object?: Id;
+  readonly resolved?: boolean;
+  readonly replies: readonly NoteReply[];
+}
+
 export interface Doc {
   readonly id: Id;
   readonly title: string;
@@ -291,6 +319,8 @@ export interface Doc {
   readonly pages: readonly Page[];
   /** Whether exports carry the credit-line footer; default on (note 03). */
   readonly creditFooter: boolean;
+  /** Review notes (note 24), in the order they were added. */
+  readonly notes: readonly Note[];
 }
 
 export interface SlotDef {

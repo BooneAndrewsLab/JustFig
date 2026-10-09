@@ -11,6 +11,8 @@ import {
   type Asset,
   type Doc,
   type Frame,
+  type Note,
+  type NoteReply,
   type Obj,
   type Paint,
   type PathNode,
@@ -208,6 +210,33 @@ export const objArb: fc.Arbitrary<Obj> = fc.letrec<{ obj: Obj }>((tie) => ({
   ),
 })).obj;
 
+const PAGE_ID = asId('pg_0000000000000000');
+
+const replyArb: fc.Arbitrary<NoteReply> = fc.record({
+  id: fc.stringMatching(/^n_[0-9a-f]{16}$/).map(asId),
+  text: fc.string({ maxLength: 40 }),
+  author: text,
+  time: fc.nat(),
+});
+
+/** Review notes (note 24): on a point, or pinned to an object id (one that may be gone). */
+export const noteArb: fc.Arbitrary<Note> = fc
+  .tuple(
+    replyArb,
+    vec,
+    maybe('object', id),
+    trueOrAbsent('resolved'),
+    fc.array(replyArb, { maxLength: 3 }),
+  )
+  .map(([r, at, object, resolved, replies]) => ({
+    ...r,
+    page: PAGE_ID,
+    at,
+    ...object,
+    ...resolved,
+    replies,
+  }));
+
 export const docArb: fc.Arbitrary<Doc> = fc
   .tuple(
     text,
@@ -216,8 +245,9 @@ export const docArb: fc.Arbitrary<Doc> = fc
     pos(2000),
     fc.option(paintArb, { nil: null }),
     fc.boolean(),
+    fc.array(noteArb, { maxLength: 3 }),
   )
-  .map(([title, children, w, h, background, creditFooter]) => ({
+  .map(([title, children, w, h, background, creditFooter, notes]) => ({
     id: asId('d_0000000000000000'),
     title,
     palette: [{ id: 'sw_0001', name: 'Blue', hex: '#0072b2' }],
@@ -225,7 +255,7 @@ export const docArb: fc.Arbitrary<Doc> = fc
     panelLabelStyle: { format: 'A', font: 'arimo', size: 12, bold: true, offset: { x: 4, y: 4 } },
     pages: [
       {
-        id: asId('pg_0000000000000000'),
+        id: PAGE_ID,
         name: 'Page 1',
         size: { w, h },
         background,
@@ -241,6 +271,7 @@ export const docArb: fc.Arbitrary<Doc> = fc
       },
     ],
     creditFooter,
+    notes,
   }));
 
 const meta = { name: 'x.png', width: 10, height: 10 };

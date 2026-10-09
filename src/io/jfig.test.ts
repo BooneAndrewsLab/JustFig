@@ -99,6 +99,43 @@ describe('.jfig codec', () => {
     );
   });
 
+  it('checks review notes in a file (note 24)', () => {
+    const doc = createDoc();
+    const page = doc.pages[0];
+    if (!page) throw new Error('no page');
+    const ok = {
+      id: 'n_1',
+      page: page.id,
+      at: { x: 1, y: 2 },
+      text: 'hi',
+      author: '',
+      time: 1,
+      replies: [],
+    };
+    const file = (notes: unknown[]) => {
+      const raw = JSON.parse(writeJfig({ doc, assets: {} }, APP)) as {
+        document: { notes: unknown[] };
+      };
+      raw.document.notes = notes;
+      return JSON.stringify(raw);
+    };
+    expect(readJfig(file([ok])).doc.notes).toEqual([ok]);
+    expect(() => readJfig(file([{ ...ok, page: 'pg_gone' }]))).toThrow(
+      /notes\[0\]\.page: no such page/,
+    );
+    expect(() => readJfig(file([{ ...ok, text: 'x'.repeat(10_001) }]))).toThrow(/longer than/);
+    expect(() => readJfig(file([{ ...ok, author: 7 }]))).toThrow(/notes\[0\]\.author/);
+    expect(() => readJfig(file([{ ...ok, replies: [{ id: 'n_2', text: 'r' }] }]))).toThrow(
+      /replies\[0\]/,
+    );
+    // A schema 1 file has no notes and opens with none.
+    const v1 = JSON.parse(file([])) as Record<string, unknown> & { document: object };
+    const { notes: _n, ...rest } = v1.document as { notes: unknown };
+    expect(readJfig(JSON.stringify({ ...v1, schemaVersion: 1, document: rest })).doc.notes).toEqual(
+      [],
+    );
+  });
+
   it('runs migrations in order from the file version', () => {
     const steps = [
       (d: Record<string, unknown>) => ({ ...d, a: 1 }),

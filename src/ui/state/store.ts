@@ -12,15 +12,23 @@ import type { PlotSizing } from '@/core/edits/plotSize';
 import { reconcileBindings } from '@/core/model/binding';
 import { createDoc } from '@/core/model/factory';
 import type { Id } from '@/core/model/ids';
+import { reconcileNotes } from '@/core/model/notes';
 import { findObj } from '@/core/model/tree';
-import type { Figure, Obj, Page } from '@/core/model/types';
+import type { Figure, Obj, Page, Vec2 } from '@/core/model/types';
 import type { Unit } from '@/core/units';
 
 import { analytics } from '../analytics';
 import { loadCustomBindings, saveCustomBindings } from '../keyBindings';
 
 export type ToolId =
-  'select' | 'rect' | 'ellipse' | 'line' | 'pen' | 'arrow' | 'text' | 'panel' | 'hand';
+  'select' | 'rect' | 'ellipse' | 'line' | 'pen' | 'arrow' | 'text' | 'panel' | 'note' | 'hand';
+
+/** A review note being written, not yet in the figure (note 24). */
+export interface NoteDraft {
+  readonly page: Id;
+  readonly at: Vec2;
+  readonly object?: Id;
+}
 
 /** How the canvas shows colours: as they are, or as a colour-vision deficiency sees them (note 07). */
 export type Vision = 'normal' | 'deuteranopia' | 'protanopia' | 'tritanopia' | 'greyscale';
@@ -58,6 +66,12 @@ export interface AppState {
   /** The text object being edited in the overlay, if any. */
   readonly editingText: Id | null;
   readonly notice: Notice | null;
+  /** Review note markers on the canvas (note 24); remembered per browser. Never exported either way. */
+  readonly showNotes: boolean;
+  /** The review note open in the Notes panel. */
+  readonly activeNote: Id | null;
+  /** A note placed but not yet written. */
+  readonly noteDraft: NoteDraft | null;
   /** The figure as last downloaded or opened from a file; null if never. */
   readonly downloaded: Figure | null;
 }
@@ -100,6 +114,14 @@ function initialUnits(): Unit {
   }
 }
 
+function initialShowNotes(): boolean {
+  try {
+    return globalThis.localStorage.getItem('showNotes') !== 'off';
+  } catch {
+    return true;
+  }
+}
+
 function initialPlotSizing(): PlotSizing {
   try {
     return globalThis.localStorage.getItem('plotSizing') === 'scale' ? 'scale' : 'keep';
@@ -128,6 +150,9 @@ export class AppStore {
       keyBindings: loadCustomBindings(),
       editingText: null,
       notice: null,
+      showNotes: initialShowNotes(),
+      activeNote: null,
+      noteDraft: null,
       downloaded: null,
     };
   }
@@ -144,8 +169,9 @@ export class AppStore {
     const base = opts.from ?? this.state.history.present;
     let next: Figure;
     try {
-      // Bound arrows follow their targets, whatever the edit was (note 06).
-      next = reconcileBindings(base, e.apply(base));
+      // Bound arrows follow their targets, whatever the edit was (note 06), and
+      // review notes their objects (note 24).
+      next = reconcileNotes(reconcileBindings(base, e.apply(base)));
     } catch (err: unknown) {
       if (!(err instanceof EditError)) throw err;
       this.notify(err.message, 'error');
@@ -203,6 +229,8 @@ export class AppStore {
       pageId: f.doc.pages[0]?.id ?? ('' as Id),
       selection: [],
       editingText: null,
+      activeNote: null,
+      noteDraft: null,
       downloaded: opts.hasFile === true ? f : null,
     });
   }
@@ -224,7 +252,15 @@ export class AppStore {
   }
 
   setPage(pageId: Id): void {
-    this.set({ pageId, selection: [], editingText: null });
+    const notes = this.state.history.present.doc.notes;
+    const active = notes.find((n) => n.id === this.state.activeNote);
+    this.set({
+      pageId,
+      selection: [],
+      editingText: null,
+      activeNote: active?.page === pageId ? active.id : null,
+      noteDraft: this.state.noteDraft?.page === pageId ? this.state.noteDraft : null,
+    });
   }
 
   setUnits(units: Unit): void {
@@ -264,6 +300,27 @@ export class AppStore {
     this.set({ keyBindings: {} });
   }
 
+  setShowNotes(showNotes: boolean): void {
+    try {
+      globalThis.localStorage.setItem('showNotes', showNotes ? 'on' : 'off');
+    } catch {
+      // A remembered preference only.
+    }
+    this.set({ showNotes });
+  }
+
+  /** Opens a note in the Notes panel (null closes it); a note on another page shows that page. */
+  setActiveNote(id: Id | null): void {
+    const n =
+      id === null ? undefined : this.state.history.present.doc.notes.find((x) => x.id === id);
+    if (n && n.page !== this.state.pageId) this.setPage(n.page);
+    this.set({ activeNote: n ? n.id : null, noteDraft: null });
+  }
+
+  setNoteDraft(noteDraft: NoteDraft | null): void {
+    this.set({ noteDraft, ...(noteDraft ? { activeNote: null } : {}) });
+  }
+
   setVision(vision: Vision): void {
     this.set({ vision });
   }
@@ -291,15 +348,19 @@ export class AppStore {
   private fix(
     f: Figure,
     selection: readonly Id[],
-  ): Pick<AppState, 'pageId' | 'selection' | 'editingText'> {
+  ): Pick<AppState, 'pageId' | 'selection' | 'editingText' | 'activeNote' | 'noteDraft'> {
     const page = f.doc.pages.find((p) => p.id === this.state.pageId) ?? f.doc.pages[0];
     const pageId = page?.id ?? this.state.pageId;
     const keep = page ? selection.filter((id) => findObj(page, id) !== undefined) : [];
     const editing = this.state.editingText;
+    const active = this.state.activeNote;
+    const draft = this.state.noteDraft;
     return {
       pageId,
       selection: keep,
       editingText: editing !== null && page && findObj(page, editing) ? editing : null,
+      activeNote: active !== null && f.doc.notes.some((n) => n.id === active) ? active : null,
+      noteDraft: draft && f.doc.pages.some((p) => p.id === draft.page) ? draft : null,
     };
   }
 

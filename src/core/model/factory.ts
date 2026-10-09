@@ -77,6 +77,7 @@ export function createDoc(title = 'Untitled figure'): Doc {
     },
     pages: [createPage()],
     creditFooter: true,
+    notes: [],
   };
 }
 

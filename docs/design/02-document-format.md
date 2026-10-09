@@ -32,7 +32,9 @@ user.
 interface JfigFile { format: 'justfig'; schemaVersion: number; app: { name; version };
                      document: Doc; assets: Record<AssetHash, Asset> }
 interface Doc   { id; title; palette: Swatch[]; textStyles: TextStyle[];
-                  panelLabelStyle: PanelLabelStyle; pages: Page[]; creditFooter: boolean }
+                  panelLabelStyle: PanelLabelStyle; pages: Page[]; creditFooter: boolean;
+                  notes: Note[] }                                     // notes: note 24 (schema 2)
+Note  { id; page; at: Vec2; object?; text; author; time; resolved?; replies: { id; text; author; time }[] }
 interface Page  { id; name; size: { w; h; preset? }; background: Paint | null; layers: Layer[] }
 interface Layer { id; name; visible; locked; children: Obj[] }        // bottom -> top
 
@@ -100,7 +102,9 @@ As in `bsig.ts`: `MIGRATIONS[i]` turns schema `i + 1` into `i + 2`, `SCHEMA_VERS
 MIGRATIONS.length + 1`, and `migrate()` runs on open. A file from a newer app is refused with a
 message saying so and suggesting a reload. Each procedural kind carries `kindVersion` and its
 own `migrate` (note 04), so kinds evolve without a schema bump. Every schema bump ships a frozen fixture in `src/io/fixtures/` plus a round-trip
-test. Schema 1 is frozen as `src/io/fixtures/v1.jfig`.
+test. Schema 1 is frozen as `src/io/fixtures/v1.jfig`. Schema 2 adds `Doc.notes`, review notes
+(note 24); its migration gives a schema 1 document `notes: []` and leaves fragments and presets
+files (no document, objects unchanged) as they were. Frozen as `src/io/fixtures/v2.jfig`.
 
 ## Fragments (clipboard and sibling interchange)
 

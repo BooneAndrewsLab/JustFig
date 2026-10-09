@@ -55,7 +55,7 @@ export const EVENTS = {
   app: ['start'],
   history: ['undo', 'redo'],
   file: ['open', 'open-recent', 'download', 'import-svg', 'import-pdf', 'import-image'],
-  tool: ['rect', 'ellipse', 'line', 'pen', 'arrow', 'text', 'panel'],
+  tool: ['rect', 'ellipse', 'line', 'pen', 'arrow', 'text', 'panel', 'note'],
   icon: ['place'],
   /** Kind names are app vocabulary, not figure content. */
   procedural: ['place', 'convert', 'from-path', 'fragment-paste', 'gel-labels', 'scale-bar'],
@@ -66,6 +66,8 @@ export const EVENTS = {
   preset: ['save', 'place', 'export', 'import'],
   /** Saved versions of a figure (note 23); never a name. */
   version: ['save', 'restore', 'compare'],
+  /** Review notes (note 24); never their text or author. */
+  note: ['add', 'reply', 'resolve', 'delete', 'hide'],
   /** `open`: the entry id (app vocabulary) as the name. `source`: Save as template source. */
   gallery: ['open', 'source'],
   /** The built-in palette id as the name. */

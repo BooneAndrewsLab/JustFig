@@ -5,6 +5,7 @@
  * refused rather than guessed at.
  */
 import { asId } from '@/core/model/ids';
+import { NOTE_LIMITS } from '@/core/model/notes';
 import {
   FONT_IDS,
   HEAD_KINDS,
@@ -17,6 +18,8 @@ import {
   type Head,
   type IconMeta,
   type Layer,
+  type Note,
+  type NoteReply,
   type Obj,
   type Page,
   type Paint,
@@ -56,7 +59,15 @@ export const FRAGMENT_FORMAT = 'justfig-fragment';
 /** One function per schema step: `MIGRATIONS[i]` turns version i + 1 into version i + 2. */
 export type Migration = (doc: JsonObject) => JsonObject;
 
-export const MIGRATIONS: readonly Migration[] = [];
+export const MIGRATIONS: readonly Migration[] = [
+  // 1 → 2: review notes (note 24). Fragments and presets files have no document and
+  // their objects did not change, so they pass through.
+  (file) => {
+    const doc = file['document'];
+    if (doc === null || typeof doc !== 'object' || Array.isArray(doc)) return file;
+    return { ...file, document: { ...(doc as JsonObject), notes: [] } };
+  },
+];
 
 export const SCHEMA_VERSION = MIGRATIONS.length + 1;
 
@@ -421,10 +432,51 @@ function labelStyle(v: unknown, p: Path): PanelLabelStyle {
   };
 }
 
+function capped(max: number) {
+  return (v: unknown, p: Path): string => {
+    const s = str(v, p);
+    if (s.length > max) p.fail(`longer than ${String(max)} characters`);
+    return s;
+  };
+}
+
+function reply(v: unknown, p: Path): NoteReply {
+  const o = obj(v, p);
+  return {
+    id: asId(str(o['id'], p.key('id'))),
+    text: capped(NOTE_LIMITS.text)(o['text'], p.key('text')),
+    author: capped(NOTE_LIMITS.author)(o['author'], p.key('author')),
+    time: nonNeg(o['time'], p.key('time')),
+  };
+}
+
+/** A review note (note 24). Its text is only ever shown as text. */
+function note(v: unknown, p: Path): Note {
+  const o = obj(v, p);
+  const replies = list(o['replies'], p.key('replies'), reply);
+  if (replies.length > NOTE_LIMITS.replies)
+    p.key('replies').fail(`more than ${String(NOTE_LIMITS.replies)} replies`);
+  return {
+    ...reply(o, p),
+    page: asId(str(o['page'], p.key('page'))),
+    at: vec(o['at'], p.key('at')),
+    ...opt(o, 'object', p, (x, q) => asId(str(x, q))),
+    ...flag(o, 'resolved', p),
+    replies,
+  };
+}
+
 export function docOf(v: unknown, p: Path): Doc {
   const o = obj(v, p);
   const pages = list(o['pages'], p.key('pages'), page);
   if (pages.length === 0) p.key('pages').fail('a figure needs at least one page');
+  const notes = list(o['notes'], p.key('notes'), note);
+  if (notes.length > NOTE_LIMITS.notes)
+    p.key('notes').fail(`more than ${String(NOTE_LIMITS.notes)} notes`);
+  notes.forEach((n, i) => {
+    if (!pages.some((pg) => pg.id === n.page))
+      p.key('notes').index(i).key('page').fail('no such page');
+  });
   return {
     id: asId(str(o['id'], p.key('id'))),
     title: str(o['title'], p.key('title')),
@@ -433,6 +485,7 @@ export function docOf(v: unknown, p: Path): Doc {
     panelLabelStyle: labelStyle(o['panelLabelStyle'], p.key('panelLabelStyle')),
     pages,
     creditFooter: bool(o['creditFooter'], p.key('creditFooter')),
+    notes,
   };
 }
 

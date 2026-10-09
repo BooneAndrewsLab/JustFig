@@ -8,7 +8,7 @@ JustFig is a free figure editor that runs entirely in your browser. There is no 
 - **Left:** the Icons panel. At its top is the Scientific objects shelf (see [Scientific objects](08-objects.md)), below it the icon search and categories (see [Icons](07-icons.md)).
 - **Tool palette:** a narrow column of tools next to the canvas (see [Drawing](02-drawing.md)).
 - **Canvas:** your page, with rulers along the top and left edges in millimetres or inches. The Pages bar sits under it.
-- **Right:** the Inspector, which shows the properties of whatever is selected, and the Layers panel under it (see [The Inspector](06-inspector.md) and [Arranging](05-arranging.md)).
+- **Right:** the Inspector, which shows the properties of whatever is selected, the Layers panel under it, and the Notes panel at the bottom (see [The Inspector](06-inspector.md), [Arranging](05-arranging.md) and [Review notes](16-review-notes.md)).
 - **Status line:** at the bottom. It says how many objects are selected, whether the figure is "Saved to file" or "Kept in this browser", and shows short messages. A screen reader announces changes to it.
 
 ## The top-bar buttons
@@ -51,7 +51,7 @@ Undo only reaches back to when you opened the figure, and autosave keeps only it
 - **Restore…**, which asks "Restore this version?" first. Restoring makes the figure what it was in that version, as a single change: **Undo** brings back what you had.
 - **Rename** changes the name (Enter keeps it, Escape cancels), and **Delete** removes the version after asking "Delete this version?".
 
-Saved versions are kept in this browser with the figure, like autosave, and are not in the `.jfig` file you save. A figure with saved versions is never dropped from Recent figures to make room; deleting the figure there deletes its versions too. A figure can have up to 30 saved versions and all figures 200 together; past that, or when they would take too much room, JustFig refuses to save another and asks you to delete some first.
+Saved versions are kept in this browser with the figure, like autosave, and are not in the `.jfig` file you save. A version keeps the figure's review notes as they were, and restoring it brings those back. A figure with saved versions is never dropped from Recent figures to make room; deleting the figure there deletes its versions too. A figure can have up to 30 saved versions and all figures 200 together; past that, or when they would take too much room, JustFig refuses to save another and asks you to delete some first.
 
 ## Working offline
 
