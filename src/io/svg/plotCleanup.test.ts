@@ -467,6 +467,79 @@ describe('label alignment', () => {
     expect(texts(far.root)[0]?.children[1]).toMatchObject({ attrs: { x: '40', y: '50' } });
   });
 
+  it('aligns the lines of a multi-line label as one block (matplotlib glyphs)', () => {
+    const t = texts(plot(fixture('matplotlib-multiline')).root);
+    const at = (s: string, i = 0): [string, number] => {
+      const n = t.filter((n) => label(n) === s)[i];
+      return [anchorOf(n), xOf(n)];
+    };
+    // Three-line x tick labels: every line centred on its tick, the third far from it.
+    for (const [first, ...rest] of [
+      [at('WT'), at('day 1'), at('rep A')],
+      [at('mutant'), at('day 1', 1), at('rep A', 1)],
+      [at('WT', 1), at('day 14'), at('rep B')],
+    ]) {
+      expect(first?.[0]).toBe('middle');
+      expect(rest).toEqual([first, first]);
+    }
+    expect(at('time point')).toEqual(at('Genotype and'));
+    expect(at('Genotype and')[0]).toBe('middle');
+    // Two-line y tick labels end together, on the first line's end.
+    expect(at('siRNA')).toEqual(at('control'));
+    expect(at('A')).toEqual(at('knockdown'));
+    expect(at('control')[0]).toBe('end');
+    // Left-aligned title, annotation and legend keep start.
+    for (const s of ['Treated cells', 'n = 3', 'left aligned', 'note', 'replicate', 'mean'])
+      expect(at(s)[0], s).toBe('start');
+  });
+
+  it('gives every line of a label the alignment one line has evidence for', () => {
+    const tick = '<path d="M50 60V64" stroke="#000"/>';
+    // "WT / day 14 / rep B" centred under a tick: only the first line is near it.
+    for (const pitch of [9, 12]) {
+      const s = plot(
+        svg(
+          tick +
+            lbl(44, 76, 'WT', 1.2) +
+            lbl(35, 76 + pitch, 'day 14', 3) +
+            lbl(38, 76 + 2 * pitch, 'rep B', 2.4),
+        ),
+      );
+      expect(texts(s.root).map((n) => [anchorOf(n), xOf(n)])).toEqual([
+        ['middle', 50],
+        ['middle', 50],
+        ['middle', 50],
+      ]);
+    }
+    // A left-aligned stack whose first line happens to centre on the tick stays start.
+    const left = plot(svg(tick + lbl(44, 76, 'WT', 1.2) + lbl(44, 88, 'day 14', 3)));
+    expect(texts(left.root).map(anchorOf)).toEqual(['start', 'start']);
+    // Start evidence on any line (a legend handle) keeps the block at start.
+    const handle = plot(
+      svg(
+        tick +
+          '<path d="M20 85H42" stroke="#000"/>' +
+          lbl(44, 76, 'WT', 1.2) +
+          lbl(44, 88, 'day', 1.2),
+      ),
+    );
+    expect(texts(handle.root).map(anchorOf)).toEqual(['start', 'start']);
+  });
+
+  it('does not join lines of another style, size or pitch into one label', () => {
+    const tick = '<path d="M50 60V64" stroke="#000"/>';
+    const second = [
+      lbl(35, 88, 'day 14', 3, 'fill="#ff0000"'),
+      lbl(35, 88, 'day 14', 3, 'font-style="italic"'),
+      lbl(38.5, 88, 'day 14', 3.3, 'font-size="9"'),
+      lbl(35, 96, 'day 14', 3), // 2 em: another label
+    ];
+    for (const c of second) {
+      const s = plot(svg(tick + lbl(44, 76, 'WT', 1.2) + c));
+      expect(texts(s.root).map(anchorOf), c).toEqual(['middle', 'start']);
+    }
+  });
+
   it('re-sanitises to itself and never stores the source width', () => {
     const s = plot(svg('<path d="M50 60V64" stroke="#000"/>' + lbl(47, 76, '10', 0.6)));
     const again = sanitizeSvg(nodeToSvgString(s.root));
@@ -624,6 +697,7 @@ describe('stability', () => {
     'matplotlib-paths',
     'matplotlib-text',
     'matplotlib-log',
+    'matplotlib-multiline',
     'r-cairo',
     'r-svglite',
   ]) {

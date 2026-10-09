@@ -782,7 +782,8 @@ function mergeTexts(n: SvgNode, inh: Inherited): SvgNode {
  * "At the centre/end" allows `TOL` em with the source's exact width (PDF
  * runs and matplotlib glyph positions carry it as `ADVANCE_ATTR`), plus 3 %
  * of the width when only an estimate is known. A centred label is anchored
- * on the line it centres on, a right-aligned one at its source end.
+ * on the line it centres on, a right-aligned one at its source end. The lines
+ * of a label of several lines are decided together (`blocks`, `blockAnchors`).
  */
 const NEAR = 1.5;
 const AXIS_GAP = 6;
@@ -860,6 +861,8 @@ interface Label {
   /** Width as the source drew it, user units. */
   readonly w: number;
   readonly tol: number;
+  /** Font family, style, weight and fill: lines of one label share them. */
+  readonly style: string;
 }
 
 const ALONG = (l: Label): readonly [number, number] => {
@@ -877,7 +880,8 @@ function local(l: Label, px: number, py: number): [number, number] {
 
 type Anchor = { readonly anchor: 'middle' | 'end'; readonly at: number } | null;
 
-function inferAnchor(l: Label, edges: readonly Seg2[], boxes: readonly Box[]): Anchor {
+/** An anchor, `'start'` on evidence for start, or `null` when unsure. */
+function inferAnchor(l: Label, edges: readonly Seg2[], boxes: readonly Box[]): Anchor | 'start' {
   const { fs, w, tol } = l;
   const mid = w / 2;
   const band = (q0: number, q1: number): boolean => q0 < BAND[1] * fs && q1 > BAND[0] * fs;
@@ -888,7 +892,7 @@ function inferAnchor(l: Label, edges: readonly Seg2[], boxes: readonly Box[]): A
     const a1 = Math.max(...c.map((p) => p[0]));
     const q0 = Math.min(...c.map((p) => p[1]));
     const q1 = Math.max(...c.map((p) => p[1]));
-    if (band(q0, q1) && before(a1)) return null;
+    if (band(q0, q1) && before(a1)) return 'start';
   }
   /** Where lines say the centre is, within `tol` of the label's own. */
   const centres: number[] = [];
@@ -903,7 +907,7 @@ function inferAnchor(l: Label, edges: readonly Seg2[], boxes: readonly Box[]): A
     if (q1 - q0 < a1 - a0) {
       // Parallel to the baseline.
       if (band(q0, q1)) {
-        if (before(a1)) return null;
+        if (before(a1)) return 'start';
         if (a0 >= w - tol && a0 <= w + NEAR * fs) end = true;
       } else {
         const gap = q0 >= ASC * fs ? q0 - ASC * fs : -DESC * fs - q0;
@@ -911,7 +915,7 @@ function inferAnchor(l: Label, edges: readonly Seg2[], boxes: readonly Box[]): A
       }
     } else if (band(q0, q1)) {
       // Perpendicular, through the label's height.
-      if (before(a0)) return null;
+      if (before(a0)) return 'start';
       if (a0 >= w - tol && a0 <= w + NEAR * fs) end = true;
     } else {
       // Perpendicular, ending above or below the label: a tick.
@@ -941,6 +945,69 @@ function leftColumn(l: Label, all: readonly Label[], kept: ReadonlySet<Label>): 
     const tol = Math.max(l.tol, o.tol);
     return Math.abs(a) <= tol && Math.abs(q) <= 3 * l.fs && Math.abs(o.w - l.w) > 2 * tol;
   });
+}
+
+/** Line pitch of a label of several lines, in em: ggplot2's 0.9 to matplotlib's and R's 1.2 and a little more. */
+const PITCH: readonly [number, number] = [0.8, 1.45];
+
+/** `b` is the next line of the label `a` ends with: below it, on a pitch, overlapping it. */
+function nextLine(a: Label, b: Label): boolean {
+  if (a.angle !== b.angle || a.style !== b.style || Math.abs(a.fs - b.fs) > 0.01 * a.fs)
+    return false;
+  const [along, up] = local(a, b.x, b.y);
+  return -up >= PITCH[0] * a.fs && -up <= PITCH[1] * a.fs && along < a.w && along + b.w > 0;
+}
+
+/**
+ * Labels of several lines (issue 33): runs of consecutive labels (document
+ * order), each the next line of the one before.
+ */
+function blocks(labels: readonly Label[]): Label[][] {
+  const out: Label[][] = [];
+  for (const l of labels) {
+    const last = out[out.length - 1];
+    const prev = last?.[last.length - 1];
+    if (last && prev && nextLine(prev, l)) last.push(l);
+    else out.push([l]);
+  }
+  return out;
+}
+
+const REF = { start: 0, middle: 0.5, end: 1 } as const;
+
+/** The lines' starts, centres or ends line up, within their tolerance. */
+function shared(block: readonly Label[], kind: keyof typeof REF): boolean {
+  const first = block[0];
+  if (!first) return false;
+  const at = block.map((l) => {
+    const [ux, uy] = ALONG(l);
+    const r = REF[kind] * l.w;
+    return local(first, l.x + ux * r, l.y + uy * r)[0];
+  });
+  const tol = kind === 'start' ? TOL * first.fs : Math.max(...block.map((l) => l.tol));
+  return Math.max(...at) - Math.min(...at) <= tol;
+}
+
+/**
+ * One alignment for the lines of a label: start on any line's start evidence;
+ * else the one anchor its decided lines agree on when the lines' centres (or
+ * ends) line up, on the first decided line's anchor point; start when they
+ * line up at their starts instead; otherwise each line as decided alone.
+ */
+function blockAnchors(block: readonly Label[], own: readonly (Anchor | 'start')[]): Anchor[] {
+  const alone = own.map((a) => (a === 'start' ? null : a));
+  if (block.length < 2) return alone;
+  if (own.includes('start')) return block.map(() => null);
+  const decided = own.flatMap((a, i) => (a && a !== 'start' ? [{ a, l: block[i] }] : []));
+  const first = decided[0];
+  if (!first?.l) return alone;
+  const kind = first.a.anchor;
+  if (decided.some((d) => d.a.anchor !== kind)) return block.map(() => null);
+  if (!shared(block, kind)) return shared(block, 'start') ? block.map(() => null) : alone;
+  const [ux, uy] = ALONG(first.l);
+  const px = first.l.x + ux * first.a.at;
+  const py = first.l.y + uy * first.a.at;
+  return block.map((l) => ({ anchor: kind, at: local(l, px, py)[0] }));
 }
 
 const FLOW_RUN = new Set<string>(['dy', ...RUN_FONT]);
@@ -1010,7 +1077,10 @@ function anchorLabels(root: SvgNode, vb: ViewBox): SvgNode {
             const est = p.est;
             const w = adv !== null && adv > 0 ? adv * fs : est;
             const tol = TOL * fs + (adv !== null && adv > 0 ? 0 : 0.03 * w);
-            labels.push({ node: c, x: p.x, y: p.y, angle, fs, w, tol });
+            const style = ['font-family', 'font-style', 'font-weight', 'fill']
+              .map((k) => get(own, k))
+              .join('|');
+            labels.push({ node: c, x: p.x, y: p.y, angle, fs, w, tol, style });
           } else collect(c, here);
         }
       return;
@@ -1021,13 +1091,27 @@ function anchorLabels(root: SvgNode, vb: ViewBox): SvgNode {
     if (b?.every(Number.isFinite)) boxes.push(b);
   };
   collect(root, ROOT_INHERITED);
-  const found = labels.map((l) => inferAnchor(l, edges, boxes));
-  const kept = new Set(labels.filter((_, i) => found[i] === null));
+  const inferred = labels.map((l) => inferAnchor(l, edges, boxes));
+  const kept = new Set(labels.filter((_, i) => typeof inferred[i] !== 'object'));
+  const own = new Map(
+    labels.map((l, i) => {
+      const f = inferred[i] ?? null;
+      return [l, f && f !== 'start' && leftColumn(l, labels, kept) ? null : f] as const;
+    }),
+  );
+  const found = new Map<Label, Anchor>();
+  for (const b of blocks(labels)) {
+    const anchors = blockAnchors(
+      b,
+      b.map((l) => own.get(l) ?? null),
+    );
+    for (const [i, l] of b.entries()) found.set(l, anchors[i] ?? null);
+  }
   const decided = new Map<SvgNode, SvgNode>();
-  for (const [i, l] of labels.entries()) {
-    const f = found[i];
+  for (const l of labels) {
+    const f = found.get(l);
     const attrs = without(l.node.attrs, ADVANCE_ATTR);
-    if (f && !leftColumn(l, labels, kept)) {
+    if (f) {
       const [ux, uy] = ALONG(l);
       const x = fmt(l.x + ux * f.at);
       const y = fmt(l.y + uy * f.at);

@@ -56,6 +56,7 @@ const FIXTURES: readonly { name: string; load: () => Promise<string> | string }[
   { name: 'matplotlib-paths', load: () => svgFixture('matplotlib-paths') },
   { name: 'matplotlib-text', load: () => svgFixture('matplotlib-text') },
   { name: 'matplotlib-log', load: () => svgFixture('matplotlib-log') },
+  { name: 'matplotlib-multiline', load: () => svgFixture('matplotlib-multiline') },
   { name: 'r-svglite', load: () => svgFixture('r-svglite') },
   { name: 'pdf-matplotlib-type3', load: () => pdfFixture('matplotlib-type3') },
   { name: 'pdf-matplotlib-truetype', load: () => pdfFixture('matplotlib-truetype') },

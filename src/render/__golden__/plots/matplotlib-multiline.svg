@@ -1,0 +1,32 @@
+<text xml:space="preserve"><tspan x="69.37" y="135.39" font-family="Arimo" font-size="10">WT</tspan></text>
+<text xml:space="preserve"><tspan x="64.91" y="147.39" font-family="Arimo" font-size="10">day 1</tspan></text>
+<text xml:space="preserve"><tspan x="65.19" y="159.39" font-family="Arimo" font-size="10">rep A</tspan></text>
+<text xml:space="preserve"><tspan x="108.11" y="135.39" font-family="Arimo" font-size="10">mutant</tspan></text>
+<text xml:space="preserve"><tspan x="111.16" y="147.39" font-family="Arimo" font-size="10">day 1</tspan></text>
+<text xml:space="preserve"><tspan x="111.45" y="159.39" font-family="Arimo" font-size="10">rep A</tspan></text>
+<text xml:space="preserve"><tspan x="161.87" y="135.39" font-family="Arimo" font-size="10">WT</tspan></text>
+<text xml:space="preserve"><tspan x="154.64" y="147.39" font-family="Arimo" font-size="10">day 14</tspan></text>
+<text xml:space="preserve"><tspan x="157.7" y="159.39" font-family="Arimo" font-size="10">rep B</tspan></text>
+<text xml:space="preserve"><tspan x="91.98" y="175.39" font-family="Arimo" font-size="10">Genotype and</tspan></text>
+<text xml:space="preserve"><tspan x="101.72" y="187.4" font-family="Arimo" font-size="10">time point</tspan></text>
+<text xml:space="preserve"><tspan x="31.13" y="123.59" font-family="Arimo" font-size="10">0.0</tspan></text>
+<text xml:space="preserve"><tspan x="31.13" y="95.63" font-family="Arimo" font-size="10">2.5</tspan></text>
+<text xml:space="preserve"><tspan x="31.13" y="67.68" font-family="Arimo" font-size="10">5.0</tspan></text>
+<text transform="rotate(-90 9.859 80.655)" xml:space="preserve"><tspan x="-8.2" y="80.66" font-family="Arimo" font-size="10">Relative</tspan></text>
+<text transform="rotate(-90 21.862 80.655)" xml:space="preserve"><tspan x="8.8" y="80.66" font-family="Arimo" font-size="10">signal</tspan></text>
+<text xml:space="preserve"><tspan x="151.15" y="47.41" font-family="Arimo" font-size="10">left aligned</tspan></text>
+<text xml:space="preserve"><tspan x="151.15" y="59.41" font-family="Arimo" font-size="10">note</tspan></text>
+<text xml:space="preserve"><tspan x="52.17" y="21.12" font-family="Arimo" font-size="12">Treated cells</tspan></text>
+<text xml:space="preserve"><tspan x="52.17" y="35.52" font-family="Arimo" font-size="12">n = 3</tspan></text>
+<text xml:space="preserve"><tspan x="89.17" y="58.12" font-family="Arimo" font-size="10">replicate</tspan></text>
+<text xml:space="preserve"><tspan x="89.17" y="73.12" font-family="Arimo" font-size="10">mean</tspan></text>
+<text xml:space="preserve"><tspan x="275.96" y="134.39" font-family="Arimo" font-size="10">0</tspan></text>
+<text xml:space="preserve"><tspan x="321.19" y="134.39" font-family="Arimo" font-size="10">1</tspan></text>
+<text xml:space="preserve"><tspan x="366.41" y="134.39" font-family="Arimo" font-size="10">2</tspan></text>
+<text xml:space="preserve"><tspan x="411.64" y="134.39" font-family="Arimo" font-size="10">3</tspan></text>
+<text xml:space="preserve"><tspan x="322.45" y="148.39" font-family="Arimo" font-size="10">Fold change</tspan></text>
+<text xml:space="preserve"><tspan x="241.44" y="104.36" font-family="Arimo" font-size="10">control</tspan></text>
+<text xml:space="preserve"><tspan x="243.12" y="116.37" font-family="Arimo" font-size="10">siRNA</tspan></text>
+<text xml:space="preserve"><tspan x="221.61" y="78.95" font-family="Arimo" font-size="10">knockdown</tspan></text>
+<text xml:space="preserve"><tspan x="264.97" y="90.96" font-family="Arimo" font-size="10">A</tspan></text>
+<text xml:space="preserve"><tspan x="265.68" y="59.04" font-family="Arimo" font-size="10">B</tspan></text>

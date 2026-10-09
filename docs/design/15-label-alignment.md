@@ -60,6 +60,21 @@ under any size or font. Nothing new enters the export subset.
     a left-aligned column, such as a legend whose handles are markers, where the longest entry
     would otherwise "end" at the legend frame. Only start-kept neighbours count, so a centred
     axis title that happens to start where a tick label does is still centred.
+- **Lines of one label** (issue 33). A label of several lines reaches cleanup as one
+  start-anchored `<text>` per line (matplotlib's glyph SVGs, `fonttype: none` too, and PDFs), each
+  with its own evidence: the third line of a tick label is over 1.5 em from its tick, and a line of a
+  left-aligned stack may happen to centre on something. So consecutive labels (document order) form
+  one block when each is the next line of the one before: same angle, size (within 1 %),
+  `font-family`, `-style`, `-weight` and fill, its baseline 0.8–1.45 em further across (ggplot2's
+  `lineheight` 0.9 to matplotlib's and R's 1.2; matplotlib's legend entries are 1.5 em apart) and
+  its extent overlapping. A block is decided as one: start evidence on any line keeps it all at
+  start; otherwise the decided lines (after the column veto) must agree on one anchor (else all
+  start), and the lines' source centres (or ends) must line up within tolerance, when every line
+  gets that anchor on the first decided line's anchor point (so the lines of a right-aligned label
+  end together even where the last-glyph estimate differs); if they line up at their starts
+  instead (a left-aligned stack) all keep start; if neither, each line keeps its own decision. A
+  one-line block is decided as before. Nothing joins the lines into one `<text>`: each keeps its
+  position, only its anchor follows the block.
 - **Anchor point:** a centred label is anchored on the line it centres on (the tick or the
   spine's midpoint; the closest one, first in document order on ties), so an estimated width
   does not shift it; a right-aligned one at its source end. A rotated label's `rotate(θ x y)`
@@ -78,6 +93,10 @@ under any size or font. Nothing new enters the export subset.
   `matplotlib-text` and `r-svglite` were already anchored and did not change.
   `matplotlib-log` (issue 29): the `10ⁿ` x ticks, `Dose (μM)`, the rotated `Signal ×10³` and the
   `α₁ response` title middle, the `10ⁿ` y ticks end, every exponent joined to its base in Arimo.
+  `matplotlib-multiline` (issue 33; the same plot as a PDF imports alike): every line of the
+  three-line x ticks and the two-line x and y axis titles middle, the two-line y ticks of a
+  horizontal bar chart end at one point; the left-aligned two-line title and annotation and the
+  legend stay start.
 - **Stored figures are left as they are.** Inference runs only at import, on the plot file's
   geometry plus the source width, and the source width is not in a stored asset; re-running the
   rules on saved assets would rely on the estimate alone and could move labels in figures their
@@ -85,5 +104,6 @@ under any size or font. Nothing new enters the export subset.
   width difference of a label (a point or two for an axis title), and re-importing the plot
   gives it the anchors. So there is no migration and no `.jfig` schema change: the anchors are
   plain SVG attributes inside the asset, which old versions already read.
-- **Not handled:** labels at other angles; multi-line labels (several `<text>` elements, one
-  per line); runs that change colour; mathtext matplotlib keeps as outlines (note 12).
+- **Not handled:** labels at other angles; runs that change colour (within a line, or a line of
+  another colour in a block); lines with a pitch outside 0.8–1.45 em or out of document order;
+  mathtext matplotlib keeps as outlines (note 12).
