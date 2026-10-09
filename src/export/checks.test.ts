@@ -13,13 +13,14 @@ import {
 } from '@/core/model/factory';
 import type { Id } from '@/core/model/ids';
 import type { Asset, Figure, Obj, Page } from '@/core/model/types';
-import { presetSize } from '@/core/presets/pages';
+import { PAGE_PRESETS, presetSize } from '@/core/presets/pages';
 import { fitText } from '@/core/text/layout';
 import { mmToPt } from '@/core/units';
 import { loadTestFonts } from '@/test/fonts';
 
 import {
   type CheckWarning,
+  checkJournalHeight,
   checkJournalWidth,
   checkOverlap,
   checkPage,
@@ -230,6 +231,44 @@ describe('journal width', () => {
                 ? 'PLOS'
                 : 'eLife';
       expect(checkJournalWidth(p, journal), id).toEqual([]);
+    }
+  });
+});
+
+describe('journal height', () => {
+  const sized = (wMm: number, hMm: number): Page => ({
+    ...createPage(),
+    size: { w: mmToPt(wMm), h: mmToPt(hMm) },
+  });
+
+  it('is quiet at or under the maximum, with no journal, or with no published maximum', () => {
+    expect(checkJournalHeight(sized(183, 170), 'Nature')).toEqual([]);
+    expect(checkJournalHeight(sized(89, 100), 'Nature')).toEqual([]);
+    expect(checkJournalHeight(sized(183, 900), null)).toEqual([]);
+    expect(checkJournalHeight(sized(178, 900), 'eLife')).toEqual([]);
+  });
+
+  it('warns for a page just over the maximum', () => {
+    const ws = checkJournalHeight(sized(183, 171), 'Nature');
+    expect(ws).toHaveLength(1);
+    expect(ws[0]?.rule).toBe('journal-height');
+    expect(ws[0]?.message).toContain('170 mm');
+  });
+
+  it('measures at the journal shrink scale', () => {
+    // 366 mm wide shrinks to 50%: 340 mm tall is 170 mm, at the limit; 344 is 172.
+    expect(checkJournalHeight(sized(366, 340), 'Nature')).toEqual([]);
+    expect(checkJournalHeight(sized(366, 344), 'Nature')).toHaveLength(1);
+  });
+
+  it('every preset is under its own journal maximum, and a journal has one maximum', () => {
+    for (const p of PAGE_PRESETS) {
+      if (p.maxHMm !== undefined) expect(p.hMm, p.id).toBeLessThanOrEqual(p.maxHMm);
+      if (p.journal === undefined) continue;
+      const maxes = new Set(
+        PAGE_PRESETS.filter((q) => q.journal === p.journal).map((q) => q.maxHMm),
+      );
+      expect(maxes.size, p.journal).toBe(1);
     }
   });
 });

@@ -12,7 +12,7 @@ import { type Box, apply, boxOfPoints, frameMatrix } from '@/core/geometry/matri
 import type { Id } from '@/core/model/ids';
 import { panelLabels } from '@/core/model/panels';
 import type { Figure, Obj, Page, Text } from '@/core/model/types';
-import { journalColumns } from '@/core/presets/pages';
+import { journalColumns, journalMaxHeightMm } from '@/core/presets/pages';
 import { layoutText, plainText } from '@/core/text/layout';
 import { mmToPt, ptToMm } from '@/core/units';
 import { type Matrix, multiply, parseTransform, scaleOf } from '@/io/svg/matrix';
@@ -21,7 +21,8 @@ import { imageSize } from '@/io/png';
 import { labelText, pageToNode } from '@/render/objectToNode';
 import type { SvgNode } from '@/render/svgNode';
 
-export type CheckRule = 'text-size' | 'stroke-width' | 'overlap' | 'journal-width' | 'image-dpi';
+export type CheckRule =
+  'text-size' | 'stroke-width' | 'overlap' | 'journal-width' | 'journal-height' | 'image-dpi';
 
 export interface CheckWarning {
   readonly rule: CheckRule;
@@ -97,6 +98,25 @@ export function checkJournalWidth(page: Page, journal: string | null): CheckWarn
       },
     ];
   return [];
+}
+
+/** The page's height, at the journal's shrink scale, against its published maximum. */
+export function checkJournalHeight(page: Page, journal: string | null): CheckWarning[] {
+  if (journal === null) return [];
+  const max = journalMaxHeightMm(journal);
+  if (max === null) return [];
+  const k = journalScale(page, journal);
+  const h = page.size.h * k;
+  if (h <= mmToPt(max) + OVERLAP_TOLERANCE) return [];
+  const when = k < 1 ? ' once the journal shrinks it' : '';
+  return [
+    {
+      rule: 'journal-height',
+      pageId: page.id,
+      ids: [],
+      message: `The page is ${mm(h)} tall${when}, over ${journal}'s maximum figure height of ${fmt(max)} mm. Make the page shorter.`,
+    },
+  ];
 }
 
 /* ------------------------------------------------------------------ */
@@ -391,7 +411,10 @@ export function checkPage(fig: Figure, page: Page, opts: CheckOptions): CheckWar
   );
   const byId = new Map(visibleObjects(page).map((o) => [o.id, o] as const));
   const scaled = k < 1 ? ' after the journal shrinks it' : '';
-  const out: CheckWarning[] = [...checkJournalWidth(page, opts.journal)];
+  const out: CheckWarning[] = [
+    ...checkJournalWidth(page, opts.journal),
+    ...checkJournalHeight(page, opts.journal),
+  ];
   for (const [id, v] of found.text)
     out.push({
       rule: 'text-size',

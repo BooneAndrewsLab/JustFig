@@ -2,7 +2,11 @@
  * Page size presets (note 02). Journal column widths come from each
  * journal's author guidelines (checked 2026-10); heights are the usual
  * maximum figure depth where one is published, else a 4:3-ish default the
- * user changes. All values in mm.
+ * user changes. All values in mm. `maxHMm` (maximum figure depth) is set
+ * only where an official page was checked (2026-10): Nature 170 (leaves
+ * room for the legend; research-figure-guide.nature.com), PLOS 222.25
+ * (8.75 in, 2625 px at 300 dpi; journals.plos.org figures page). Cell,
+ * Science and PNAS are unchecked until their guidelines are verified.
  */
 import { mmToPt } from '../units';
 
@@ -14,6 +18,12 @@ export interface PagePreset {
   readonly hMm: number;
   /** The journal a Journal preset's column width belongs to (export checks, note 03). */
   readonly journal?: string;
+  /**
+   * The journal's published maximum figure height in mm, where its author
+   * guidelines give one and it has been verified (export checks, note 03).
+   * Same value on each of a journal's presets.
+   */
+  readonly maxHMm?: number;
 }
 
 export const PAGE_PRESETS: readonly PagePreset[] = [
@@ -27,6 +37,7 @@ export const PAGE_PRESETS: readonly PagePreset[] = [
     wMm: 89,
     hMm: 89,
     journal: 'Nature',
+    maxHMm: 170,
   },
   {
     id: 'nature-2',
@@ -35,6 +46,7 @@ export const PAGE_PRESETS: readonly PagePreset[] = [
     wMm: 183,
     hMm: 140,
     journal: 'Nature',
+    maxHMm: 170,
   },
   {
     id: 'cell-1',
@@ -99,6 +111,7 @@ export const PAGE_PRESETS: readonly PagePreset[] = [
     wMm: 190.5,
     hMm: 140,
     journal: 'PLOS',
+    maxHMm: 222.25,
   },
   {
     id: 'elife-1',
@@ -127,6 +140,10 @@ export const JOURNALS: readonly string[] = [
 /** A journal's column-width presets, narrowest first. */
 export const journalColumns = (journal: string): PagePreset[] =>
   PAGE_PRESETS.filter((p) => p.journal === journal).sort((a, b) => a.wMm - b.wMm);
+
+/** A journal's published maximum figure height in mm, or null when none is set. */
+export const journalMaxHeightMm = (journal: string): number | null =>
+  PAGE_PRESETS.find((p) => p.journal === journal && p.maxHMm !== undefined)?.maxHMm ?? null;
 
 export const DEFAULT_PRESET = 'nature-2';
 

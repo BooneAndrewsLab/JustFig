@@ -41,6 +41,7 @@ const FORMATS: readonly { id: ExportFormat; label: string; note: string }[] = [
 
 const RULE_TITLES: Record<CheckRule, string> = {
   'journal-width': 'Page width',
+  'journal-height': 'Page height',
   'text-size': 'Small text',
   'stroke-width': 'Thin lines',
   'image-dpi': 'Low-resolution pictures',
@@ -48,6 +49,7 @@ const RULE_TITLES: Record<CheckRule, string> = {
 };
 const RULE_ORDER: readonly CheckRule[] = [
   'journal-width',
+  'journal-height',
   'text-size',
   'stroke-width',
   'image-dpi',
