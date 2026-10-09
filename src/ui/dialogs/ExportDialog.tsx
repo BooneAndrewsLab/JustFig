@@ -7,7 +7,7 @@ import { useState } from 'react';
 
 import { setCreditFooter } from '@/core/edits/edits';
 import { formatLength } from '@/core/units';
-import { MAX_PIXELS, rasterSize } from '@/export/raster';
+import { MAX_PIXELS, rasterLimit, rasterSize } from '@/export/raster';
 import { pageCredit } from '@/export/svg';
 
 import { type ExportFormat, runExport } from '../state/session';
@@ -40,7 +40,8 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
   const raster = format === 'png' || format === 'tiff';
   const credit = pageCredit(fig, page);
   const px = raster ? rasterSize(fig, page, { dpi, transparent, footer }) : null;
-  const tooBig = px !== null && px.w * px.h > MAX_PIXELS;
+  const tooBig = px !== null && rasterLimit(px.w, px.h) !== null;
+  const tiled = px !== null && !tooBig && px.w * px.h > MAX_PIXELS;
 
   const go = async () => {
     setBusy(true);
@@ -120,8 +121,10 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
               <p className={tooBig ? 'warn' : 'note'}>
                 {String(px.w)} × {String(px.h)} pixels
                 {tooBig
-                  ? ': too large for browsers to draw. Lower the resolution, or export PDF.'
-                  : '.'}
+                  ? ': too large to export. Lower the resolution, or export PDF.'
+                  : tiled
+                    ? ': a large image, drawn in pieces, so it may take a while.'
+                    : '.'}
               </p>
             )}
             <p className="note">RGB only. Journals convert to CMYK; colours may shift slightly.</p>

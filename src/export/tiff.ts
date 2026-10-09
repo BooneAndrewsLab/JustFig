@@ -109,36 +109,93 @@ export interface TiffOptions {
   readonly software?: string;
 }
 
-/** A TIFF file from canvas RGBA pixels (row-major, 4 bytes per pixel). */
-export function encodeTiff(rgba: Uint8Array | Uint8ClampedArray, opts: TiffOptions): Uint8Array {
-  const { width: w, height: h } = opts;
-  if (rgba.length !== w * h * 4) throw new RangeError('pixel data does not match the size');
-  const spp = opts.alpha ? 4 : 3;
-  const rowBytes = w * spp;
-  const rowsPerStrip = Math.max(1, Math.min(h, Math.floor(65536 / Math.max(1, rowBytes))));
-  const strips: Uint8Array[] = [];
-  for (let y0 = 0; y0 < h; y0 += rowsPerStrip) {
-    const rows = Math.min(rowsPerStrip, h - y0);
-    const raw = new Uint8Array(rows * rowBytes);
+/**
+ * Writes a TIFF from bands of canvas RGBA rows pushed top to bottom (issue 16):
+ * rows are packed into strips and compressed as they arrive, so only the
+ * compressed strips are kept, never the whole raw image.
+ */
+export class TiffWriter {
+  private readonly spp: number;
+  private readonly rowBytes: number;
+  private readonly rowsPerStrip: number;
+  private readonly strips: Uint8Array[] = [];
+  private pending: Uint8Array[] = [];
+  private pendingRows = 0;
+  private rowsIn = 0;
+
+  constructor(private readonly opts: TiffOptions) {
+    this.spp = opts.alpha ? 4 : 3;
+    this.rowBytes = opts.width * this.spp;
+    this.rowsPerStrip = Math.max(
+      1,
+      Math.min(opts.height, Math.floor(65536 / Math.max(1, this.rowBytes))),
+    );
+  }
+
+  /** The next rows, RGBA, 4 bytes per pixel, as many as the data holds. */
+  push(rgba: Uint8Array | Uint8ClampedArray): void {
+    const { width: w, height: h } = this.opts;
+    if (rgba.length % (w * 4) !== 0) throw new RangeError('pixel data does not match the size');
+    const rows = rgba.length / (w * 4);
+    if (this.rowsIn + rows > h) throw new RangeError('more rows than the image has');
+    const spp = this.spp;
     for (let r = 0; r < rows; r += 1) {
-      const src = (y0 + r) * w * 4;
-      const dst = r * rowBytes;
+      const raw = new Uint8Array(this.rowBytes);
+      const src = r * w * 4;
       for (let x = 0; x < w; x += 1)
-        for (let s = 0; s < spp; s += 1) raw[dst + x * spp + s] = rgba[src + x * 4 + s] ?? 0;
+        for (let s = 0; s < spp; s += 1) raw[x * spp + s] = rgba[src + x * 4 + s] ?? 0;
       // Predictor 2: each sample minus the same sample of the pixel to its left.
       for (let x = w - 1; x > 0; x -= 1)
         for (let s = 0; s < spp; s += 1) {
-          const i = dst + x * spp + s;
+          const i = x * spp + s;
           raw[i] = ((raw[i] ?? 0) - (raw[i - spp] ?? 0)) & 0xff;
         }
+      this.pending.push(raw);
+      this.pendingRows += 1;
+      this.rowsIn += 1;
+      if (this.pendingRows === this.rowsPerStrip) this.flushStrip();
     }
+  }
+
+  private flushStrip(): void {
+    if (this.pendingRows === 0) return;
+    const raw = new Uint8Array(this.pendingRows * this.rowBytes);
+    this.pending.forEach((row, i) => {
+      raw.set(row, i * this.rowBytes);
+    });
+    this.pending = [];
+    this.pendingRows = 0;
     const lzw = lzwEncode(raw);
     // UTIF (and readers built on it, e.g. Photopea) takes a strip whose
     // compressed length equals its raw length for uncompressed data. A zero
     // byte after EOI is ignored by LZW decoders and avoids the collision.
-    strips.push(lzw.length === raw.length ? Uint8Array.from([...lzw, 0]) : lzw);
+    this.strips.push(lzw.length === raw.length ? Uint8Array.from([...lzw, 0]) : lzw);
   }
 
+  finish(): Uint8Array {
+    if (this.rowsIn !== this.opts.height)
+      throw new RangeError('pixel data does not match the size');
+    this.flushStrip();
+    return assembleTiff(this.opts, this.spp, this.rowsPerStrip, this.strips);
+  }
+}
+
+/** A TIFF file from canvas RGBA pixels (row-major, 4 bytes per pixel). */
+export function encodeTiff(rgba: Uint8Array | Uint8ClampedArray, opts: TiffOptions): Uint8Array {
+  if (rgba.length !== opts.width * opts.height * 4)
+    throw new RangeError('pixel data does not match the size');
+  const t = new TiffWriter(opts);
+  t.push(rgba);
+  return t.finish();
+}
+
+function assembleTiff(
+  opts: TiffOptions,
+  spp: number,
+  rowsPerStrip: number,
+  strips: readonly Uint8Array[],
+): Uint8Array {
+  const { width: w, height: h } = opts;
   const software = `${opts.software ?? 'TIFF writer'}\0`;
   const res = [Math.round(opts.dpi * 1000), 1000];
   const entries: Entry[] = [

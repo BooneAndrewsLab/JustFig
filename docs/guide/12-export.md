@@ -15,7 +15,7 @@ For a journal, send the PDF if they take one, or a TIFF at the dpi they specify.
 
 ## Options
 
-**Resolution** (PNG and TIFF) offers 150 dpi (screen), 300 dpi (print), 600 dpi (line art) or Custom, between 36 and 2400. JustFig shows the size in pixels. Images over about 16.7 million pixels are too large for browsers to draw: the dialog says so and disables the button. Lower the resolution, or export a PDF instead.
+**Resolution** (PNG and TIFF) offers 150 dpi (screen), 300 dpi (print), 600 dpi (line art) or Custom, between 36 and 2400. JustFig shows the size in pixels. Images over about 16.7 million pixels are drawn in pieces and joined, so large exports work but take longer, and the dialog says so. Images over 400 million pixels (or 32767 pixels wide) are too large: the dialog says so and disables the button. Lower the resolution, or export a PDF instead.
 
 **Transparent background** (PNG and TIFF) leaves the page colour out. Without it the page background, white unless you changed it, is drawn.
 

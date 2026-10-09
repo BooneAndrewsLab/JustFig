@@ -146,3 +146,34 @@ test('TIFF export: LZW, DPI and size', async ({ page }) => {
     expect(d / (golden.width * golden.height)).toBeLessThan(0.005);
   }
 });
+
+// Issue 16: above the canvas cap (16.7 Mpx) the page is drawn in bands and stitched.
+test('PNG and TIFF export above the canvas cap are tiled and match the 150 dpi golden', async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  const golden = PNG.sync.read(readFileSync(GOLDEN));
+  const bytes = readFileSync(await (await exportVia(page, 'PNG', { dpi: 600 })).path());
+  expect(readDpi(bytes)).toBe(600);
+  const big = PNG.sync.read(bytes);
+  expect(big.width * big.height).toBeGreaterThan(16_777_216);
+  expect(Math.abs(big.width - golden.width * 4)).toBeLessThanOrEqual(2);
+  expect(Math.abs(big.height - golden.height * 4)).toBeLessThanOrEqual(2);
+  // Box-filter down to the golden's size: bands must meet without seams.
+  const small = new PNG({ width: golden.width, height: golden.height });
+  for (let y = 0; y < golden.height; y += 1)
+    for (let x = 0; x < golden.width; x += 1)
+      for (let c = 0; c < 4; c += 1) {
+        let sum = 0;
+        for (let dy = 0; dy < 4; dy += 1)
+          for (let dx = 0; dx < 4; dx += 1)
+            sum += big.data[((y * 4 + dy) * big.width + x * 4 + dx) * 4 + c] ?? 0;
+        small.data[(y * golden.width + x) * 4 + c] = Math.round(sum / 16);
+      }
+  expect(diff(golden, small)).toBeLessThan(0.02);
+
+  const tif = readFileSync(await (await exportVia(page, 'TIFF', { dpi: 600 })).path());
+  const ifd = UTIF.decode(tif)[0];
+  if (!ifd) throw new Error('no IFD');
+  expect([ifd['t256'], ifd['t257']]).toEqual([[big.width], [big.height]]);
+});

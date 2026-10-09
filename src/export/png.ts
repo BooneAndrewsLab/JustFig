@@ -4,6 +4,8 @@
  * from one. Pure byte handling.
  */
 
+import { filterRows } from '@/io/png';
+
 const SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10];
 
 let crcTable: Uint32Array | null = null;
@@ -144,3 +146,83 @@ export function readDpi(png: Uint8Array): number | null {
 }
 
 export const pngCrc32 = crc32;
+
+export interface PngStreamOptions {
+  readonly width: number;
+  readonly height: number;
+  readonly dpi: number;
+  /** Keep the alpha channel (RGBA); otherwise RGB. */
+  readonly alpha: boolean;
+  readonly software?: string;
+}
+
+/**
+ * A PNG written from bands of canvas RGBA rows pushed top to bottom (issue 16):
+ * each band is filtered (against the row above it, so band edges do not show)
+ * and fed to a streaming deflate; only the compressed data is kept.
+ */
+export class PngWriter {
+  private readonly channels: 3 | 4;
+  private readonly idat: Uint8Array[] = [];
+  // The platform's deflate: fflate's streaming Deflate writes invalid data for some tiny inputs.
+  private readonly z = new CompressionStream('deflate');
+  private readonly writer = this.z.writable.getWriter();
+  private readonly drained: Promise<void>;
+  private prev: Uint8Array | null = null;
+  private rowsIn = 0;
+
+  constructor(private readonly opts: PngStreamOptions) {
+    this.channels = opts.alpha ? 4 : 3;
+    this.drained = (async () => {
+      const reader = this.z.readable.getReader();
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value.length > 0) this.idat.push(chunk('IDAT', value));
+      }
+    })();
+  }
+
+  /** The next rows, RGBA, 4 bytes per pixel, as many as the data holds. */
+  async push(rgba: Uint8Array | Uint8ClampedArray): Promise<void> {
+    const { width: w, height: h } = this.opts;
+    if (rgba.length % (w * 4) !== 0) throw new RangeError('pixel data does not match the size');
+    const rows = rgba.length / (w * 4);
+    if (this.rowsIn + rows > h) throw new RangeError('more rows than the image has');
+    const ch = this.channels;
+    const stride = w * ch;
+    const above = this.prev ? 1 : 0;
+    // The previous band's last row goes in front, so rows filter against it.
+    const data = new Uint8Array((rows + above) * stride);
+    if (this.prev) data.set(this.prev);
+    for (let r = 0; r < rows; r += 1)
+      for (let x = 0; x < w; x += 1)
+        for (let c = 0; c < ch; c += 1)
+          data[(r + above) * stride + x * ch + c] = rgba[r * w * 4 + x * 4 + c] ?? 0;
+    const filtered = filterRows({ width: w, height: rows + above, channels: ch, data });
+    await this.writer.write(filtered.slice(above * (stride + 1)));
+    this.prev = data.slice((rows + above - 1) * stride);
+    this.rowsIn += rows;
+  }
+
+  async finish(): Promise<Uint8Array> {
+    if (this.rowsIn !== this.opts.height)
+      throw new RangeError('pixel data does not match the size');
+    await this.writer.close();
+    await this.drained;
+    const ihdr = new Uint8Array(13);
+    const v = new DataView(ihdr.buffer);
+    v.setUint32(0, this.opts.width);
+    v.setUint32(4, this.opts.height);
+    ihdr[8] = 8;
+    ihdr[9] = this.opts.alpha ? 6 : 2;
+    return concat([
+      Uint8Array.from(SIGNATURE),
+      chunk('IHDR', ihdr),
+      pHYs(this.opts.dpi),
+      tEXt('Software', this.opts.software ?? 'PNG writer'),
+      ...this.idat,
+      chunk('IEND', new Uint8Array(0)),
+    ]);
+  }
+}

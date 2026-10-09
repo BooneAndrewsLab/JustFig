@@ -69,8 +69,20 @@ one it names (note 14).
 | TIFF   | The same canvas pixels go through our writer (`export/tiff.ts`): baseline TIFF, 8-bit RGB or RGBA, LZW with a horizontal predictor, one strip per 64 KB, XResolution and YResolution with ResolutionUnit=inch. It is checked by decoding with UTIF in tests.             |
 
 Raster export runs on the main thread in Phase 1, because only a document can decode SVG into an
-image. A pre-flight check refuses exports over 16.7 Mpx, Safari's canvas cap, and suggests a lower
-DPI. Tiled rendering is deferred until a user hits the cap ([#16](https://github.com/BooneAndrewsLab/JustFig/issues/16)). The export dialog says: "RGB only.
+image. A page within one canvas (16.7 Mpx, Safari's cap, and 32767 px a side) is drawn on one
+canvas. A larger one is drawn in tiles ([#16](https://github.com/BooneAndrewsLab/JustFig/issues/16)):
+full-width bands (`export/tiles.ts` `planBands`) each under the cap, drawn by cropping the SVG's
+`viewBox` to the band, so each band is one canvas and one `getImageData`, freed before the next.
+The writers take the rows band by band and never hold the raw image: `TiffWriter` packs them into
+64 KB strips and LZW-compresses each as it fills (byte for byte what `encodeTiff` makes), and
+`PngWriter` filters them against the row above (carried across band edges, so no seam) into the
+platform's `CompressionStream` and writes the IDAT chunks as they come (fflate's streaming
+`Deflate` was not used: it wrote invalid data for some tiny inputs). Only the compressed data is
+kept. A page that fits one canvas still goes through `canvas.toBlob`. An upper bound remains for
+memory: 400 Mpx in all and 32767 px wide, refused with "Use at most N dpi, or export PDF or SVG".
+Unit tests check tiled output against untiled output with a tiny artificial cap; an e2e exports
+the torture figure at 600 dpi (over the cap) and compares it with the 150 dpi golden. The export
+dialog says: "RGB only.
 Journals convert to CMYK; colours may shift slightly."
 
 ## Attribution footer
