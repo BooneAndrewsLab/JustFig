@@ -230,6 +230,8 @@ function content(o: Obj, ctx: RenderCtx): SvgNode[] {
       // A crop draws its own re-encoded pixels (note 20): the export subset cannot clip.
       const c = o.crop && o.cropped !== undefined ? ctx.assets[o.cropped] : undefined;
       if (c?.kind === 'image') return [imageNode(c, w, h)];
+      // A see-through picture's backdrop cut with its picture's crop (issue 48).
+      if (c?.kind === 'svgImport') return [svgImportNode(c.svg, w, h, ctx.textMode)];
       const a = ctx.assets[o.asset];
       if (a?.kind === 'image') return [imageNode(a, w, h)];
       if (a?.kind === 'svgImport') return [svgImportNode(a.svg, w, h, ctx.textMode)];

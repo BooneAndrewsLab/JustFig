@@ -12,12 +12,22 @@ import { barLength, type ScaleBarParams } from '@/procedural/kinds/scaleBar';
 import { objectToNode } from '@/render/objectToNode';
 import { nodeToSvgString } from '@/render/svgNode';
 
+import { toTurned } from '@/core/geometry/turn';
+import { cutBackdrop } from '@/io/cropBackdrop';
+
 import {
   type CroppedPicture,
+  type ImageAsset,
+  type View,
   clampCrop,
   cropFrame,
   cropImages,
   cropTargets,
+  flipSign,
+  fullCrop,
+  pageAngle,
+  plannedView,
+  scaledCrop,
   sharedSize,
 } from './crop';
 
@@ -257,5 +267,211 @@ describe('cropTargets and sharedSize', () => {
     expect(sharedSize([a, b], assets)).toEqual({ w: 200, h: 100 });
     expect(sharedSize([a, c], assets)).toBeNull();
     expect(sharedSize([], assets)).toBeNull();
+  });
+});
+
+/** Page position of an asset pixel of a picture showing `view` (turned, cropped) in `f`. */
+const viewPixelOnPage = (f: Frame, size: { w: number; h: number }, view: View, p: Pt) => {
+  const v = toTurned(size.w, size.h, view.turn, p);
+  return pixelOnPage(f, view.crop, v.x, v.y);
+};
+interface Pt {
+  x: number;
+  y: number;
+}
+
+describe('a level crop of a turned picture (#48)', () => {
+  const size = { w: 200, h: 100 };
+
+  it.each([
+    ['upright frame', {}],
+    ['mirrored', { flipX: true }],
+    ['mirrored both ways', { flipX: true, flipY: true }],
+  ])('turns the pixels, levels the frame and keeps them in place (%s)', (_n, extra) => {
+    const a = pic('h1', { x: 10, y: 20, rotation: 30, ...extra });
+    const { fig, pageId } = figWith(a);
+    const c = { x: 40, y: 30, w: 120, h: 60 };
+    const opts = { crop: c, level: true, rotation: 30 };
+    const v = plannedView(a, assets['h1'] as ImageAsset, opts);
+    const s = flipSign(a.frame);
+    expect(v).toEqual({ turn: s * 30, crop: c });
+    const next = cropImages(pageId, [a.id], { ...opts, baked: { [a.id]: baked('a', c) } }).apply(
+      fig,
+    );
+    const o = byId(next, a.id) as Image;
+    expect(o.turn).toBe(s * 30);
+    expect(o.crop).toEqual(c);
+    expect(o.frame.rotation).toBeCloseTo(0, 9);
+    expect(pageAngle(o)).toBeCloseTo(30, 9);
+    // Points per pixel kept: 100 pt across 200 px.
+    expect(o.frame.w).toBeCloseTo(60, 9);
+    for (const p of [
+      { x: 100, y: 50 },
+      { x: 90, y: 40 },
+      { x: 120, y: 61 },
+    ]) {
+      const before = viewPixelOnPage(a.frame, size, { turn: 0, crop: fullCrop(200, 100) }, p);
+      const after = viewPixelOnPage(o.frame, size, { turn: o.turn ?? 0, crop: c }, p);
+      expect(after.x).toBeCloseTo(before.x, 9);
+      expect(after.y).toBeCloseTo(before.y, 9);
+    }
+    // Back along its own edges: the whole picture, turned by its frame again, in place.
+    const back = cropImages(pageId, [a.id], { crop: null, level: false }).apply(next);
+    const b = byId(back, a.id) as Image;
+    expect(b.turn).toBeUndefined();
+    expect(b.crop).toBeUndefined();
+    expect(b.frame.rotation).toBeCloseTo(30, 9);
+    expect(b.frame.x).toBeCloseTo(a.frame.x, 9);
+    expect(b.frame.y).toBeCloseTo(a.frame.y, 9);
+  });
+
+  it('keeps the turn when only the angle changes, and when cropped again', () => {
+    const a = pic('h1', { rotation: 20 });
+    const { fig, pageId } = figWith(a);
+    const c = { x: 40, y: 30, w: 120, h: 60 };
+    const next = cropImages(pageId, [a.id], {
+      crop: c,
+      level: true,
+      baked: { [a.id]: baked('a', c) },
+    }).apply(fig);
+    expect((byId(next, a.id) as Image).turn).toBe(20);
+    const turned = cropImages(pageId, [a.id], { rotation: 25 }).apply(next);
+    const t = byId(turned, a.id) as Image;
+    expect(t.turn).toBe(20);
+    expect(t.frame.rotation).toBeCloseTo(5, 9);
+    const c2 = { x: 50, y: 30, w: 100, h: 60 };
+    const again = cropImages(pageId, [a.id], {
+      crop: c2,
+      baked: { [a.id]: baked('a2', c2) },
+    }).apply(next);
+    expect(byId(again, a.id)).toMatchObject({ turn: 20, crop: c2, cropped: 'crop-a2' });
+  });
+});
+
+describe('pictures of different sizes cropped together (#48)', () => {
+  it('crops the same part of each, scaled to its pixels', () => {
+    expect(
+      scaledCrop({ x: 50, y: 20, w: 100, h: 40 }, { w: 200, h: 100 }, { w: 50, h: 100 }),
+    ).toEqual({ x: 13, y: 20, w: 25, h: 40 });
+    const a = pic('h1');
+    const b = pic('h3', { x: 200 });
+    const { fig, pageId } = figWith(a, b);
+    const c = { x: 50, y: 20, w: 100, h: 40 };
+    const opts = { crop: c, size: { w: 200, h: 100 } };
+    const cb = plannedView(b, assets['h3'] as ImageAsset, opts)?.crop;
+    expect(cb).toEqual({ x: 13, y: 20, w: 25, h: 40 });
+    const next = cropImages(pageId, [a.id, b.id], {
+      ...opts,
+      baked: { [a.id]: baked('a', c), [b.id]: baked('b', cb ?? c) },
+    }).apply(fig);
+    expect((byId(next, a.id) as Image).crop).toEqual(c);
+    expect((byId(next, b.id) as Image).crop).toEqual(cb);
+  });
+});
+
+describe('a see-through picture’s backdrop follows its crop (#48)', () => {
+  const backSvg =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100"><rect x="0" y="0" width="200" height="100" fill="#eeeeee"/><line x1="0" y1="50" x2="200" y2="50" stroke="#ffffff" stroke-width="1"/></svg>';
+  const withBack: Figure['assets'] = {
+    ...assets,
+    back: { kind: 'svgImport', svg: backSvg, meta: { name: 'b', width: 100, height: 50 } },
+  };
+
+  function plotWith(frame: Partial<Frame>) {
+    const p = pic('h1', frame);
+    const back: Image = { ...pic('back', frame), name: 'Picture 1 backdrop' };
+    const { flipX: _x, flipY: _y, ...upright } = p.frame;
+    const b: Image = { ...back, frame: upright };
+    const group: Group = {
+      id: newId('o'),
+      type: 'group',
+      frame: { x: 0, y: 0, w: 100, h: 50, rotation: 0 },
+      opacity: 1,
+      children: [b, p],
+    };
+    const doc = createDoc();
+    const page = doc.pages[0];
+    if (!page) throw new Error('no page');
+    const fig = addObjects(page.id, [group]).apply({ doc, assets: withBack });
+    return { fig, pageId: page.id, p, b };
+  }
+
+  const drawn = (fig: Figure, o: Image) => {
+    const node = objectToNode(o, {
+      assets: fig.assets,
+      palette: [],
+      textMode: 'outline',
+      screen: false,
+      labelStyle: fig.doc.panelLabelStyle,
+      labels: new Map(),
+    });
+    if (!node) throw new Error('not drawn');
+    return nodeToSvgString(node);
+  };
+
+  it.each([
+    ['upright', {}],
+    ['mirrored picture over an upright backdrop', { flipY: true }],
+  ])('takes the picture’s new box and only what lies under it (%s)', (_n, extra) => {
+    const { fig, pageId, p, b } = plotWith(extra);
+    const c = { x: 50, y: 20, w: 100, h: 40 };
+    const next = cropImages(pageId, [p.id], { crop: c, baked: { [p.id]: baked('a', c) } }).apply(
+      fig,
+    );
+    const np = byId(next, p.id) as Image;
+    const nb = byId(next, b.id) as Image;
+    expect(nb.frame.x).toBeCloseTo(np.frame.x, 9);
+    expect(nb.frame.y).toBeCloseTo(np.frame.y, 9);
+    expect(nb.frame.w).toBeCloseTo(np.frame.w, 9);
+    expect(nb.frame.h).toBeCloseTo(np.frame.h, 9);
+    expect(nb.asset).toBe('back');
+    expect(nb.cropped).toBeDefined();
+    const cut = next.assets[nb.cropped ?? ''];
+    if (cut?.kind !== 'svgImport') throw new Error('no cut backdrop');
+    // The crop's part of the backdrop in meta units (half the picture's pixels).
+    expect(nb.crop?.x).toBeCloseTo(25, 6);
+    expect(nb.crop?.w).toBeCloseTo(50, 6);
+    expect(nb.crop?.y).toBeCloseTo('flipY' in extra ? 50 - 10 - 20 : 10, 6);
+    expect(cut.meta).toMatchObject({ width: 50, height: 20 });
+    expect(cut.svg).toContain('viewBox="0 0 50 20"');
+    expect(cut.svg).not.toContain('<rect');
+    expect(drawn(next, nb)).toContain('path');
+    // The whole picture again: the whole backdrop again.
+    const back = cropImages(pageId, [p.id], { crop: null }).apply(next);
+    const bb = byId(back, b.id) as Image;
+    expect(bb.crop).toBeUndefined();
+    expect(bb.cropped).toBeUndefined();
+    expect(bb.frame.w).toBeCloseTo(100, 9);
+  });
+
+  it('turns with a level crop of its turned picture', () => {
+    const { fig, pageId, p, b } = plotWith({ rotation: 30 });
+    const c = { x: 60, y: 40, w: 100, h: 50 };
+    const next = cropImages(pageId, [p.id], {
+      crop: c,
+      level: true,
+      baked: { [p.id]: baked('a', c) },
+    }).apply(fig);
+    const np = byId(next, p.id) as Image;
+    const nb = byId(next, b.id) as Image;
+    expect(np.frame.rotation).toBeCloseTo(0, 9);
+    expect(nb.frame.rotation).toBeCloseTo(0, 9);
+    expect(nb.frame.x).toBeCloseTo(np.frame.x, 9);
+    expect(nb.turn).toBe(30);
+    expect(nb.crop?.w).toBeCloseTo(50, 6);
+    expect(nb.crop?.h).toBeCloseTo(25, 6);
+  });
+});
+
+describe('cutBackdrop (#48)', () => {
+  it('cuts each shape to the crop, a line as a line only', () => {
+    const svg =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100"><rect x="0" y="0" width="200" height="100" fill="#eeeeee"/><line x1="0" y1="50" x2="200" y2="50" stroke="#ffffff"/><circle cx="10" cy="10" r="3" fill="red"/></svg>';
+    const a = { kind: 'svgImport' as const, svg, meta: { name: 'b', width: 100, height: 50 } };
+    const cut = cutBackdrop(a, 0, { x: 25, y: 10, w: 50, h: 20 }).asset.svg;
+    expect(cut).toContain('d="M50 60L50 20L150 20L150 60Z"');
+    expect(cut).toContain('fill="none" d="M50 50L150 50"');
+    expect(cut).not.toContain('circle');
+    expect(cut.match(/<path/g)).toHaveLength(2);
   });
 });

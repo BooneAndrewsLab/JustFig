@@ -663,7 +663,11 @@
         },
         "crop": {
           "$ref": "#/definitions/Rect4",
-          "description": "What is shown, in pixels of `asset` (its `meta` size); none = all of it."
+          "description": "What is shown, in pixels of `asset` (its `meta` size), or of `asset` turned by `turn`; none = all of it. A see-through picture's backdrop (an `svgImport`) is cropped with its picture, in its `meta` units (note 20)."
+        },
+        "turn": {
+          "type": "number",
+          "description": "Degrees (clockwise) the pixels of `asset` are turned, resampled, before `crop` is taken (issue 48, note 20): a crop level on the page of a turned picture. `crop` is then in pixels of the turned picture (its bounding box, same pixel size). Only with `crop`; none = not turned."
         },
         "cropped": {
           "$ref": "#/definitions/AssetHash",

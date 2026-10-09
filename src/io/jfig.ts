@@ -318,6 +318,7 @@ export function object(v: unknown, p: Path): Obj {
           };
         }),
         ...opt(o, 'cropped', p, str),
+        ...opt(o, 'turn', p, num),
         ...opt(o, 'channels', p, (x, q) => list(x, q, channel)),
       };
     case 'procedural':

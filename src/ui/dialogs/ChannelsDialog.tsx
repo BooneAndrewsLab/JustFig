@@ -12,7 +12,7 @@ import { type CroppedPicture, cropTargets, sharedSize } from '@/core/edits/crop'
 import type { Channel } from '@/core/model/types';
 import { bakeMerge, blendChannels, channelIntensities, downsample, layersOf } from '@/io/channels';
 import type { Intensities } from '@/io/channels';
-import { cropPicture } from '@/io/cropImage';
+import { bakeView } from '@/io/cropImage';
 
 import { analytics } from '../analytics';
 import { currentPage, figure, selectedObjects, store } from '../state/store';
@@ -119,7 +119,7 @@ export function ChannelsDialog({ onClose }: { onClose: () => void }) {
         height: size.h,
       });
       const cropped: CroppedPicture | undefined = first.crop
-        ? await cropPicture(merge.asset, first.crop)
+        ? await bakeView(merge.asset, { turn: first.turn ?? 0, crop: first.crop })
         : undefined;
       const baked = { merge, ...(cropped ? { cropped } : {}) };
       const pageId = currentPage(store.getState()).id;

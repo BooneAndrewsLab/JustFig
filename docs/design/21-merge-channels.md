@@ -55,7 +55,8 @@ show the channels as a row beside it.
 
 ## Known limits
 
-- Channels must share a pixel size (as for lockstep crop); no registration or resampling.
+- Channels must share a pixel size; no registration or resampling (a lockstep crop no longer
+  needs one size, note 20).
 - A row panel pseudocoloured by **Channels…** is its own recipe: recolouring the merge does not
   recolour it.
 - The display range is in 8-bit levels; there is no gamma or auto-contrast.

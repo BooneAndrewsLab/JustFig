@@ -1,22 +1,29 @@
 /**
- * Crop and rotate (note 20, issue 46): the same pixel rectangle and angle for
- * every selected picture (the channels of one field). The fields are the
- * keyboard way in; dragging on the preview fills them in. The crop's pixels
- * are re-encoded first, then applied as one named edit.
+ * Crop and rotate (note 20, issues 46 and 48): the same part and angle for
+ * every selected picture (the channels of one field), in pixels of the first
+ * (pictures of other sizes take the same part of themselves). Along the
+ * picture's own edges, or level on the page (the pixels turned, resampled).
+ * The fields are the keyboard way in; dragging on the preview fills them in.
+ * The crop's pixels are re-encoded first, then applied as one named edit.
  */
 import { type PointerEvent, useRef, useState } from 'react';
 
 import {
+  type CropOptions,
   type CroppedPicture,
   clampCrop,
   cropImages,
   cropTargets,
+  flipSign,
   fullCrop,
-  isFullCrop,
+  pageAngle,
+  plannedView,
   sharedSize,
 } from '@/core/edits/crop';
+import { normAngle } from '@/core/geometry/transform';
+import { turnedSize } from '@/core/geometry/turn';
 import type { Rect4 } from '@/core/model/types';
-import { cropPicture } from '@/io/cropImage';
+import { bakeView } from '@/io/cropImage';
 
 import { analytics } from '../analytics';
 import { currentPage, figure, selectedObjects, store } from '../state/store';
@@ -37,26 +44,35 @@ export function CropDialog({ onClose }: { onClose: () => void }) {
   const s = useAppState();
   const fig = figure(s);
   const pics = cropTargets(selectedObjects(s), fig.assets);
-  const size = sharedSize(pics, fig.assets);
+  const same = sharedSize(pics, fig.assets);
   const first = pics[0];
   const firstAsset = first ? fig.assets[first.asset] : undefined;
+  /** The first picture's size in pixels: the crop is typed in its pixels. */
+  const W = firstAsset?.kind === 'image' ? firstAsset.meta.width : 1;
+  const H = firstAsset?.kind === 'image' ? firstAsset.meta.height : 1;
+  const [level, setLevel] = useState(() => first?.crop !== undefined && (first.turn ?? 0) !== 0);
   const [fields, setFields] = useState<Fields>(() =>
-    fieldsOf(first?.crop ?? fullCrop(size?.w ?? 1, size?.h ?? 1), first?.frame.rotation ?? 0),
+    fieldsOf(first?.crop ?? fullCrop(W, H), first ? pageAngle(first) : 0),
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const drag = useRef<{ x: number; y: number } | null>(null);
   const preview = useRef<SVGSVGElement>(null);
 
-  const W = size?.w ?? 1;
-  const H = size?.h ?? 1;
+  const rotation = Number(fields.rotation);
+  const sign = first ? flipSign(first.frame) : 1;
+  /** Degrees the first picture's pixels are turned for a level crop (0: along its edges). */
+  const turn = level && Number.isFinite(rotation) ? normAngle(sign * rotation) : 0;
+  /** The pixels the crop is in: the picture, or it turned (its bounding box). */
+  const view = turnedSize(W, H, turn);
+  const VW = view.w;
+  const VH = view.h;
   const crop = clampCrop(
     { x: Number(fields.x), y: Number(fields.y), w: Number(fields.w), h: Number(fields.h) },
-    W,
-    H,
+    VW,
+    VH,
   );
-  const rotation = Number(fields.rotation);
-  const ok = pics.length > 0 && size !== null && Number.isFinite(rotation) && !busy;
+  const ok = pics.length > 0 && firstAsset?.kind === 'image' && Number.isFinite(rotation) && !busy;
 
   const set = (patch: Partial<Fields>) => {
     setFields((f) => ({ ...f, ...patch }));
@@ -68,51 +84,53 @@ export function CropDialog({ onClose }: { onClose: () => void }) {
     if (!r || r.width === 0 || r.height === 0) return { x: 0, y: 0 };
     const clamp = (v: number, max: number) => Math.min(max, Math.max(0, Math.round(v)));
     return {
-      x: clamp(((e.clientX - r.left) / r.width) * W, W),
-      y: clamp(((e.clientY - r.top) / r.height) * H, H),
+      x: clamp(((e.clientX - r.left) / r.width) * VW, VW),
+      y: clamp(((e.clientY - r.top) / r.height) * VH, VH),
     };
   };
 
   const apply = async () => {
     if (!ok) return;
-    const whole = isFullCrop(crop, W, H);
     setBusy(true);
     setError(null);
     try {
+      const opts: CropOptions = { crop, size: view, level, rotation };
       const baked: Record<string, CroppedPicture> = {};
-      if (!whole) {
-        // One encoding per asset; a picture already showing this crop keeps its pixels.
-        const byAsset = new Map<string, Promise<CroppedPicture>>();
-        for (const o of pics) {
-          const a = fig.assets[o.asset];
-          if (a?.kind !== 'image') continue;
-          const kept = o.cropped !== undefined ? fig.assets[o.cropped] : undefined;
-          const same =
-            o.crop?.x === crop.x &&
-            o.crop.y === crop.y &&
-            o.crop.w === crop.w &&
-            o.crop.h === crop.h;
-          if (same && kept?.kind === 'image' && o.cropped !== undefined) {
-            baked[o.id] = { hash: o.cropped, asset: kept };
-            continue;
-          }
-          let p = byAsset.get(o.asset);
-          if (!p) {
-            p = cropPicture(a, crop);
-            byAsset.set(o.asset, p);
-          }
-          baked[o.id] = await p;
+      // One encoding per asset and view; a picture already showing it keeps its pixels.
+      const byKey = new Map<string, Promise<CroppedPicture>>();
+      for (const o of pics) {
+        const a = fig.assets[o.asset];
+        if (a?.kind !== 'image') continue;
+        const v = plannedView(o, a, opts);
+        if (!v) continue;
+        const kept = o.cropped !== undefined ? fig.assets[o.cropped] : undefined;
+        const shown =
+          (o.turn ?? 0) === v.turn &&
+          o.crop?.x === v.crop.x &&
+          o.crop.y === v.crop.y &&
+          o.crop.w === v.crop.w &&
+          o.crop.h === v.crop.h;
+        if (shown && kept?.kind === 'image' && o.cropped !== undefined) {
+          baked[o.id] = { hash: o.cropped, asset: kept };
+          continue;
         }
+        const key = JSON.stringify([o.asset, v]);
+        let p = byKey.get(key);
+        if (!p) {
+          p = bakeView(a, v);
+          byKey.set(key, p);
+        }
+        baked[o.id] = await p;
       }
       const done = store.edit(
         cropImages(
           currentPage(store.getState()).id,
           pics.map((o) => o.id),
-          { crop: whole ? null : crop, baked, rotation },
+          { ...opts, baked },
         ),
         { keepSelection: true },
       );
-      if (done) analytics.track('image', 'crop');
+      if (done) analytics.track('image', level && turn !== 0 ? 'crop-level' : 'crop');
       onClose();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
@@ -129,13 +147,13 @@ export function CropDialog({ onClose }: { onClose: () => void }) {
           void apply();
         }}
       >
-        {size && firstAsset?.kind === 'image' && (
+        {firstAsset?.kind === 'image' && (
           <svg
             ref={preview}
             className="crop-preview"
-            viewBox={`0 0 ${String(W)} ${String(H)}`}
+            viewBox={`0 0 ${String(VW)} ${String(VH)}`}
             role="img"
-            aria-label={`Crop of the ${String(W)} × ${String(H)} pixel picture`}
+            aria-label={`Crop of the ${String(VW)} × ${String(VH)} pixel picture${turn === 0 ? '' : ', turned'}`}
             onPointerDown={(e) => {
               e.currentTarget.setPointerCapture(e.pointerId);
               drag.current = pixelAt(e);
@@ -160,9 +178,14 @@ export function CropDialog({ onClose }: { onClose: () => void }) {
               width={W}
               height={H}
               preserveAspectRatio="none"
+              {...(turn === 0
+                ? {}
+                : {
+                    transform: `translate(${String(VW / 2)} ${String(VH / 2)}) rotate(${String(turn)}) translate(${String(-W / 2)} ${String(-H / 2)})`,
+                  })}
             />
             <path
-              d={`M0 0H${String(W)}V${String(H)}H0Z M${String(crop.x)} ${String(crop.y)}v${String(crop.h)}h${String(crop.w)}v${String(-crop.h)}Z`}
+              d={`M0 0H${String(VW)}V${String(VH)}H0Z M${String(crop.x)} ${String(crop.y)}v${String(crop.h)}h${String(crop.w)}v${String(-crop.h)}Z`}
               fill="rgb(0 0 0 / 55%)"
               fillRule="evenodd"
             />
@@ -173,7 +196,7 @@ export function CropDialog({ onClose }: { onClose: () => void }) {
               height={crop.h}
               fill="none"
               stroke="#fff"
-              strokeWidth={Math.max(W, H) / 300}
+              strokeWidth={Math.max(VW, VH) / 300}
             />
           </svg>
         )}
@@ -185,7 +208,7 @@ export function CropDialog({ onClose }: { onClose: () => void }) {
               id="crop-x"
               type="number"
               min={0}
-              max={W - 1}
+              max={VW - 1}
               value={fields.x}
               onChange={(e) => {
                 set({ x: e.target.value });
@@ -196,7 +219,7 @@ export function CropDialog({ onClose }: { onClose: () => void }) {
               id="crop-y"
               type="number"
               min={0}
-              max={H - 1}
+              max={VH - 1}
               value={fields.y}
               onChange={(e) => {
                 set({ y: e.target.value });
@@ -209,7 +232,7 @@ export function CropDialog({ onClose }: { onClose: () => void }) {
               id="crop-w"
               type="number"
               min={1}
-              max={W}
+              max={VW}
               value={fields.w}
               onChange={(e) => {
                 set({ w: e.target.value });
@@ -220,7 +243,7 @@ export function CropDialog({ onClose }: { onClose: () => void }) {
               id="crop-h"
               type="number"
               min={1}
-              max={H}
+              max={VH}
               value={fields.h}
               onChange={(e) => {
                 set({ h: e.target.value });
@@ -231,7 +254,7 @@ export function CropDialog({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               onClick={() => {
-                set({ x: '0', y: '0', w: String(W), h: String(H) });
+                set({ x: '0', y: '0', w: String(VW), h: String(VH) });
               }}
             >
               Whole picture
@@ -252,15 +275,35 @@ export function CropDialog({ onClose }: { onClose: () => void }) {
               }}
             />
           </div>
+          <div className="row">
+            <input
+              id="crop-level"
+              type="checkbox"
+              checked={level}
+              onChange={(e) => {
+                const on = e.target.checked;
+                setLevel(on);
+                // The crop is in other pixels now: start from the whole of them.
+                const t = on && Number.isFinite(rotation) ? normAngle(sign * rotation) : 0;
+                const v = turnedSize(W, H, t);
+                set({ x: '0', y: '0', w: String(v.w), h: String(v.h) });
+              }}
+            />
+            <label htmlFor="crop-level">Crop level on the page (resample the turned picture)</label>
+          </div>
         </fieldset>
         <p className="note" role="status">
           {n === 0
             ? 'Select PNG or JPEG pictures to crop.'
-            : size === null
-              ? 'The pictures differ in size in pixels: crop them one at a time.'
-              : `${String(crop.w)} × ${String(crop.h)} of ${String(W)} × ${String(H)} pixels${
-                  n > 1 ? `, the same for all ${String(n)} pictures` : ''
-                }. Scale bars grouped with a picture stay calibrated.`}
+            : `${String(crop.w)} × ${String(crop.h)} of ${String(VW)} × ${String(VH)} pixels${
+                turn === 0 ? '' : ' of the turned picture'
+              }${
+                n > 1
+                  ? same
+                    ? `, the same for all ${String(n)} pictures`
+                    : `, the same part of each of the ${String(n)} pictures (they differ in size)`
+                  : ''
+              }. Scale bars grouped with a picture stay calibrated.`}
         </p>
         {error && (
           <p className="note notice-error" role="alert">

@@ -135,7 +135,14 @@ const leafArb: fc.Arbitrary<Obj> = fc.oneof(
       baseArb,
       asset,
       fc.option(
-        fc.tuple(fc.nat(50), fc.nat(50), fc.integer({ min: 1, max: 50 }), fc.nat(10), asset),
+        fc.tuple(
+          fc.nat(50),
+          fc.nat(50),
+          fc.integer({ min: 1, max: 50 }),
+          fc.nat(10),
+          asset,
+          fc.option(fc.integer({ min: -179, max: 180 }), { nil: undefined }),
+        ),
         { nil: undefined },
       ),
       fc.option(
@@ -157,6 +164,7 @@ const leafArb: fc.Arbitrary<Obj> = fc.oneof(
       type: 'image',
       asset: a,
       ...(c ? { crop: { x: c[0], y: c[1], w: c[2], h: c[3] }, cropped: c[4] } : {}),
+      ...(c?.[5] === undefined ? {} : { turn: c[5] }),
       ...(channels ? { channels } : {}),
     })),
   fc

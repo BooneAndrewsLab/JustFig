@@ -173,8 +173,19 @@ export interface Image extends Base {
    * With `channels`, the merge of them, baked (note 21).
    */
   readonly asset: AssetHash;
-  /** What is shown, in pixels of `asset` (its `meta` size); none = all of it. */
+  /**
+   * What is shown, in pixels of `asset` (its `meta` size), or of `asset`
+   * turned by `turn`; none = all of it. A see-through picture's backdrop (an
+   * `svgImport`) is cropped with its picture, in its `meta` units (note 20).
+   */
   readonly crop?: Rect4;
+  /**
+   * Degrees (clockwise) the pixels of `asset` are turned, resampled, before
+   * `crop` is taken (issue 48, note 20): a crop level on the page of a turned
+   * picture. `crop` is then in pixels of the turned picture (its bounding box,
+   * same pixel size). Only with `crop`; none = not turned.
+   */
+  readonly turn?: number;
   /**
    * The pixels of `crop`, re-encoded as their own image asset (note 20): the
    * export subset has no clipping, so this is what is drawn when `crop` is set.

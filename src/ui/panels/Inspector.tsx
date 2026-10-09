@@ -1269,13 +1269,12 @@ function CropSection({ s, sel, onCrop }: { s: AppState; sel: readonly Obj[]; onC
     <Section title="Crop and rotate">
       <p className="note">
         {size === null
-          ? `${String(pics.length)} pictures of different sizes: select pictures of one size (the channels of one field) to crop them together.`
+          ? `${String(pics.length)} pictures of different sizes, cropped to the same part of each${cropped > 0 ? `, ${String(cropped)} cropped` : ''}.`
           : `${String(pics.length)} ${pics.length === 1 ? 'picture' : 'pictures'}, ${String(size.w)} × ${String(size.h)} px${cropped > 0 ? `, ${String(cropped)} cropped` : ''}.`}
       </p>
       <div className="row">
         <button
           type="button"
-          disabled={size === null}
           title="Crop to a rectangle of pixels and set the angle, the same for every selected picture"
           onClick={onCrop}
         >

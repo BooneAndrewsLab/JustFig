@@ -83,9 +83,13 @@ The merge keeps its channels, so it can be changed later: select it and click **
 
 ### Crop and rotate
 
-Shown when the selection holds PNG or JPEG pictures, or groups with one in them (such as a picture grouped with its scale bar). **Crop and rotate…** opens the **Crop and rotate** dialog, which applies the same crop and the same angle to every selected picture at once: select the channels of one field (they must be the same size in pixels) to crop and turn them together.
+Shown when the selection holds PNG or JPEG pictures, or groups with one in them (such as a picture grouped with its scale bar). **Crop and rotate…** opens the **Crop and rotate** dialog, which applies the same crop and the same angle to every selected picture at once: select the channels of one field to crop and turn them together. The crop is typed in pixels of the first picture; pictures of a different size in pixels are cropped to the same part of themselves (the same fraction across and down).
 
 In the dialog, type the crop as **Left**, **Top**, **Width** and **Height** in pixels of the picture, or drag a rectangle on the preview to fill them in; **Whole picture** takes the crop off again. **Angle (°)** turns each picture about its centre. Click **Apply**. The pictures keep their scale: a crop makes the picture's box smaller, and the part you kept stays where it was on the page. A scale bar grouped with a picture (from **Add scale bar**) moves to the new box and stays calibrated, and so do gel lane labels. The whole picture is kept in the figure, so you can widen a crop later or undo it in one step. The crop is in the picture's own pixels, before it is turned, so a turned picture is cropped along its own edges.
+
+To crop a turned picture along the page instead (turn a field so a cell is level, then cut a level rectangle around it), tick **Crop level on the page (resample the turned picture)**. The preview then shows the picture turned by the angle, and the crop is in pixels of that turned picture; ticking or unticking it starts the crop again from the whole picture. On **Apply** the pixels are turned and resampled into a new picture, and the picture's box is level on the page. Where the crop reaches past the turned picture's corners, the pixels are clear. The original pixels stay in the figure, so you can change the angle or the crop later, or untick the box to go back to cropping along the picture's own edges.
+
+A see-through picture from an imported plot has a backdrop under it (what the plot drew there, see [Importing and other apps](11-import-and-other-apps.md)); cropping or turning the picture crops and turns its backdrop with it.
 
 ### From BarelySig
 

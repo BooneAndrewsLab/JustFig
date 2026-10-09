@@ -1,16 +1,24 @@
 /**
- * Crop and rotate pictures (note 20, issue 46): one named edit applies the
- * same crop, in pixels, and the same rotation to a set of pictures, such as
- * the channels of one field. The crop's pixels are re-encoded beforehand
- * (`io/cropImage.ts`, asynchronous) and handed in, so the edit stays pure.
+ * Crop and rotate pictures (note 20, issues 46 and 48): one named edit
+ * applies the same crop and the same angle to a set of pictures, such as the
+ * channels of one field. The crop is the same part of each picture (scaled
+ * to its pixel size), along its own edges or, `level`, along the page: the
+ * pixels turned by the angle, resampled. The crop's pixels are re-encoded
+ * beforehand (`io/cropImage.ts`, asynchronous) and handed in, so the edit
+ * stays pure.
  *
  * The frame keeps the picture's scale (points per pixel): it shrinks or grows
  * with the crop and moves so the pixels kept stay where they were on the
  * page. Objects grouped over the picture's box (a scale bar, gel labels,
  * notes 18 and 19) follow its new box, and an `imageWidth` param (the scale
  * bar's calibration) is scaled with the crop's width so the bar stays true.
+ * A see-through picture's backdrop (issue 35) is cut to the picture's new
+ * box (`io/cropBackdrop.ts`, synchronous).
  */
-import { apply as applyMat, frameMatrix } from '../geometry/matrix';
+import { cutBackdrop } from '@/io/cropBackdrop';
+
+import { apply as applyMat, frameMatrix, invert } from '../geometry/matrix';
+import { fromTurned, toTurned, turnedSize } from '../geometry/turn';
 import { normAngle } from '../geometry/transform';
 import type { Id } from '../model/ids';
 import { pageObjects } from '../model/tree';
@@ -28,9 +36,28 @@ export interface CroppedPicture {
 /** All of a picture `w` × `h` pixels. */
 export const fullCrop = (w: number, h: number): Rect4 => ({ x: 0, y: 0, w, h });
 
-/** What a picture shows, in pixels of its asset. */
-export const visibleRect = (o: Image, a: ImageAsset): Rect4 =>
+/** What a picture shows: its pixels turned by `turn` degrees, then `crop` of those. */
+export interface View {
+  readonly turn: number;
+  readonly crop: Rect4;
+}
+
+/** What a picture shows, in pixels of its asset (turned by `o.turn`, if set). */
+export const visibleRect = (o: Image, a: { meta: { width: number; height: number } }): Rect4 =>
   o.crop ?? fullCrop(a.meta.width, a.meta.height);
+
+/** A picture's view: its turn (only with a crop) and what it shows. */
+export const currentView = (o: Image, a: { meta: { width: number; height: number } }): View => ({
+  turn: o.crop ? (o.turn ?? 0) : 0,
+  crop: visibleRect(o, a),
+});
+
+/** −1 when a frame is mirrored one way (a turn of its pixels then reads the other way). */
+export const flipSign = (f: Frame): 1 | -1 => ((f.flipX === true) !== (f.flipY === true) ? -1 : 1);
+
+/** The angle a picture's pixels are at on the page: its frame's and its own turn. */
+export const pageAngle = (o: Image): number =>
+  normAngle(o.frame.rotation + flipSign(o.frame) * (o.crop ? (o.turn ?? 0) : 0));
 
 /** A crop as whole pixels inside a `w` × `h` picture, at least one pixel each way. */
 export function clampCrop(c: Rect4, w: number, h: number): Rect4 {
@@ -41,25 +68,67 @@ export function clampCrop(c: Rect4, w: number, h: number): Rect4 {
   return { x, y, w: int(c.w, 1, w - x), h: int(c.h, 1, h - y) };
 }
 
+/**
+ * The same part of a picture `to` pixels in size as `c` is of one `from`
+ * (issue 48: pictures of different pixel sizes cropped together), edges
+ * rounded to whole pixels.
+ */
+export function scaledCrop(
+  c: Rect4,
+  from: { w: number; h: number },
+  to: { w: number; h: number },
+): Rect4 {
+  if ((from.w === to.w && from.h === to.h) || !(from.w > 0 && from.h > 0)) return c;
+  const sx = to.w / from.w;
+  const sy = to.h / from.h;
+  const x0 = Math.round(c.x * sx);
+  const y0 = Math.round(c.y * sy);
+  return {
+    x: x0,
+    y: y0,
+    w: Math.max(1, Math.round((c.x + c.w) * sx) - x0),
+    h: Math.max(1, Math.round((c.y + c.h) * sy) - y0),
+  };
+}
+
 export const isFullCrop = (c: Rect4, w: number, h: number): boolean =>
   c.x === 0 && c.y === 0 && c.w === w && c.h === h;
 
 /**
- * The frame that shows `next` of a picture now showing `was` in `f`: same
- * points per pixel, same rotation and flips, the kept pixels in place.
+ * The frame that shows `next` of a `size` picture now showing `was` in `f`:
+ * same points per pixel, the same angle on the page for its pixels (so a
+ * change of turn moves into the frame's rotation), same flips, the kept
+ * pixels in place.
  */
-export function cropFrame(f: Frame, was: Rect4, next: Rect4): Frame {
-  const kx = was.w > 0 ? f.w / was.w : 0;
-  const ky = was.h > 0 ? f.h / was.h : 0;
-  const w = next.w * kx;
-  const h = next.h * ky;
-  // The new box's centre, in the old frame's own (unflipped, unrotated) coordinates.
-  const c = applyMat(frameMatrix(f), {
-    x: (next.x - was.x) * kx + w / 2,
-    y: (next.y - was.y) * ky + h / 2,
+export function viewFrame(f: Frame, size: { w: number; h: number }, was: View, next: View): Frame {
+  const kx = was.crop.w > 0 ? f.w / was.crop.w : 0;
+  const ky = was.crop.h > 0 ? f.h / was.crop.h : 0;
+  const w = next.crop.w * kx;
+  const h = next.crop.h * ky;
+  // The new box's centre: in the picture's pixels, then where the old view puts them.
+  const px = fromTurned(size.w, size.h, next.turn, {
+    x: next.crop.x + next.crop.w / 2,
+    y: next.crop.y + next.crop.h / 2,
   });
-  return { ...f, x: c.x - w / 2, y: c.y - h / 2, w, h };
+  const pv = toTurned(size.w, size.h, was.turn, px);
+  const c = applyMat(frameMatrix(f), {
+    x: (pv.x - was.crop.x) * kx,
+    y: (pv.y - was.crop.y) * ky,
+  });
+  const rotation =
+    was.turn === next.turn
+      ? f.rotation
+      : normAngle(f.rotation + flipSign(f) * (was.turn - next.turn));
+  return { ...f, x: c.x - w / 2, y: c.y - h / 2, w, h, rotation };
 }
+
+/**
+ * The frame that shows `next` of a picture now showing `was` in `f`, both in
+ * its own pixels: same points per pixel, rotation and flips, the kept pixels
+ * in place.
+ */
+export const cropFrame = (f: Frame, was: Rect4, next: Rect4): Frame =>
+  viewFrame(f, { w: 0, h: 0 }, { turn: 0, crop: was }, { turn: 0, crop: next });
 
 const near = (a: number, b: number): boolean => Math.abs(a - b) < 1e-6;
 const sameBox = (a: Frame, b: Frame): boolean =>
@@ -74,17 +143,109 @@ const unflipped = (f: Frame): Frame => {
 };
 
 export interface CropOptions {
-  /** Pixels of each picture's asset; null shows the whole picture. Undefined: unchanged. */
+  /**
+   * The crop, in pixels of a picture `size` in size (its view: turned, when
+   * `level`); null shows the whole picture. Undefined: unchanged.
+   */
   readonly crop?: Rect4 | null;
-  /** The crop's pixels for each picture id (from `cropPicture`), needed when `crop` is set. */
+  /**
+   * The size `crop` is in pixels of (the first picture's view); every picture
+   * shows the same part of its own. Default: each picture's own view size.
+   */
+  readonly size?: { readonly w: number; readonly h: number };
+  /**
+   * Crop level on the page (issue 48): the pixels turned by the angle,
+   * resampled, the frame then level. Default: as the picture is now.
+   */
+  readonly level?: boolean;
+  /** The crop's pixels for each picture id (from `bakeView`), needed when `crop` is set. */
   readonly baked?: Readonly<Record<Id, CroppedPicture>>;
-  /** Degrees, the same for every picture. Undefined: unchanged. */
+  /** Degrees on the page, the same for every picture. Undefined: unchanged. */
   readonly rotation?: number;
 }
 
 /**
+ * What a picture will show with `opts` (`crop` set): its turn and crop, or
+ * null for all of it, unturned. What to bake for it, and what the edit sets.
+ */
+export function plannedView(o: Image, a: ImageAsset, opts: CropOptions): View | null {
+  const { width: W, height: H } = a.meta;
+  const s = flipSign(o.frame);
+  const r = opts.rotation;
+  const angle = r !== undefined && Number.isFinite(r) ? r : pageAngle(o);
+  const level = opts.level ?? (o.crop !== undefined && (o.turn ?? 0) !== 0);
+  let turn = level ? normAngle(s * angle) : 0;
+  if (Math.abs(turn) < 1e-9) turn = 0;
+  const v = turnedSize(W, H, turn);
+  const crop =
+    opts.crop === null || opts.crop === undefined
+      ? fullCrop(v.w, v.h)
+      : clampCrop(scaledCrop(opts.crop, opts.size ?? v, v), v.w, v.h);
+  return turn === 0 && isFullCrop(crop, W, H) ? null : { turn, crop };
+}
+
+const round6 = (v: number): number => Math.round(v * 1e6) / 1e6;
+
+/**
+ * A see-through picture's backdrop (issue 35) following its picture `pic`
+ * (already in its new state, showing `view` of a `size` picture): the same
+ * box, its own flips, cut from the whole backdrop to what lies under the
+ * picture now (turned with it for a level crop). The cut is a new asset.
+ */
+function followBackdrop(
+  back: Image,
+  asset: Extract<Asset, { kind: 'svgImport' }>,
+  pic: Image,
+  size: { w: number; h: number },
+  view: View,
+  added: Record<AssetHash, Asset>,
+): Image {
+  // Where the whole backdrop is: on the whole picture (it was made that way), in its own flips.
+  const whole = viewFrame(pic.frame, size, view, { turn: 0, crop: fullCrop(size.w, size.h) });
+  const bw: Frame = {
+    ...unflipped(whole),
+    ...(back.frame.flipX === true ? { flipX: true } : {}),
+    ...(back.frame.flipY === true ? { flipY: true } : {}),
+  };
+  const frame: Frame = {
+    ...unflipped(pic.frame),
+    ...(back.frame.flipX === true ? { flipX: true } : {}),
+    ...(back.frame.flipY === true ? { flipY: true } : {}),
+  };
+  const { width: W, height: H } = asset.meta;
+  const { crop: _c, cropped: _p, turn: _t, ...rest } = back;
+  if (!(W > 0 && H > 0 && bw.w > 0 && bw.h > 0)) return { ...rest, frame };
+  let turn = normAngle(flipSign(bw) * (bw.rotation - pic.frame.rotation));
+  if (Math.abs(turn) < 1e-9) turn = 0;
+  const toWhole = invert(frameMatrix(bw));
+  const onPage = frameMatrix(pic.frame);
+  const pts = [
+    [0, 0],
+    [pic.frame.w, 0],
+    [0, pic.frame.h],
+    [pic.frame.w, pic.frame.h],
+  ].map(([x = 0, y = 0]) => {
+    const l = applyMat(toWhole, applyMat(onPage, { x, y }));
+    return toTurned(W, H, turn, { x: (l.x * W) / bw.w, y: (l.y * H) / bw.h });
+  });
+  const x0 = round6(Math.min(...pts.map((p) => p.x)));
+  const y0 = round6(Math.min(...pts.map((p) => p.y)));
+  const crop: Rect4 = {
+    x: x0,
+    y: y0,
+    w: round6(Math.max(...pts.map((p) => p.x))) - x0,
+    h: round6(Math.max(...pts.map((p) => p.y))) - y0,
+  };
+  if (turn === 0 && near(crop.x, 0) && near(crop.y, 0) && near(crop.w, W) && near(crop.h, H))
+    return { ...rest, frame };
+  const cut = cutBackdrop(asset, turn, crop);
+  added[cut.hash] = cut.asset;
+  return { ...rest, frame, crop, ...(turn === 0 ? {} : { turn }), cropped: cut.hash };
+}
+
+/**
  * "Crop and rotate" on a set of pictures (PNG/JPEG): each shows the same
- * pixel rectangle at the same rotation. One undo step.
+ * part of itself at the same angle. One undo step.
  */
 export function cropImages(pageId: Id, ids: readonly Id[], opts: CropOptions): Edit {
   if (ids.length === 0) throw new EditError('Select pictures to crop.');
@@ -95,31 +256,49 @@ export function cropImages(pageId: Id, ids: readonly Id[], opts: CropOptions): E
       : rotation === undefined
         ? 'Crop pictures'
         : 'Crop and rotate';
+  interface Next {
+    obj: Image;
+    was: Frame;
+    wasPx: number;
+    nowPx: number;
+    size: { w: number; h: number };
+    view: View;
+  }
   const planned = (pageObjs: Iterable<Obj>, assets: Assets) => {
     /** Each picture's next state, and its old box for what lies over it. */
-    const next = new Map<Id, { obj: Image; was: Frame; wasPx: number; nowPx: number }>();
+    const next = new Map<Id, Next>();
     const want = new Set(ids);
     for (const o of pageObjs) {
       if (!want.has(o.id) || o.type !== 'image') continue;
       const a = assets[o.asset];
       if (a?.kind !== 'image') throw new EditError('Only PNG and JPEG pictures can be cropped.');
-      const was = visibleRect(o, a);
+      const size = { w: a.meta.width, h: a.meta.height };
+      const was = currentView(o, a);
       let obj: Image = o;
       let to = was;
       if (crop !== undefined) {
-        to = clampCrop(crop ?? fullCrop(a.meta.width, a.meta.height), a.meta.width, a.meta.height);
-        const { crop: _c, cropped: _p, ...rest } = o;
-        if (isFullCrop(to, a.meta.width, a.meta.height)) obj = rest;
+        const v = plannedView(o, a, opts);
+        to = v ?? { turn: 0, crop: fullCrop(size.w, size.h) };
+        const { crop: _c, cropped: _p, turn: _t, ...rest } = o;
+        if (!v) obj = rest;
         else {
           const b = baked[o.id];
           if (!b) throw new EditError('The cropped picture is missing.');
-          obj = { ...rest, crop: to, cropped: b.hash };
+          obj = {
+            ...rest,
+            crop: v.crop,
+            ...(v.turn === 0 ? {} : { turn: v.turn }),
+            cropped: b.hash,
+          };
         }
-        obj = { ...obj, frame: cropFrame(o.frame, was, to) };
+        obj = { ...obj, frame: viewFrame(o.frame, size, was, to) };
       }
       if (rotation !== undefined && Number.isFinite(rotation))
-        obj = { ...obj, frame: { ...obj.frame, rotation: normAngle(rotation) } };
-      next.set(o.id, { obj, was: o.frame, wasPx: was.w, nowPx: to.w });
+        obj = {
+          ...obj,
+          frame: { ...obj.frame, rotation: normAngle(rotation - flipSign(o.frame) * to.turn) },
+        };
+      next.set(o.id, { obj, was: o.frame, wasPx: was.crop.w, nowPx: to.crop.w, size, view: to });
     }
     if (next.size === 0) throw new EditError('Those pictures no longer exist.');
     return next;
@@ -131,13 +310,14 @@ export function cropImages(pageId: Id, ids: readonly Id[], opts: CropOptions): E
       const page = f.doc.pages.find((p) => p.id === pageId);
       if (!page) throw new EditError('That page no longer exists.');
       const next = planned(pageObjects(page), f.assets);
-      /** Objects over a picture's old box, and what they become. */
+      const added: Record<AssetHash, Asset> = {};
+      /** Objects over a picture's old box, or its backdrop under it, and what they become. */
       const over = new Map<Id, Obj>();
       for (const o of pageObjects(page)) {
         if (o.type !== 'group') continue;
-        for (const pic of o.children) {
+        o.children.forEach((pic, i) => {
           const n = next.get(pic.id);
-          if (!n) continue;
+          if (!n) return;
           const oldBox = unflipped(n.was);
           const newBox = unflipped(n.obj.frame);
           for (const sib of o.children) {
@@ -148,9 +328,17 @@ export function cropImages(pageId: Id, ids: readonly Id[], opts: CropOptions): E
               params: scaledWidth(sib.params, n.wasPx, n.nowPx),
             });
           }
-        }
+          const back = o.children[i - 1];
+          const ba = back?.type === 'image' ? f.assets[back.asset] : undefined;
+          if (
+            back?.type === 'image' &&
+            ba?.kind === 'svgImport' &&
+            !next.has(back.id) &&
+            sameBox(unflipped(back.frame), oldBox)
+          )
+            over.set(back.id, followBackdrop(back, ba, n.obj, n.size, n.view, added));
+        });
       }
-      const added: Record<AssetHash, Asset> = {};
       for (const id of next.keys()) {
         const b = baked[id];
         if (b) added[b.hash] = b.asset;
