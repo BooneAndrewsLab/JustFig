@@ -77,14 +77,18 @@ text) is closed in the same work.
   roles unchanged, tick lengths and tick label offsets kept, area scaled, round trip), titles and
   legends on matplotlib SVG and PDF, R `pdf()` markers, a synthetic ggplot2-style legend,
   `matplotlib-subplots.svg` (2 × 2 with a colour bar and a one-entry legend) and
-  `r-facets.svg` (ggplot2 `facet_wrap`), made by `scripts/svg-fixtures/`, a lone panel's colour
+  `r-facets.svg` (ggplot2 `facet_wrap`), `matplotlib-shared-colorbar.svg` (a bar shared by a
+  column beside a wider panel) and `r-facets-touching.svg` (facets with no spacing), made by
+  `scripts/svg-fixtures/`, a strip over two panels, a lone panel's colour
   bar and the fallback when a line joins two panels;
   `plotSize.test.ts` for the edits (copy-on-write, scale per point, drag determinism, groups,
   Match size, Arrange in grid, `growFrame`, issue 30); e2e `plot-resize.spec.ts` (W/H from the
   keyboard, the switch and its memory, export subset, axe, a timed drag with one undo step).
 - **Several panels** (issue 32). The area is split into **panels** when that is safe: area
   pieces (axis lines, and rectangles at least 10 % of the viewBox both ways that are not
-  band-shaped) are grouped where they touch; a group with no axis line and no straight stroke
+  band-shaped) are grouped where they touch; a group whose rectangles fall into sets that only
+  touch (ggplot2 `panel.spacing = unit(0, "pt")`, issue 34) is split into one panel per set when
+  every axis line in it lies on one set (an axis line along two keeps them one); a group with no axis line and no straight stroke
   along most of a side (a legend's background) is no panel; any other group under 10 % makes
   the split fail. With two or more panels, and no shape that would scale overlapping two of them
   (a line drawn across the figure fails it), each axis gets **spans**, the panels' extents
@@ -105,6 +109,12 @@ text) is closed in the same work.
   inside its panel's span (matplotlib takes its room from that panel only, so the panel above
   is wider) keeps its distance to the span's end and its panel gives way: the panel scales by
   less so the bar keeps its width and stays aligned with the panel above (never below 5 %).
+  A band **shared** by several panels on one side (issue 34: `fig.colorbar(m, ax=[c, e])`, a
+  strip over two facets) belongs to all of them (`Band.also`) when it lies along half of each
+  (or mostly beside it), they are about as close as the nearest, and together they cover half
+  the band: every one of them gives way alike, so a column stays aligned. Along, a band's ends
+  go where the spans take them and it scales between, so one across two spans keeps lying along
+  them, the gap included (for a band inside one span this is the span's growth, as before).
 - **Legends with one entry** move as one block when they have a title or a line key (1.2–3 em
   long, flat: matplotlib's handle); a lone marker beside a label may be an annotated point.
 - **Pictures** (issue 24). A panel background holed for a picture still counts as a rectangle. An imported plot's pictures are `image` objects in its group (note
@@ -116,6 +126,6 @@ text) is closed in the same work.
   stretch: a rasterized scatter layer's dots get wider with an uneven resize, unlike vector
   markers. Restyling keeps them where they are (`growFrame` keeps the shared part in place).
   A picture's frame is recomputed from the start of the gesture like the plot's asset.
-- **Not handled:** a band that lies across two spans; a colour bar shared by a whole column of
-  panels squeezes only the panel it is nearest; panels a stroke joins (or that touch) scale as
-  one, gap included. Roles, panels and legends are guesses from geometry, as in note 16.
+- **Not handled:** panels a stroke joins (a line drawn across them, an axis line along two that
+  touch) scale as one, gap included; members of a shared band whose edges differ follow the
+  nearest one's edge. Roles, panels and legends are guesses from geometry, as in note 16.

@@ -52,11 +52,16 @@ export type Action =
   | { readonly kind: 'scale'; readonly in: number }
   | { readonly kind: 'move'; readonly at: readonly [number, number]; readonly in: number };
 
-/** A colour bar or facet strip: thin across `axis`, beside panel `of` on its `side`. */
+/**
+ * A colour bar or facet strip: thin across `axis`, beside panel `of` (the
+ * nearest) on its `side`, and beside the panels in `also` too when it is
+ * shared (a colour bar for a column of panels, a strip over two facets).
+ */
 export interface Band {
   readonly axis: 0 | 1;
   readonly side: 'lo' | 'hi';
   readonly of: number;
+  readonly also?: readonly number[];
 }
 
 /** A panel (a subplot, a facet: what scales), or a band beside one. */
@@ -587,10 +592,11 @@ function splitPanels(
     const r = sets.find(i);
     groups.set(r, [...(groups.get(r) ?? []), p]);
   });
-  if (groups.size < 2) return null;
+  const parts = [...groups.values()].flatMap((g) => splitTouching(g, eps, isAxis));
+  if (parts.length < 2) return null;
   const boxes: Box[] = [];
   const byPiece = new Map<string, number>();
-  for (const g of groups.values()) {
+  for (const g of parts) {
     const box = g.reduce<Box | null>((a, s) => union(a, inner(s)), null);
     if (!box) continue;
     // An edge: an axis line, or a straight stroke along most of one side. Without one it is
@@ -616,9 +622,49 @@ function splitPanels(
 }
 
 /**
- * The band a thin rectangle makes beside one of the panels: thin across one
- * axis, along the other as long as 40 % of the panel and mostly beside it,
- * and close to it; null when it is none.
+ * Panels that touch (ggplot2 `panel.spacing = unit(0, "pt")`) split by their
+ * own frames: the rectangles of a group that overlap one another, each set a
+ * panel, when every other piece (an axis line) lies on one of them. Otherwise
+ * (an axis line along two of them) the group stays one.
+ */
+function splitTouching(
+  g: readonly DrawnLeaf[],
+  eps: number,
+  isAxis: (l: DrawnLeaf) => boolean,
+): DrawnLeaf[][] {
+  const rects = g.filter((s) => !isAxis(s));
+  const into = (a: Box, b: Box): boolean =>
+    Math.min(a[2], b[2]) - Math.max(a[0], b[0]) > eps &&
+    Math.min(a[3], b[3]) - Math.max(a[1], b[1]) > eps;
+  const sets = new Sets(rects.length);
+  rects.forEach((a, i) => {
+    rects.forEach((b, j) => {
+      if (j > i && into(inner(a), inner(b))) sets.join(i, j);
+    });
+  });
+  const out = new Map<number, DrawnLeaf[]>();
+  rects.forEach((r, i) => {
+    const k = sets.find(i);
+    out.set(k, [...(out.get(k) ?? []), r]);
+  });
+  if (out.size < 2) return [[...g]];
+  const sub = [...out.values()];
+  const boxes = sub.map((x) => x.reduce<Box | null>((a, s) => union(a, inner(s)), null));
+  for (const s of g) {
+    if (!isAxis(s)) continue;
+    const at = boxes.findIndex((b) => b !== null && inside(inner(s), b, eps));
+    if (at < 0) return [[...g]];
+    sub[at]?.push(s);
+  }
+  return sub;
+}
+
+/**
+ * The band a thin rectangle makes beside the panels: thin across one axis,
+ * along the other as long as 40 % of each panel it lies beside (and along half
+ * of that panel, or mostly beside it), mostly beside them, and close to them;
+ * null when it is none. A band beside several panels on one side (a colour bar
+ * shared by a column) belongs to them all.
  */
 function bandBeside(box: Box, panels: readonly Box[], tol: number): Band | null {
   const axis: 0 | 1 = w(box) <= h(box) ? 0 : 1;
@@ -626,20 +672,31 @@ function bandBeside(box: Box, panels: readonly Box[], tol: number): Band | null 
   const thin = hi(box, axis) - lo(box, axis);
   const long = hi(box, along) - lo(box, along);
   if (thin > BAND * long) return null;
-  let best: Band | null = null;
-  let bestGap = Infinity;
+  const near: Record<'lo' | 'hi', { i: number; d: number; shared: number }[]> = { lo: [], hi: [] };
   for (const [i, p] of panels.entries()) {
     const span = hi(p, along) - lo(p, along);
     const shared = Math.min(hi(box, along), hi(p, along)) - Math.max(lo(box, along), lo(p, along));
-    if (long < 0.4 * span || shared < 0.5 * long) continue;
+    if (long < 0.4 * span || (shared < 0.5 * span && shared < 0.5 * long)) continue;
     const across = hi(p, axis) - lo(p, axis);
     const side: 'lo' | 'hi' | null =
       lo(box, axis) >= hi(p, axis) - tol ? 'hi' : hi(box, axis) <= lo(p, axis) + tol ? 'lo' : null;
     if (!side) continue;
     const d = side === 'hi' ? lo(box, axis) - hi(p, axis) : lo(p, axis) - hi(box, axis);
-    if (d > BAND_GAP * across || d >= bestGap) continue;
-    bestGap = d;
-    best = { axis, side, of: i };
+    if (d <= BAND_GAP * across) near[side].push({ i, d, shared });
+  }
+  let best: Band | null = null;
+  let bestD = Infinity;
+  for (const side of ['lo', 'hi'] as const) {
+    const ps = near[side];
+    const d = Math.min(...ps.map((p) => p.d));
+    // The panels it lies beside: as close as the nearest (none behind another), along it.
+    const by = ps
+      .filter((p) => p.d <= d + Math.max(tol, thin))
+      .sort((a, b) => a.d - b.d || b.shared - a.shared);
+    const [first, ...rest] = by;
+    if (!first || by.reduce((a, p) => a + p.shared, 0) < 0.5 * long || d >= bestD) continue;
+    bestD = d;
+    best = { axis, side, of: first.i, ...(rest.length ? { also: rest.map((p) => p.i) } : {}) };
   }
   return best;
 }
@@ -699,7 +756,8 @@ function regionMaps(layout: PlotLayout, sx: number, sy: number): Matrix[] {
   const spanOf = (axis: 0 | 1, b: Box): Span | undefined =>
     spans[axis].find(([a, z]) => a <= lo(b, axis) + 1e-9 && z >= hi(b, axis) - 1e-9);
   /** Where a panel's edges go: where the spans take them, unless a band beside it inside its
-   * span makes it give way (a colour bar's panel narrows so the bar keeps its width). */
+   * span makes it give way (a colour bar's panel narrows so the bar keeps its width; every
+   * panel a shared bar lies beside gives way alike, so they stay aligned). */
   const edges = (i: number, axis: 0 | 1): readonly [number, number] => {
     const p = regions[i]?.box;
     if (!p) return [0, 0];
@@ -710,7 +768,7 @@ function regionMaps(layout: PlotLayout, sx: number, sy: number): Matrix[] {
     let nz = to(axis, z);
     for (const r of regions) {
       const b = r.band;
-      if (b?.of !== i || b.axis !== axis || !span) continue;
+      if (!b || (b.of !== i && !b.also?.includes(i)) || b.axis !== axis || !span) continue;
       if (b.side === 'hi' && lo(r.box, axis) < span[1]) nz = z + to(axis, span[1]) - span[1];
       if (b.side === 'lo' && hi(r.box, axis) > span[0]) na = a + to(axis, span[0]) - span[0];
     }
@@ -742,9 +800,11 @@ function regionMaps(layout: PlotLayout, sx: number, sy: number): Matrix[] {
       }
       return [1, to(axis, c) - c];
     }
-    // Along: with the span it lies in.
-    const span = spans[axis].find(([s0, s1]) => c >= s0 && c <= s1);
-    return span ? [g(axis), to(axis, span[0]) - g(axis) * span[0]] : [1, to(axis, c) - c];
+    // Along: its ends where the spans take them, so a band across two spans (a colour bar
+    // shared by two rows, a strip over two facets) keeps lying along them, gap included.
+    const na = to(axis, a);
+    const s = z > a ? (to(axis, z) - na) / (z - a) : 1;
+    return [s, na - s * a];
   };
   return regions.map((r, i) => {
     const [ax, bx] = fit(r, i, 0);

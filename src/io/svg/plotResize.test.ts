@@ -77,6 +77,8 @@ const FIXTURES = [
   'r-cairo.svg',
   'matplotlib-subplots.svg',
   'r-facets.svg',
+  'matplotlib-shared-colorbar.svg',
+  'r-facets-touching.svg',
   'matplotlib-type3.pdf',
   'r-pdf.pdf',
   'r-cairo.pdf',
@@ -354,6 +356,99 @@ describe('resizePlot on the fixtures', () => {
       expect((l1[i]?.[0] ?? 0) - last1[2]).toBeCloseTo(b[0] - last0[2], 2);
       expect((l1[i]?.[2] ?? 0) - (l1[i]?.[0] ?? 0)).toBeCloseTo(b[2] - b[0], 2);
     });
+  });
+
+  it('matplotlib: a colour bar shared by a column makes every panel in it give way alike', async () => {
+    const p = analyse(await load('matplotlib-shared-colorbar.svg'));
+    const panels0 = panelsOf(p);
+    expect(panels0).toHaveLength(5);
+    expect(bandsOf(p).map((r) => r.band)).toEqual([{ axis: 0, side: 'hi', of: 4, also: [2] }]);
+    for (const [fx, fy] of [
+      [1.5, 1.3],
+      [0.8, 0.75],
+    ] as const) {
+      const { plot: q, sx, sy } = resized(p, fx, fy);
+      const [a0, b0, c0, d0, e0] = panels0;
+      const [a1, b1, c1, d1, e1] = panelsOf(q);
+      const bar0 = bandsOf(p)[0]?.box;
+      const bar1 = bandsOf(q)[0]?.box;
+      if (!a0 || !b0 || !c0 || !d0 || !e0 || !a1 || !b1 || !c1 || !d1 || !e1 || !bar0 || !bar1)
+        throw new Error('panels');
+      // The wide panel and the left column scale by the growth; rows keep their gaps.
+      for (const [x, y] of [
+        [a0, a1],
+        [b0, b1],
+        [d0, d1],
+      ] as const) {
+        expect(y[2] - y[0]).toBeCloseTo((x[2] - x[0]) * sx, 2);
+        expect(y[3] - y[1]).toBeCloseTo((x[3] - x[1]) * sy, 2);
+      }
+      expect(b1[1] - a1[3]).toBeCloseTo(b0[1] - a0[3], 2);
+      // Both panels beside the bar give way alike: still aligned with each other.
+      expect(c1[0]).toBeCloseTo(e1[0], 2);
+      expect(c1[2]).toBeCloseTo(e1[2], 2);
+      // The bar keeps its width, its gap to them and its distance to the wide panel's edge.
+      expect(bar1[2] - bar1[0]).toBeCloseTo(bar0[2] - bar0[0], 2);
+      expect(bar1[0] - e1[2]).toBeCloseTo(bar0[0] - e0[2], 2);
+      expect(a1[2] - bar1[2]).toBeCloseTo(a0[2] - bar0[2], 2);
+      // Along, it still runs from the top of the upper panel to the bottom of the lower.
+      expect(bar1[1]).toBeCloseTo(c1[1], 2);
+      expect(bar1[3]).toBeCloseTo(e1[3], 2);
+      expect(labelBox(q, 'Level')[0] - bar1[2]).toBeCloseTo(labelBox(p, 'Level')[0] - bar0[2], 2);
+    }
+  });
+
+  it('ggplot2 facets that touch scale as separate panels, still touching', async () => {
+    const p = analyse(await load('r-facets-touching.svg'));
+    expect(panelsOf(p)).toHaveLength(4);
+    const { plot: q, sx, sy } = resized(p, 1.4, 1.2);
+    const before = panelsOf(p);
+    const after = panelsOf(q);
+    after.forEach((b, i) => {
+      const a = before[i];
+      if (!a) throw new Error('facet');
+      expect(b[2] - b[0]).toBeCloseTo((a[2] - a[0]) * sx, 2);
+      expect(b[3] - b[1]).toBeCloseTo((a[3] - a[1]) * sy, 2);
+    });
+    const [tl, tr, bl] = after;
+    if (!tl || !tr || !bl) throw new Error('facets');
+    expect(tr[0]).toBeCloseTo(tl[2], 2);
+    // Each strip keeps its height on top of its own panel.
+    bandsOf(q).forEach((r, i) => {
+      const was = bandsOf(p)[i]?.box ?? [0, 0, 0, 0];
+      const of = after[r.band?.of ?? -1] ?? [0, 0, 0, 0];
+      expect(r.box[3] - r.box[1]).toBeCloseTo(was[3] - was[1], 2);
+      expect(r.box[3]).toBeCloseTo(of[1], 2);
+      expect(r.box[0]).toBeCloseTo(of[0], 2);
+      expect(r.box[2]).toBeCloseTo(of[2], 2);
+    });
+    // An axis line along both keeps them one panel.
+    const joined = analyse(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 120">' +
+        '<rect x="20" y="10" width="130" height="90" fill="#eee"/>' +
+        '<rect x="150" y="10" width="130" height="90" fill="#ddd"/>' +
+        '<line x1="20" y1="100" x2="280" y2="100" stroke="#000"/>' +
+        '</svg>',
+    );
+    expect(joined.layout.regions).toEqual([{ box: [20, 10, 280, 100] }]);
+  });
+
+  it('a strip over two panels keeps lying along both, gap included', () => {
+    const svg =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 140">' +
+      '<rect x="20" y="30" width="110" height="90" fill="#eee" stroke="#000"/>' +
+      '<rect x="170" y="30" width="110" height="90" fill="#eee" stroke="#000"/>' +
+      '<rect x="20" y="10" width="260" height="16" fill="#ccc"/>' +
+      '</svg>';
+    const p = analyse(svg);
+    expect(bandsOf(p).map((r) => r.band)).toEqual([{ axis: 1, side: 'lo', of: 0, also: [1] }]);
+    const { plot: q } = resized(p, 1.5, 1.3);
+    const [l, r] = panelsOf(q);
+    const strip = bandsOf(q)[0]?.box ?? [0, 0, 0, 0];
+    expect(strip[0]).toBeCloseTo(l?.[0] ?? 0, 2);
+    expect(strip[2]).toBeCloseTo(r?.[2] ?? 0, 2);
+    expect(strip[3] - strip[1]).toBeCloseTo(16, 2);
+    expect((r?.[0] ?? 0) - (l?.[2] ?? 0)).toBeCloseTo(40, 2);
   });
 
   it('panels joined by something drawn across them stay one area', () => {
