@@ -7,7 +7,16 @@ import { refit } from '@/core/geometry/transform';
 import { frame } from '@/core/model/factory';
 import { type Id, newId } from '@/core/model/ids';
 import { mapPageObjs } from '@/core/model/tree';
-import type { Obj, PathNode, PathObj, Procedural, Swatch, Vec2 } from '@/core/model/types';
+import type {
+  Figure,
+  Image,
+  Obj,
+  PathNode,
+  PathObj,
+  Procedural,
+  Swatch,
+  Vec2,
+} from '@/core/model/types';
 
 import { defaultParams } from './params';
 import { ellipseNodes } from './prims';
@@ -142,39 +151,72 @@ export function convertObjects(pageId: Id, objs: readonly Obj[], palette: readon
 }
 
 /**
- * "Label lanes" on a picture of a gel (note 18): gel lane labels over the
- * picture's box, grouped with it so they move and resize together. The
- * labels are selected, ready to type lane names into.
+ * A fresh object of `kind` on a picture's box, grouped with the picture so it
+ * moves, resizes and rotates with it (notes 18 and 19); the new object is
+ * selected. `params` sees the figure, for what the picture itself knows.
  */
-export function labelGelImage(pageId: Id, image: Obj): Edit {
-  if (image.type !== 'image') throw new EditError('Select a picture of a gel to label its lanes.');
-  const k = getKind('gelLabels');
-  if (!k) throw new EditError('Gel lane labels are not available.');
+function overImage(
+  pageId: Id,
+  image: Obj,
+  kind: string,
+  label: string,
+  params: (image: Image, f: Figure) => Partial<Params> = () => ({}),
+): Edit {
+  const k = getKind(kind);
+  if (!k) throw new EditError(`${label} is not available.`);
   const made = createProcedural(k, { x: 0, y: 0 });
   const groupId = newId('o');
   return {
-    label: 'Label gel lanes',
+    label,
     select: [made.id],
     apply: (f) => {
       const page = f.doc.pages.find((p) => p.id === pageId);
       if (!page) throw new EditError('That page no longer exists.');
       const state = { found: false };
       const next = mapPageObjs(page, (o) => {
-        if (o.id !== image.id) return o;
+        if (o.id !== image.id || o.type !== 'image') return o;
         state.found = true;
-        // Flips stay with the picture: mirrored labels would be unreadable.
+        // Flips stay with the picture: mirrored text would be unreadable.
         const { flipX: _x, flipY: _y, ...box } = o.frame;
-        const labels: Procedural = { ...made, frame: box };
+        const over = params(o, f);
+        const obj: Procedural = {
+          ...made,
+          frame: box,
+          params: fixed(k, { ...(made.params as Params), ...over } as Params),
+        };
         return refit({
           id: groupId,
           type: 'group',
           frame: { x: 0, y: 0, w: 0, h: 0, rotation: 0 },
           opacity: 1,
-          children: [o, labels],
+          children: [o, obj],
         });
       });
       if (!state.found) throw new EditError('That picture no longer exists.');
       return { ...f, doc: { ...f.doc, pages: f.doc.pages.map((p) => (p === page ? next : p)) } };
     },
   };
+}
+
+/**
+ * "Label lanes" on a picture of a gel (note 18): gel lane labels over the
+ * picture's box, grouped with it so they move and resize together. The
+ * labels are selected, ready to type lane names into.
+ */
+export function labelGelImage(pageId: Id, image: Obj): Edit {
+  if (image.type !== 'image') throw new EditError('Select a picture of a gel to label its lanes.');
+  return overImage(pageId, image, 'gelLabels', 'Label gel lanes');
+}
+
+/**
+ * "Add scale bar" on a micrograph (note 19): a scale bar on the picture's box
+ * that knows the picture's width in pixels, grouped with it so the bar stays
+ * calibrated through any resize. Selected, ready for the pixel size.
+ */
+export function addScaleBar(pageId: Id, image: Obj): Edit {
+  if (image.type !== 'image') throw new EditError('Select a micrograph to add a scale bar to.');
+  return overImage(pageId, image, 'scaleBar', 'Add scale bar', (o, f) => {
+    const a = f.assets[o.asset];
+    return a?.kind === 'image' && a.meta.width > 0 ? { imageWidth: Math.round(a.meta.width) } : {};
+  });
 }

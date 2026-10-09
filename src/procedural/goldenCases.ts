@@ -51,6 +51,11 @@ export const GOLDEN_CASES: Readonly<Record<string, Readonly<Record<string, Parti
     slanted: { angle: 45, side: 'right', ticks: false, first: 20, last: 80 },
     upright: { angle: 90, size: 6, lanes: [{ label: 'Ladder' }, { label: '' }, { label: 'WT' }] },
   },
+  scaleBar: {
+    'top-left': { corner: 'tl', pixelSize: 0.065, imageWidth: 2048, length: 0.5, thickness: 2 },
+    custom: { corner: 'bl', label: 'Scale', length: 25, size: 10, margin: 0 },
+    unlabelled: { showLabel: false, length: 50 },
+  },
   placeholderPlot: {
     umap: { plot: 'umap', points: 120, seed: 12 },
     scatter: { plot: 'scatter', legend: false, xLabel: 'Dose (µM)', yLabel: 'Response' },

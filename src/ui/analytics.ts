@@ -58,7 +58,7 @@ export const EVENTS = {
   tool: ['rect', 'ellipse', 'line', 'pen', 'arrow', 'text', 'panel'],
   icon: ['place'],
   /** Kind names are app vocabulary, not figure content. */
-  procedural: ['place', 'convert', 'from-path', 'fragment-paste', 'gel-labels'],
+  procedural: ['place', 'convert', 'from-path', 'fragment-paste', 'gel-labels', 'scale-bar'],
   export: ['svg', 'pdf', 'png', 'tiff', 'panels'],
   /** A check warning chosen in the Export dialog; the rule id (app vocabulary) as the name. */
   check: ['select'],

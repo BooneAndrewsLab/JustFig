@@ -99,3 +99,10 @@ export const defaultParams = (fields: readonly Field[]): Params => decodeParams(
 /** Visible fields for these params. */
 export const visibleFields = (fields: readonly Field[], p: Params): Field[] =>
   fields.filter((f) => f.showIf === undefined || f.showIf(p));
+
+/** Shown to two decimals, or as many as the field's step has (a pixel size of 0.0645 µm). */
+export function roundTo(v: number, step: number | undefined): number {
+  const decimals = Math.max(2, (String(step ?? 1).split('.')[1] ?? '').length);
+  const k = 10 ** Math.min(decimals, 8);
+  return Math.round(v * k) / k;
+}

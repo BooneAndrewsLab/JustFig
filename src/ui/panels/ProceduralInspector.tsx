@@ -9,7 +9,7 @@ import { updateObjects } from '@/core/edits/edits';
 import type { Id } from '@/core/model/ids';
 import type { Paint, PathObj, Procedural, Swatch } from '@/core/model/types';
 import { convertObjects, makeFromPath, setParams } from '@/procedural/edits';
-import { visibleFields } from '@/procedural/params';
+import { roundTo, visibleFields } from '@/procedural/params';
 import { allKinds, resolveProcedural } from '@/procedural/registry';
 import type {
   Field,
@@ -66,7 +66,7 @@ function ScalarControl({
           <input
             id={id}
             type="number"
-            value={typeof value === 'number' ? Math.round(value * 100) / 100 : ''}
+            value={typeof value === 'number' ? roundTo(value, f.step) : ''}
             min={f.min}
             max={f.max}
             step={f.step ?? (f.type === 'int' ? 1 : 0.5)}

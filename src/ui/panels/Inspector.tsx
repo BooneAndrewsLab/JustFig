@@ -51,7 +51,7 @@ import {
 } from '@/core/model/types';
 import { PAGE_PRESETS, presetSize } from '@/core/presets/pages';
 import { recipeFile } from '@/io/barelysig';
-import { labelGelImage } from '@/procedural/edits';
+import { addScaleBar, labelGelImage } from '@/procedural/edits';
 import { formatLength, fromUnit, toUnit } from '@/core/units';
 
 import { analytics } from '../analytics';
@@ -1233,6 +1233,16 @@ function ImageSection({ s, image }: { s: AppState; image: Extract<Obj, { type: '
             }}
           >
             Label gel lanes
+          </button>
+          <button
+            type="button"
+            title="Add a scale bar calibrated from this picture's pixel size, grouped with it"
+            onClick={() => {
+              if (store.edit(addScaleBar(currentPage(s).id, image)))
+                analytics.track('procedural', 'scale-bar');
+            }}
+          >
+            Add scale bar
           </button>
         </div>
       )}

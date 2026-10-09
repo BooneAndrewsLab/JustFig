@@ -71,7 +71,7 @@ For an icon from the library: one colour control for each recolourable part, nam
 
 ### Image and Imported SVG
 
-For a PNG or JPEG the section is called **Image**; for an imported SVG it is **Imported SVG**. It shows the file name and has a **Credit** field. If you type a credit there, such as "Photo: A. Author", it is added to the figure's credit line. Pictures you import are not credited unless you fill this in. An Image also has **Label gel lanes**, which puts lane labels and ladder sizes over a photo of a gel and groups them with it (see [Scientific objects](08-objects.md)). See [Importing and other apps](11-import-and-other-apps.md).
+For a PNG or JPEG the section is called **Image**; for an imported SVG it is **Imported SVG**. It shows the file name and has a **Credit** field. If you type a credit there, such as "Photo: A. Author", it is added to the figure's credit line. Pictures you import are not credited unless you fill this in. An Image also has **Label gel lanes**, which puts lane labels and ladder sizes over a photo of a gel and groups them with it, and **Add scale bar**, which puts a calibrated scale bar on a micrograph and groups it with it (see [Scientific objects](08-objects.md)). See [Importing and other apps](11-import-and-other-apps.md).
 
 ### From BarelySig
 
