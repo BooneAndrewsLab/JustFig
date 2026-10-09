@@ -62,6 +62,23 @@ Use the pen for freehand curves and outlines.
 
 A closed path has a fill; an open path is just a line. Both are edited in the Style section like any other shape. A drawn open path can also be turned into a membrane, a DNA helix or a row of receptors (see [Scientific objects](08-objects.md)).
 
+## Editing points
+
+You can reshape a path, line or arrow after drawing it, and the path that a membrane, a DNA helix or a row of receptors follows. **Double-click** it, select it and press **Enter**, or choose **Edit points** in the Inspector. Its points appear as squares (round for a smooth point), with the curve handles of smooth points as dots on thin lines. The point you work on is filled in, and a line at the bottom of the canvas says which point it is and where.
+
+- **Drag a point** to move it. Its handles move with it.
+- **Drag a handle** to bend the curve. On a smooth point the other handle turns with it, so the curve stays smooth.
+- **Click on the line** between two points to add a point there. The shape does not change until you move it.
+- **Delete** or **Backspace** removes the current point, or the current handle. A path always keeps at least two points.
+- **S** makes the current point smooth or a corner. A new smooth point gets handles along the line between its neighbours.
+- **Escape**, a click on empty canvas, or another tool ends point editing.
+
+Each drag is one step in Undo. A point moves exactly under the pointer even when the path is rotated or flipped.
+
+From the keyboard: **Tab** and **Shift+Tab** go to the next or previous point, including handles. The **arrow keys** move the current point by 1 pt, and with **Shift** by 10 pt. **I** adds a point halfway to the next one. You can change I and S in Shortcuts…. **Edit points** in the Inspector moves the focus to the canvas, so these keys work from there.
+
+An arrow attached to a closed path follows its outline when you move the path's points. Dragging the attached end point of an arrow detaches it, as dragging the whole arrow does.
+
 ## Style
 
 Select a shape and use the Inspector's Style section for **Fill** (rectangles, ellipses and closed paths), **Stroke**, **Width (pt)**, **Dash** (Solid, Dashed or Dotted) and, for a rectangle, **Corner (pt)**. Each colour control offers the figure's palette swatches, a set of colourblind-safe quick colours and "none" (see [Colours and palettes](09-colours.md)).

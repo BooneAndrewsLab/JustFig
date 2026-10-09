@@ -1385,3 +1385,29 @@ button.link {
   display: grid;
   gap: 8px;
 }
+
+/* Point editing (note 28): which point is current, and the keys. */
+.node-status {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  max-width: calc(100% - 16px);
+  padding: 4px 8px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--ink);
+  pointer-events: none;
+}
+
+.node-status p {
+  margin: 0;
+}
+
+.node-status .node-keys {
+  color: var(--ink-2);
+}
+
+.canvas:focus:not(:focus-visible) {
+  outline: none;
+}

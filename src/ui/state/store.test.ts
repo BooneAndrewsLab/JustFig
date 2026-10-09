@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import { addObjects, deleteObjects, moveObjects } from '@/core/edits/edits';
-import { createArrow, createDoc, createRect, frame } from '@/core/model/factory';
+import { deleteNodePart, moveNodePart } from '@/core/edits/nodes';
+import { createArrow, createDoc, createPath, createRect, frame } from '@/core/model/factory';
+import type { Id } from '@/core/model/ids';
 import { findObj } from '@/core/model/tree';
 import type { Arrow, Figure } from '@/core/model/types';
 
@@ -191,5 +193,58 @@ describe('AppStore tabs (note 25)', () => {
     const [ta, tb] = s.getState().tabs;
     expect(ta && isUnsaved(ta)).toBe(false);
     expect(tb && isUnsaved(tb)).toBe(true);
+  });
+});
+
+describe('point editing (note 28)', () => {
+  const setup = () => {
+    const s = new AppStore({ doc: createDoc(), assets: {} });
+    const p = createPath(
+      [
+        { x: 0, y: 0 },
+        { x: 50, y: 40 },
+        { x: 100, y: 0 },
+      ],
+      false,
+    );
+    const pageId = currentPage(s.getState()).id;
+    s.edit(addObjects(pageId, [p]));
+    return { s, p, pageId };
+  };
+  const nodesNow = (s: AppStore, id: Id) => {
+    const o = findObj(currentPage(s.getState()), id);
+    return o?.type === 'path' ? o.nodes : [];
+  };
+
+  it('records a node drag as one undo step', () => {
+    const { s, p, pageId } = setup();
+    s.editNodes({ id: p.id, index: 1, part: 'node' });
+    const start = figure(s.getState());
+    for (const dy of [5, 10, 15])
+      s.edit(moveNodePart(pageId, p.id, { index: 1, part: 'node' }, 0, dy), {
+        coalesce: 'node-drag',
+        from: start,
+        keepSelection: true,
+      });
+    s.seal();
+    expect(nodesNow(s, p.id)[1]?.y).toBe(55);
+    s.undo();
+    expect(figure(s.getState())).toBe(start);
+    expect(s.getState().nodeEdit).toEqual({ id: p.id, index: 1, part: 'node' });
+  });
+
+  it('keeps the current point valid through delete and undo, and leaves on another selection or tool', () => {
+    const { s, p, pageId } = setup();
+    s.editNodes({ id: p.id, index: 2, part: 'node' });
+    expect(s.getState().selection).toEqual([p.id]);
+    s.edit(deleteNodePart(pageId, p.id, { index: 1, part: 'node' }), { keepSelection: true });
+    expect(s.getState().nodeEdit?.index).toBe(1);
+    s.undo();
+    expect(nodesNow(s, p.id)).toHaveLength(3);
+    s.select([]);
+    expect(s.getState().nodeEdit).toBeNull();
+    s.editNodes({ id: p.id, index: 0, part: 'node' });
+    s.setTool('rect');
+    expect(s.getState().nodeEdit).toBeNull();
   });
 });

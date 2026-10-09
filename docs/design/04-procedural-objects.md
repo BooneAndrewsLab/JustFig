@@ -134,7 +134,7 @@ drawn path or line becomes one through the Inspector's **Follow this path** butt
 frame grows by the kind's `overhang`). Resizing scales the path, not the units, as for path
 objects. Ticking **Closed** on a two-node path swaps it for the kind's closed default (an oval); unticking
 it on a plain oval (even resized) swaps back. A path of any other shape is kept and just opened or closed.
-There is no node editing of the path yet (Phase 4 with arrow binding, or later).
+Its points are edited like a path's (note 28): the edits change `obj.path`, never the params.
 
 ## Snapshots
 

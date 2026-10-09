@@ -11,6 +11,16 @@ import {
   ungroupObjects,
   allIds,
 } from '@/core/edits/edits';
+import {
+  type NodeRef,
+  deleteNodePart,
+  editableNodes,
+  insertNode,
+  moveNodePart,
+  nodeRefs,
+  setSmooth,
+} from '@/core/edits/nodes';
+import { findObj } from '@/core/model/tree';
 
 import { canvasSize, fitPage, zoomAt } from './canvas/view';
 import { actionFor, resolveBindings } from './keyBindings';
@@ -28,6 +38,89 @@ export function isTyping(t: EventTarget | null): boolean {
 
 let nudgeSeq = 0;
 let lastNudge = 0;
+
+/** Focus on the canvas or nowhere: Tab and Enter belong to a focused control otherwise. */
+const canvasFocus = (t: EventTarget | null): boolean =>
+  !(t instanceof Element) || t === document.body || t.closest('.canvas') !== null;
+
+/**
+ * Point editing's keys (note 28): Enter starts it on a selected path; while it is on,
+ * Tab walks the points, arrows nudge the current one, Delete removes it, Escape leaves,
+ * and the "Points" actions add a point or switch corner/smooth. True when handled.
+ */
+function pointKeys(e: KeyboardEvent): boolean {
+  const s = store.getState();
+  const page = currentPage(s);
+  const ne = s.nodeEdit;
+  if (ne === null) {
+    if (e.code !== 'Enter' && e.code !== 'NumpadEnter') return false;
+    if (s.tool !== 'select' || s.selection.length !== 1 || !canvasFocus(e.target)) return false;
+    const [one] = selectedObjects(s);
+    if (!one || !editableNodes(one)) return false;
+    store.editNodes({ id: one.id, index: 0, part: 'node' });
+    return true;
+  }
+  const o = findObj(page, ne.id);
+  const ed = o ? editableNodes(o) : null;
+  if (!ed) return false;
+  const go = (ref: NodeRef) => {
+    store.editNodes({ id: ne.id, ...ref });
+  };
+  switch (e.code) {
+    case 'Escape':
+      store.editNodes(null);
+      return true;
+    case 'Tab': {
+      if (!canvasFocus(e.target)) return false;
+      const refs = nodeRefs(ed.nodes);
+      const at = refs.findIndex((r) => r.index === ne.index && r.part === ne.part);
+      const next = refs[(at + (e.shiftKey ? refs.length - 1 : 1)) % refs.length];
+      if (next) go(next);
+      return true;
+    }
+    case 'ArrowLeft':
+    case 'ArrowRight':
+    case 'ArrowUp':
+    case 'ArrowDown': {
+      const d = e.shiftKey ? 10 : 1;
+      const dx = e.code === 'ArrowLeft' ? -d : e.code === 'ArrowRight' ? d : 0;
+      const dy = e.code === 'ArrowUp' ? -d : e.code === 'ArrowDown' ? d : 0;
+      // A burst of nudges is one undo step, as for objects.
+      if (Date.now() - lastNudge > 1500) nudgeSeq += 1;
+      lastNudge = Date.now();
+      store.edit(moveNodePart(page.id, ne.id, ne, dx, dy), {
+        coalesce: `node-nudge:${String(nudgeSeq)}`,
+        keepSelection: true,
+      });
+      return true;
+    }
+    case 'Delete':
+    case 'Backspace':
+      if (
+        store.edit(deleteNodePart(page.id, ne.id, ne), { keepSelection: true }) &&
+        ne.part === 'node'
+      )
+        go({ index: Math.max(0, ne.index - 1), part: 'node' });
+      return true;
+  }
+  const id = actionFor(e, resolveBindings(s.keyBindings));
+  if (id === 'node-add') {
+    const n = ed.nodes.length;
+    const seg = ne.index < n - 1 || ed.closed ? ne.index : ne.index - 1;
+    if (store.edit(insertNode(page.id, ne.id, seg, 0.5), { keepSelection: true }))
+      go({ index: seg + 1, part: 'node' });
+    return true;
+  }
+  if (id === 'node-smooth') {
+    const n = ed.nodes[ne.index];
+    if (n) {
+      store.edit(setSmooth(page.id, ne.id, ne.index, !n.in && !n.out), { keepSelection: true });
+      go({ index: ne.index, part: 'node' });
+    }
+    return true;
+  }
+  return false;
+}
 
 export interface ShortcutTargets {
   readonly exportDialog: () => void;
@@ -79,6 +172,10 @@ export function onKeyDown(e: KeyboardEvent, open: ShortcutTargets): void {
       saveFile();
       return;
     }
+  }
+  if (!mod && !e.altKey && pointKeys(e)) {
+    handled();
+    return;
   }
   if (!mod && (e.key === 'Delete' || e.key === 'Backspace') && ids.length > 0) {
     handled();

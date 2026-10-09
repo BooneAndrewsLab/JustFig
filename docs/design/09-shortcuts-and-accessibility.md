@@ -15,7 +15,8 @@ Differences from PlasmidPop:
   from a focused field, so the tool letters (V, R, E…) stay single keys.
 - **⌘ is Ctrl.** `bindingOf` writes Ctrl or ⌘ as `ctrl`, so one table serves both platforms.
 - **Fixed keys** — undo/redo, save, copy/cut/paste, Delete, Escape, the arrow-key nudges,
-  Enter to finish a pen path, and the text editor's Ctrl+B/I/= — are listed (group "Fixed")
+  Enter to finish a pen path (or start point editing, note 28), Tab between points while editing
+  them, and the text editor's Ctrl+B/I/= — are listed (group "Fixed")
   and handled before the table; they and their partners (Ctrl+X, Ctrl+V, Ctrl+Shift+Z…) are
   `RESERVED`, so no action can be moved onto them.
 - New actions with no key before: fit page (Shift+1), zoom in (Shift+=) and out (−), and the

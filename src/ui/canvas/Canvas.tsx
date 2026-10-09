@@ -13,6 +13,14 @@ import {
   resizeObjects,
   rotateObjects,
 } from '@/core/edits/edits';
+import {
+  type NodeRef,
+  editableNodes,
+  insertNode,
+  moveNodePart,
+  nearestOnPath,
+  toLocalPoint,
+} from '@/core/edits/nodes';
 import type { PlotSizing } from '@/core/edits/plotSize';
 import { type Box, center, frameBounds, unionBoxes } from '@/core/geometry/matrix';
 import { boundsOf, objBounds } from '@/core/geometry/transform';
@@ -41,6 +49,8 @@ import { type View, currentPage, figure, selectedObjects, store } from '../state
 import { useAppState } from '../state/useAppState';
 import { PagesBar } from '../panels/PagesBar';
 import { ICON_DRAG_TYPE, KIND_DRAG_TYPE, fitPage, zoomAt } from './view';
+import { resolveBindings } from '../keyBindings';
+import { NodeOverlay, NodeStatus } from './NodeOverlay';
 import { NoteMarkers } from './NoteMarkers';
 import { PageView } from './PageView';
 import { Ruler } from './Rulers';
@@ -75,7 +85,8 @@ type Gesture =
     }
   | { kind: 'rotate'; c: Vec2; a0: number; fig: Figure; ids: Id[]; key: string }
   | { kind: 'marquee'; start: Vec2; add: boolean }
-  | { kind: 'create'; start: Vec2; bindStart?: Id };
+  | { kind: 'create'; start: Vec2; bindStart?: Id }
+  | { kind: 'node'; id: Id; ref: NodeRef; start: Vec2; fig: Figure; key: string; moved: boolean };
 
 interface Overlay {
   readonly marquee?: Box;
@@ -324,6 +335,49 @@ export function Canvas() {
     }
     const target = e.target as Element;
     const handle = target.getAttribute('data-handle');
+    if (s.tool === 'select' && s.nodeEdit !== null) {
+      // Point editing (note 28): a point or handle drags; a segment gets a new point there.
+      const ne = s.nodeEdit;
+      const o = findObj(page, ne.id);
+      const ed = o ? editableNodes(o) : null;
+      const index = target.getAttribute('data-node-index');
+      const part = target.getAttribute('data-node-part');
+      const seg = target.getAttribute('data-node-seg');
+      if (o && ed && index !== null && (part === 'node' || part === 'in' || part === 'out')) {
+        const ref: NodeRef = { index: Number(index), part };
+        store.editNodes({ id: o.id, ...ref });
+        gesture.current = {
+          kind: 'node',
+          id: o.id,
+          ref,
+          start: p,
+          fig,
+          key: `g${String(++gestureSeq)}`,
+          moved: false,
+        };
+        return;
+      }
+      if (o && ed && seg !== null) {
+        const hit = nearestOnPath(ed.nodes, ed.closed, toLocalPoint(o, p));
+        const at = hit.seg === Number(seg) ? hit : { ...hit, seg: Number(seg) };
+        if (store.edit(insertNode(page.id, o.id, at.seg, at.t), { keepSelection: true })) {
+          const ref: NodeRef = { index: at.seg + 1, part: 'node' };
+          store.editNodes({ id: o.id, ...ref });
+          gesture.current = {
+            kind: 'node',
+            id: o.id,
+            ref,
+            start: p,
+            fig: figure(store.getState()),
+            key: `g${String(++gestureSeq)}`,
+            moved: false,
+          };
+        }
+        return;
+      }
+      // Anywhere else ends point editing, and the click does what it always does.
+      store.editNodes(null);
+    }
     if (s.tool === 'select') {
       const sel = selectedObjects(s);
       if (handle && sel.length > 0) {
@@ -486,6 +540,18 @@ export function Canvas() {
       case 'marquee':
         setOverlay({ marquee: normBox(g.start, p) });
         return;
+      case 'node': {
+        const dx = p.x - g.start.x;
+        const dy = p.y - g.start.y;
+        if (!g.moved && Math.hypot(dx, dy) * v.zoom < 2) return;
+        gesture.current = { ...g, moved: true };
+        store.edit(moveNodePart(page.id, g.id, g.ref, dx, dy), {
+          coalesce: g.key,
+          from: g.fig,
+          keepSelection: true,
+        });
+        return;
+      }
       case 'create': {
         const q = snapP(p);
         if (s.tool === 'pen') {
@@ -532,7 +598,8 @@ export function Canvas() {
         from: g.fig,
         keepSelection: true,
       });
-    if (g.kind === 'move' || g.kind === 'resize' || g.kind === 'rotate') store.seal();
+    if (g.kind === 'move' || g.kind === 'resize' || g.kind === 'rotate' || g.kind === 'node')
+      store.seal();
     if (g.kind === 'marquee') {
       const box = normBox(g.start, p);
       const hits = objectsInBox(page, box, drawnBoundsIn(palette)).map((o) => o.id);
@@ -604,11 +671,26 @@ export function Canvas() {
       finishPen(false, pen.slice(0, -1));
       return;
     }
-    const id = pickTarget(e.target, page);
+    // Pointer capture makes the canvas the click's target in some browsers: look under the pointer.
+    const under = document.elementFromPoint(e.clientX, e.clientY);
+    const id = pickTarget(under?.closest('[data-id]') ? under : e.target, page);
     const o = id ? findObj(page, id) : undefined;
     if (o?.type === 'text') {
       store.select([o.id]);
       store.editText(o.id);
+      return;
+    }
+    // A path, line, arrow or path-following object shows its points, the nearest current (note 28).
+    const ed = o ? editableNodes(o) : null;
+    if (o && ed && s.tool === 'select') {
+      const q = toLocalPoint(o, toPage(e));
+      let index = 0;
+      ed.nodes.forEach((n, i) => {
+        const best = ed.nodes[index];
+        if (best && Math.hypot(n.x - q.x, n.y - q.y) < Math.hypot(best.x - q.x, best.y - q.y))
+          index = i;
+      });
+      store.editNodes({ id: o.id, index, part: 'node' });
     }
   };
 
@@ -695,6 +777,7 @@ export function Canvas() {
       : null;
   const scr = (p: Vec2) => ({ x: p.x * v.zoom + v.x, y: p.y * v.zoom + v.y });
   const editing = s.editingText !== null ? findObj(page, s.editingText) : undefined;
+  const nodeObj = s.nodeEdit !== null ? findObj(page, s.nodeEdit.id) : undefined;
   const panning = space;
 
   return (
@@ -708,6 +791,8 @@ export function Canvas() {
         ref={ref}
         className={`canvas tool-${s.tool}${panning ? ' panning' : ''}`}
         data-testid="canvas"
+        // Focusable from code only (Edit points), so point editing's keys reach the canvas.
+        tabIndex={-1}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -861,7 +946,8 @@ export function Canvas() {
               draft={s.noteDraft}
             />
           )}
-          {selBox && s.tool === 'select' && s.editingText === null && (
+          {nodeObj && s.nodeEdit && <NodeOverlay obj={nodeObj} view={v} edit={s.nodeEdit} />}
+          {selBox && s.tool === 'select' && s.editingText === null && !nodeObj && (
             <g>
               {drawnBox && (
                 <rect
@@ -929,6 +1015,14 @@ export function Canvas() {
         </svg>
         {editing?.type === 'text' && (
           <TextEditor key={editing.id} text={editing} page={page} view={v} />
+        )}
+        {nodeObj && s.nodeEdit && (
+          <NodeStatus
+            obj={nodeObj}
+            edit={s.nodeEdit}
+            units={s.units}
+            bindings={resolveBindings(s.keyBindings)}
+          />
         )}
       </div>
       <PagesBar />

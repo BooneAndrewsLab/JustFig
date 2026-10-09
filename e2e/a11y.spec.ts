@@ -163,3 +163,21 @@ test('the well map, the layers, the pages and the dialogs work from the keyboard
   await page.keyboard.press('Escape');
   await expect(opener).toBeFocused();
 });
+
+test('point editing (note 28) has no problems and says which point is current', async ({
+  page,
+}) => {
+  await page.keyboard.press('l');
+  const b = await page.getByTestId('page').boundingBox();
+  if (!b) throw new Error('page not visible');
+  await page.mouse.move(b.x + 60, b.y + 80);
+  await page.mouse.down();
+  await page.mouse.move(b.x + 200, b.y + 120, { steps: 5 });
+  await page.mouse.up();
+  await page.locator('.side').getByRole('button', { name: 'Edit points' }).click();
+  await expect(page.getByTestId('canvas')).toBeFocused();
+  await expect(page.getByTestId('node-status').locator('[aria-live="polite"]')).toContainText(
+    'Point 1 of 2',
+  );
+  expect(await audit(page)).toEqual([]);
+});

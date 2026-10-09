@@ -19,7 +19,7 @@ export interface KeyAction {
   /** What the shortcut editor and the guide call it. */
   readonly label: string;
   /** Which part of the app it belongs to, for the listing. */
-  readonly group: 'Tools' | 'Edit' | 'Arrange' | 'File' | 'View' | 'Tabs' | 'Fixed';
+  readonly group: 'Tools' | 'Edit' | 'Points' | 'Arrange' | 'File' | 'View' | 'Tabs' | 'Fixed';
   readonly defaultBinding: string;
   /**
    * The key cannot be changed: the ones the browser and every app share
@@ -57,6 +57,18 @@ export const KEY_ACTIONS: readonly KeyAction[] = [
   { id: 'duplicate', label: 'Duplicate the selection', group: 'Edit', defaultBinding: 'ctrl+KeyD' },
   { id: 'group', label: 'Group the selection', group: 'Edit', defaultBinding: 'ctrl+KeyG' },
   { id: 'ungroup', label: 'Ungroup', group: 'Edit', defaultBinding: 'ctrl+shift+KeyG' },
+  {
+    id: 'node-add',
+    label: 'Point editing: add a point after the current one',
+    group: 'Points',
+    defaultBinding: 'KeyI',
+  },
+  {
+    id: 'node-smooth',
+    label: 'Point editing: make the current point smooth or a corner',
+    group: 'Points',
+    defaultBinding: 'KeyS',
+  },
   { id: 'front', label: 'Bring to front', group: 'Arrange', defaultBinding: 'BracketRight' },
   { id: 'forward', label: 'Bring forward', group: 'Arrange', defaultBinding: 'shift+BracketRight' },
   { id: 'back', label: 'Send to back', group: 'Arrange', defaultBinding: 'BracketLeft' },
@@ -121,10 +133,11 @@ export const KEY_ACTIONS: readonly KeyAction[] = [
     group: 'Fixed',
     defaultBinding: 'Delete',
     fixed: true,
+    note: 'in point editing, the current point',
   },
   {
     id: 'escape',
-    label: 'Back to the Select tool, then select nothing; cancels a pen path',
+    label: 'Back to the Select tool, then select nothing; cancels a pen path, leaves point editing',
     group: 'Fixed',
     defaultBinding: 'Escape',
     fixed: true,
@@ -135,13 +148,20 @@ export const KEY_ACTIONS: readonly KeyAction[] = [
     group: 'Fixed',
     defaultBinding: 'ArrowRight',
     fixed: true,
-    note: 'all four arrow keys',
+    note: 'all four arrow keys; in point editing they move the current point',
   },
   {
     id: 'finish-pen',
-    label: 'Finish a pen path',
+    label: 'Finish a pen path, or edit the points of the selected path',
     group: 'Fixed',
     defaultBinding: 'Enter',
+    fixed: true,
+  },
+  {
+    id: 'node-next',
+    label: 'Point editing: next point (with Shift, the previous one)',
+    group: 'Fixed',
+    defaultBinding: 'Tab',
     fixed: true,
   },
   {

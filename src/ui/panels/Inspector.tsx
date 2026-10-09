@@ -36,6 +36,7 @@ import {
 import { needsModifiedNote } from '@/core/attribution/attribution';
 import { cropTargets, sharedSize } from '@/core/edits/crop';
 import { type LevelsInput, isIdentity, setLevels } from '@/core/edits/levels';
+import { editableNodes } from '@/core/edits/nodes';
 import { center } from '@/core/geometry/matrix';
 import { boundsOf, normAngle, objBounds, rebase, rotateObj } from '@/core/geometry/transform';
 import type { Id } from '@/core/model/ids';
@@ -609,6 +610,21 @@ function SelectionInspector({
           {sel.some((o) => o.type === 'group') && (
             <button type="button" onClick={() => store.edit(ungroupObjects(page.id, ids))}>
               Ungroup
+            </button>
+          )}
+          {one && editableNodes(one) && (
+            <button
+              type="button"
+              aria-pressed={s.nodeEdit?.id === one.id}
+              title="Show its points to move, add or delete (or double-click it, or press Enter on the canvas)"
+              onClick={() => {
+                if (s.nodeEdit?.id === one.id) store.editNodes(null);
+                else store.editNodes({ id: one.id, index: 0, part: 'node' });
+                // The keys of point editing work on the canvas (note 28).
+                document.querySelector<HTMLElement>('.canvas')?.focus();
+              }}
+            >
+              Edit points
             </button>
           )}
           <button

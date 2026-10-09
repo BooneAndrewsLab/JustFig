@@ -9,6 +9,7 @@
  * (PlasmidPop's History.push contract).
  */
 import { type Edit, EditError } from '@/core/edits/edits';
+import { type NodeRef, editableNodes, partAt } from '@/core/edits/nodes';
 import { History } from '@/core/history/history';
 import type { PlotSizing } from '@/core/edits/plotSize';
 import { reconcileBindings } from '@/core/model/binding';
@@ -30,6 +31,30 @@ export interface NoteDraft {
   readonly page: Id;
   readonly at: Vec2;
   readonly object?: Id;
+}
+
+/** Point editing (note 28): whose points, and which one is current. */
+export interface NodeEdit extends NodeRef {
+  readonly id: Id;
+}
+
+/** The point editing still valid in this page and selection, the current point clamped. */
+function fixNodeEdit(
+  e: NodeEdit | null,
+  page: Page | undefined,
+  sel: readonly Id[],
+): NodeEdit | null {
+  if (e === null || !page || sel.length !== 1 || sel[0] !== e.id) return null;
+  const o = findObj(page, e.id);
+  const nodes = o ? editableNodes(o)?.nodes : undefined;
+  if (!nodes || nodes.length === 0) return null;
+  const index = Math.min(e.index, nodes.length - 1);
+  const ref = { index, part: e.part };
+  return partAt(nodes, ref)
+    ? index === e.index
+      ? e
+      : { ...e, index }
+    : { ...e, index, part: 'node' };
 }
 
 /** How the canvas shows colours: as they are, or as a colour-vision deficiency sees them (note 07). */
@@ -60,6 +85,8 @@ export interface TabState {
   readonly selection: readonly Id[];
   /** The text object being edited in the overlay, if any. */
   readonly editingText: Id | null;
+  /** Point editing (note 28): the object whose points are shown and the current point. */
+  readonly nodeEdit: NodeEdit | null;
   /** The review note open in the Notes panel. */
   readonly activeNote: Id | null;
   /** A note placed but not yet written. */
@@ -105,6 +132,7 @@ const DOC_KEYS: ReadonlySet<string> = new Set<keyof DocFields>([
   'pageId',
   'selection',
   'editingText',
+  'nodeEdit',
   'activeNote',
   'noteDraft',
   'downloaded',
@@ -197,6 +225,7 @@ function fix(t: TabState, f: Figure, selection: readonly Id[]): TabState {
     pageId,
     selection: keep,
     editingText: editing !== null && page && findObj(page, editing) ? editing : null,
+    nodeEdit: fixNodeEdit(t.nodeEdit, page, keep),
     activeNote: active !== null && f.doc.notes.some((n) => n.id === active) ? active : null,
     noteDraft: draft && f.doc.pages.some((p) => p.id === draft.page) ? draft : null,
   };
@@ -343,7 +372,7 @@ export class AppStore {
   activate(key: string): void {
     if (key === this.frontKey || !this.tab(key)) return;
     this.tabs = this.tabs.map((t) =>
-      t.key === this.frontKey ? { ...t, editingText: null, noteDraft: null } : t,
+      t.key === this.frontKey ? { ...t, editingText: null, nodeEdit: null, noteDraft: null } : t,
     );
     this.frontKey = key;
     this.publish();
@@ -396,11 +425,27 @@ export class AppStore {
     const same =
       ids.length === this.state.selection.length &&
       ids.every((id, i) => this.state.selection[i] === id);
-    if (!same) this.set({ selection: ids });
+    if (!same)
+      this.set({
+        selection: ids,
+        nodeEdit: fixNodeEdit(this.state.nodeEdit, currentPage(this.state), ids),
+      });
+  }
+
+  /** Shows an object's points with `ref` current (note 28), or leaves point editing (null). */
+  editNodes(e: NodeEdit | null): void {
+    if (e === null) {
+      if (this.state.nodeEdit !== null) this.set({ nodeEdit: null });
+      return;
+    }
+    const page = currentPage(this.state);
+    const o = findObj(page, e.id);
+    if (!o || !editableNodes(o)) return;
+    this.set({ selection: [e.id], editingText: null, nodeEdit: fixNodeEdit(e, page, [e.id]) });
   }
 
   setTool(tool: ToolId): void {
-    this.set({ tool, editingText: null });
+    this.set({ tool, editingText: null, nodeEdit: null });
     if (tool !== 'select' && tool !== 'hand') analytics.trackOnce('tool', tool);
   }
 
@@ -415,6 +460,7 @@ export class AppStore {
       pageId,
       selection: [],
       editingText: null,
+      nodeEdit: null,
       activeNote: active?.page === pageId ? active.id : null,
       noteDraft: this.state.noteDraft?.page === pageId ? this.state.noteDraft : null,
     });
@@ -518,6 +564,7 @@ export class AppStore {
       pageId: f.doc.pages[0]?.id ?? ('' as Id),
       selection: [],
       editingText: null,
+      nodeEdit: null,
       activeNote: null,
       noteDraft: null,
       downloaded: opts.hasFile === true ? f : null,
@@ -562,6 +609,7 @@ export class AppStore {
       pageId: t.pageId,
       selection: t.selection,
       editingText: t.editingText,
+      nodeEdit: t.nodeEdit,
       activeNote: t.activeNote,
       noteDraft: t.noteDraft,
       downloaded: t.downloaded,
