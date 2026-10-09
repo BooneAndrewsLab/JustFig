@@ -63,3 +63,7 @@ After the first visit JustFig works without a connection. Your browser may offer
 ## Units
 
 Sizes in the Inspector and on the rulers are in millimetres or inches. Change them with **Units** in the Page section; JustFig remembers your choice in this browser. Line widths, font sizes and corner radii are always in points (1 pt is 1/72 inch).
+
+## If JustFig crashes
+
+If something goes wrong while drawing the editor, JustFig shows a "hit a problem" screen instead of a blank page, with the kind of error (never your figure's content). Keyboard focus moves to it. **Download a copy of** each open figure saves a `.jfig` file straight away; **Save and reload** writes your figures to the browser and restarts JustFig, which reopens your tabs. A smaller error shows a red message in the status line and you can carry on. If JustFig cannot start at all, a page with a **Reload** button appears; figures kept in the browser are not deleted.

@@ -5,6 +5,7 @@ import { updateDoc } from '@/core/edits/edits';
 
 import { analytics } from './analytics';
 import { Canvas } from './canvas/Canvas';
+import { CrashProbe } from './CrashBoundary';
 import { canvasSize, fitPage, zoomAt } from './canvas/view';
 import { AttributionDialog } from './dialogs/AttributionDialog';
 import { CreditsDialog } from './dialogs/CreditsDialog';
@@ -325,6 +326,7 @@ export function App() {
         }}
       />
       <ToolPalette />
+      <CrashProbe />
       <Canvas key={s.front} />
       <aside className="side" aria-label="Inspector">
         <Inspector

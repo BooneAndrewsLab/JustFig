@@ -80,6 +80,8 @@ export const EVENTS = {
   embedded: ['import'],
   arrange: ['grid'],
   image: ['crop', 'crop-level', 'merge', 'channels'],
+  /** An error caught (note 26): the error class name only, never its message or any figure content. */
+  crash: ['render', 'error', 'rejection'],
 } as const satisfies Readonly<Record<string, readonly string[]>>;
 
 export type EventCategory = keyof typeof EVENTS;
@@ -167,3 +169,18 @@ export class Analytics {
 }
 
 export const analytics = new Analytics(readConfig(), doNotTrack());
+
+const ERROR_KINDS = [
+  'Error',
+  'TypeError',
+  'RangeError',
+  'ReferenceError',
+  'SyntaxError',
+  'DOMException',
+];
+
+/** The error's class name when it is a built-in one, else `Error`: never its message or a custom name. */
+export function errorKind(e: unknown): string {
+  const name = e instanceof Error || e instanceof DOMException ? e.constructor.name : '';
+  return ERROR_KINDS.includes(name) ? name : 'Error';
+}
