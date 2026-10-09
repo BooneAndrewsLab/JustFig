@@ -601,15 +601,15 @@ export const withAssets = (f: Figure, assets: Readonly<Record<string, Asset>>): 
 });
 
 /** Objects fully inside a box (marquee selection), top-level and panel children. */
-export function objectsInBox(p: Page, box: Box): Obj[] {
+export function objectsInBox(p: Page, box: Box, boxOf: (o: Obj) => Box = objBounds): Obj[] {
   const out: Obj[] = [];
   for (const l of p.layers) {
     if (!l.visible || l.locked) continue;
     for (const o of l.children) {
       if (o.type === 'panel') {
-        if (boxContains(box, objBounds(o))) out.push(o);
-        else for (const c of o.children) if (boxContains(box, objBounds(c))) out.push(c);
-      } else if (boxContains(box, objBounds(o))) out.push(o);
+        if (boxContains(box, boxOf(o))) out.push(o);
+        else for (const c of o.children) if (boxContains(box, boxOf(c))) out.push(c);
+      } else if (boxContains(box, boxOf(o))) out.push(o);
     }
   }
   return out.filter((o) => o.locked !== true && o.hidden !== true);

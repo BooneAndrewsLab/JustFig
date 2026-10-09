@@ -40,5 +40,9 @@ spaced lanes of a picture, ladder sizes down one side, and labels that move with
   place, clamped to the picture. A new item field with a default, so no `version` bump (note 04:
   old documents decode to 0). Rejected: a lane-position list replacing first/last (one gap would
   mean typing every lane), and a "gap after lane N" field (combs with several gaps).
-- **Known limits.** Clicking the hanging labels does not select the object (its hit area is the
-  frame), and snapping still uses frames.
+- **Hanging labels as targets** (issue 47). The screen-only hit area of a procedural object
+  (`proceduralNodes`) covers `drawnLocalBox`, so clicking a lane label selects the gel; exports
+  have no hit area and stay byte-identical. Snapping (`snapTargets` and the moving selection's
+  box in `Canvas.tsx`) and marquee selection (`objectsInBox`'s optional `boxOf`) take
+  `drawnBounds`, so a labelled gel snaps by the top of its labels and a marquee must enclose
+  them. Resize handles stay on the frame.

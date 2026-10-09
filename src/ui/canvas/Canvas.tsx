@@ -29,10 +29,10 @@ import {
 import { asId, type Id } from '@/core/model/ids';
 import { bindable } from '@/core/model/binding';
 import { findObj } from '@/core/model/tree';
-import type { Figure, Obj, Page, PathNode, Vec2 } from '@/core/model/types';
+import type { Figure, Obj, Page, PathNode, Swatch, Vec2 } from '@/core/model/types';
 import { type Guide, snapBox, snapPoint } from '@/core/snapping/snap';
 import { fitText } from '@/core/text/layout';
-import { drawnBoundsIn } from '@/procedural/bounds';
+import { drawnBounds, drawnBoundsIn } from '@/procedural/bounds';
 import { pathData } from '@/render/path';
 
 import { getLibrary, importToCanvas, placeIcon, placeProcedural } from '../state/session';
@@ -124,15 +124,15 @@ function resizedBox(b: Box, h: Handle, p: Vec2, aspect: boolean): Box {
 }
 
 /** Bounds of everything a moving selection may snap to: other objects and the page. */
-function snapTargets(page: Page, exclude: ReadonlySet<Id>): Box[] {
+function snapTargets(page: Page, exclude: ReadonlySet<Id>, palette: readonly Swatch[] = []): Box[] {
   const out: Box[] = [{ x: 0, y: 0, w: page.size.w, h: page.size.h }];
   for (const l of page.layers) {
     if (!l.visible) continue;
     for (const o of l.children) {
       if (exclude.has(o.id) || o.hidden === true) continue;
-      out.push(objBounds(o));
+      out.push(drawnBounds(o, palette));
       if (o.type === 'panel')
-        for (const c of o.children) if (!exclude.has(c.id)) out.push(objBounds(c));
+        for (const c of o.children) if (!exclude.has(c.id)) out.push(drawnBounds(c, palette));
     }
   }
   return out;
@@ -196,6 +196,7 @@ function bindTargetAt(x: number, y: number, page: Page): Obj | undefined {
 export function Canvas() {
   const s = useAppState();
   const fig = figure(s);
+  const palette = fig.doc.palette;
   const page = currentPage(s);
   const v = s.view;
   const ref = useRef<HTMLDivElement>(null);
@@ -290,7 +291,7 @@ export function Canvas() {
     p: Vec2,
     exclude: ReadonlySet<Id> = new Set(),
   ): { p: Vec2; guides: readonly Guide[] } =>
-    s.snap ? snapPoint(p, snapTargets(page, exclude), threshold) : { p, guides: [] };
+    s.snap ? snapPoint(p, snapTargets(page, exclude, palette), threshold) : { p, guides: [] };
 
   const finishPen = (closed: boolean, nodes: readonly PathNode[] = pen) => {
     if (nodes.length >= 2) {
@@ -365,7 +366,7 @@ export function Canvas() {
             start: p,
             fig,
             ids: objs.map((o) => o.id),
-            box: boundsOf(objs),
+            box: unionBoxes(objs.map(drawnBoundsIn(palette))),
             key: `g${String(++gestureSeq)}`,
             moved: false,
           };
@@ -421,7 +422,7 @@ export function Canvas() {
         if (s.snap) {
           const r = snapBox(
             { ...g.box, x: g.box.x + dx, y: g.box.y + dy },
-            snapTargets(page, new Set(g.ids)),
+            snapTargets(page, new Set(g.ids), palette),
             threshold,
           );
           dx += r.dx;
@@ -442,6 +443,8 @@ export function Canvas() {
         const to = resizedBox(g.box, g.handle, q.p, g.aspect || e.shiftKey);
         const keep = g.plots === 'keep' && g.live;
         gesture.current = { ...g, to };
+        // Event handler, not render: the compiler misreads it once the handlers use the palette.
+        // eslint-disable-next-line react-hooks/purity
         resizeStep.current = keep ? performance.now() : null;
         store.edit(resizeObjects(page.id, g.ids, g.box, to, keep ? 'keep' : 'scale'), {
           coalesce: g.key,
@@ -513,7 +516,7 @@ export function Canvas() {
     if (g.kind === 'move' || g.kind === 'resize' || g.kind === 'rotate') store.seal();
     if (g.kind === 'marquee') {
       const box = normBox(g.start, p);
-      const hits = objectsInBox(page, box).map((o) => o.id);
+      const hits = objectsInBox(page, box, drawnBoundsIn(palette)).map((o) => o.id);
       store.select(g.add ? [...new Set([...s.selection, ...hits])] : hits);
     }
     if (g.kind === 'create' && s.tool !== 'pen') {
@@ -660,7 +663,7 @@ export function Canvas() {
   const sel = selectedObjects(s);
   const selBox = sel.length > 0 ? boundsOf(sel) : null;
   // What the selection draws past its frames (gel lane labels, issue 44): a dashed outline.
-  const drawn = selBox ? unionBoxes(sel.map(drawnBoundsIn(fig.doc.palette))) : null;
+  const drawn = selBox ? unionBoxes(sel.map(drawnBoundsIn(palette))) : null;
   const drawnBox =
     selBox &&
     drawn &&

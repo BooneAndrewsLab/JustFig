@@ -44,7 +44,7 @@ Resizing a line, arrow or path rescales its points, so its line width stays the 
 
 ## Snapping and smart guides
 
-While you move or resize, the edges and centres of the selection snap to the edges and centres of other objects and of the page. Orange guide lines show what it has lined up with. Snapping works within a few pixels of the line.
+While you move or resize, the edges and centres of the selection snap to the edges and centres of other objects and of the page. Orange guide lines show what it has lined up with. Snapping works within a few pixels of the line. An object that draws past its frame, such as a gel with lane labels, snaps by everything it draws, labels included.
 
 Turn snapping off with **Snap to objects and page** in the Figure section of the Inspector (click an empty part of the page to see it).
 

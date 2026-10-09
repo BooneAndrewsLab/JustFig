@@ -1,7 +1,7 @@
 /** What hangs past a frame counts (#44): bounds, align/distribute, grid layout, snapshots. */
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { addObjects, alignObjects, distributeObjects } from '@/core/edits/edits';
+import { addObjects, alignObjects, distributeObjects, objectsInBox } from '@/core/edits/edits';
 import { GRID_DEFAULTS, arrangeInGrid } from '@/core/edits/grid';
 import { boxContains, frameBounds } from '@/core/geometry/matrix';
 import { objBounds } from '@/core/geometry/transform';
@@ -9,6 +9,7 @@ import { createDoc } from '@/core/model/factory';
 import { newId } from '@/core/model/ids';
 import { docObjects, findObj } from '@/core/model/tree';
 import type { Figure, Group, Image, Obj, Procedural } from '@/core/model/types';
+import { proceduralNodes } from '@/render/procedural';
 import { objectToNode } from '@/render/objectToNode';
 import { nodeToSvgString } from '@/render/svgNode';
 import { loadTestFonts } from '@/test/fonts';
@@ -188,5 +189,29 @@ describe('snapshots', () => {
     expect(pic.y).toBeCloseTo(drawn.y, 1);
     expect(pic.w).toBeCloseTo(drawn.w, 1);
     expect(pic.h).toBeCloseTo(drawn.h, 1);
+  });
+});
+
+describe('hanging labels as targets (#47)', () => {
+  it('gives the screen hit area the drawn box and leaves the export alone', () => {
+    const o = gel(100, 100);
+    const hit = proceduralNodes(o, 'outline', true, [])?.[0];
+    const d = drawnBounds(o, []);
+    expect(hit?.attrs['data-hit']).toBe(1);
+    expect(Number(hit?.attrs['y'])).toBeLessThan(0);
+    expect(Number(hit?.attrs['height'])).toBeCloseTo(d.h, 6);
+    const plain = proceduralNodes(o, 'outline', false, []) ?? [];
+    expect(plain.some((n) => n.attrs['data-hit'] !== undefined)).toBe(false);
+  });
+
+  it('marquee selects by the drawn box', () => {
+    const o = gel(100, 100);
+    const fig = figureWith([o]);
+    const f = objBounds(o);
+    const d = drawnBounds(o, []);
+    const frameOnly = { x: f.x - 1, y: f.y - 1, w: f.w + 2, h: f.h + 2 };
+    expect(objectsInBox(pageOf(fig), frameOnly)).toHaveLength(1);
+    expect(objectsInBox(pageOf(fig), frameOnly, bounds)).toHaveLength(0);
+    expect(objectsInBox(pageOf(fig), d, bounds)).toHaveLength(1);
   });
 });

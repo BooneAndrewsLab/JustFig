@@ -6,6 +6,7 @@
 import { frameMatrix, isPlain } from '@/core/geometry/matrix';
 import type { Procedural, Swatch } from '@/core/model/types';
 import { layoutText } from '@/core/text/layout';
+import { drawnLocalBox } from '@/procedural/bounds';
 import { type Prim, primData } from '@/procedural/prims';
 import { getKind, proceduralPrims, resolveProcedural } from '@/procedural/registry';
 import { textKey, textPrimObj } from '@/procedural/shapes';
@@ -63,7 +64,7 @@ const cache = new WeakMap<readonly Prim[], Map<string, SvgNode[]>>();
 /**
  * The object's content in frame-local coordinates, or null when its kind
  * is unknown here (the caller then draws the snapshot). On screen a
- * transparent hit area comes first: the frame, or a band along the path.
+ * transparent hit area comes first: the frame and what hangs past it (issue 47), or a band along the path.
  */
 export function proceduralNodes(
   o: Procedural,
@@ -86,6 +87,7 @@ export function proceduralNodes(
     const r = resolveProcedural(o);
     const kind = getKind(o.kind);
     const band = r && kind?.overhang ? kind.overhang(r.params) : 0;
+    const hitBox = drawnLocalBox(o, palette) ?? { x: 0, y: 0, w: o.frame.w, h: o.frame.h };
     nodes.unshift(
       kind?.usesPath && o.path && o.path.length > 1
         ? el('path', {
@@ -96,10 +98,10 @@ export function proceduralNodes(
             'data-hit': 1,
           })
         : el('rect', {
-            x: 0,
-            y: 0,
-            width: o.frame.w,
-            height: o.frame.h,
+            x: hitBox.x,
+            y: hitBox.y,
+            width: hitBox.w,
+            height: hitBox.h,
             fill: 'transparent',
             'data-hit': 1,
           }),
