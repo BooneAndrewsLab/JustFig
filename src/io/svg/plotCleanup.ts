@@ -42,6 +42,7 @@ import {
 import { parsePath, pathPoints, pathRect, pathString, transformPath } from './pathData';
 import { bundledFont, isBold } from './plotFonts';
 import { type PlotImage, takeImages } from './plotImages';
+import { CLIP_ATTR, type ReadClips, clipShape } from './svgClip';
 
 export type ViewBox = readonly [number, number, number, number];
 
@@ -312,9 +313,20 @@ function bakeLeaf(n: SvgNode, m: Matrix, inh: Inherited): SvgNode {
   }
 }
 
-function flatten(n: SvgNode, m: Matrix, inh: Inherited): SvgNode[] {
+/** What cutting shapes to their clips needs while flattening (one per plot). */
+interface Cutting {
+  readonly warn: (message: string) => void;
+  readonly memo: Map<string, ReadClips | null>;
+}
+
+function flatten(n: SvgNode, m: Matrix, inh: Inherited, cut: Cutting): SvgNode[] {
   const mm = multiply(m, ownTransform(n));
   const here = inherit(inh, n.attrs);
+  if (n.tag !== 'g' && n.tag !== 'image' && n.attrs[CLIP_ATTR] !== undefined) {
+    // Cut to its clip paths in its own space (issue 41); the pieces are then baked as usual.
+    const paint = { fill: get(here, 'fill') !== 'none', stroke: get(here, 'stroke') !== 'none' };
+    return clipShape(n, paint, mm, cut.warn, cut.memo).flatMap((p) => flatten(p, m, inh, cut));
+  }
   if (n.tag !== 'g') {
     const b = bakeLeaf(n, mm, here);
     // A text's tspans drop what they repeat from it too (e.g. a `*` CSS rule's values).
@@ -335,7 +347,7 @@ function flatten(n: SvgNode, m: Matrix, inh: Inherited): SvgNode[] {
       ),
     ];
   }
-  const kids = n.children.flatMap((c) => (typeof c === 'string' ? [] : flatten(c, mm, here)));
+  const kids = n.children.flatMap((c) => (typeof c === 'string' ? [] : flatten(c, mm, here, cut)));
   const attrs = pruned(without(n.attrs, 'transform'), inh);
   if (kids.length === 0) return [];
   if (Object.keys(attrs).length === 0) return kids;
@@ -1369,10 +1381,13 @@ export function cleanupPlot(
   warn?: (message: string) => void,
 ): { root: SvgNode; viewBox: ViewBox; images: PlotImage[] } {
   const rootInh = inherit(ROOT_INHERITED, root.attrs);
+  const cutting: Cutting = { warn: warn ?? (() => undefined), memo: new Map() };
   const flat = el(
     'svg',
     root.attrs,
-    root.children.flatMap((c) => (typeof c === 'string' ? [] : flatten(c, IDENTITY, rootInh))),
+    root.children.flatMap((c) =>
+      typeof c === 'string' ? [] : flatten(c, IDENTITY, rootInh, cutting),
+    ),
   );
   const bare = dropBackground(flat, viewBox);
   const boxes = new Map(drawnLeaves(bare, viewBox).map((l) => [l.path.join('.'), l.box]));

@@ -80,7 +80,8 @@ text) is closed in the same work.
   `r-facets.svg` (ggplot2 `facet_wrap`), `matplotlib-shared-colorbar.svg` (a bar shared by a
   column beside a wider panel), `r-facets-touching.svg` (facets with no spacing),
   `r-facets-joined.svg` (one axis line along two touching facets) and `matplotlib-connected.svg`
-  (`ConnectionPatch` lines from a zoomed region to its close-up), made by
+  (`ConnectionPatch` lines from a zoomed region to its close-up, whose line is plotted whole
+  and cut to its axes on import, issue 41), made by
   `scripts/svg-fixtures/`, a strip over two panels, a lone panel's colour
   bar, a polyline across a gap and the fallback when a circle lies across two panels;
   `plotSize.test.ts` for the edits (copy-on-write, scale per point, drag determinism, groups,

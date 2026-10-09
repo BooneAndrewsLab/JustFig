@@ -20,14 +20,13 @@ import { sanitizeSvg } from '../svg/sanitize';
 import { PdfImportError, openPdf, pictureUrl } from './loadPdf';
 import { findJpegs } from './pdfJpegs';
 import { cropPixels } from '../pictureClip';
+import { clipPolyline, clipRingToBox as clipRing } from '../pathClip';
 import {
   MAX_IMAGE_RECTS,
   type PdfFont,
   type PdfPageInput,
   type PdfPageSvg,
   blocky,
-  clipPolyline,
-  clipRing,
   imageRects,
   pageToSvg,
   pdfFontStyle,

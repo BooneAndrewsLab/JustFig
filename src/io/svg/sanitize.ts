@@ -28,7 +28,7 @@ import { parseXml } from '@/render/xml';
 import { markGlyphRuns, rebuildGlyphRuns } from './glyphText';
 import { ADVANCE_ATTR, cleanupPlot } from './plotCleanup';
 import type { PlotImage } from './plotImages';
-import { CLIP_ATTR, imageClips } from './svgClip';
+import { CLIP_ATTR, clipsOf } from './svgClip';
 
 export interface SanitizedSvg {
   /** `<svg viewBox>` root with only allowed content. */
@@ -336,6 +336,7 @@ export function sanitizeSvg(text: string, opts: SanitizeOptions = {}): Sanitized
     );
   };
 
+  const clipMemo = new Map<string, string>();
   const clean = (
     n: SvgNode,
     depth: number,
@@ -379,10 +380,15 @@ export function sanitizeSvg(text: string, opts: SanitizeOptions = {}): Sanitized
       const op = pres(n, ancestors)['opacity'];
       if (op !== undefined) a['opacity'] = op;
       // Its clip paths, read into its own space: plot cleanup cuts its pixels to them.
-      const clips = imageClips([...ancestors, n], ids, () => {
-        warnings.add('A picture clipped to a shape that could not be read was placed whole.');
-      });
-      if (clips) a[CLIP_ATTR] = JSON.stringify(clips);
+      const clips = clipsOf(
+        [...ancestors, n],
+        ids,
+        () => {
+          warnings.add('A picture clipped to a shape that could not be read was placed whole.');
+        },
+        clipMemo,
+      );
+      if (clips) a[CLIP_ATTR] = clips;
       return el('image', a, []);
     }
     if (!(CONTAINERS.has(tag) || SHAPES.has(tag) || TEXT.has(tag))) {
@@ -401,6 +407,18 @@ export function sanitizeSvg(text: string, opts: SanitizeOptions = {}): Sanitized
     for (const k of KEEP_DATA) {
       const v = n.attrs[k];
       if (v !== undefined) attrs[k] = String(v);
+    }
+    if (opts.plot === true && SHAPES.has(tag)) {
+      // Its clip paths, read into its own space: plot cleanup cuts it to them (issue 41).
+      const clips = clipsOf(
+        [...ancestors, n],
+        ids,
+        () => {
+          warnings.add('A drawing clipped to a shape that could not be read was kept whole.');
+        },
+        clipMemo,
+      );
+      if (clips) attrs[CLIP_ATTR] = clips;
     }
     // The source's run width, for plot cleanup only (which drops it again).
     const adv = n.attrs[ADVANCE_ATTR];

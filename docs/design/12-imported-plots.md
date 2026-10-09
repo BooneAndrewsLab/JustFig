@@ -105,6 +105,22 @@ Sans, sans-serif`, bold), `rotate(θ x y)` when rotated. Mathtext (`$…$`, issu
   a clip of several shapes, of text or in `objectBoundingBox` units is not read: such a picture
   is placed whole with a warning. matplotlib's `interpolation='none'` with zoomed limits writes
   pixels aligned to the axes, so whole-pixel crops land on the axes edge.
+- **Clipped lines and shapes** (issue 41). Every shape (`path`, `line`, `polyline`, `polygon`,
+  `rect`, `circle`, `ellipse`) under a clip gets `data-clip` the same way, in the space its own
+  geometry is in, so a matplotlib line in zoomed axes (`set_xlim` narrower than the data), which
+  is written whole under the axes' clip, no longer runs across the figure (and plot resizing,
+  note 17, no longer takes it for a stroke joining panels). `flatten` cuts it there, before its
+  transform is baked (cutting commutes with an affine map), with the PDF importer's cutter
+  (`src/io/pathClip.ts`, note 13): an axis-aligned rectangle (what plots use) is a box,
+  Sutherland–Hodgman for the fill, Liang–Barsky for the stroke; any other clip a `Region`. A shape
+  inside its clip is kept as it is (a rect stays a rect), one outside is dropped, one across the
+  edge becomes up to two paths, its fill (closed rings) and its stroke (open where the clip cuts
+  it; a dash pattern restarts there). Bounds: the sanitiser hands every shape under the same
+  clips in the same space one shared string (a plot's thousands of markers), cleanup reads each
+  once, and a clip shape of over 20 000 points, or a path whose points × the shape's exceed
+  2·10⁷, is cut to the shape's box instead, with a warning. A rounded `rect` across the edge and
+  shapes under an unreadable clip (as for pictures) are kept whole with a warning; text is never
+  cut.
 - **Backdrops** (issue 35). A see-through picture (clear pixels, or partial opacity: a
   `rasterized=True` scatter layer, ggrastr points) used to leave the grid lines under it on top
   of its dots, and its clear pixels showed the page through the holed panel. Compositing the
@@ -136,7 +152,8 @@ Sans, sans-serif`, bold), `rotate(θ x y)` when rotated. Mathtext (`$…$`, issu
   padded by the stroke width, text boxes from the width estimate in the bundled font the label is drawn in (note 14) ×1.1 and −1 em/+0.3 em
   around the baseline), intersected with the original viewBox (what lay outside was never
   shown), so the placed size is the drawing's. Nothing drawn: unchanged.
-- **Tests:** `plotImages.test.ts` (holes, drops, backdrops, all-opaque alpha, `meet`, mirrored and linked pictures, clips (rectangle, circle, through transforms, disjoint, JPEG, unreadable) and
+- **Tests:** `svgClip.test.ts` (shapes cut to rectangles and circles, through `use` and
+  transforms, fill and stroke, the bounds, and `matplotlib-connected.svg`'s close-up); `plotImages.test.ts` (holes, drops, backdrops, all-opaque alpha, `meet`, mirrored and linked pictures, clips (rectangle, circle, through transforms, disjoint, JPEG, unreadable) and
   `matplotlib-clipped.svg` from `scripts/svg-fixtures/matplotlib-clipped.py`, and
   `matplotlib-images.svg` from `scripts/svg-fixtures/matplotlib-images.py`); real matplotlib 3.11 output (`fonttype` path and none, and `matplotlib-log.svg`:
   log axes and mathtext labels, made by `scripts/svg-fixtures/matplotlib-log.py`) and ggplot2

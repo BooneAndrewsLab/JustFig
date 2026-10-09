@@ -1,21 +1,40 @@
 /**
- * SVG `clipPath` for a plot's embedded pictures (issue 36, note 12). The
+ * SVG `clipPath` in imported plots (issues 36 and 41, note 12). The
  * sanitiser drops clip paths (the export subset has none), so a picture
  * matplotlib writes whole under the axes' clip (`interpolation='none'` with
- * zoomed limits) or under a circle would overflow. While sanitising, each
- * clip path that applies to an `<image>` (its own or an ancestor's) is read
- * here into path segments in the image's own user space (the space its
- * x/y/width/height are in) and travels on it as `data-clip`; plot cleanup
- * maps them with the image's matrix and cuts its pixels (`plotImages.ts`).
+ * zoomed limits), or a line running past zoomed axes, would overflow. While
+ * sanitising, each clip path that applies to an `<image>` or a shape (its
+ * own or an ancestor's) is read here into path segments in the element's
+ * own user space (the space its x/y/width/height or `d` are in) and travels
+ * on it as `data-clip`. Plot cleanup cuts a shape's geometry to them in
+ * that space before baking its transform (`clipShape`, with the PDF
+ * importer's cutter, `../pathClip`), and maps a picture's with its matrix
+ * to cut its pixels (`plotImages.ts`).
  */
-import type { AttrValue, SvgNode } from '@/render/svgNode';
+import { type AttrValue, type SvgNode, el } from '@/render/svgNode';
 
-import { type Pt, type Ring, curveSteps } from './clipRegion';
-import { IDENTITY, type Matrix, determinant, invert, multiply, parseTransform } from './matrix';
-import { type Seg, parsePath, transformPath } from './pathData';
+import { type Pt, type Region, type Ring, curveSteps, makeRegion } from './clipRegion';
+import {
+  IDENTITY,
+  type Matrix,
+  determinant,
+  invert,
+  multiply,
+  parseTransform,
+  scaleOf,
+} from './matrix';
+import { type Seg, parsePath, pathRect, pathString, transformPath } from './pathData';
+import { type Box, LINE_TOL, cutPath, intersect } from '../pathClip';
 
-/** The attribute carrying an image's clips between sanitising and plot cleanup. */
+/** The attribute carrying an element's clips between sanitising and plot cleanup. */
 export const CLIP_ATTR = 'data-clip';
+/** A clip shape of more points than this is taken as its box (as in PDF import). */
+const MAX_CLIP_POINTS = 20000;
+/**
+ * A path cut to a clip shape costs its points times the shape's: beyond this
+ * it is cut to the shape's box instead (a rectangle costs its points only).
+ */
+const MAX_CUT_WORK = 20_000_000;
 
 /** One clip: its outline (absolute segments) and fill rule. Several clips intersect. */
 export interface PictureClip {
@@ -79,16 +98,20 @@ export function shapeSegs(n: SvgNode): Seg[] | null {
 
 /**
  * The clips applying to the last element of `chain` (the root first, the
- * image last; `use` and nested `svg` included), in the image's user space,
- * or null when there are none. A clip it cannot read (in bounding-box
- * units, of several shapes, of text) is skipped, with `skipped` called.
+ * element last; `use` and nested `svg` included), in the element's user
+ * space, as `CLIP_ATTR`'s value (JSON of `PictureClip[]`), or null when
+ * there are none. A clip it cannot read (in bounding-box units, of several
+ * shapes, of text) is skipped, with `skipped` called. `memo` (one per file)
+ * hands every element under the same clips in the same space one string:
+ * a plot's thousands of markers share their axes' clip.
  */
-export function imageClips(
+export function clipsOf(
   chain: readonly SvgNode[],
   ids: ReadonlyMap<string, SvgNode>,
   skipped: () => void,
-): PictureClip[] | null {
-  const out: PictureClip[] = [];
+  memo = new Map<string, string>(),
+): string | null {
+  const found: { cp: SvgNode; only: SvgNode; toOwn: Matrix; key: string }[] = [];
   chain.forEach((n, k) => {
     const ref = /^url\(\s*['"]?#([^'")\s]+)['"]?\s*\)$/.exec(prop(n, 'clip-path') ?? '');
     if (!ref) return;
@@ -96,8 +119,7 @@ export function imageClips(
     if (cp?.tag !== 'clipPath') return;
     const shapes = cp.children.filter((c): c is SvgNode => typeof c !== 'string');
     const only = shapes.length === 1 ? shapes[0] : undefined;
-    const segs = only ? shapeSegs(only) : null;
-    if (!only || !segs || String(cp.attrs['clipPathUnits'] ?? '') === 'objectBoundingBox') {
+    if (!only || String(cp.attrs['clipPathUnits'] ?? '') === 'objectBoundingBox') {
       skipped();
       return;
     }
@@ -111,11 +133,26 @@ export function imageClips(
       skipped();
       return;
     }
-    const toImage = multiply(multiply(invert(below), local(cp)), local({ ...only, tag: 'path' }));
-    const rule = prop(only, 'clip-rule') ?? prop(cp, 'clip-rule') ?? 'nonzero';
-    out.push({ segs: transformPath(segs, toImage), evenOdd: rule === 'evenodd' });
+    const toOwn = multiply(multiply(invert(below), local(cp)), local({ ...only, tag: 'path' }));
+    found.push({ cp, only, toOwn, key: `${ref[1] ?? ''} ${toOwn.join(' ')}` });
   });
-  return out.length > 0 ? out : null;
+  if (found.length === 0) return null;
+  const key = found.map((f) => f.key).join('|');
+  const known = memo.get(key);
+  if (known !== undefined) return known === '' ? null : known;
+  const out: PictureClip[] = [];
+  for (const { cp, only, toOwn } of found) {
+    const segs = shapeSegs(only);
+    if (!segs) {
+      skipped();
+      continue;
+    }
+    const rule = prop(only, 'clip-rule') ?? prop(cp, 'clip-rule') ?? 'nonzero';
+    out.push({ segs: transformPath(segs, toOwn), evenOdd: rule === 'evenodd' });
+  }
+  const json = out.length > 0 ? JSON.stringify(out) : '';
+  memo.set(key, json);
+  return json === '' ? null : json;
 }
 
 /** Path segments as closed rings, curves cut by their size (`curveSteps`). */
@@ -170,4 +207,148 @@ export function segsRings(segs: readonly Seg[]): Ring[] {
   }
   end();
   return rings;
+}
+
+export interface ReadClips {
+  readonly box: Box | null;
+  readonly regions: readonly Region[];
+}
+
+/**
+ * An element's clips (`CLIP_ATTR`) mapped by `space`, as a box (the
+ * rectangles among them, intersected; null: none) and clip shapes; null
+ * when the attribute cannot be read. A shape of more than `MAX_CLIP_POINTS`
+ * points narrows the box only.
+ */
+export function readClips(attr: string, space: Matrix): ReadClips | null {
+  let clips: PictureClip[];
+  try {
+    clips = JSON.parse(attr) as PictureClip[];
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(clips)) return null;
+  let box: Box | null = null;
+  const regions: Region[] = [];
+  const narrow = (b: Box) => {
+    box = box ? intersect(box, b) : b;
+  };
+  for (const clip of clips) {
+    const segs = transformPath(clip.segs, space);
+    const rect = pathRect(segs);
+    if (rect) {
+      narrow([rect.x, rect.y, rect.x + rect.w, rect.y + rect.h]);
+      continue;
+    }
+    const rings = segsRings(segs);
+    const region =
+      rings.reduce((n, r) => n + r.length, 0) > MAX_CLIP_POINTS
+        ? null
+        : makeRegion(rings, clip.evenOdd);
+    if (region) regions.push(region);
+    else {
+      const pts = rings.flat();
+      if (pts.length === 0) narrow([0, 0, 0, 0]);
+      else
+        narrow([
+          Math.min(...pts.map((p) => p[0])),
+          Math.min(...pts.map((p) => p[1])),
+          Math.max(...pts.map((p) => p[0])),
+          Math.max(...pts.map((p) => p[1])),
+        ]);
+    }
+  }
+  return { box, regions };
+}
+
+const GEOMETRY = new Set([
+  'd',
+  'x',
+  'y',
+  'width',
+  'height',
+  'rx',
+  'ry',
+  'cx',
+  'cy',
+  'r',
+  'x1',
+  'y1',
+  'x2',
+  'y2',
+  'points',
+]);
+
+/** A shape's outline as path data in its own user space (lines and polylines open). */
+function leafSegs(n: SvgNode): Seg[] | null {
+  const a = n.attrs;
+  if (n.tag === 'line') {
+    const [x1, y1, x2, y2] = ['x1', 'y1', 'x2', 'y2'].map((k) => num(a[k]));
+    return [
+      { c: 'M', p: [x1 ?? 0, y1 ?? 0] },
+      { c: 'L', p: [x2 ?? 0, y2 ?? 0] },
+    ];
+  }
+  if (n.tag === 'polyline') {
+    const p = String(a['points'] ?? '').trim();
+    return p ? parsePath(`M${p}`) : null;
+  }
+  return shapeSegs(n);
+}
+
+/**
+ * A shape cut to its clips (`CLIP_ATTR`, in its own user space) as the
+ * elements left: itself without the attribute when the clips leave it
+ * whole (or cannot be read), nothing when they hide it, else paths of what
+ * is inside, one for its fill and one for its stroke (a cut stroke is open
+ * where the clip cuts it). `paint` is its effective fill, stroke and fill
+ * rule; `m` its transform to the page (for the stroke tolerance, in page
+ * units). A path too large to cut to a clip shape is cut to the shape's box,
+ * with `warn` called. `memo` (one per plot) reads each clip once.
+ */
+export function clipShape(
+  n: SvgNode,
+  paint: { readonly fill: boolean; readonly stroke: boolean },
+  m: Matrix,
+  warn: (message: string) => void,
+  memo = new Map<string, ReadClips | null>(),
+): SvgNode[] {
+  const { [CLIP_ATTR]: attr, ...attrs } = n.attrs;
+  const whole = [el(n.tag, attrs, n.children)];
+  if (attr === undefined) return whole;
+  const text = String(attr);
+  let clips = memo.get(text);
+  if (clips === undefined) {
+    clips = readClips(text, IDENTITY);
+    memo.set(text, clips);
+  }
+  if (!clips || !(paint.fill || paint.stroke)) return whole;
+  const segs = leafSegs(n);
+  if (!segs) return whole;
+  let box = clips.box;
+  let regions = clips.regions;
+  // Points once flattened (`../pathClip` cuts a straddling curve into 16).
+  const points = segs.reduce((k, x) => k + (x.c === 'C' || x.c === 'Q' ? 16 : 1), 0);
+  const edges = regions.reduce((k, r) => k + r.rings.reduce((j, x) => j + x.length, 0), 0);
+  if (regions.length > 0 && points * edges > MAX_CUT_WORK) {
+    warn('A very detailed clipped line was cut to the box around its clip.');
+    for (const r of regions) box = box ? intersect(box, r.box) : r.box;
+    regions = [];
+  }
+  const scale = scaleOf(m);
+  const tol = scale > 0 && Number.isFinite(scale) ? LINE_TOL / scale : LINE_TOL;
+  const cut = cutPath(segs, box, regions, paint, tol);
+  if (!cut) return whole;
+  if (n.tag === 'rect' && (attrs['rx'] !== undefined || attrs['ry'] !== undefined)) {
+    // Its outline here has square corners: only good for telling that it is inside.
+    warn('A rounded rectangle cut by a clip was drawn whole.');
+    return whole;
+  }
+  const rest = Object.fromEntries(Object.entries(attrs).filter(([k]) => !GEOMETRY.has(k)));
+  const out: SvgNode[] = [];
+  if (paint.fill && cut.fill.length > 0)
+    out.push(el('path', { ...rest, stroke: 'none', d: pathString(cut.fill) }, []));
+  if (paint.stroke && cut.stroke.length > 0)
+    out.push(el('path', { ...rest, fill: 'none', d: pathString(cut.stroke) }, []));
+  return out;
 }

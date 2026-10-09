@@ -45,9 +45,9 @@ import {
   matrixString,
   parseTransform,
 } from './matrix';
-import { parsePath, pathRect, transformPath } from './pathData';
-import { type Pt, type Region, clipRing, makeRegion } from './clipRegion';
-import { CLIP_ATTR, type PictureClip, segsRings } from './svgClip';
+import { parsePath, pathRect } from './pathData';
+import { type Pt, clipRing, makeRegion } from './clipRegion';
+import { CLIP_ATTR, readClips } from './svgClip';
 import { boxRing, clipPicture, clipsNothing } from '../pictureClip';
 import {
   base64,
@@ -422,32 +422,9 @@ function clipImage(
   matrix: Matrix,
   warn: (message: string) => void,
 ): { pic: Picture; matrix: Matrix } | null {
-  let clips: PictureClip[];
-  try {
-    clips = JSON.parse(attr) as PictureClip[];
-  } catch {
-    return { pic, matrix };
-  }
-  let box: Box | null = null;
-  const regions: Region[] = [];
-  for (const clip of clips) {
-    const segs = transformPath(clip.segs, space);
-    const rect = pathRect(segs);
-    if (rect) {
-      const b: Box = [rect.x, rect.y, rect.x + rect.w, rect.y + rect.h];
-      box = box
-        ? [
-            Math.max(box[0], b[0]),
-            Math.max(box[1], b[1]),
-            Math.min(box[2], b[2]),
-            Math.min(box[3], b[3]),
-          ]
-        : b;
-      continue;
-    }
-    const region = makeRegion(segsRings(segs), clip.evenOdd);
-    if (region) regions.push(region);
-  }
+  const clips = readClips(attr, space);
+  if (!clips) return { pic, matrix };
+  const { box, regions } = clips;
   if (clipsNothing(matrix, box, regions)) return { pic, matrix };
   const px =
     pic.mime === 'image/png' ? decodePng(fromBase64(pic.dataBase64.replace(/=+$/, ''))) : null;

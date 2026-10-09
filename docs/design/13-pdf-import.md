@@ -31,7 +31,8 @@ scaling text, issue 3) sees no difference between the two.
   rectangle in page space plus, for any clip that is not an axis-aligned rectangle, a list of
   clip shapes (issue 25). A rectangular clip under an axis-aligned transform (what matplotlib,
   R and cairo write for the plotting area, and form XObject bounding boxes) is only the
-  rectangle, and stays exact and cheap. Painting tests each subpath's control-point box: inside
+  rectangle, and stays exact and cheap. The cutting (`cutPath` in `src/io/pathClip.ts`) is
+  shared with SVG `clipPath` on shapes (issue 41, note 12). Painting tests each subpath's control-point box: inside
   is kept as is, disjoint is dropped (a subpath whose box misses the clip cannot wind around it),
   straddling is flattened (16 steps per curve) and cut: Sutherland–Hodgman for fills (exact for
   a convex clip), Liang–Barsky for strokes. A stroke whose centre line is inside is kept whole,

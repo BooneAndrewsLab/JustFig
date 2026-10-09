@@ -1,6 +1,7 @@
 # SVG fixture for src/io/svg/plotResize.ts (note 17, issue 39): two subplots joined by lines drawn
-# across the gap between them (`ConnectionPatch` from a zoomed region to its close-up).
-# Made with matplotlib 3.10:
+# across the gap between them (`ConnectionPatch` from a zoomed region to its close-up). The
+# close-up plots the whole line under its axes' clip, as zoomed panels do (issue 41: import cuts
+# it to the clip). Made with matplotlib 3.11:
 #   python scripts/svg-fixtures/matplotlib-connected.py src/io/svg/fixtures/matplotlib-connected.svg
 import os
 import sys
@@ -24,9 +25,7 @@ a.plot(x, y)
 a.set_xlabel("Time (h)")
 a.set_ylabel("Signal")
 a.add_patch(Rectangle((2, -0.6), 2, 1.3, fill=False, lw=0.8))
-# Only the zoomed part: lines are not cut to their axes' clip on import.
-z = (x >= 2) & (x <= 4)
-b.plot(x[z], y[z])
+b.plot(x, y)
 b.set_xlim(2, 4)
 b.set_ylim(-0.6, 0.7)
 b.set_xlabel("Time (h)")
