@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { setCreditFooter } from '@/core/edits/edits';
 import { formatLength } from '@/core/units';
 import { MAX_PIXELS, rasterLimit, rasterSize } from '@/export/raster';
+import { panelCrops } from '@/export/panels';
 import { pageCredit } from '@/export/svg';
 
 import { type ExportFormat, runExport } from '../state/session';
@@ -39,14 +40,29 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const raster = format === 'png' || format === 'tiff';
   const credit = pageCredit(fig, page);
-  const px = raster ? rasterSize(fig, page, { dpi, transparent, footer }) : null;
+  const crops = panelCrops(page, fig.doc.panelLabelStyle.format);
+  const [perPanelWanted, setPerPanel] = useState(false);
+  const perPanel = perPanelWanted && crops.length > 0;
+  // With one file per panel, the size that matters is the largest panel's.
+  const biggest = crops.reduce<(typeof crops)[number] | null>(
+    (a, c) => (a === null || c.box.w * c.box.h > a.box.w * a.box.h ? c : a),
+    null,
+  );
+  const px = raster
+    ? rasterSize(fig, page, {
+        dpi,
+        transparent,
+        footer,
+        ...(perPanel && biggest ? { crop: biggest.box } : {}),
+      })
+    : null;
   const tooBig = px !== null && rasterLimit(px.w, px.h) !== null;
   const tiled = px !== null && !tooBig && px.w * px.h > MAX_PIXELS;
 
   const go = async () => {
     setBusy(true);
     try {
-      await runExport({ format, allPages, dpi, transparent, outline, footer });
+      await runExport({ format, allPages, dpi, transparent, outline, footer, perPanel });
       onClose();
     } catch (e: unknown) {
       store.notify(e instanceof Error ? e.message : 'Export failed.', 'error');
@@ -162,6 +178,32 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
           <label>
             <input
               type="checkbox"
+              checked={perPanel}
+              disabled={crops.length === 0}
+              aria-describedby="per-panel-note"
+              onChange={(e) => {
+                setPerPanel(e.target.checked);
+              }}
+            />{' '}
+            One file per panel, in a zip
+          </label>
+        </div>
+        <p className="note" id="per-panel-note">
+          {crops.length === 0
+            ? 'Unavailable: this page has no panels. Add some with the Panel tool.'
+            : perPanel
+              ? `Each file is cropped to its panel and named after its label (${crops
+                  .slice(0, 3)
+                  .map((c) => c.name)
+                  .join(
+                    ', ',
+                  )}${crops.length > 3 ? ', …' : ''}). The credit line goes in credits.txt.`
+              : `Each of the ${String(crops.length)} panels as its own file.`}
+        </p>
+        <div className="row">
+          <label>
+            <input
+              type="checkbox"
               checked={footer}
               onChange={(e) => {
                 setFooter(e.target.checked);
@@ -194,7 +236,11 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
             void go();
           }}
         >
-          {busy ? 'Exporting…' : `Export ${format.toUpperCase()}`}
+          {busy
+            ? 'Exporting…'
+            : perPanel
+              ? `Export ${format.toUpperCase()} panels`
+              : `Export ${format.toUpperCase()}`}
         </button>
       </div>
     </Dialog>

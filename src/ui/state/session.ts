@@ -13,6 +13,7 @@ import type { Id } from '@/core/model/ids';
 import { objectAssets } from '@/core/model/tree';
 import type { Assets, Figure, Obj, Swatch } from '@/core/model/types';
 import { fitText } from '@/core/text/layout';
+import { exportPanelsZip } from '@/export/panels';
 import { exportPdf } from '@/export/pdf';
 import { exportPng, exportTiff } from '@/export/raster';
 import { exportSvg } from '@/export/svg';
@@ -434,6 +435,8 @@ export interface ExportRequest {
   readonly transparent: boolean;
   readonly outline: boolean;
   readonly footer: boolean;
+  /** One file per panel, in a zip (note 03). */
+  readonly perPanel?: boolean;
 }
 
 export async function runExport(req: ExportRequest): Promise<void> {
@@ -447,6 +450,21 @@ export async function runExport(req: ExportRequest): Promise<void> {
     footer: req.footer,
     background: true,
   } as const;
+  if (req.perPanel) {
+    download(
+      await exportPanelsZip(
+        fig,
+        page,
+        base + pageSuffix,
+        { ...opts, format: req.format, dpi: req.dpi, transparent: req.transparent },
+        APP.version,
+      ),
+      `${base}${pageSuffix}-panels.zip`,
+      'application/zip',
+    );
+    analytics.track('export', 'panels', req.format);
+    return;
+  }
   switch (req.format) {
     case 'svg':
       download(

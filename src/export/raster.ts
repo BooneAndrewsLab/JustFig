@@ -5,6 +5,7 @@
  * DPI. Main thread: only a document can decode SVG into an image.
  */
 import { BRAND } from '@/brand';
+import type { Box } from '@/core/geometry/matrix';
 import type { Figure, Page } from '@/core/model/types';
 import { nodeToSvgString } from '@/render/svgNode';
 
@@ -26,6 +27,8 @@ export interface RasterOptions {
   readonly dpi: number;
   readonly transparent: boolean;
   readonly footer: boolean;
+  /** Only this rectangle of the page (a panel), see `ExportOptions.crop`. */
+  readonly crop?: Box;
 }
 
 export class RasterTooLargeError extends Error {
@@ -42,6 +45,7 @@ export function rasterSize(
     textMode: 'outline',
     footer: opts.footer,
     background: !opts.transparent,
+    ...(opts.crop ? { crop: opts.crop } : {}),
   });
   const k = opts.dpi / 72;
   return {
@@ -79,7 +83,7 @@ async function drawBand(
   const ky = h / root.height;
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" ` +
-    `width="${String(w)}" height="${String(rows)}" viewBox="0 ${String(y0 / ky)} ${String(root.width)} ${String(rows / ky)}" preserveAspectRatio="none">` +
+    `width="${String(w)}" height="${String(rows)}" viewBox="${String(root.x)} ${String(root.y + y0 / ky)} ${String(root.width)} ${String(rows / ky)}" preserveAspectRatio="none">` +
     `${nodeToSvgString(root.node, { stripData: true })}</svg>`;
   const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
   try {
@@ -117,6 +121,7 @@ function pageRoot(figure: Figure, page: Page, opts: RasterOptions): Root {
     textMode: 'outline',
     footer: opts.footer,
     background: !opts.transparent,
+    ...(opts.crop ? { crop: opts.crop } : {}),
   });
 }
 

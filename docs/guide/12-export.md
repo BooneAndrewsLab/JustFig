@@ -23,6 +23,8 @@ For a journal, send the PDF if they take one, or a TIFF at the dpi they specify.
 
 **All pages** (PDF, only when the figure has more than one page) puts every page in one PDF. SVG, PNG and TIFF export the current page.
 
+**One file per panel, in a zip** exports every panel of the current page as its own file, in the format you chose, all in one zip named after the figure (for example `figure1-panels.zip` holding `figure1_A.svg`, `figure1_B.svg`). Some journals want each panel uploaded separately. Each file is cropped to its panel's frame, so anything that sticks out past the panel's edge is cut off, and the page background is included (or left out for a transparent PNG or TIFF). The files are named by the panel's label (A, B, and so on, with brackets removed). The option is switched off, with the reason shown, when the page has no panels (see [Drawing](02-drawing.md) for the Panel tool). SVG files keep objects that lie wholly outside the panel but hidden by the crop; some editors show them, so use PDF if that matters. The credit line is not drawn under panel files. When it is on and the page needs one, it is added to the zip as `credits.txt`.
+
 **Include credit line under the figure** adds the credit line described below. The note under it shows the line for the current page, or says that nothing on this page needs one. The dialog also shows the page size in your units.
 
 RGB only: journals convert to CMYK, and colours may shift slightly.

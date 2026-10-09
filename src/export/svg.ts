@@ -9,6 +9,7 @@ import { createText, defaultRun } from '@/core/model/factory';
 import type { Figure, FontId, Page } from '@/core/model/types';
 import { FAMILY_FALLBACK, FAMILY_NAME } from '@/core/text/fonts';
 import { layoutText } from '@/core/text/layout';
+import type { Box } from '@/core/geometry/matrix';
 import { ptToMm } from '@/core/units';
 import { type TextMode, pageToNode, textNodes } from '@/render/objectToNode';
 import { type SvgNode, el, nodeToSvgString, num } from '@/render/svgNode';
@@ -19,6 +20,12 @@ export interface ExportOptions {
   readonly footer: boolean;
   /** Draw the page background; off = transparent (PNG/TIFF). */
   readonly background: boolean;
+  /**
+   * Export only this rectangle of the page (a panel's bounds, note 03): the
+   * root takes its size and origin, objects straddling its edge are cut by the
+   * viewport, and there is no footer (the credit goes in the metadata).
+   */
+  readonly crop?: Box;
 }
 
 export const FOOTER_SIZE = 6;
@@ -31,6 +38,9 @@ export interface ExportRoot {
   readonly height: number;
   /** The credit line used (empty when none). */
   readonly credit: string;
+  /** Top-left of the visible area in the node's coordinates (the crop's, else 0 0). */
+  readonly x: number;
+  readonly y: number;
 }
 
 export function pageCredit(figure: Figure, page: Page): string {
@@ -66,8 +76,12 @@ export function exportRoot(figure: Figure, page: Page, opts: ExportOptions): Exp
     background: opts.background,
   });
   const credit = pageCredit(figure, page);
+  if (opts.crop) {
+    const c = opts.crop;
+    return { node: body, width: c.w, height: c.h, credit, x: c.x, y: c.y };
+  }
   const { w, h } = page.size;
-  if (!opts.footer || credit === '') return { node: body, width: w, height: h, credit };
+  if (!opts.footer || credit === '') return { node: body, width: w, height: h, credit, x: 0, y: 0 };
   const footer = footerNode(credit, w, h, opts.textMode);
   const bg = opts.background
     ? [el('rect', { x: 0, y: h, width: w, height: footer.height, fill: '#ffffff' })]
@@ -77,6 +91,8 @@ export function exportRoot(figure: Figure, page: Page, opts: ExportOptions): Exp
     width: w,
     height: h + footer.height,
     credit,
+    x: 0,
+    y: 0,
   };
 }
 
@@ -111,7 +127,7 @@ export function exportSvg(
       version: '1.1',
       width: `${num(ptToMm(root.width))}mm`,
       height: `${num(ptToMm(root.height))}mm`,
-      viewBox: `0 0 ${num(root.width)} ${num(root.height)}`,
+      viewBox: `${num(root.x)} ${num(root.y)} ${num(root.width)} ${num(root.height)}`,
     },
     [el('metadata', {}, [meta]), opts.textMode === 'text' ? withFallbacks(root.node) : root.node],
   );

@@ -85,6 +85,31 @@ the torture figure at 600 dpi (over the cap) and compares it with the 150 dpi go
 dialog says: "RGB only.
 Journals convert to CMYK; colours may shift slightly."
 
+## One file per panel
+
+The export dialog's **One file per panel, in a zip** option ([#5](https://github.com/BooneAndrewsLab/JustFig/issues/5);
+`export/panels.ts`) exports every panel of the current page as its own file in one zip, in any of
+the four formats. It is the page export with a `crop` rectangle in `ExportOptions` (and
+`RasterOptions`): `exportRoot` then takes the crop's size and origin (`ExportRoot.x/y`), and the
+SVG, PDF and raster band code only change their `viewBox` to start at that origin. PNG and TIFF
+therefore go through the same band path (and tiling) as a page.
+
+- **Bounds** are the panel's frame (`frameBounds`, so a rotated panel gets its bounding box). The
+  panel label sits inside it with the default offset; a label moved outside is cut. Hidden
+  panels are skipped, nested panels count.
+- **Straddling objects** are cut at the panel edge by the root `viewBox` (the viewport clips), not
+  by `clipPath`, which the export subset does not use. Objects wholly outside are still in the
+  file, invisible; viewers that ignore the viewBox clip (some editors) show them. The page
+  background is drawn in the crop (white, or transparent for raster).
+- **Names**: `<title>[-<page>]_<label>.<ext>` (`figure1_A.svg`, `.tif` for TIFF), the label with
+  anything but letters and digits removed (`(b)` becomes `b`), `-2`, `-3` added on a clash, and
+  `panelN` for an empty label. Order is reading order. The zip is stored, not deflated (the
+  contents are already compressed or small) and named `<title>-panels.zip`.
+- **Credit line**: no footer strip fits a crop, so the files have none and the zip holds
+  `credits.txt` with the page's credit line when the footer option is on and the page needs one.
+- **No panels**: the option is disabled with the reason beside it, and `exportPanelsZip` refuses.
+- Analytics: `export` / `panels` with the format as the name.
+
 ## Attribution footer
 
 The export dialog's **Include credit line** option is **on by default**, as the user decided

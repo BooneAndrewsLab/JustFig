@@ -59,7 +59,7 @@ export const EVENTS = {
   icon: ['place'],
   /** Kind names are app vocabulary, not figure content. */
   procedural: ['place', 'convert', 'from-path', 'fragment-paste'],
-  export: ['svg', 'pdf', 'png', 'tiff'],
+  export: ['svg', 'pdf', 'png', 'tiff', 'panels'],
   attribution: ['open', 'copy', 'add-text'],
   /** The entry id (app vocabulary) as the name. */
   gallery: ['open'],
