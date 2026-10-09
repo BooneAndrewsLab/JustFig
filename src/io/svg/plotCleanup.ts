@@ -1364,6 +1364,7 @@ function crop(root: SvgNode, vb: ViewBox, extra: readonly Box[] = []): ViewBox {
 export function cleanupPlot(
   root: SvgNode,
   viewBox: ViewBox,
+  warn?: (message: string) => void,
 ): { root: SvgNode; viewBox: ViewBox; images: PlotImage[] } {
   const rootInh = inherit(ROOT_INHERITED, root.attrs);
   const flat = el(
@@ -1373,7 +1374,7 @@ export function cleanupPlot(
   );
   const bare = dropBackground(flat, viewBox);
   const boxes = new Map(drawnLeaves(bare, viewBox).map((l) => [l.path.join('.'), l.box]));
-  const { root: drawing, images } = takeImages(bare, boxes);
+  const { root: drawing, images } = takeImages(bare, boxes, warn);
   const merged = anchorLabels(mergeTexts(drawing, ROOT_INHERITED), viewBox);
   const corners = images.map((p): Box => {
     const q = [

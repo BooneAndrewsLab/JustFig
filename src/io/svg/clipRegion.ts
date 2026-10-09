@@ -2,8 +2,8 @@
  * Exact clipping to any shape, as plain geometry (issue 25, note 13): the
  * export subset has no `clipPath`, so what an imported plot clips must be
  * cut. Works on flattened rings (closed polygons) in one coordinate space,
- * independent of where they came from (PDF clip paths now; SVG `clipPath`,
- * issue 36, can build a `Region` the same way).
+ * independent of where they came from (PDF clip paths, and SVG `clipPath`
+ * around a plot picture, issue 36).
  *
  * A region is rings with a fill rule (nonzero or even-odd), like a clip path.
  * `clipRing` cuts one ring of a filled shape to it so that the winding

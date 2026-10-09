@@ -37,8 +37,8 @@ scaling text, issue 3) sees no difference between the two.
   a convex clip), Liang–Barsky for strokes. A stroke whose centre line is inside is kept whole,
   so a gridline on the clip edge is not halved. Text is dropped only when its origin is more
   than 4 em outside the clip's rectangle.
-- **Clip shapes** (issue 25; `src/io/svg/clipRegion.ts`, independent of PDF so SVG `clipPath`,
-  issue 36, can use it): a polar plot's circle, a rotated rectangle, grid's clipping paths in
+- **Clip shapes** (issue 25; `src/io/svg/clipRegion.ts`, independent of PDF; SVG `clipPath`
+  around a plot picture uses it too, issue 36): a polar plot's circle, a rotated rectangle, grid's clipping paths in
   R. The clip path is flattened by size (each curve in `curveSteps` steps, within ~0.1 px of
   the curve) into a `Region`: rings plus the fill rule of `W` or `W*`. A shape is cut ring by
   ring so that the result's winding number equals the ring's inside the region and is 0
@@ -113,7 +113,20 @@ scaling text, issue 3) sees no difference between the two.
   image to whole pixels (an image outside it is dropped); a rotated image under a clip is kept
   whole, with a warning. Over 2048 × 2048 pixels an image is averaged down by a whole factor,
   with a warning, as storage holds ~150 M characters for all figures (note 02) and PNG does not
-  compress photos the way the PDF's JPEG did. Stencil masks (`paintImageMask…`) and repeated
+  compress photos the way the PDF's JPEG did. The cropping and masking live in
+  `src/io/pictureClip.ts` (`clipPicture`), shared with SVG `clipPath` (issue 36, note 12).
+- **Photos** (issue 36). pdf.js hands every image over as pixels, and a photo stored as PNG is
+  4-6× its JPEG. pdf.js does not say which images were JPEG, but an image XObject is a stream and
+  streams never sit in object streams, so `findJpegs` (`pdfJpegs.ts`) finds each
+  `/Subtype /Image` dictionary in the file's bytes and reads its `/Width`, `/Height` and
+  `/Filter`. A picture whose source image (`PdfPageSvg.sources`: its pixel size, and whether it
+  was cut or reduced) has the size of a `/DCTDecode` image is stored as JPEG: the PDF's own bytes
+  (`/Length`, ending at the end-of-image marker) when it is the whole image, the file has no other
+  image that size, the dictionary has no `/SMask`, `/Mask` or `/Decode` and the JPEG has 1 or 3
+  components (not CMYK); otherwise re-encoded with the browser's canvas (`encodeJpeg`, quality
+  0.92) when that is smaller than PNG, so a cut photo stays small too. No size or "looks like a
+  photo" guess: an image the PDF stored losslessly stays PNG. Node (unit tests) has no JPEG
+  encoder, so there a cut photo is PNG; e2e checks the browser's. Stencil masks (`paintImageMask…`) and repeated
   images are still left out, each with a warning; soft masks on paths and blend modes are
   ignored with one.
 - **Pages:** `importPdf(bytes, name, choosePage)` asks only when there is more than one page.
@@ -140,7 +153,9 @@ scaling text, issue 3) sees no difference between the two.
   circular clipping path, `linearGradient()` and `radialGradient()` fills), and for issue 35
   `r-see-through.pdf` (`r-see-through.R`: a soft-masked `annotation_raster` of soft dots over
   ggplot2's grey panel and grid, which gets a backdrop, note 12); `shapes.test.ts`
-  holds those and the synthetic clip-shape and shading cases. No Prism file could be generated here; Prism
+  holds those and the synthetic clip-shape and shading cases. `photo.pdf`
+  (`scripts/pdf-fixtures/photo.py`, written by hand so its images stay `/DCTDecode`, as pdfTeX,
+  Illustrator and Inkscape embed photos) has a whole JPEG and one cut by a clip (issue 36). No Prism file could be generated here; Prism
   writes ordinary embedded TrueType text, the same path as cairo. The converter's clipping,
   text splitting/joining, outline fallback and image cropping are also tested on synthetic
   operator lists; `png.test.ts` decodes what `encodePng` writes with pngjs.

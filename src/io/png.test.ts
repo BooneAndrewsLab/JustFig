@@ -2,7 +2,15 @@
 import { PNG } from 'pngjs';
 import { describe, expect, it } from 'vitest';
 
-import { base64, encodePng, filterRows, fromBase64, isOpaqueImage } from './png';
+import {
+  base64,
+  decodePng,
+  encodePng,
+  encodePngSync,
+  filterRows,
+  fromBase64,
+  isOpaqueImage,
+} from './png';
 
 const gradient = (w: number, h: number, ch: 3 | 4) =>
   Uint8Array.from({ length: w * h * ch }, (_, i) =>
@@ -35,5 +43,26 @@ describe('png', () => {
     expect(fromBase64(base64(Uint8Array.from([0, 200, 255])))).toEqual(
       Uint8Array.from([0, 200, 255]),
     );
+  });
+
+  it('encodes synchronously and decodes 8-bit PNGs of every colour type pngjs writes (issue 36)', () => {
+    const data = gradient(13, 7, 4);
+    const px = { width: 13, height: 7, channels: 4 as const, data };
+    expect(decodePng(encodePngSync(px))).toEqual(px);
+    const rgb = { width: 13, height: 7, channels: 3 as const, data: gradient(13, 7, 3) };
+    expect(decodePng(encodePngSync(rgb))).toEqual(rgb);
+    const src = new PNG({ width: 13, height: 7 });
+    src.data = Buffer.from(data);
+    for (const colorType of [0, 2, 4, 6] as const) {
+      const bytes = PNG.sync.write(src, { colorType });
+      const back = PNG.sync.read(bytes);
+      const out = decodePng(new Uint8Array(bytes));
+      expect(out?.channels).toBe(colorType >= 4 ? 4 : 3);
+      for (let p = 0; p < 13 * 7; p++)
+        for (let c = 0; c < (out?.channels ?? 0); c++)
+          expect(out?.data[p * out.channels + c]).toBe(back.data[p * 4 + c]);
+    }
+    expect(decodePng(new Uint8Array(PNG.sync.write(src, { bitDepth: 16 })))).toBeNull();
+    expect(decodePng(Uint8Array.from([0xff, 0xd8, 0xff]))).toBeNull();
   });
 });

@@ -3,11 +3,12 @@
  * PDF plots arrive from pdf.js as pixels and are stored as PNG assets. The
  * image data is compressed with the platform's `CompressionStream`
  * ('deflate' is the zlib format PNG wants), rows filtered with the usual
- * minimum-sum heuristic. Also reads the header of a PNG or JPEG to tell
+ * minimum-sum heuristic (or synchronously with fflate). Also decodes plain
+ * 8-bit PNGs (issue 36), and reads the header of a PNG or JPEG to tell
  * whether it can have see-through pixels, and a PNG's alpha channel to tell
  * whether it has any (issue 35: matplotlib writes RGBA even for a heatmap).
  */
-import { unzlibSync } from 'fflate';
+import { unzlibSync, zlibSync } from 'fflate';
 
 /** Pixels, rows top first, 8 bits per channel: 3 (RGB) or 4 (RGBA) channels. */
 export interface Pixels {
@@ -94,8 +95,7 @@ async function deflate(bytes: Uint8Array): Promise<Uint8Array> {
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
-/** Pixels as PNG bytes (RGB or RGBA, 8 bits). */
-export async function encodePng(px: Pixels): Promise<Uint8Array> {
+function assemble(px: Pixels, idat: Uint8Array): Uint8Array {
   const header = new Uint8Array(13);
   const v = new DataView(header.buffer);
   v.setUint32(0, px.width);
@@ -105,7 +105,7 @@ export async function encodePng(px: Pixels): Promise<Uint8Array> {
   const parts = [
     new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
     chunk('IHDR', header),
-    chunk('IDAT', await deflate(filterRows(px))),
+    chunk('IDAT', idat),
     chunk('IEND', new Uint8Array(0)),
   ];
   const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
@@ -115,6 +115,16 @@ export async function encodePng(px: Pixels): Promise<Uint8Array> {
     at += p.length;
   }
   return out;
+}
+
+/** Pixels as PNG bytes (RGB or RGBA, 8 bits). */
+export async function encodePng(px: Pixels): Promise<Uint8Array> {
+  return assemble(px, await deflate(filterRows(px)));
+}
+
+/** The same, synchronously (fflate): for pictures cut inside SVG import (issue 36). */
+export function encodePngSync(px: Pixels): Uint8Array {
+  return assemble(px, zlibSync(filterRows(px), { level: 6 }));
 }
 
 /**
@@ -137,31 +147,35 @@ export function isOpaqueImage(bytes: Uint8Array): boolean {
   return false;
 }
 
-/**
- * Whether a non-interlaced PNG with an alpha channel (8 or 16 bits) has a
- * pixel that is not fully opaque; true when unsure (another kind, a
- * transparency chunk, damaged data), false for a JPEG or a PNG without alpha.
- */
-export function hasClearPixels(bytes: Uint8Array): boolean {
-  if (isOpaqueImage(bytes)) return false;
-  if (bytes.length < 33 || bytes[0] !== 0x89 || bytes[1] !== 0x50) return true;
+interface PngParts {
+  readonly width: number;
+  readonly height: number;
+  readonly depth: number;
+  readonly colourType: number;
+  readonly interlaced: boolean;
+  /** The inflated, still filtered scanlines. */
+  readonly raw: Uint8Array;
+  readonly palette: Uint8Array | null;
+  readonly transparency: Uint8Array | null;
+}
+
+/** A PNG's header, palette, transparency and inflated data; null when it cannot be read. */
+function readPng(bytes: Uint8Array): PngParts | null {
+  if (bytes.length < 33 || bytes[0] !== 0x89 || bytes[1] !== 0x50) return null;
   const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  const width = v.getUint32(16);
-  const height = v.getUint32(20);
-  const depth = bytes[24] ?? 0;
-  const colourType = bytes[25];
-  if ((colourType !== 4 && colourType !== 6) || (depth !== 8 && depth !== 16) || bytes[28] !== 0)
-    return true;
   const parts: Uint8Array[] = [];
+  let palette: Uint8Array | null = null;
+  let transparency: Uint8Array | null = null;
   for (let i = 8; i + 8 <= bytes.length;) {
     const len = v.getUint32(i);
     const type = String.fromCharCode(...bytes.subarray(i + 4, i + 8));
-    if (type === 'tRNS') return true;
-    if (type === 'IDAT') parts.push(bytes.subarray(i + 8, i + 8 + len));
+    const body = bytes.subarray(i + 8, i + 8 + len);
+    if (type === 'IDAT') parts.push(body);
+    if (type === 'PLTE') palette = body;
+    if (type === 'tRNS') transparency = body;
     if (type === 'IEND') break;
     i += 12 + len;
   }
-  let raw: Uint8Array;
   try {
     const all = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
     let at = 0;
@@ -169,35 +183,133 @@ export function hasClearPixels(bytes: Uint8Array): boolean {
       all.set(p, at);
       at += p.length;
     }
-    raw = unzlibSync(all);
+    return {
+      width: v.getUint32(16),
+      height: v.getUint32(20),
+      depth: bytes[24] ?? 0,
+      colourType: bytes[25] ?? 0,
+      interlaced: bytes[28] !== 0,
+      raw: unzlibSync(all),
+      palette,
+      transparency,
+    };
   } catch {
-    return true;
+    return null;
   }
-  const bpp = ((colourType === 6 ? 4 : 2) * depth) / 8;
-  const stride = width * bpp;
-  if (raw.length < height * (stride + 1)) return true;
-  const alpha = (colourType === 6 ? 3 : 1) * (depth / 8);
+}
+
+/**
+ * Undoes the row filters, calling `row` with each unfiltered row (reused
+ * between calls); stops early when it returns false. False when the data
+ * is short.
+ */
+function eachRow(
+  raw: Uint8Array,
+  height: number,
+  stride: number,
+  bpp: number,
+  row: (r: Uint8Array, y: number) => boolean,
+): boolean {
+  if (raw.length < height * (stride + 1)) return false;
   let prev = new Uint8Array(stride);
-  let row = new Uint8Array(stride);
+  let cur = new Uint8Array(stride);
   for (let y = 0; y < height; y++) {
     const f = raw[y * (stride + 1)];
     const src = raw.subarray(y * (stride + 1) + 1, (y + 1) * (stride + 1));
     for (let i = 0; i < stride; i++) {
       const x = src[i] ?? 0;
-      const a = i >= bpp ? (row[i - bpp] ?? 0) : 0;
+      const a = i >= bpp ? (cur[i - bpp] ?? 0) : 0;
       const b = prev[i] ?? 0;
       const c = i >= bpp ? (prev[i - bpp] ?? 0) : 0;
       const pred =
         f === 0 ? 0 : f === 1 ? a : f === 2 ? b : f === 3 ? (a + b) >> 1 : paeth(a, b, c);
-      row[i] = (x + pred) & 0xff;
+      cur[i] = (x + pred) & 0xff;
     }
-    for (let i = alpha; i < stride; i += bpp) {
-      if (row[i] !== 255) return true;
-      if (depth === 16 && row[i + 1] !== 255) return true;
-    }
-    [prev, row] = [row, prev];
+    if (!row(cur, y)) return true;
+    [prev, cur] = [cur, prev];
   }
-  return false;
+  return true;
+}
+
+/**
+ * Whether a non-interlaced PNG with an alpha channel (8 or 16 bits) has a
+ * pixel that is not fully opaque; true when unsure (another kind, a
+ * transparency chunk, damaged data), false for a JPEG or a PNG without alpha.
+ */
+export function hasClearPixels(bytes: Uint8Array): boolean {
+  if (isOpaqueImage(bytes)) return false;
+  const png = readPng(bytes);
+  if (!png) return true;
+  const { width, height, depth, colourType } = png;
+  if ((colourType !== 4 && colourType !== 6) || (depth !== 8 && depth !== 16) || png.interlaced)
+    return true;
+  if (png.transparency) return true;
+  const bpp = ((colourType === 6 ? 4 : 2) * depth) / 8;
+  const alpha = (colourType === 6 ? 3 : 1) * (depth / 8);
+  let clear = false;
+  const read = eachRow(png.raw, height, width * bpp, bpp, (row) => {
+    for (let i = alpha; i < row.length; i += bpp)
+      if (row[i] !== 255 || (depth === 16 && row[i + 1] !== 255)) {
+        clear = true;
+        return false;
+      }
+    return true;
+  });
+  return !read || clear;
+}
+
+/**
+ * A PNG's pixels (issue 36: a picture cut to an SVG clip path): 8-bit grey,
+ * RGB, palette, grey + alpha or RGBA, not interlaced, as RGB or RGBA (with
+ * alpha when it has an alpha channel or a transparency chunk). Null for any
+ * other kind, or damaged data.
+ */
+export function decodePng(bytes: Uint8Array): Pixels | null {
+  const png = readPng(bytes);
+  if (png?.depth !== 8 || png.interlaced) return null;
+  const { width, height, colourType, palette } = png;
+  const trns = png.transparency;
+  const inCh = ({ 0: 1, 2: 3, 3: 1, 4: 2, 6: 4 } as Record<number, number>)[colourType];
+  if (inCh === undefined || width === 0 || height === 0) return null;
+  if (colourType === 3 && !palette) return null;
+  const channels = colourType === 4 || colourType === 6 || trns ? 4 : 3;
+  const data = new Uint8Array(width * height * channels);
+  // A grey or RGB transparency chunk names one colour (16-bit samples) that is clear.
+  const keyed = colourType === 0 || colourType === 2;
+  const key = Array.from({ length: 3 }, (_, k) =>
+    keyed ? (trns?.[(colourType === 0 ? 0 : k) * 2 + 1] ?? -1) : -1,
+  );
+  const ok = eachRow(png.raw, height, width * inCh, inCh, (row, y) => {
+    for (let x = 0; x < width; x++) {
+      const i = x * inCh;
+      const o = (y * width + x) * channels;
+      let r: number, g: number, b: number;
+      let a = 255;
+      if (colourType === 3) {
+        const p = row[i] ?? 0;
+        r = palette?.[p * 3] ?? 0;
+        g = palette?.[p * 3 + 1] ?? 0;
+        b = palette?.[p * 3 + 2] ?? 0;
+        a = trns?.[p] ?? 255;
+      } else if (colourType === 0 || colourType === 4) {
+        r = g = b = row[i] ?? 0;
+        if (colourType === 4) a = row[i + 1] ?? 255;
+        else if (r === key[0]) a = 0;
+      } else {
+        r = row[i] ?? 0;
+        g = row[i + 1] ?? 0;
+        b = row[i + 2] ?? 0;
+        if (colourType === 6) a = row[i + 3] ?? 255;
+        else if (r === key[0] && g === key[1] && b === key[2]) a = 0;
+      }
+      data[o] = r;
+      data[o + 1] = g;
+      data[o + 2] = b;
+      if (channels === 4) data[o + 3] = a;
+    }
+    return true;
+  });
+  return ok ? { width, height, channels, data } : null;
 }
 
 export function imageSize(

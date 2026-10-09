@@ -42,7 +42,6 @@ import {
   fmt,
   isAxisAligned,
   isSimilarity,
-  invert,
   matrixString,
   multiply,
   scaleOf,
@@ -55,13 +54,13 @@ import {
   curveSteps,
   makeRegion,
   ringsInside,
-  segmentSpans,
 } from '../svg/clipRegion';
 import { fontFromPsName } from '../svg/glyphText';
 import { pathRect } from '../svg/pathData';
 import { type Shading, averageColour, rasterMesh, readShading, shadingBands } from './shading';
 import { ADVANCE_ATTR } from '../svg/plotCleanup';
 import type { Pixels } from '../png';
+import { boxRing, clipPicture } from '../pictureClip';
 
 export interface PdfOpList {
   readonly fnArray: ArrayLike<number>;
@@ -127,7 +126,16 @@ export interface PdfPageSvg {
   readonly svg: string;
   /** The pictures `<image href="pdf-image:N">` stands for, by N. */
   readonly images: readonly Pixels[];
+  /** Where each came from (issue 36): the image's own pixel size, and whether it is all of it. */
+  readonly sources: readonly PictureSource[];
   readonly warnings: readonly string[];
+}
+
+/** The PDF image a picture was made from: its size, and whether nothing was cut or reduced. */
+export interface PictureSource {
+  readonly width: number;
+  readonly height: number;
+  readonly whole: boolean;
 }
 
 /** The `href` an `<image>` of `pageToSvg` carries until its pixels are encoded. */
@@ -431,12 +439,6 @@ const LINE_TOL = 0.5;
 /** Fills this close to it are kept whole. */
 const FILL_TOL = 0.1;
 
-const boxRing = (b: Box): Pt[] => [
-  [b[0], b[1]],
-  [b[2], b[1]],
-  [b[2], b[3]],
-  [b[0], b[3]],
-];
 const ringSegs = (ring: readonly Pt[], close: boolean): Seg[] =>
   polyToSegs(
     ring.map((p): [number, number] => [p[0], p[1]]),
@@ -633,60 +635,6 @@ export function toPixels(img: PdfImage): Pixels | null {
   return { width: w, height: h, channels: 3, data: out };
 }
 
-/** Columns [x0, x1) and rows [y0, y1) of the pixels. */
-export function cropPixels(px: Pixels, x0: number, y0: number, x1: number, y1: number): Pixels {
-  const ch = px.channels;
-  const w = x1 - x0;
-  const out = new Uint8Array(w * (y1 - y0) * ch);
-  for (let y = y0; y < y1; y++)
-    out.set(
-      px.data.subarray((y * px.width + x0) * ch, (y * px.width + x1) * ch),
-      (y - y0) * w * ch,
-    );
-  return { width: w, height: y1 - y0, channels: ch, data: out };
-}
-
-/**
- * Pixels whose centre is outside any of the regions made see-through; `m`
- * maps the picture's unit square (rows down) to the regions' space. The
- * pixels unchanged when all are inside, null when none is.
- */
-export function maskPixels(px: Pixels, m: Matrix, regions: readonly Region[]): Pixels | null {
-  const { width: w, height: h, channels: ch } = px;
-  const out = new Uint8Array(w * h * 4);
-  let kept = 0;
-  for (let y = 0; y < h; y++) {
-    const v = (y + 0.5) / h;
-    const a = apply(m, 0, v);
-    const b = apply(m, 1, v);
-    // The row's centre line inside every region, as intervals of u.
-    let spans: [number, number][] = [[0, 1]];
-    for (const r of regions) {
-      const next: [number, number][] = [];
-      for (const [s0, s1] of segmentSpans(a, b, r))
-        for (const [p0, p1] of spans) {
-          const lo = Math.max(s0, p0);
-          const hi = Math.min(s1, p1);
-          if (lo < hi) next.push([lo, hi]);
-        }
-      spans = next;
-    }
-    for (let x = 0; x < w; x++) {
-      const u = (x + 0.5) / w;
-      const i = (y * w + x) * ch;
-      const o = (y * w + x) * 4;
-      out[o] = px.data[i] ?? 0;
-      out[o + 1] = px.data[i + 1] ?? 0;
-      out[o + 2] = px.data[i + 2] ?? 0;
-      const visible = spans.some(([lo, hi]) => u >= lo && u <= hi);
-      out[o + 3] = visible ? (ch === 4 ? (px.data[i + 3] ?? 255) : 255) : 0;
-      if (visible) kept++;
-    }
-  }
-  if (kept === 0) return null;
-  return kept === w * h ? px : { width: w, height: h, channels: 4, data: out };
-}
-
 /** The pixels averaged over k × k blocks (a partial block at the edges averages what it has). */
 export function reducePixels(px: Pixels, k: number): Pixels {
   const ch = px.channels;
@@ -776,6 +724,7 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
   const warnings = new Set<string>();
   const out: string[] = [];
   const images: Pixels[] = [];
+  const sources: PictureSource[] = [];
   const stack: State[] = [];
   let st = fresh(input.viewport);
   let pendingClip: 'nonzero' | 'evenodd' | null = null;
@@ -957,52 +906,16 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
    * when it is axis-aligned, reduced when huge, and handed back to be encoded.
    */
   const picture = (img: PdfImage) => {
-    let px = toPixels(img);
-    if (!px) {
+    const decoded = toPixels(img);
+    if (!decoded) {
       warnings.add('A picture in an unsupported format was left out.');
       return;
     }
     // Unit square with y down (row 0 at the top) → SVG units.
-    let m = multiply(st.ctm, [1, 0, 0, -1, 0, 1]);
-    const corners = [apply(m, 0, 0), apply(m, 1, 0), apply(m, 1, 1), apply(m, 0, 1)];
-    const xs = corners.map((c) => c[0]);
-    const ys = corners.map((c) => c[1]);
-    const box: Box = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
-    const clip = st.clip;
-    if (clip && disjoint(box, clip)) return;
-    // Clip shapes the picture is not inside of: its pixels outside become see-through.
-    const masks = st.regions.filter((r) => !ringsInside([corners], r));
-    if (clip && !inside(box, clip)) {
-      if (isAxisAligned(m) && determinant(m) !== 0) {
-        const inv = invert(m);
-        const [u0, v0] = apply(inv, clip[0], clip[1]);
-        const [u1, v1] = apply(inv, clip[2], clip[3]);
-        const cut = (a: number, b: number, n: number): [number, number] => [
-          Math.max(0, Math.round(Math.min(a, b) * n)),
-          Math.min(n, Math.round(Math.max(a, b) * n)),
-        ];
-        const [x0, x1] = cut(u0, u1, px.width);
-        const [y0, y1] = cut(v0, v1, px.height);
-        if (x1 <= x0 || y1 <= y0) return;
-        m = multiply(m, [
-          (x1 - x0) / px.width,
-          0,
-          0,
-          (y1 - y0) / px.height,
-          x0 / px.width,
-          y0 / px.height,
-        ]);
-        px = cropPixels(px, x0, y0, x1, y1);
-      } else {
-        const r = makeRegion([boxRing(clip)], false);
-        if (r) masks.push(r);
-      }
-    }
-    if (masks.length > 0) {
-      const masked = maskPixels(px, m, masks);
-      if (!masked) return;
-      px = masked;
-    }
+    const cut = clipPicture(decoded, multiply(st.ctm, [1, 0, 0, -1, 0, 1]), st.clip, st.regions);
+    if (!cut) return;
+    let { px } = cut;
+    const { m } = cut;
     if (px.width * px.height > MAX_PICTURE_PIXELS) {
       px = reducePixels(px, Math.ceil(Math.sqrt((px.width * px.height) / MAX_PICTURE_PIXELS)));
       warnings.add('A very large picture was stored at a lower resolution.');
@@ -1012,6 +925,7 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
       `<image x="0" y="0" width="1" height="1" preserveAspectRatio="none" transform="${matrixString(m)}"${opacity} href="${PDF_IMAGE_HREF}${String(images.length)}"/>`,
     );
     images.push(px);
+    sources.push({ width: decoded.width, height: decoded.height, whole: px === decoded });
   };
 
   /**
@@ -1480,6 +1394,7 @@ export function pageToSvg(input: PdfPageInput): PdfPageSvg {
   return {
     svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${out.join('')}</svg>`,
     images,
+    sources,
     warnings: [...warnings],
   };
 }

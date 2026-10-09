@@ -88,8 +88,23 @@ Sans, sans-serif`, bold), `rotate(θ x y)` when rotated. Mathtext (`$…$`, issu
   heatmap, so `hasClearPixels` inflates it with fflate and looks) covers all of it; anything else
   drawn before an opaque picture and wholly inside it is dropped, and a straight unfilled line
   partly under one (ggplot2's grid lines) loses the part under it (Liang–Barsky). Curves and fills
-  only partly under a picture stay over it. SVG clipping is still ignored (no `clipPath`), so a
-  picture is placed whole. The crop includes the pictures.
+  only partly under a picture stay over it. The crop includes the pictures.
+- **Clipped pictures** (issue 36). The sanitiser still drops `clipPath`, but first reads each clip
+  that applies to an `<image>` (its own `clip-path` or an ancestor's; `svgClip.ts`): the clip
+  path's one shape (`rect`, `circle`, `ellipse`, `polygon`, `path`) as path segments, mapped
+  from the user space of the element that refers to it, through the transforms (and `use` / nested
+  `svg` offsets) between, into the image's own space, carried on it as `data-clip` (full precision:
+  PDF pictures are a unit square). `takeImages` maps them with the image's matrix: a clip that is
+  an axis-aligned rectangle crops, any other is a `Region` (`clipRegion.ts`, its `clip-rule`), and
+  `clipPicture` (`src/io/pictureClip.ts`, shared with PDF import) cuts the pixels exactly as for a
+  PDF: to whole pixels of the rectangle when the picture is axis-aligned, else pixels whose centre
+  is outside become see-through (and so the picture gets a backdrop). The PNG is decoded
+  (`decodePng`: 8-bit, not interlaced, any colour type; fflate) and re-encoded synchronously
+  (`encodePngSync`), as sanitising is synchronous; a picture its clip leaves nothing of is
+  dropped, one wholly inside keeps its bytes. A JPEG cannot be decoded without the browser, and
+  a clip of several shapes, of text or in `objectBoundingBox` units is not read: such a picture
+  is placed whole with a warning. matplotlib's `interpolation='none'` with zoomed limits writes
+  pixels aligned to the axes, so whole-pixel crops land on the axes edge.
 - **Backdrops** (issue 35). A see-through picture (clear pixels, or partial opacity: a
   `rasterized=True` scatter layer, ggrastr points) used to leave the grid lines under it on top
   of its dots, and its clear pixels showed the page through the holed panel. Compositing the
@@ -108,7 +123,8 @@ Sans, sans-serif`, bold), `rotate(θ x y)` when rotated. Mathtext (`$…$`, issu
   padded by the stroke width, text boxes from the width estimate in the bundled font the label is drawn in (note 14) ×1.1 and −1 em/+0.3 em
   around the baseline), intersected with the original viewBox (what lay outside was never
   shown), so the placed size is the drawing's. Nothing drawn: unchanged.
-- **Tests:** `plotImages.test.ts` (holes, drops, backdrops, all-opaque alpha, `meet`, mirrored and linked pictures, and
+- **Tests:** `plotImages.test.ts` (holes, drops, backdrops, all-opaque alpha, `meet`, mirrored and linked pictures, clips (rectangle, circle, through transforms, disjoint, JPEG, unreadable) and
+  `matplotlib-clipped.svg` from `scripts/svg-fixtures/matplotlib-clipped.py`, and
   `matplotlib-images.svg` from `scripts/svg-fixtures/matplotlib-images.py`); real matplotlib 3.11 output (`fonttype` path and none, and `matplotlib-log.svg`:
   log axes and mathtext labels, made by `scripts/svg-fixtures/matplotlib-log.py`) and ggplot2
   via cairo `svg()` in `src/io/svg/fixtures/`, plus an svglite 2.1 file transcribed in its exact format

@@ -14,7 +14,8 @@ import { type Imported, importPdf } from '../import';
 import { type Pt, makeRegion, windingAt } from '../svg/clipRegion';
 import { parsePath, pathPoints } from '../svg/pathData';
 import { sanitizeSvg } from '../svg/sanitize';
-import { type PdfPageInput, type PdfPageSvg, maskPixels, pageToSvg } from './pageToSvg';
+import { maskPixels } from '../pictureClip';
+import { type PdfPageInput, type PdfPageSvg, pageToSvg } from './pageToSvg';
 import { MAX_BANDS, averageColour, colourAt, readShading } from './shading';
 
 const OPS = {

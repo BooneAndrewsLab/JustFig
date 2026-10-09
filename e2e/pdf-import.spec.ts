@@ -73,3 +73,14 @@ test('a plot with pictures inside is placed as a group, pictures under the plot 
   await page.keyboard.press('Control+z');
   await expect(page.locator('g[data-id] image')).toHaveCount(0);
 });
+
+test('photos in a PDF stay JPEG, a cut one re-encoded in the browser (issue 36)', async ({
+  page,
+}) => {
+  await page.getByTestId('import-input').setInputFiles(fixture('photo'));
+  await expect(page.locator(images, { hasText: 'photo.pdf' })).toHaveCount(1);
+  const pics = page.locator('g[data-id] image');
+  await expect(pics).toHaveCount(2);
+  for (const pic of await pics.all())
+    expect(await pic.getAttribute('xlink:href')).toMatch(/^data:image\/jpeg;base64,\/9j\//);
+});

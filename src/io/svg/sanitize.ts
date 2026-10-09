@@ -8,7 +8,8 @@
  *   (script, foreignObject, image, filter, mask, clipPath, …) and logged.
  *   A plot's embedded PNG and JPEG pictures are the exception: plot cleanup
  *   takes them out of the tree, to be placed as pictures of their own
- *   (issue 24); linked ones are dropped.
+ *   (issue 24), cut to the clip paths read for them here (issue 36); linked
+ *   ones are dropped.
  * - `<style>` rules (tag, .class, #id, `*` and descendant selectors) and
  *   `style=` are resolved into presentation attributes; the `font`
  *   shorthand is expanded and `inherit` means "not set".
@@ -27,6 +28,7 @@ import { parseXml } from '@/render/xml';
 import { markGlyphRuns, rebuildGlyphRuns } from './glyphText';
 import { ADVANCE_ATTR, cleanupPlot } from './plotCleanup';
 import type { PlotImage } from './plotImages';
+import { CLIP_ATTR, imageClips } from './svgClip';
 
 export interface SanitizedSvg {
   /** `<svg viewBox>` root with only allowed content. */
@@ -376,6 +378,11 @@ export function sanitizeSvg(text: string, opts: SanitizeOptions = {}): Sanitized
       }
       const op = pres(n, ancestors)['opacity'];
       if (op !== undefined) a['opacity'] = op;
+      // Its clip paths, read into its own space: plot cleanup cuts its pixels to them.
+      const clips = imageClips([...ancestors, n], ids, () => {
+        warnings.add('A picture clipped to a shape that could not be read was placed whole.');
+      });
+      if (clips) a[CLIP_ATTR] = JSON.stringify(clips);
       return el('image', a, []);
     }
     if (!(CONTAINERS.has(tag) || SHAPES.has(tag) || TEXT.has(tag))) {
@@ -461,7 +468,7 @@ export function sanitizeSvg(text: string, opts: SanitizeOptions = {}): Sanitized
   );
   if (opts.plot === true) {
     // Sanitised once more, so the stored SVG is exactly what rendering will parse it into.
-    const c = cleanupPlot(root, viewBox);
+    const c = cleanupPlot(root, viewBox, (w) => warnings.add(w));
     const tidy = sanitizeSvg(nodeToSvgString(c.root));
     return { root: tidy.root, viewBox: tidy.viewBox, warnings: [...warnings], images: c.images };
   }

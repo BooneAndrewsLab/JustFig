@@ -17,7 +17,9 @@ import { type SvgNode, nodeToSvgString, walkNodes } from '@/render/svgNode';
 
 import { type Imported, importFile, importPdf } from '../import';
 import { sanitizeSvg } from '../svg/sanitize';
-import { PdfImportError, openPdf } from './loadPdf';
+import { PdfImportError, openPdf, pictureUrl } from './loadPdf';
+import { findJpegs } from './pdfJpegs';
+import { cropPixels } from '../pictureClip';
 import {
   MAX_IMAGE_RECTS,
   type PdfFont,
@@ -31,7 +33,6 @@ import {
   pdfFontStyle,
   reducePixels,
   toPixels,
-  cropPixels,
   unmappable,
 } from './pageToSvg';
 import { isOpaqueImage } from '../png';
@@ -389,6 +390,61 @@ describe('pictures (issue 24)', () => {
     // Two rectangles over the unit square: shapes when the image is drawn big enough.
     expect(blocky(rects, 100)).toBe(rects);
     expect(blocky(rects, 2)).toBe(null);
+  });
+});
+
+describe('photos (issue 36)', () => {
+  it('keeps a whole JPEG photo as the PDF stored it, and a cut one as pixels', async () => {
+    const file = bytes('photo');
+    const jpegs = findJpegs(file);
+    expect([...jpegs.keys()]).toEqual(['240x180', '160x120']);
+    const first = jpegs.get('240x180');
+    expect([first?.[0], first?.[1], first?.at(-2), first?.at(-1)]).toEqual([
+      0xff, 0xd8, 0xff, 0xd9,
+    ]);
+    const imp = await imported('photo');
+    expect(imp.warnings).toEqual([]);
+    const [whole, cut] = imp.pictures ?? [];
+    expect(whole?.asset.mime).toBe('image/jpeg');
+    expect(
+      Buffer.from(whole?.asset.dataBase64 ?? '', 'base64').equals(Buffer.from(first ?? [])),
+    ).toBe(true);
+    // Cut to its clip (120 × 90 of 160 × 120 pixels); Node has no JPEG encoder, so PNG here.
+    expect([cut?.asset.meta.width, cut?.asset.meta.height]).toEqual([120, 90]);
+    expect(cut?.asset.mime).toBe('image/png');
+  });
+
+  it('re-encodes a cut photo as JPEG when that is smaller, and leaves other pictures PNG', async () => {
+    const px = { width: 4, height: 4, channels: 3 as const, data: new Uint8Array(48).fill(90) };
+    const tiny = Uint8Array.from([0xff, 0xd8, 0xff, 0xd9]);
+    const jpegs = new Map([['8x8', null]]);
+    const source = { width: 8, height: 8, whole: false };
+    const encode = () => Promise.resolve(tiny);
+    expect(await pictureUrl(px, source, jpegs, encode)).toBe('data:image/jpeg;base64,/9j/2Q==');
+    // Not from a JPEG, see-through, or no encoder: PNG.
+    expect(await pictureUrl(px, { ...source, width: 9 }, jpegs, encode)).toMatch(
+      /^data:image\/png/,
+    );
+    const rgba = { ...px, channels: 4 as const, data: new Uint8Array(64).fill(90) };
+    expect(await pictureUrl(rgba, source, jpegs, encode)).toMatch(/^data:image\/png/);
+    expect(await pictureUrl(px, source, jpegs, () => Promise.resolve(null))).toMatch(
+      /^data:image\/png/,
+    );
+  });
+
+  it('does not take a JPEG it cannot match to one picture', () => {
+    const pdf = (dicts: string[]) =>
+      new TextEncoder().encode(
+        dicts
+          .map((d, i) => `${String(i + 1)} 0 obj\n${d}\nstream\n\xff\xd8\nendstream\nendobj\n`)
+          .join(''),
+      );
+    const dct = '<< /Subtype /Image /Width 8 /Height 8 /Filter /DCTDecode >>';
+    const flate = '<< /Subtype /Image /Width 8 /Height 8 /Filter /FlateDecode >>';
+    // Unreadable data, or another image the same size: re-encode rather than pass through.
+    expect(findJpegs(pdf([dct]))).toEqual(new Map([['8x8', null]]));
+    expect(findJpegs(pdf([flate]))).toEqual(new Map());
+    expect(findJpegs(pdf([dct, flate]))).toEqual(new Map([['8x8', null]]));
   });
 });
 

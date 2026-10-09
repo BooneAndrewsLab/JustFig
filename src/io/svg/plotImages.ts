@@ -40,8 +40,19 @@ import {
   matrixString,
   parseTransform,
 } from './matrix';
-import { parsePath, pathRect } from './pathData';
-import { fromBase64, hasClearPixels, imageSize, isOpaqueImage } from '../png';
+import { parsePath, pathRect, transformPath } from './pathData';
+import { type Region, makeRegion } from './clipRegion';
+import { CLIP_ATTR, type PictureClip, segsRings } from './svgClip';
+import { clipPicture, clipsNothing } from '../pictureClip';
+import {
+  base64,
+  decodePng,
+  encodePngSync,
+  fromBase64,
+  hasClearPixels,
+  imageSize,
+  isOpaqueImage,
+} from '../png';
 
 export type Box = readonly [number, number, number, number];
 
@@ -100,9 +111,11 @@ function placedRect(
   return { x: x + (w - dw) * f(align[0]), y: y + (h - dh) * f(align[1]), w: dw, h: dh };
 }
 
-function readPicture(href: string): Pick<PlotImage, 'mime' | 'dataBase64' | 'width' | 'height'> & {
+type Picture = Pick<PlotImage, 'mime' | 'dataBase64' | 'width' | 'height'> & {
   opaque: boolean;
-} {
+};
+
+function readPicture(href: string): Picture {
   const m = /^data:(image\/(?:png|jpeg));base64,(.*)$/s.exec(href);
   const mime = m?.[1] === 'image/jpeg' ? 'image/jpeg' : 'image/png';
   const dataBase64 = m?.[2] ?? '';
@@ -282,6 +295,61 @@ const within = (b: Box, outer: Box, tol: number): boolean =>
   b[3] <= outer[3] + tol;
 
 /**
+ * A picture cut to its SVG clip paths (issue 36): `space` maps the image's
+ * user space (where its clips are) to the plot's, `matrix` its unit square.
+ * Only an embedded PNG this can decode is cut (a JPEG is placed whole, with
+ * a warning); null when the clip leaves nothing of it.
+ */
+function clipImage(
+  attr: string,
+  space: Matrix,
+  pic: Picture,
+  matrix: Matrix,
+  warn: (message: string) => void,
+): { pic: Picture; matrix: Matrix } | null {
+  let clips: PictureClip[];
+  try {
+    clips = JSON.parse(attr) as PictureClip[];
+  } catch {
+    return { pic, matrix };
+  }
+  let box: Box | null = null;
+  const regions: Region[] = [];
+  for (const clip of clips) {
+    const segs = transformPath(clip.segs, space);
+    const rect = pathRect(segs);
+    if (rect) {
+      const b: Box = [rect.x, rect.y, rect.x + rect.w, rect.y + rect.h];
+      box = box
+        ? [
+            Math.max(box[0], b[0]),
+            Math.max(box[1], b[1]),
+            Math.min(box[2], b[2]),
+            Math.min(box[3], b[3]),
+          ]
+        : b;
+      continue;
+    }
+    const region = makeRegion(segsRings(segs), clip.evenOdd);
+    if (region) regions.push(region);
+  }
+  if (clipsNothing(matrix, box, regions)) return { pic, matrix };
+  const px =
+    pic.mime === 'image/png' ? decodePng(fromBase64(pic.dataBase64.replace(/=+$/, ''))) : null;
+  if (!px) {
+    warn('A clipped picture in a format that cannot be cut here was placed whole.');
+    return { pic, matrix };
+  }
+  const cut = clipPicture(px, matrix, box, regions);
+  if (!cut) return null;
+  if (cut.px === px) return { pic, matrix: cut.m };
+  return {
+    pic: readPicture(`data:image/png;base64,${base64(encodePngSync(cut.px))}`),
+    matrix: cut.m,
+  };
+}
+
+/**
  * The plot without its pictures, and the pictures; `boxes` gives each drawn
  * leaf's box in root units by its path of child indices (`drawnLeaves`).
  * Run on the flattened tree, before text merging (paths still match).
@@ -289,6 +357,7 @@ const within = (b: Box, outer: Box, tol: number): boolean =>
 export function takeImages(
   root: SvgNode,
   boxes: ReadonlyMap<string, Box>,
+  warn: (message: string) => void = () => undefined,
 ): { root: SvgNode; images: PlotImage[] } {
   const leaves: Leaf[] = [];
   const pics: {
@@ -333,10 +402,23 @@ export function takeImages(
         });
         return;
       }
-      const pic = readPicture(String(c.attrs['href'] ?? ''));
-      const r = placedRect(c, pic.width, pic.height);
-      if (r.w <= 0 || r.h <= 0 || pic.dataBase64 === '') return;
-      const matrix = multiply(multiply(m, own(c)), [r.w, 0, 0, r.h, r.x, r.y]);
+      const read = readPicture(String(c.attrs['href'] ?? ''));
+      const r = placedRect(c, read.width, read.height);
+      if (r.w <= 0 || r.h <= 0 || read.dataBase64 === '') return;
+      const space = multiply(m, own(c));
+      const clips = c.attrs[CLIP_ATTR];
+      const cut =
+        clips === undefined
+          ? { pic: read, matrix: multiply(space, [r.w, 0, 0, r.h, r.x, r.y]) }
+          : clipImage(
+              String(clips),
+              space,
+              read,
+              multiply(space, [r.w, 0, 0, r.h, r.x, r.y]),
+              warn,
+            );
+      if (!cut) return;
+      const { pic, matrix } = cut;
       const quad = [
         apply(matrix, 0, 0),
         apply(matrix, 1, 0),
