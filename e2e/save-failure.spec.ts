@@ -49,7 +49,7 @@ test('a full browser store shows the banner with a download, and clears on the n
   await button.focus();
   await expect(button).toBeFocused();
   const [file] = await Promise.all([page.waitForEvent('download'), page.keyboard.press('Enter')]);
-  expect(file.suggestedFilename()).toMatch(/^Figure A\.jfig$/);
+  expect(file.suggestedFilename().replaceAll('_', ' ')).toBe('Figure A.jfig');
 
   // Space is back: the next save succeeds and the banner goes.
   await page.evaluate(() => {
