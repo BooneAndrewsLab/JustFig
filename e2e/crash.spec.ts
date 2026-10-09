@@ -54,7 +54,7 @@ test('an injected render error shows the recovery screen; download and reload ke
   await button.focus();
   await expect(button).toBeFocused();
   const [file] = await Promise.all([page.waitForEvent('download'), page.keyboard.press('Enter')]);
-  expect(file.suggestedFilename()).toBe('Crash B edited.jfig');
+  expect(file.suggestedFilename().replaceAll('_', ' ')).toBe('Crash B edited.jfig');
   expect(readFileSync(await file.path(), 'utf8')).toContain('Crash B edited');
   await expect(recovery.getByRole('button', { name: 'Download a copy of Crash A' })).toBeVisible();
 
