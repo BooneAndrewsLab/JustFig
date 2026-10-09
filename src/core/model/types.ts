@@ -149,9 +149,29 @@ export interface Rect4 {
   readonly h: number;
 }
 
+/**
+ * One channel of a merged picture (note 21): a single-channel picture shown in
+ * `color`, its display range `min`..`max` (0–255) stretched to full brightness.
+ */
+export interface Channel {
+  /** The channel's own picture, as imported; its brightest of R, G, B is the intensity. */
+  readonly asset: AssetHash;
+  /** `#rrggbb`. */
+  readonly color: string;
+  /** Off: left out of the merge, kept for later. */
+  readonly on: boolean;
+  /** Intensity shown black (0–254). */
+  readonly min: number;
+  /** Intensity shown at full `color` (1–255, above `min`). */
+  readonly max: number;
+}
+
 export interface Image extends Base {
   readonly type: 'image';
-  /** The whole picture, kept so a crop can be changed or undone (note 20). */
+  /**
+   * The whole picture, kept so a crop can be changed or undone (note 20).
+   * With `channels`, the merge of them, baked (note 21).
+   */
   readonly asset: AssetHash;
   /** What is shown, in pixels of `asset` (its `meta` size); none = all of it. */
   readonly crop?: Rect4;
@@ -160,6 +180,11 @@ export interface Image extends Base {
    * export subset has no clipping, so this is what is drawn when `crop` is set.
    */
   readonly cropped?: AssetHash;
+  /**
+   * A pseudocoloured merge (note 21): the channels `asset` is baked from, kept
+   * so a channel can be recoloured, re-ranged or turned off later.
+   */
+  readonly channels?: readonly Channel[];
 }
 
 export interface Procedural extends Base {

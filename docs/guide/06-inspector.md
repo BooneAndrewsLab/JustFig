@@ -73,6 +73,14 @@ For an icon from the library: one colour control for each recolourable part, nam
 
 For a PNG or JPEG the section is called **Image**; for an imported SVG it is **Imported SVG**. It shows the file name and has a **Credit** field. If you type a credit there, such as "Photo: A. Author", it is added to the figure's credit line. Pictures you import are not credited unless you fill this in. An Image also has **Label gel lanes**, which puts lane labels and ladder sizes over a photo of a gel and groups them with it, and **Add scale bar**, which puts a calibrated scale bar on a micrograph and groups it with it (see [Scientific objects](08-objects.md)). See [Importing and other apps](11-import-and-other-apps.md).
 
+### Channels
+
+Shown when the selection holds PNG or JPEG pictures (or groups with one in them). It makes a pseudocoloured merge of fluorescence channels: the single-channel pictures of one field, each shown in a colour and added together.
+
+Select the channels (they must be the same size in pixels) and click **Merge channels…**. In the **Merge channels** dialog, each channel has **Show**, a **Colour** (green, magenta, cyan, yellow, red, blue or grey, or **Custom** with the colour button beside it) and a display range: **Black at** is the brightness shown black and **Full at** the brightness shown at full colour, from 0 to 255, so a dim channel can be brightened. The first two channels start green and magenta, which colour-blind readers can tell apart. The preview shows the merge as you change it. Tick **Lay out the channels in a row, the merge last** to line the channels up left to right with the merge at the end, the usual way to show channels and their merge; untick it to put the merge to the right of the channels and leave them where they are. Click **Merge**: the merge is a new picture, the same size, angle and crop as the first channel, and a scale bar grouped with the first channel is copied onto it, still calibrated. It is one step to undo.
+
+The merge keeps its channels, so it can be changed later: select it and click **Channels…** to open the **Channels** dialog, where you can recolour a channel, change its range or turn it off, then **Apply**. **Channels…** on a single plain picture shows it in a colour (for example a channel in green beside the merge). A merge is ordinary pixels in exported files; the channels' own pictures stay in the figure file so it can be changed again. Cropping a merge with **Crop and rotate** works as for any picture: select the channels and the merge together to crop them all alike.
+
 ### Crop and rotate
 
 Shown when the selection holds PNG or JPEG pictures, or groups with one in them (such as a picture grouped with its scale bar). **Crop and rotate…** opens the **Crop and rotate** dialog, which applies the same crop and the same angle to every selected picture at once: select the channels of one field (they must be the same size in pixels) to crop and turn them together.

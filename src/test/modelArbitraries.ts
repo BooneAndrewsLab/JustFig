@@ -138,12 +138,26 @@ const leafArb: fc.Arbitrary<Obj> = fc.oneof(
         fc.tuple(fc.nat(50), fc.nat(50), fc.integer({ min: 1, max: 50 }), fc.nat(10), asset),
         { nil: undefined },
       ),
+      fc.option(
+        fc.array(
+          fc.record({
+            asset,
+            color: hex,
+            on: fc.boolean(),
+            min: fc.nat(254),
+            max: fc.integer({ min: 1, max: 255 }),
+          }),
+          { minLength: 1, maxLength: 4 },
+        ),
+        { nil: undefined },
+      ),
     )
-    .map(([b, a, c]): Obj => ({
+    .map(([b, a, c, channels]): Obj => ({
       ...b,
       type: 'image',
       asset: a,
       ...(c ? { crop: { x: c[0], y: c[1], w: c[2], h: c[3] }, cropped: c[4] } : {}),
+      ...(channels ? { channels } : {}),
     })),
   fc
     .tuple(baseArb, fc.string(), fc.nat(5), json, asset)

@@ -151,16 +151,24 @@ function restyle(
 export function Inspector({
   onArrangeGrid,
   onCrop,
+  onChannels,
 }: {
   onArrangeGrid: () => void;
   onCrop: () => void;
+  onChannels: () => void;
 }) {
   const s = useAppState();
   const sel = selectedObjects(s);
   return sel.length === 0 ? (
     <PageInspector s={s} />
   ) : (
-    <SelectionInspector s={s} sel={sel} onArrangeGrid={onArrangeGrid} onCrop={onCrop} />
+    <SelectionInspector
+      s={s}
+      sel={sel}
+      onArrangeGrid={onArrangeGrid}
+      onCrop={onCrop}
+      onChannels={onChannels}
+    />
   );
 }
 
@@ -335,11 +343,13 @@ function SelectionInspector({
   sel,
   onArrangeGrid,
   onCrop,
+  onChannels,
 }: {
   s: AppState;
   sel: readonly Obj[];
   onArrangeGrid: () => void;
   onCrop: () => void;
+  onChannels: () => void;
 }) {
   const fig = figure(s);
   const page = currentPage(s);
@@ -691,6 +701,7 @@ function SelectionInspector({
       {one?.type === 'icon' && <IconSection s={s} icon={one} />}
       {one?.type === 'panel' && <PanelSection s={s} panel={one} />}
       {one?.type === 'image' && <ImageSection s={s} image={one} />}
+      <ChannelsSection s={s} sel={sel} onChannels={onChannels} />
       <CropSection s={s} sel={sel} onCrop={onCrop} />
       {one?.type === 'embedded' && <EmbeddedSection obj={one} />}
       {one?.type === 'procedural' && <ProceduralSection s={s} obj={one} />}
@@ -1197,6 +1208,51 @@ function PanelSection({ s, panel }: { s: AppState; panel: Extract<Obj, { type: '
           />{' '}
           Show border
         </label>
+      </div>
+    </Section>
+  );
+}
+
+/** Merge the selected channels, or set one picture's channels (note 21). */
+function ChannelsSection({
+  s,
+  sel,
+  onChannels,
+}: {
+  s: AppState;
+  sel: readonly Obj[];
+  onChannels: () => void;
+}) {
+  const assets = figure(s).assets;
+  const pics = cropTargets(sel, assets);
+  const one = pics.length === 1 ? pics[0] : undefined;
+  if (pics.length === 0) return null;
+  const size = sharedSize(pics, assets);
+  const n = one?.channels?.length ?? 0;
+  return (
+    <Section title="Channels">
+      <p className="note">
+        {one
+          ? n > 0
+            ? `A merge of ${String(n)} ${n === 1 ? 'channel' : 'channels'} (${String(one.channels?.filter((c) => c.on).length ?? 0)} shown).`
+            : 'Show this picture in a colour, or select the channels of one field to merge them.'
+          : size === null
+            ? 'Pictures of different sizes: select the channels of one field to merge them.'
+            : `${String(pics.length)} pictures, ${String(size.w)} × ${String(size.h)} px.`}
+      </p>
+      <div className="row">
+        <button
+          type="button"
+          disabled={size === null}
+          title={
+            one
+              ? 'Colour, display range and on/off for each channel'
+              : 'A pseudocoloured merge of the selected pictures, as a new picture'
+          }
+          onClick={onChannels}
+        >
+          {one ? 'Channels…' : 'Merge channels…'}
+        </button>
       </div>
     </Section>
   );

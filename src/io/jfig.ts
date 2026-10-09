@@ -10,6 +10,7 @@ import {
   HEAD_KINDS,
   type Asset,
   type Assets,
+  type Channel,
   type Doc,
   type Figure,
   type Frame,
@@ -201,6 +202,22 @@ function run(v: unknown, p: Path): Run {
   };
 }
 
+function channel(v: unknown, p: Path): Channel {
+  const o = obj(v, p);
+  const level = (k: 'min' | 'max') => {
+    const n = int(o[k], p.key(k));
+    if (n < 0 || n > 255) p.key(k).fail('expected 0–255');
+    return n;
+  };
+  return {
+    asset: str(o['asset'], p.key('asset')),
+    color: hexStr(o['color'], p.key('color')),
+    on: bool(o['on'], p.key('on')),
+    min: level('min'),
+    max: level('max'),
+  };
+}
+
 function slotMap(v: unknown, p: Path): Record<string, Paint> {
   const o = obj(v, p);
   const out: Record<string, Paint> = {};
@@ -301,6 +318,7 @@ export function object(v: unknown, p: Path): Obj {
           };
         }),
         ...opt(o, 'cropped', p, str),
+        ...opt(o, 'channels', p, (x, q) => list(x, q, channel)),
       };
     case 'procedural':
       return {

@@ -623,6 +623,15 @@ button.link {
   touch-action: none;
 }
 
+.dialog .channels-preview {
+  display: block;
+  max-width: 100%;
+  max-height: 280px;
+  margin: 0 auto 10px;
+  background: #000;
+  image-rendering: pixelated;
+}
+
 .dialog fieldset {
   border: 1px solid var(--rule);
   border-radius: var(--radius);

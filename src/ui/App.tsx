@@ -10,6 +10,7 @@ import { AttributionDialog } from './dialogs/AttributionDialog';
 import { CreditsDialog } from './dialogs/CreditsDialog';
 import { ExportDialog } from './dialogs/ExportDialog';
 import { GalleryDialog } from './dialogs/GalleryDialog';
+import { ChannelsDialog } from './dialogs/ChannelsDialog';
 import { CropDialog } from './dialogs/CropDialog';
 import { GridDialog } from './dialogs/GridDialog';
 import { GuideDialog } from './dialogs/GuideDialog';
@@ -37,6 +38,7 @@ type DialogId =
   | 'guide'
   | 'grid'
   | 'crop'
+  | 'channels'
   | null;
 
 /** The one selected object's name, for the status line a screen reader announces. */
@@ -315,6 +317,9 @@ export function App() {
           onCrop={() => {
             setDialog('crop');
           }}
+          onChannels={() => {
+            setDialog('channels');
+          }}
         />
         <LayersPanel />
       </aside>
@@ -369,6 +374,13 @@ export function App() {
       )}
       {dialog === 'grid' && (
         <GridDialog
+          onClose={() => {
+            setDialog(null);
+          }}
+        />
+      )}
+      {dialog === 'channels' && (
+        <ChannelsDialog
           onClose={() => {
             setDialog(null);
           }}

@@ -31,7 +31,11 @@ export function objectAssets(o: Obj): AssetHash[] {
     case 'icon':
       return [o.asset];
     case 'image':
-      return o.cropped === undefined ? [o.asset] : [o.asset, o.cropped];
+      return [
+        o.asset,
+        ...(o.cropped === undefined ? [] : [o.cropped]),
+        ...(o.channels ?? []).map((c) => c.asset),
+      ];
     case 'embedded':
       return [o.snapshot];
     case 'procedural':

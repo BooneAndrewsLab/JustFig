@@ -659,7 +659,7 @@
         },
         "asset": {
           "$ref": "#/definitions/AssetHash",
-          "description": "The whole picture, kept so a crop can be changed or undone (note 20)."
+          "description": "The whole picture, kept so a crop can be changed or undone (note 20). With `channels`, the merge of them, baked (note 21)."
         },
         "crop": {
           "$ref": "#/definitions/Rect4",
@@ -668,6 +668,13 @@
         "cropped": {
           "$ref": "#/definitions/AssetHash",
           "description": "The pixels of `crop`, re-encoded as their own image asset (note 20): the export subset has no clipping, so this is what is drawn when `crop` is set."
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Channel"
+          },
+          "description": "A pseudocoloured merge (note 21): the channels `asset` is baked from, kept so a channel can be recoloured, re-ranged or turned off later."
         }
       },
       "required": [
@@ -702,6 +709,40 @@
         "h"
       ],
       "additionalProperties": false
+    },
+    "Channel": {
+      "type": "object",
+      "properties": {
+        "asset": {
+          "$ref": "#/definitions/AssetHash",
+          "description": "The channel's own picture, as imported; its brightest of R, G, B is the intensity."
+        },
+        "color": {
+          "type": "string",
+          "description": "`#rrggbb`."
+        },
+        "on": {
+          "type": "boolean",
+          "description": "Off: left out of the merge, kept for later."
+        },
+        "min": {
+          "type": "number",
+          "description": "Intensity shown black (0–254)."
+        },
+        "max": {
+          "type": "number",
+          "description": "Intensity shown at full `color` (1–255, above `min`)."
+        }
+      },
+      "required": [
+        "asset",
+        "color",
+        "on",
+        "min",
+        "max"
+      ],
+      "additionalProperties": false,
+      "description": "One channel of a merged picture (note 21): a single-channel picture shown in `color`, its display range `min`..`max` (0–255) stretched to full brightness."
     },
     "Procedural": {
       "type": "object",

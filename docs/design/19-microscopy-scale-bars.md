@@ -33,7 +33,7 @@ follow-up issues (below).
 
 ## Follow-ups
 
-- **Merge channels.** Combine single-channel greyscale images into one pseudocoloured composite
+- **Merge channels.** Done in note 21. Combine single-channel greyscale images into one pseudocoloured composite
   (per-channel colour and display range, additive), plus the channels as a row. This needs pixel
   work in the browser (canvas decode, colourise, add, encode to a new PNG asset), a dialog to pick
   the channels and colours, and a decision on whether the composite stays re-editable (a recipe
