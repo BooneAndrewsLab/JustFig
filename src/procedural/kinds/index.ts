@@ -10,6 +10,7 @@ import { plasmidMap } from './plasmid';
 import { placeholderPlot } from './plot';
 import { scaleBar } from './scaleBar';
 import { sequenceSnippet } from './sequence';
+import { studyDesign } from './studyDesign';
 import { timeline } from './timeline';
 import { wellPlate } from './wellPlate';
 
@@ -27,5 +28,6 @@ export const KINDS: readonly ProceduralKind[] = [
   scaleBar,
   timeline,
   sequenceSnippet,
+  studyDesign,
   placeholderPlot,
 ];

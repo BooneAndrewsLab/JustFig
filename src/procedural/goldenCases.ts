@@ -149,6 +149,48 @@ export const GOLDEN_CASES: Readonly<Record<string, Readonly<Record<string, Parti
     },
     bare: { tickLabels: 'none', arrow: false, ranges: [], events: [] },
   },
+  studyDesign: {
+    three: {
+      end: 28,
+      arms: [
+        { name: 'Vehicle', n: 8, color: '#9aa5b1' },
+        { name: 'Drug A', n: 10, color: '#9aa5b1' },
+        { name: 'Drug A + anti-PD-1', n: 10, color: '#9aa5b1' },
+      ],
+      marks: [
+        { arm: 1, time: 0, kind: 'inject' },
+        { arm: 1, time: 14, kind: 'sample' },
+        { arm: 1, time: 28, kind: 'endpoint' },
+        { arm: 2, time: 0, kind: 'inject' },
+        { arm: 2, time: 7, kind: 'dose' },
+        { arm: 2, time: 14, kind: 'sample' },
+        { arm: 2, time: 28, kind: 'endpoint' },
+        { arm: 3, time: 0, kind: 'inject' },
+        { arm: 3, time: 7, kind: 'dose' },
+        { arm: 3, time: 10, kind: 'dose' },
+        { arm: 3, time: 14, kind: 'sample' },
+        { arm: 3, time: 28, kind: 'endpoint' },
+      ],
+      bars: [
+        { label: 'Drug A, daily', arm: 0, start: 7, end: 21, color: '#56b4e9' },
+        { label: 'Anti-PD-1', arm: 3, start: 10, end: 14, color: '#e69f00' },
+      ],
+    },
+    weeks: {
+      unit: 'weeks',
+      end: 12,
+      tickLabels: 'unit',
+      legend: false,
+      arrow: false,
+      arms: [{ name: 'Placebo', n: 0, color: '#9aa5b1' }],
+      marks: [
+        { arm: 1, time: 0, kind: 'dose' },
+        { arm: 1, time: 4, kind: 'sample' },
+        { arm: 1, time: 12, kind: 'endpoint' },
+      ],
+      bars: [],
+    },
+  },
   cell: {
     irregular: { shape: 'irregular', er: false, mitochondria: 10, seed: 11 },
   },

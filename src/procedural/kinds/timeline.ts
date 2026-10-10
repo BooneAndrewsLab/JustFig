@@ -49,11 +49,11 @@ const MIN_SPAN = 0.001;
 const RANGE_COLOURS = ['#56b4e9', '#e69f00', '#009e73', '#cc79a7', '#f0e442', '#0072b2'];
 
 /** A generous estimate of a label's width (no font metrics in a pure render). */
-const est = (s: string, size: number): number => 0.56 * size * s.length;
+export const est = (s: string, size: number): number => 0.56 * size * s.length;
 /** Up to four significant digits, no trailing zeros. */
 const num = (v: number): string => String(Number(v.toPrecision(4)));
 
-const WORD: Record<TimeUnit, [one: string, many: string]> = {
+export const WORD: Record<TimeUnit, [one: string, many: string]> = {
   hours: ['Hour', 'hours'],
   days: ['Day', 'days'],
   weeks: ['Week', 'weeks'],
@@ -94,7 +94,7 @@ export function tickTimes(p: TimelineParams, axisLen: number): number[] {
   return out;
 }
 
-const luminance = (hex: string): number => {
+export const luminance = (hex: string): number => {
   const c = parseHex(hex);
   if (!c) return 0;
   const lin = (v: number) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
@@ -102,7 +102,7 @@ const luminance = (hex: string): number => {
 };
 
 /** Greedy rows: each span goes in the first row it fits in. */
-function rows(spans: readonly (readonly [number, number])[], gap: number): number[] {
+export function rows(spans: readonly (readonly [number, number])[], gap: number): number[] {
   const ends: number[] = [];
   return spans.map(([a, b]) => {
     let r = ends.findIndex((e) => a >= e + gap);
