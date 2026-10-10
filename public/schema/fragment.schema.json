@@ -1122,6 +1122,52 @@
           "if": {
             "properties": {
               "kind": {
+                "const": "sequence"
+              },
+              "kindVersion": {
+                "const": 1
+              }
+            },
+            "required": [
+              "kind",
+              "kindVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "$ref": "#/$defs/Params_sequence"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "studyDesign"
+              },
+              "kindVersion": {
+                "const": 1
+              }
+            },
+            "required": [
+              "kind",
+              "kindVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "$ref": "#/$defs/Params_studyDesign"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
                 "const": "placeholderPlot"
               },
               "kindVersion": {
@@ -2425,6 +2471,288 @@
           ],
           "default": "above",
           "description": "Event labels"
+        },
+        "arrow": {
+          "type": "boolean",
+          "default": true,
+          "description": "Arrow at the end"
+        },
+        "size": {
+          "type": "number",
+          "minimum": 4,
+          "maximum": 24,
+          "default": 8,
+          "description": "Text size",
+          "x-unit": "pt"
+        }
+      }
+    },
+    "Params_sequence": {
+      "type": "object",
+      "title": "sequence params",
+      "description": "A short DNA, RNA or protein sequence with a numbering ruler, highlighted residues and labelled bars.",
+      "properties": {
+        "sequence": {
+          "type": "string",
+          "maxLength": 2000,
+          "default": "ATGGCCATTGTAATGGGCCGCTGAAAGGGTGCCCGATAG",
+          "description": "Sequence. DNA, RNA or protein; letters, - and * are kept, upper-cased, up to 200 residues."
+        },
+        "first": {
+          "type": "integer",
+          "minimum": -100000,
+          "maximum": 100000,
+          "default": 1,
+          "description": "First residue number"
+        },
+        "ruler": {
+          "type": "boolean",
+          "default": true,
+          "description": "Numbering ruler"
+        },
+        "interval": {
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 1000,
+          "default": 10,
+          "description": "Number every",
+          "x-unit": "residues"
+        },
+        "highlights": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 20,
+          "items": {
+            "type": "object",
+            "properties": {
+              "start": {
+                "type": "integer",
+                "minimum": -100000,
+                "maximum": 100000,
+                "default": 1,
+                "description": "From. Residue numbers, counted from the first residue number."
+              },
+              "end": {
+                "type": "integer",
+                "minimum": -100000,
+                "maximum": 100000,
+                "default": 1,
+                "description": "To"
+              },
+              "color": {
+                "type": "string",
+                "pattern": "^#[0-9a-fA-F]{6}$",
+                "default": "#ffe08a",
+                "description": "Colour"
+              }
+            }
+          },
+          "description": "Highlights"
+        },
+        "annotations": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 20,
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 24,
+                "default": "p.R175H",
+                "description": "Label"
+              },
+              "start": {
+                "type": "integer",
+                "minimum": -100000,
+                "maximum": 100000,
+                "default": 1,
+                "description": "From. For one residue, give the same number twice."
+              },
+              "end": {
+                "type": "integer",
+                "minimum": -100000,
+                "maximum": 100000,
+                "default": 1,
+                "description": "To"
+              },
+              "color": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{6})?$",
+                "default": "",
+                "description": "Colour"
+              }
+            }
+          },
+          "description": "Annotations"
+        },
+        "size": {
+          "type": "number",
+          "minimum": 4,
+          "maximum": 24,
+          "default": 9,
+          "description": "Text size",
+          "x-unit": "pt"
+        }
+      }
+    },
+    "Params_studyDesign": {
+      "type": "object",
+      "title": "studyDesign params",
+      "description": "Study arms stacked on one time axis, with injection, dosing, sampling and endpoint markers and treatment bars.",
+      "properties": {
+        "start": {
+          "type": "number",
+          "minimum": -100000,
+          "maximum": 100000,
+          "default": 0,
+          "description": "Axis start"
+        },
+        "end": {
+          "type": "number",
+          "minimum": -100000,
+          "maximum": 100000,
+          "default": 21,
+          "description": "Axis end"
+        },
+        "unit": {
+          "enum": [
+            "hours",
+            "days",
+            "weeks"
+          ],
+          "default": "days",
+          "description": "Unit"
+        },
+        "tickLabels": {
+          "enum": [
+            "prefix",
+            "unit",
+            "none"
+          ],
+          "default": "prefix",
+          "description": "Tick labels"
+        },
+        "step": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100000,
+          "default": 0,
+          "description": "Tick step. 0 picks a step that leaves the labels room."
+        },
+        "arms": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "maxLength": 40,
+                "default": "Group",
+                "description": "Group"
+              },
+              "n": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100000,
+                "default": 8,
+                "description": "n. 0 leaves n out of the label."
+              },
+              "color": {
+                "type": "string",
+                "pattern": "^#[0-9a-fA-F]{6}$",
+                "default": "#9aa5b1",
+                "description": "Guide line"
+              }
+            }
+          },
+          "description": "Arms"
+        },
+        "marks": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 80,
+          "items": {
+            "type": "object",
+            "properties": {
+              "arm": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8,
+                "default": 1,
+                "description": "Arm. The arm’s number in the list above."
+              },
+              "time": {
+                "type": "number",
+                "minimum": -100000,
+                "maximum": 100000,
+                "default": 0,
+                "description": "Time"
+              },
+              "kind": {
+                "enum": [
+                  "inject",
+                  "dose",
+                  "sample",
+                  "endpoint"
+                ],
+                "default": "dose",
+                "description": "Marker"
+              }
+            }
+          },
+          "description": "Markers"
+        },
+        "bars": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 20,
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 40,
+                "default": "Treatment",
+                "description": "Label"
+              },
+              "arm": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 8,
+                "default": 0,
+                "description": "Arm. 0 draws the bar on every arm."
+              },
+              "start": {
+                "type": "number",
+                "minimum": -100000,
+                "maximum": 100000,
+                "default": 0,
+                "description": "From"
+              },
+              "end": {
+                "type": "number",
+                "minimum": -100000,
+                "maximum": 100000,
+                "default": 1,
+                "description": "To"
+              },
+              "color": {
+                "type": "string",
+                "pattern": "^#[0-9a-fA-F]{6}$",
+                "default": "#56b4e9",
+                "description": "Colour"
+              }
+            }
+          },
+          "description": "Treatment bars"
+        },
+        "legend": {
+          "type": "boolean",
+          "default": true,
+          "description": "Legend of markers"
         },
         "arrow": {
           "type": "boolean",

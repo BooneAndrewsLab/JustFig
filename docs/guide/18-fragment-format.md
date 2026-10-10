@@ -249,6 +249,34 @@ A `procedural` object is drawn by JustFig from a short list of parameters, so a 
 - `arrow`: true or false, default true
 - `size`: number 4 to 24 pt, default 8
 
+### `sequence`: Sequence snippet
+
+`kindVersion` 1. A short DNA, RNA or protein sequence with a numbering ruler, highlighted residues and labelled bars. Default size 300 x 56 pt.
+
+- `sequence`: text up to 2000 characters; letters, `-` and `*` are kept, upper-cased, and cut to 200 residues
+- `first`: whole number -100000 to 100000, default 1 (the number of the first residue)
+- `ruler`: true or false, default true
+- `interval`: whole number 5 to 1000 residues, default 10
+- `highlights`: list of 0 to 20 items; each item: `start` (whole number -100000 to 100000, default 1); `end` (whole number -100000 to 100000, default 1); `color` (`#rrggbb`, default `#ffe08a`)
+- `annotations`: list of 0 to 20 items; each item: `label` (text up to 24 characters); `start` (whole number -100000 to 100000, default 1); `end` (whole number -100000 to 100000, default 1); `color` (`#rrggbb` or `""` for the Annotations colour, default `""`)
+- `size`: number 4 to 24 pt, default 9
+
+### `studyDesign`: Study design
+
+`kindVersion` 1. Study arms stacked on one time axis, with injection, dosing, sampling and endpoint markers and treatment bars. Default size 380 x 150 pt.
+
+- `start`: number -100000 to 100000, default 0
+- `end`: number -100000 to 100000, default 21
+- `unit`: one of `hours`, `days`, `weeks`, default `days`
+- `tickLabels`: one of `prefix`, `unit`, `none`, default `prefix`
+- `step`: number 0 to 100000, default 0
+- `arms`: list of 1 to 8 items; each item: `name` (text up to 40 characters); `n` (whole number 0 to 100000, default 8; 0 leaves the n out of the label); `color` (`#rrggbb`, default `#9aa5b1`)
+- `marks`: list of 0 to 80 items; each item: `arm` (whole number 1 to 8, the arm's position in `arms`); `time` (number -100000 to 100000, default 0); `kind` (one of `inject`, `dose`, `sample`, `endpoint`, default `dose`)
+- `bars`: list of 0 to 20 items; each item: `label` (text up to 40 characters); `arm` (whole number 0 to 8, 0 for every arm); `start` (number -100000 to 100000, default 0); `end` (number -100000 to 100000, default 1); `color` (`#rrggbb`, default `#56b4e9`)
+- `legend`: true or false, default true
+- `arrow`: true or false, default true
+- `size`: number 4 to 24 pt, default 8
+
 ### `placeholderPlot`: Placeholder plot
 
 `kindVersion` 1. A plot-shaped placeholder (PCA, UMAP, scatter, bar or flow cytometry) drawn from a seed. Default size 200 x 160 pt.
