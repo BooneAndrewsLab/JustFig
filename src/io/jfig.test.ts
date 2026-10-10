@@ -191,4 +191,69 @@ describe('.jfig codec', () => {
     expect(readFragment('hello')).toBeNull();
     expect(readFragment('{"format":"other"}')).toBeNull();
   });
+
+  describe('paste errors say which object failed and why (issue 79)', () => {
+    const rect = (id: string) => ({
+      id,
+      type: 'rect',
+      frame: { x: 0, y: 0, w: 10, h: 10, rotation: 0 },
+      opacity: 1,
+      rx: 0,
+      style: {
+        fill: { hex: '#ff0000' },
+        stroke: null,
+        strokeWidth: 1,
+        cap: 'butt',
+        join: 'miter',
+      },
+    });
+    const message = (objects: unknown, assets: unknown = {}): string => {
+      const text = JSON.stringify({
+        format: 'justfig-fragment',
+        schemaVersion: 1,
+        objects,
+        assets,
+      });
+      try {
+        readFragment(text);
+      } catch (e: unknown) {
+        expect(e).toBeInstanceOf(JfigError);
+        return (e as Error).message;
+      }
+      throw new Error('expected the fragment to be refused');
+    };
+
+    it('names the index, type, id and the failing property', () => {
+      const bad = { ...rect('r2'), frame: { x: 'left', y: 0, w: 10, h: 10, rotation: 0 } };
+      expect(message([rect('r1'), bad])).toBe(
+        'Cannot paste: objects[1] (rect, id "r2") is damaged at property "frame.x": expected a finite number.',
+      );
+    });
+
+    it('names a nested child, a bad colour and a missing field', () => {
+      const style = { ...rect('c').style, fill: { hex: 'red' } };
+      const group = {
+        id: 'g',
+        type: 'group',
+        frame: { x: 0, y: 0, w: 10, h: 10, rotation: 0 },
+        opacity: 1,
+        children: [{ ...rect('c'), style }],
+      };
+      expect(message([group])).toContain(
+        'objects[0] (group, id "g") is damaged at property "children[0].style.fill.hex": expected a colour like #1a2b3c',
+      );
+      const { rx: _rx, ...noRx } = rect('r');
+      expect(message([noRx])).toContain('at property "rx": expected a finite number');
+    });
+
+    it('copes with non-objects and reports the kind of a procedural object', () => {
+      expect(message([7])).toContain(
+        'objects[0] is damaged at the object itself: expected an object',
+      );
+      expect(message([{ id: 'p', type: 'procedural', kind: 'gel' }])).toContain(
+        'objects[0] (procedural/gel, id "p")',
+      );
+      expect(message({})).toContain('The pasted fragment is damaged');
+    });
+  });
 });

@@ -12,4 +12,4 @@ e2e/golden
 src/export/fixtures/*.jfig
 src/io/fixtures/*.jfig
 LANDSCAPE.md
-schemas
+public/schema

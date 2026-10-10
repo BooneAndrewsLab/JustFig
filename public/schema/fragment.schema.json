@@ -1,0 +1,2568 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "objects": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Obj"
+      }
+    },
+    "assets": {
+      "$ref": "#/$defs/Assets"
+    },
+    "format": {
+      "type": "string",
+      "const": "justfig-fragment"
+    },
+    "schemaVersion": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "assets",
+    "format",
+    "objects",
+    "schemaVersion"
+  ],
+  "additionalProperties": false,
+  "description": "Objects and the assets they use, pasted or opened into a figure. Units are points (1/72 in).",
+  "title": "Figure fragment",
+  "$defs": {
+    "Obj": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Rect"
+        },
+        {
+          "$ref": "#/$defs/Ellipse"
+        },
+        {
+          "$ref": "#/$defs/PathObj"
+        },
+        {
+          "$ref": "#/$defs/Arrow"
+        },
+        {
+          "$ref": "#/$defs/Text"
+        },
+        {
+          "$ref": "#/$defs/Icon"
+        },
+        {
+          "$ref": "#/$defs/Image"
+        },
+        {
+          "$ref": "#/$defs/Procedural"
+        },
+        {
+          "$ref": "#/$defs/Group"
+        },
+        {
+          "$ref": "#/$defs/Panel"
+        },
+        {
+          "$ref": "#/$defs/Embedded"
+        }
+      ]
+    },
+    "Rect": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "name": {
+          "type": "string"
+        },
+        "frame": {
+          "$ref": "#/$defs/Frame"
+        },
+        "opacity": {
+          "type": "number"
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "string",
+          "const": "rect"
+        },
+        "rx": {
+          "type": "number"
+        },
+        "style": {
+          "$ref": "#/$defs/ShapeStyle"
+        }
+      },
+      "required": [
+        "frame",
+        "id",
+        "opacity",
+        "rx",
+        "style",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "Id": {
+      "type": "string",
+      "description": "Stable ids for everything a project holds (note 02). An id never changes once made, so renaming or reordering never breaks a reference.\n\nThe prefix says what the id names, which keeps saved files and bug reports readable: `d_` document, `pg_` page, `ly_` layer, `o_` object, `ts_` text style, `sw_` swatch."
+    },
+    "Frame": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "w": {
+          "type": "number"
+        },
+        "h": {
+          "type": "number"
+        },
+        "rotation": {
+          "type": "number",
+          "description": "Degrees, clockwise on screen, about the frame centre."
+        },
+        "flipX": {
+          "type": "boolean"
+        },
+        "flipY": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "w",
+        "h",
+        "rotation"
+      ],
+      "additionalProperties": false,
+      "description": "Top-left of the unrotated box; flipped about, then rotated about, its centre."
+    },
+    "ShapeStyle": {
+      "type": "object",
+      "properties": {
+        "fill": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Paint"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stroke": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Paint"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "strokeWidth": {
+          "type": "number"
+        },
+        "dash": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "cap": {
+          "$ref": "#/$defs/LineCap"
+        },
+        "join": {
+          "$ref": "#/$defs/LineJoin"
+        }
+      },
+      "required": [
+        "fill",
+        "stroke",
+        "strokeWidth",
+        "cap",
+        "join"
+      ],
+      "additionalProperties": false
+    },
+    "Paint": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "hex": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "hex"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "swatch": {
+              "$ref": "#/$defs/SwatchId"
+            }
+          },
+          "required": [
+            "swatch"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "SwatchId": {
+      "type": "string"
+    },
+    "LineCap": {
+      "type": "string",
+      "enum": [
+        "butt",
+        "round",
+        "square"
+      ]
+    },
+    "LineJoin": {
+      "type": "string",
+      "enum": [
+        "miter",
+        "round",
+        "bevel"
+      ]
+    },
+    "Ellipse": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "name": {
+          "type": "string"
+        },
+        "frame": {
+          "$ref": "#/$defs/Frame"
+        },
+        "opacity": {
+          "type": "number"
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "string",
+          "const": "ellipse"
+        },
+        "style": {
+          "$ref": "#/$defs/ShapeStyle"
+        }
+      },
+      "required": [
+        "frame",
+        "id",
+        "opacity",
+        "style",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "PathObj": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "name": {
+          "type": "string"
+        },
+        "frame": {
+          "$ref": "#/$defs/Frame"
+        },
+        "opacity": {
+          "type": "number"
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "string",
+          "const": "path"
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PathNode"
+          }
+        },
+        "closed": {
+          "type": "boolean"
+        },
+        "style": {
+          "$ref": "#/$defs/ShapeStyle"
+        }
+      },
+      "required": [
+        "closed",
+        "frame",
+        "id",
+        "nodes",
+        "opacity",
+        "style",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "PathNode": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "in": {
+          "$ref": "#/$defs/Vec2"
+        },
+        "out": {
+          "$ref": "#/$defs/Vec2"
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ],
+      "additionalProperties": false,
+      "description": "A path vertex with optional cubic handles, frame-local; no handle = corner."
+    },
+    "Vec2": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ],
+      "additionalProperties": false
+    },
+    "Arrow": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "name": {
+          "type": "string"
+        },
+        "frame": {
+          "$ref": "#/$defs/Frame"
+        },
+        "opacity": {
+          "type": "number"
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "string",
+          "const": "arrow"
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PathNode"
+          }
+        },
+        "start": {
+          "$ref": "#/$defs/Head"
+        },
+        "end": {
+          "$ref": "#/$defs/Head"
+        },
+        "style": {
+          "$ref": "#/$defs/ShapeStyle"
+        },
+        "bind": {
+          "type": "object",
+          "properties": {
+            "start": {
+              "$ref": "#/$defs/Id"
+            },
+            "end": {
+              "$ref": "#/$defs/Id"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Binding to objects: Phase 4; kept losslessly now."
+        }
+      },
+      "required": [
+        "end",
+        "frame",
+        "id",
+        "nodes",
+        "opacity",
+        "start",
+        "style",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "Head": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/HeadKind"
+        },
+        "size": {
+          "type": "number",
+          "description": "Head length as a multiple of the stroke width."
+        }
+      },
+      "required": [
+        "kind",
+        "size"
+      ],
+      "additionalProperties": false
+    },
+    "HeadKind": {
+      "type": "string",
+      "enum": [
+        "none",
+        "triangle",
+        "open",
+        "stealth",
+        "bar",
+        "circle",
+        "diamond"
+      ]
+    },
+    "Text": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "name": {
+          "type": "string"
+        },
+        "frame": {
+          "$ref": "#/$defs/Frame"
+        },
+        "opacity": {
+          "type": "number"
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "string",
+          "const": "text"
+        },
+        "runs": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/Run"
+            }
+          },
+          "description": "Paragraphs of runs."
+        },
+        "align": {
+          "$ref": "#/$defs/TextAlign"
+        },
+        "lineHeight": {
+          "type": "number",
+          "description": "Line height as a multiple of the largest run size on the line."
+        },
+        "autoWidth": {
+          "type": "boolean"
+        },
+        "styleRef": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "align",
+        "autoWidth",
+        "frame",
+        "id",
+        "lineHeight",
+        "opacity",
+        "runs",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "Run": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "font": {
+          "$ref": "#/$defs/FontId"
+        },
+        "size": {
+          "type": "number",
+          "description": "Points."
+        },
+        "bold": {
+          "type": "boolean"
+        },
+        "italic": {
+          "type": "boolean"
+        },
+        "script": {
+          "type": "string",
+          "enum": [
+            "sub",
+            "sup"
+          ]
+        },
+        "color": {
+          "$ref": "#/$defs/Paint"
+        }
+      },
+      "required": [
+        "text",
+        "font",
+        "size",
+        "color"
+      ],
+      "additionalProperties": false
+    },
+    "FontId": {
+      "type": "string",
+      "enum": [
+        "arimo",
+        "tinos",
+        "cousine"
+      ]
+    },
+    "TextAlign": {
+      "type": "string",
+      "enum": [
+        "left",
+        "center",
+        "right"
+      ]
+    },
+    "Icon": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "name": {
+          "type": "string"
+        },
+        "frame": {
+          "$ref": "#/$defs/Frame"
+        },
+        "opacity": {
+          "type": "number"
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "string",
+          "const": "icon"
+        },
+        "asset": {
+          "$ref": "#/$defs/AssetHash"
+        },
+        "slots": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/Paint"
+          },
+          "description": "Overrides only; defaults come from the asset's SlotDefs."
+        },
+        "lockAspect": {
+          "type": "boolean",
+          "const": true
+        }
+      },
+      "required": [
+        "asset",
+        "frame",
+        "id",
+        "lockAspect",
+        "opacity",
+        "slots",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "AssetHash": {
+      "type": "string"
+    },
+    "Image": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "name": {
+          "type": "string"
+        },
+        "frame": {
+          "$ref": "#/$defs/Frame"
+        },
+        "opacity": {
+          "type": "number"
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "string",
+          "const": "image"
+        },
+        "asset": {
+          "$ref": "#/$defs/AssetHash",
+          "description": "The whole picture, kept so a crop can be changed or undone (note 20). With `channels`, the merge of them, baked (note 21)."
+        },
+        "crop": {
+          "$ref": "#/$defs/Rect4",
+          "description": "What is shown, in pixels of `asset` (its `meta` size), or of `asset` turned by `turn`; none = all of it. A see-through picture's backdrop (an `svgImport`) is cropped with its picture, in its `meta` units (note 20)."
+        },
+        "turn": {
+          "type": "number",
+          "description": "Degrees (clockwise) the pixels of `asset` are turned, resampled, before `crop` is taken (issue 48, note 20): a crop level on the page of a turned picture. `crop` is then in pixels of the turned picture (its bounding box, same pixel size). Only with `crop`; none = not turned."
+        },
+        "cropped": {
+          "$ref": "#/$defs/AssetHash",
+          "description": "The pixels of `crop`, re-encoded as their own image asset (note 20): the export subset has no clipping, so this is what is drawn when `crop` is set."
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Channel"
+          },
+          "description": "A pseudocoloured merge (note 21): the channels `asset` is baked from, kept so a channel can be recoloured, re-ranged or turned off later."
+        },
+        "levels": {
+          "$ref": "#/$defs/Levels",
+          "description": "Levels and invert over the whole picture (note 27): `asset` is `levels.base` adjusted, baked. Applied after a merge and before a crop."
+        }
+      },
+      "required": [
+        "asset",
+        "frame",
+        "id",
+        "opacity",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "Rect4": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "w": {
+          "type": "number"
+        },
+        "h": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "w",
+        "h"
+      ],
+      "additionalProperties": false
+    },
+    "Channel": {
+      "type": "object",
+      "properties": {
+        "asset": {
+          "$ref": "#/$defs/AssetHash",
+          "description": "The channel's own picture, as imported; its brightest of R, G, B is the intensity."
+        },
+        "color": {
+          "type": "string",
+          "description": "`#rrggbb`."
+        },
+        "on": {
+          "type": "boolean",
+          "description": "Off: left out of the merge, kept for later."
+        },
+        "min": {
+          "type": "number",
+          "description": "Intensity shown black (0–254)."
+        },
+        "max": {
+          "type": "number",
+          "description": "Intensity shown at full `color` (1–255, above `min`)."
+        }
+      },
+      "required": [
+        "asset",
+        "color",
+        "on",
+        "min",
+        "max"
+      ],
+      "additionalProperties": false,
+      "description": "One channel of a merged picture (note 21): a single-channel picture shown in `color`, its display range `min`..`max` (0–255) stretched to full brightness."
+    },
+    "Levels": {
+      "type": "object",
+      "properties": {
+        "min": {
+          "type": "number",
+          "description": "Value shown black (0–254)."
+        },
+        "max": {
+          "type": "number",
+          "description": "Value shown full (1–255, above `min`)."
+        },
+        "invert": {
+          "type": "boolean"
+        },
+        "base": {
+          "$ref": "#/$defs/AssetHash",
+          "description": "The picture the levels were applied to, unadjusted."
+        }
+      },
+      "required": [
+        "min",
+        "max",
+        "invert",
+        "base"
+      ],
+      "additionalProperties": false,
+      "description": "Levels and invert for one picture (note 27): `min`..`max` (0–255) stretched to the full range on every colour component, then optionally inverted. `base` is the picture before this (the plain picture or the channel merge), kept so levels can be changed or removed without compounding; `Image.asset` is then the baked result."
+    },
+    "Procedural": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "name": {
+          "type": "string"
+        },
+        "frame": {
+          "$ref": "#/$defs/Frame"
+        },
+        "opacity": {
+          "type": "number"
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "string",
+          "const": "procedural"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "kindVersion": {
+          "type": "number"
+        },
+        "params": {},
+        "path": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PathNode"
+          }
+        },
+        "slots": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/Paint"
+          }
+        },
+        "snapshot": {
+          "$ref": "#/$defs/AssetHash",
+          "description": "An `svgImport` asset drawn when the kind is unknown to this version."
+        }
+      },
+      "required": [
+        "frame",
+        "id",
+        "kind",
+        "kindVersion",
+        "opacity",
+        "params",
+        "slots",
+        "type"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "cell"
+              },
+              "kindVersion": {
+                "const": 1
+              }
+            },
+            "required": [
+              "kind",
+              "kindVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "$ref": "#/$defs/Params_cell"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "bilayer"
+              },
+              "kindVersion": {
+                "const": 1
+              }
+            },
+            "required": [
+              "kind",
+              "kindVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "$ref": "#/$defs/Params_bilayer"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "receptors"
+              },
+              "kindVersion": {
+                "const": 1
+              }
+            },
+            "required": [
+              "kind",
+              "kindVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "$ref": "#/$defs/Params_receptors"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "helix"
+              },
+              "kindVersion": {
+                "const": 1
+              }
+            },
+            "required": [
+              "kind",
+              "kindVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "$ref": "#/$defs/Params_helix"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "plasmidMap"
+              },
+              "kindVersion": {
+                "const": 1
+              }
+            },
+            "required": [
+              "kind",
+              "kindVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "$ref": "#/$defs/Params_plasmidMap"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "proteinDomains"
+              },
+              "kindVersion": {
+                "const": 1
+              }
+            },
+            "required": [
+              "kind",
+              "kindVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "$ref": "#/$defs/Params_proteinDomains"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "wellPlate"
+              },
+              "kindVersion": {
+                "const": 1
+              }
+            },
+            "required": [
+              "kind",
+              "kindVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "$ref": "#/$defs/Params_wellPlate"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "petriDish"
+              },
+              "kindVersion": {
+                "const": 1
+              }
+            },
+            "required": [
+              "kind",
+              "kindVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "$ref": "#/$defs/Params_petriDish"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "gel"
+              },
+              "kindVersion": {
+                "const": 1
+              }
+            },
+            "required": [
+              "kind",
+              "kindVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "$ref": "#/$defs/Params_gel"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "gelLabels"
+              },
+              "kindVersion": {
+                "const": 1
+              }
+            },
+            "required": [
+              "kind",
+              "kindVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "$ref": "#/$defs/Params_gelLabels"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "scaleBar"
+              },
+              "kindVersion": {
+                "const": 1
+              }
+            },
+            "required": [
+              "kind",
+              "kindVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "$ref": "#/$defs/Params_scaleBar"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "timeline"
+              },
+              "kindVersion": {
+                "const": 1
+              }
+            },
+            "required": [
+              "kind",
+              "kindVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "$ref": "#/$defs/Params_timeline"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "placeholderPlot"
+              },
+              "kindVersion": {
+                "const": 1
+              }
+            },
+            "required": [
+              "kind",
+              "kindVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "$ref": "#/$defs/Params_placeholderPlot"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Group": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "name": {
+          "type": "string"
+        },
+        "frame": {
+          "$ref": "#/$defs/Frame"
+        },
+        "opacity": {
+          "type": "number"
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "string",
+          "const": "group"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Obj"
+          },
+          "description": "In page coordinates; the group's frame is their bounds, rotation 0."
+        }
+      },
+      "required": [
+        "children",
+        "frame",
+        "id",
+        "opacity",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "Panel": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "name": {
+          "type": "string"
+        },
+        "frame": {
+          "$ref": "#/$defs/Frame"
+        },
+        "opacity": {
+          "type": "number"
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "string",
+          "const": "panel"
+        },
+        "label": {
+          "type": "string"
+        },
+        "autoLabel": {
+          "type": "boolean"
+        },
+        "showLabel": {
+          "type": "boolean"
+        },
+        "showBorder": {
+          "type": "boolean"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Obj"
+          },
+          "description": "In page coordinates."
+        }
+      },
+      "required": [
+        "autoLabel",
+        "children",
+        "frame",
+        "id",
+        "label",
+        "opacity",
+        "showBorder",
+        "showLabel",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "Embedded": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "name": {
+          "type": "string"
+        },
+        "frame": {
+          "$ref": "#/$defs/Frame"
+        },
+        "opacity": {
+          "type": "number"
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "string",
+          "const": "embedded"
+        },
+        "source": {
+          "type": "object",
+          "properties": {
+            "app": {
+              "type": "string"
+            },
+            "format": {
+              "type": "string"
+            },
+            "payload": {}
+          },
+          "required": [
+            "app",
+            "format",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        "snapshot": {
+          "$ref": "#/$defs/AssetHash"
+        }
+      },
+      "required": [
+        "frame",
+        "id",
+        "opacity",
+        "snapshot",
+        "source",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "Assets": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/Asset"
+      }
+    },
+    "Asset": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "icon"
+            },
+            "svg": {
+              "type": "string"
+            },
+            "slots": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/SlotDef"
+              }
+            },
+            "recolor": {
+              "type": "string",
+              "enum": [
+                "slots",
+                "whole"
+              ]
+            },
+            "meta": {
+              "$ref": "#/$defs/IconMeta"
+            }
+          },
+          "required": [
+            "kind",
+            "svg",
+            "slots",
+            "recolor",
+            "meta"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "image"
+            },
+            "mime": {
+              "type": "string"
+            },
+            "dataBase64": {
+              "type": "string"
+            },
+            "meta": {
+              "$ref": "#/$defs/UserAssetMeta"
+            }
+          },
+          "required": [
+            "kind",
+            "mime",
+            "dataBase64",
+            "meta"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "svgImport"
+            },
+            "svg": {
+              "type": "string"
+            },
+            "meta": {
+              "$ref": "#/$defs/UserAssetMeta"
+            }
+          },
+          "required": [
+            "kind",
+            "svg",
+            "meta"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "SlotDef": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/SlotId"
+        },
+        "label": {
+          "type": "string"
+        },
+        "default": {
+          "type": "string",
+          "description": "Hex colour."
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "default"
+      ],
+      "additionalProperties": false
+    },
+    "SlotId": {
+      "type": "string"
+    },
+    "IconMeta": {
+      "type": "object",
+      "properties": {
+        "library": {
+          "type": "string"
+        },
+        "libraryVersion": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "author": {
+          "type": "string"
+        },
+        "license": {
+          "type": "string",
+          "description": "SPDX id."
+        },
+        "licenseUrl": {
+          "type": "string"
+        },
+        "originalUrl": {
+          "type": "string"
+        },
+        "shareAlike": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "library",
+        "libraryVersion",
+        "id",
+        "title",
+        "source",
+        "license",
+        "licenseUrl",
+        "originalUrl",
+        "shareAlike"
+      ],
+      "additionalProperties": false
+    },
+    "UserAssetMeta": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The file name it was imported from."
+        },
+        "credit": {
+          "type": "string",
+          "description": "Credit the user wants shown in the attribution line, if any."
+        },
+        "width": {
+          "type": "number",
+          "description": "Intrinsic size in pixels (images) or points (SVG)."
+        },
+        "height": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "width",
+        "height"
+      ],
+      "additionalProperties": false
+    },
+    "Params_cell": {
+      "type": "object",
+      "title": "cell params",
+      "description": "An animal cell; switch organelles on and off and colour each one.",
+      "properties": {
+        "shape": {
+          "enum": [
+            "round",
+            "irregular"
+          ],
+          "default": "round",
+          "description": "Outline"
+        },
+        "nucleus": {
+          "type": "boolean",
+          "default": true,
+          "description": "Nucleus"
+        },
+        "nucleolus": {
+          "type": "boolean",
+          "default": true,
+          "description": "Nucleolus"
+        },
+        "er": {
+          "type": "boolean",
+          "default": true,
+          "description": "Endoplasmic reticulum"
+        },
+        "golgi": {
+          "type": "boolean",
+          "default": true,
+          "description": "Golgi apparatus"
+        },
+        "mitochondria": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30,
+          "default": 5,
+          "description": "Mitochondria"
+        },
+        "lysosomes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 40,
+          "default": 4,
+          "description": "Lysosomes"
+        },
+        "vesicles": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60,
+          "default": 8,
+          "description": "Vesicles"
+        },
+        "membrane": {
+          "type": "number",
+          "minimum": 0.25,
+          "maximum": 8,
+          "default": 2,
+          "description": "Membrane width",
+          "x-unit": "pt"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 99999,
+          "default": 3,
+          "description": "Arrangement"
+        }
+      }
+    },
+    "Params_bilayer": {
+      "type": "object",
+      "title": "bilayer params",
+      "description": "A phospholipid bilayer along a path; draw a path with the pen and turn it into one.",
+      "properties": {
+        "closed": {
+          "type": "boolean",
+          "default": false,
+          "description": "Closed (vesicle)"
+        },
+        "spacing": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 20,
+          "default": 6,
+          "description": "Head size",
+          "x-unit": "pt"
+        },
+        "tail": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 40,
+          "default": 8,
+          "description": "Tail length",
+          "x-unit": "pt"
+        },
+        "gap": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10,
+          "default": 1,
+          "description": "Leaflet gap",
+          "x-unit": "pt"
+        },
+        "tails": {
+          "enum": [
+            "straight",
+            "wavy"
+          ],
+          "default": "straight",
+          "description": "Tails"
+        },
+        "outline": {
+          "type": "boolean",
+          "default": true,
+          "description": "Head outlines"
+        }
+      }
+    },
+    "Params_receptors": {
+      "type": "object",
+      "title": "receptors params",
+      "description": "Receptors, channels or transporters spaced along a membrane path.",
+      "properties": {
+        "closed": {
+          "type": "boolean",
+          "default": false,
+          "description": "Closed (cell)"
+        },
+        "protein": {
+          "enum": [
+            "rtk",
+            "gpcr",
+            "channel",
+            "transporter",
+            "antibody"
+          ],
+          "default": "rtk",
+          "description": "Protein"
+        },
+        "spacing": {
+          "type": "number",
+          "minimum": 4,
+          "maximum": 400,
+          "default": 48,
+          "description": "Spacing",
+          "x-unit": "pt"
+        },
+        "size": {
+          "type": "number",
+          "minimum": 2,
+          "maximum": 60,
+          "default": 14,
+          "description": "Size",
+          "x-unit": "pt"
+        },
+        "side": {
+          "enum": [
+            "out",
+            "in"
+          ],
+          "default": "out",
+          "description": "Outside is"
+        },
+        "membrane": {
+          "type": "boolean",
+          "default": true,
+          "description": "Draw membrane"
+        },
+        "thickness": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 30,
+          "default": 10,
+          "description": "Membrane width",
+          "x-unit": "pt"
+        }
+      }
+    },
+    "Params_helix": {
+      "type": "object",
+      "title": "helix params",
+      "description": "A double helix (or an RNA strand) along a path, with base-pair ticks.",
+      "properties": {
+        "molecule": {
+          "enum": [
+            "dna",
+            "rna"
+          ],
+          "default": "dna",
+          "description": "Molecule"
+        },
+        "pitch": {
+          "type": "number",
+          "minimum": 4,
+          "maximum": 300,
+          "default": 40,
+          "description": "Turn length",
+          "x-unit": "pt"
+        },
+        "radius": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 60,
+          "default": 9,
+          "description": "Radius",
+          "x-unit": "pt"
+        },
+        "groove": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 0.5,
+          "default": 0.38,
+          "description": "Groove offset",
+          "x-unit": "turn"
+        },
+        "bases": {
+          "type": "boolean",
+          "default": true,
+          "description": "Base ticks"
+        },
+        "perTurn": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 24,
+          "default": 10,
+          "description": "Bases per turn"
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0.25,
+          "maximum": 8,
+          "default": 1.75,
+          "description": "Strand width",
+          "x-unit": "pt"
+        }
+      }
+    },
+    "Params_plasmidMap": {
+      "type": "object",
+      "title": "plasmidMap params",
+      "description": "A circular or linear map with features; PlasmidPop maps paste in as these.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 200,
+          "default": "pUC19",
+          "description": "Name"
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000000,
+          "default": 2686,
+          "description": "Length",
+          "x-unit": "bp"
+        },
+        "topology": {
+          "enum": [
+            "circular",
+            "linear"
+          ],
+          "default": "circular",
+          "description": "Topology"
+        },
+        "features": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 500,
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "maxLength": 80,
+                "default": "feature",
+                "description": "Name"
+              },
+              "start": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100000000,
+                "default": 1,
+                "description": "Start",
+                "x-unit": "bp"
+              },
+              "end": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100000000,
+                "default": 100,
+                "description": "End",
+                "x-unit": "bp"
+              },
+              "strand": {
+                "enum": [
+                  1,
+                  -1,
+                  0
+                ],
+                "default": 1,
+                "description": "Strand"
+              },
+              "type": {
+                "type": "string",
+                "maxLength": 40,
+                "default": "misc_feature",
+                "description": "Type"
+              },
+              "color": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{6})?$",
+                "default": "",
+                "description": "Colour"
+              }
+            }
+          },
+          "description": "Features"
+        },
+        "showName": {
+          "type": "boolean",
+          "default": true,
+          "description": "Name in the middle"
+        },
+        "showLength": {
+          "type": "boolean",
+          "default": true,
+          "description": "Length"
+        },
+        "showTicks": {
+          "type": "boolean",
+          "default": true,
+          "description": "Scale ticks"
+        },
+        "showLabels": {
+          "type": "boolean",
+          "default": true,
+          "description": "Feature labels"
+        },
+        "ring": {
+          "type": "number",
+          "minimum": 2,
+          "maximum": 40,
+          "default": 11,
+          "description": "Feature width",
+          "x-unit": "pt"
+        },
+        "labelSize": {
+          "type": "number",
+          "minimum": 3,
+          "maximum": 18,
+          "default": 7,
+          "description": "Label size",
+          "x-unit": "pt"
+        },
+        "minLabelPct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 1,
+          "description": "Smallest labelled feature",
+          "x-unit": "% of length"
+        }
+      }
+    },
+    "Params_proteinDomains": {
+      "type": "object",
+      "title": "proteinDomains params",
+      "description": "A protein as a bar with its domains to scale, a residue ruler and N/C termini.",
+      "properties": {
+        "length": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000,
+          "default": 600,
+          "description": "Length",
+          "x-unit": "aa"
+        },
+        "domains": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 200,
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "maxLength": 60,
+                "default": "domain",
+                "description": "Name"
+              },
+              "start": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100000,
+                "default": 1,
+                "description": "Start",
+                "x-unit": "aa"
+              },
+              "end": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100000,
+                "default": 50,
+                "description": "End",
+                "x-unit": "aa"
+              },
+              "color": {
+                "type": "string",
+                "pattern": "^#[0-9a-fA-F]{6}$",
+                "default": "#0072b2",
+                "description": "Colour"
+              },
+              "shape": {
+                "enum": [
+                  "rounded",
+                  "box",
+                  "ellipse",
+                  "hexagon"
+                ],
+                "default": "rounded",
+                "description": "Shape"
+              }
+            }
+          },
+          "description": "Domains"
+        },
+        "height": {
+          "type": "number",
+          "minimum": 2,
+          "maximum": 60,
+          "default": 18,
+          "description": "Domain height",
+          "x-unit": "pt"
+        },
+        "showLabels": {
+          "type": "boolean",
+          "default": true,
+          "description": "Domain names"
+        },
+        "showScale": {
+          "type": "boolean",
+          "default": true,
+          "description": "Residue ruler"
+        },
+        "showTermini": {
+          "type": "boolean",
+          "default": true,
+          "description": "N and C termini"
+        }
+      }
+    },
+    "Params_wellPlate": {
+      "type": "object",
+      "title": "wellPlate params",
+      "description": "A 6- to 1536-well plate; paint wells or paste a layout from a spreadsheet.",
+      "properties": {
+        "format": {
+          "enum": [
+            "6",
+            "12",
+            "24",
+            "48",
+            "96",
+            "384",
+            "1536"
+          ],
+          "default": "96",
+          "description": "Wells"
+        },
+        "shape": {
+          "enum": [
+            "circle",
+            "square"
+          ],
+          "default": "circle",
+          "description": "Well shape"
+        },
+        "showLabels": {
+          "type": "boolean",
+          "default": true,
+          "description": "Row and column labels"
+        },
+        "outline": {
+          "type": "boolean",
+          "default": true,
+          "description": "Well outlines"
+        },
+        "wells": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[A-Z]{1,2}[1-9][0-9]?$"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "description": "Well colours"
+        }
+      }
+    },
+    "Params_petriDish": {
+      "type": "object",
+      "title": "petriDish params",
+      "description": "An agar plate with colonies: random, streaked, spotted dilutions, a pinned grid or a lawn.",
+      "properties": {
+        "pattern": {
+          "enum": [
+            "random",
+            "streak",
+            "spots",
+            "grid",
+            "lawn",
+            "none"
+          ],
+          "default": "random",
+          "description": "Colonies"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1536,
+          "default": 60,
+          "description": "Number"
+        },
+        "size": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 30,
+          "default": 3.5,
+          "description": "Colony size",
+          "x-unit": "pt"
+        },
+        "variation": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.5,
+          "description": "Size variation"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 99999,
+          "default": 7,
+          "description": "Arrangement. Another number gives another arrangement."
+        },
+        "lid": {
+          "type": "boolean",
+          "default": true,
+          "description": "Lid rim"
+        }
+      }
+    },
+    "Params_gel": {
+      "type": "object",
+      "title": "gel params",
+      "description": "A gel with a ladder and lanes of bands; type band sizes in bp.",
+      "properties": {
+        "ladder": {
+          "enum": [
+            "1kb",
+            "100bp",
+            "none"
+          ],
+          "default": "1kb",
+          "description": "Ladder"
+        },
+        "lanes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 30,
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 24,
+                "default": "",
+                "description": "Label"
+              },
+              "ladder": {
+                "type": "boolean",
+                "default": false,
+                "description": "Ladder lane"
+              },
+              "bands": {
+                "type": "string",
+                "maxLength": 300,
+                "default": "",
+                "description": "Bands (bp)"
+              }
+            }
+          },
+          "description": "Lanes"
+        },
+        "look": {
+          "enum": [
+            "stained",
+            "inverted"
+          ],
+          "default": "stained",
+          "description": "Look"
+        },
+        "showLabels": {
+          "type": "boolean",
+          "default": true,
+          "description": "Lane labels"
+        },
+        "showSizes": {
+          "type": "boolean",
+          "default": true,
+          "description": "Ladder sizes"
+        },
+        "wells": {
+          "type": "boolean",
+          "default": true,
+          "description": "Wells"
+        }
+      }
+    },
+    "Params_gelLabels": {
+      "type": "object",
+      "title": "gelLabels params",
+      "description": "Lane labels and ladder sizes for a gel photo, laid over the picture.",
+      "properties": {
+        "lanes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 40,
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 24,
+                "default": "",
+                "description": "Label"
+              },
+              "shift": {
+                "type": "number",
+                "minimum": -50,
+                "maximum": 50,
+                "default": 0,
+                "description": "Shift. Moves this lane off its even place, for a gap in the comb (percent of the width).",
+                "x-unit": "%"
+              }
+            }
+          },
+          "description": "Lanes"
+        },
+        "first": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 8,
+          "description": "First lane at. Centre of the first lane, from the left edge of the picture.",
+          "x-unit": "%"
+        },
+        "last": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 92,
+          "description": "Last lane at. Centre of the last lane; the lanes in between are evenly spaced (unless shifted).",
+          "x-unit": "%"
+        },
+        "angle": {
+          "enum": [
+            0,
+            45,
+            90
+          ],
+          "default": 0,
+          "description": "Label angle"
+        },
+        "sizes": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 30,
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 16,
+                "default": "",
+                "description": "Label"
+              },
+              "at": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100,
+                "default": 50,
+                "description": "Height. Down from the top of the picture.",
+                "x-unit": "%"
+              }
+            }
+          },
+          "description": "Ladder sizes"
+        },
+        "side": {
+          "enum": [
+            "left",
+            "right"
+          ],
+          "default": "left",
+          "description": "Sizes on"
+        },
+        "ticks": {
+          "type": "boolean",
+          "default": true,
+          "description": "Size ticks"
+        },
+        "size": {
+          "type": "number",
+          "minimum": 4,
+          "maximum": 24,
+          "default": 8,
+          "description": "Text size",
+          "x-unit": "pt"
+        }
+      }
+    },
+    "Params_scaleBar": {
+      "type": "object",
+      "title": "scaleBar params",
+      "description": "A scale bar for a micrograph, calibrated from its pixel size.",
+      "properties": {
+        "pixelSize": {
+          "type": "number",
+          "minimum": 0.0001,
+          "maximum": 1000,
+          "default": 0.1,
+          "description": "Pixel size. From the microscope or image metadata, e.g. 0.065 µm for a 100× objective.",
+          "x-unit": "µm/px"
+        },
+        "imageWidth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000,
+          "default": 1000,
+          "description": "Image width. The picture’s width in pixels; set for you by Add scale bar.",
+          "x-unit": "px"
+        },
+        "length": {
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 100000,
+          "default": 10,
+          "description": "Bar length",
+          "x-unit": "µm"
+        },
+        "showLabel": {
+          "type": "boolean",
+          "default": true,
+          "description": "Label"
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 24,
+          "default": "",
+          "description": "Label text. Leave empty to write the length."
+        },
+        "corner": {
+          "enum": [
+            "br",
+            "bl",
+            "tr",
+            "tl"
+          ],
+          "default": "br",
+          "description": "Corner"
+        },
+        "thickness": {
+          "type": "number",
+          "minimum": 0.25,
+          "maximum": 20,
+          "default": 3,
+          "description": "Thickness",
+          "x-unit": "pt"
+        },
+        "margin": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 72,
+          "default": 6,
+          "description": "Margin. From the edges of the picture.",
+          "x-unit": "pt"
+        },
+        "size": {
+          "type": "number",
+          "minimum": 4,
+          "maximum": 24,
+          "default": 8,
+          "description": "Text size",
+          "x-unit": "pt"
+        }
+      }
+    },
+    "Params_timeline": {
+      "type": "object",
+      "title": "timeline params",
+      "description": "A time axis with events (injection, boost, harvest) and treatment periods as bars.",
+      "properties": {
+        "start": {
+          "type": "number",
+          "minimum": -100000,
+          "maximum": 100000,
+          "default": 0,
+          "description": "Axis start"
+        },
+        "end": {
+          "type": "number",
+          "minimum": -100000,
+          "maximum": 100000,
+          "default": 14,
+          "description": "Axis end"
+        },
+        "unit": {
+          "enum": [
+            "hours",
+            "days",
+            "weeks"
+          ],
+          "default": "days",
+          "description": "Unit"
+        },
+        "tickLabels": {
+          "enum": [
+            "prefix",
+            "unit",
+            "none"
+          ],
+          "default": "prefix",
+          "description": "Tick labels"
+        },
+        "step": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100000,
+          "default": 0,
+          "description": "Tick step. 0 picks a step that leaves the labels room."
+        },
+        "events": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 40,
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 40,
+                "default": "Event",
+                "description": "Label"
+              },
+              "time": {
+                "type": "number",
+                "minimum": -100000,
+                "maximum": 100000,
+                "default": 0,
+                "description": "Time"
+              },
+              "marker": {
+                "enum": [
+                  "triangle",
+                  "tick",
+                  "bracket"
+                ],
+                "default": "triangle",
+                "description": "Marker"
+              },
+              "end": {
+                "type": "number",
+                "minimum": -100000,
+                "maximum": 100000,
+                "default": 0,
+                "description": "Bracket end. Brackets only: the time the bracket reaches."
+              },
+              "color": {
+                "type": "string",
+                "pattern": "^(#[0-9a-fA-F]{6})?$",
+                "default": "",
+                "description": "Colour"
+              }
+            }
+          },
+          "description": "Events"
+        },
+        "ranges": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 20,
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 40,
+                "default": "Treatment",
+                "description": "Label"
+              },
+              "start": {
+                "type": "number",
+                "minimum": -100000,
+                "maximum": 100000,
+                "default": 0,
+                "description": "From"
+              },
+              "end": {
+                "type": "number",
+                "minimum": -100000,
+                "maximum": 100000,
+                "default": 1,
+                "description": "To"
+              },
+              "color": {
+                "type": "string",
+                "pattern": "^#[0-9a-fA-F]{6}$",
+                "default": "#56b4e9",
+                "description": "Colour"
+              }
+            }
+          },
+          "description": "Periods"
+        },
+        "side": {
+          "enum": [
+            "above",
+            "below"
+          ],
+          "default": "above",
+          "description": "Event labels"
+        },
+        "arrow": {
+          "type": "boolean",
+          "default": true,
+          "description": "Arrow at the end"
+        },
+        "size": {
+          "type": "number",
+          "minimum": 4,
+          "maximum": 24,
+          "default": 8,
+          "description": "Text size",
+          "x-unit": "pt"
+        }
+      }
+    },
+    "Params_placeholderPlot": {
+      "type": "object",
+      "title": "placeholderPlot params",
+      "description": "A plot-shaped placeholder (PCA, UMAP, scatter, bar or flow cytometry) drawn from a seed.",
+      "properties": {
+        "plot": {
+          "enum": [
+            "pca",
+            "umap",
+            "scatter",
+            "bar",
+            "flow"
+          ],
+          "default": "pca",
+          "description": "Plot type"
+        },
+        "groups": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "maxLength": 30,
+                "default": "",
+                "description": "Name"
+              },
+              "color": {
+                "type": "string",
+                "pattern": "^#[0-9a-fA-F]{6}$",
+                "default": "#0072b2",
+                "description": "Colour"
+              }
+            }
+          },
+          "description": "Groups. Clusters, or bars of a bar chart. Flow cytometry uses the first colour for events and the second for events inside the polygon gate."
+        },
+        "points": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 60,
+          "description": "Points per group"
+        },
+        "events": {
+          "type": "integer",
+          "minimum": 50,
+          "maximum": 5000,
+          "default": 1500,
+          "description": "Events. How many cells the flow plot draws."
+        },
+        "gate": {
+          "enum": [
+            "none",
+            "quadrant",
+            "polygon"
+          ],
+          "default": "quadrant",
+          "description": "Gate. The percentages are the share of the drawn events in each region."
+        },
+        "spread": {
+          "type": "number",
+          "minimum": 0.25,
+          "maximum": 2.5,
+          "default": 1,
+          "description": "Spread. How loose the clusters, or how long the error bars, are."
+        },
+        "pointSize": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 12,
+          "default": 2.5,
+          "description": "Point size",
+          "x-unit": "pt"
+        },
+        "axes": {
+          "type": "boolean",
+          "default": true,
+          "description": "Axes"
+        },
+        "axisLabels": {
+          "type": "boolean",
+          "default": true,
+          "description": "Axis labels"
+        },
+        "xLabel": {
+          "type": "string",
+          "maxLength": 40,
+          "default": "",
+          "description": "x-axis label. Empty uses the usual label for the plot type."
+        },
+        "yLabel": {
+          "type": "string",
+          "maxLength": 40,
+          "default": "",
+          "description": "y-axis label"
+        },
+        "legend": {
+          "type": "boolean",
+          "default": true,
+          "description": "Group names. A legend beside the plot; under the bars of a bar chart."
+        },
+        "errorBars": {
+          "type": "boolean",
+          "default": true,
+          "description": "Error bars"
+        },
+        "dots": {
+          "type": "boolean",
+          "default": true,
+          "description": "Data points"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 99999,
+          "default": 3,
+          "description": "Arrangement. Another number gives another set of points."
+        }
+      }
+    }
+  }
+}

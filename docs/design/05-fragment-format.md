@@ -107,14 +107,38 @@ parsed JSON, untouched> }`, `snapshot`: the hash of an `svgImport` asset holding
 
 ## JSON Schema
 
-`schemas/fragment.schema.json` (JSON Schema draft-07) describes the whole fragment. It is generated
-from the `FragmentFile` type in `src/io/jfig.ts` (and the model types it pulls in) by
-`ts-json-schema-generator`: run `npm run schema` after changing those types. Siblings can copy it
-or reference it by its path in this repo to validate what they write.
-`src/io/fragmentSchema.test.ts` validates every frozen fragment fixture against it and fails when
-the committed file is stale.
+`public/schema/fragment.schema.json` (JSON Schema draft 2020-12) describes the whole fragment. It is
+served with the app at `schema/fragment.schema.json` and is what siblings and generators validate
+against. It is written by `npm run schema` (`scripts/schema/generate.ts`) from two sources, so it
+cannot drift: the shape of every object comes from the `FragmentFile` type in `src/io/jfig.ts`
+(and the model types it pulls in) via `ts-json-schema-generator`, which writes draft-07 and is
+converted (`definitions` → `$defs`); each procedural kind's `params` come from the kind's `fields`
+(`src/procedural/paramsSchema.ts`), attached to a procedural object by `if` kind and current
+`kindVersion`. The script loads the kinds through Vite's SSR loader so the `@/` alias works.
+`src/io/fragmentSchema.test.ts` validates every frozen fragment fixture and every kind's default
+params against it and fails when the committed file differs from a fresh generation (run
+`npm run schema` after changing the types or any kind's fields).
 
-The schema is structural only: it does not encode the strict decoders' range checks, and a
-procedural object's `params` are free-form JSON (decoded leniently by its kind, see above), so the
-tables in this note remain the contract for `params`
-([#18](https://github.com/BooneAndrewsLab/JustFig/issues/18)).
+The schema is structural: it does not encode the strict decoders' range checks. A procedural
+object's `params` are decoded leniently (see above), so the schema says what to send, not what the
+app refuses.
+
+## The public contract (issue 79)
+
+The format is also the on-ramp for generated figures: a tool (a script, a notebook, a model-based
+paper-to-figure tool) writes a fragment and the user pastes it. The app stays free of any such
+tool: it never calls a model or a service, and a fragment is only ever read locally.
+
+- **Guide page** `docs/guide/18-fragment-format.md` (bundled in-app) is the author-facing
+  description: envelope, a minimal example, units (points), paints, every object type and every
+  procedural kind with its params. `src/io/fragmentGuide.test.ts` keeps it honest: the example
+  validates against the schema and pastes as one rect and one text, and every object type, kind,
+  param, range and enum option the app knows must be on the page.
+- **Stability:** what pastes today keeps pasting. A new object property is optional in the reader,
+  a changed kind `params` shape bumps the kind's `version` with a `migrate` (note 04), and a
+  schema bump ships a `MIGRATIONS` step (note 02).
+- **Paste errors** name the object: `readFragment` decodes each entry of `objects` on its own and
+  refuses with `Cannot paste: objects[1] (rect, id "box2") is damaged at property "frame.x":
+expected a finite number.` (index from 0, type or `type/kind`, id when readable, the path inside
+  the object and the decoder's reason). `pasteText` shows it as an error notice. Nothing is
+  pasted when any object fails.

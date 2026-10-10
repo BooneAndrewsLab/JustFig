@@ -41,6 +41,7 @@ import {
   type Json,
   type JsonObject,
   Path,
+  arr,
   bool,
   flag,
   int,
@@ -669,13 +670,47 @@ export function readFragment(text: string): Fragment | null {
   const v = migrate(raw);
   const root = new Path(['fragment']);
   try {
-    return {
-      objects: list(v['objects'], root.key('objects'), object),
-      assets: assetsOf(v['assets'], root.key('assets')),
-    };
+    const objects = arr(v['objects'], root.key('objects')).map((x, i) => {
+      try {
+        return object(x, root.key('objects').index(i));
+      } catch (e: unknown) {
+        if (e instanceof DecodeError) throw new JfigError(objectProblem(x, i, e.message));
+        throw e;
+      }
+    });
+    return { objects, assets: assetsOf(v['assets'], root.key('assets')) };
   } catch (e: unknown) {
     if (e instanceof DecodeError)
-      throw new JfigError(`The pasted objects are damaged (${e.message}).`);
+      throw new JfigError(`The pasted fragment is damaged (${e.message}).`);
     throw e;
   }
+}
+
+/**
+ * Which object of a fragment failed and why (issue 79), for a generator's author:
+ * its index in `objects` (from 0), its type and id when readable, and the failing
+ * property with the decoder's reason.
+ */
+function objectProblem(raw: unknown, index: number, message: string): string {
+  const prefix = `fragment.objects[${String(index)}]`;
+  const rest = message.startsWith(prefix) ? message.slice(prefix.length) : `: ${message}`;
+  const [where, ...why] = rest.replace(/^\./, '').split(': ');
+  const o: Record<string, unknown> =
+    raw !== null && typeof raw === 'object' && !Array.isArray(raw)
+      ? (raw as Record<string, unknown>)
+      : {};
+  const t = o['type'];
+  const id = o['id'];
+  const k = o['kind'];
+  const label = [
+    typeof t === 'string' ? (typeof k === 'string' ? `${t}/${k}` : t) : null,
+    typeof id === 'string' ? `id "${id}"` : null,
+  ]
+    .filter((x) => x !== null)
+    .join(', ');
+  const at = where ? `property "${where}"` : 'the object itself';
+  return (
+    `Cannot paste: objects[${String(index)}]${label ? ` (${label})` : ''} is damaged at ${at}: ` +
+    `${why.join(': ') || 'invalid'}.`
+  );
 }
