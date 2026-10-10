@@ -1,7 +1,8 @@
 /**
  * The Phase 2 icon library in the browser: categories with sprite
  * thumbnails, search, the share-alike opt-in, per-slot recolouring with the
- * "modified" credit, and the library's CREDITS.md.
+ * "modified" credit, the library's CREDITS.md, and the large preview on
+ * hover and keyboard focus.
  */
 import { expect, test } from '@playwright/test';
 
@@ -125,4 +126,42 @@ test('a search lists matching scientific objects first, tagged, and places them'
   await search.fill('pipette');
   await expect(page.getByRole('status')).not.toContainText('adjustable');
   await expect(results.locator('.object-tile')).toHaveCount(0);
+});
+
+test('previews an icon large on hover and on keyboard focus', async ({ page }) => {
+  const tile = await iconTile(page, 'neuron', 'neuron');
+  const preview = page.getByRole('tooltip');
+  await tile.hover();
+  await expect(preview).toBeVisible();
+  await expect(preview).toContainText('Neuron');
+  await expect(preview).toHaveAttribute('data-icon', 'neuron');
+  await expect(tile).toHaveAttribute('aria-describedby', 'icon-preview');
+  // Drawn from the icon's own SVG, not the sprite sheet, and actually loaded.
+  const img = preview.locator('img');
+  await expect(img).toHaveAttribute('src', /\.svg$/);
+  await expect
+    .poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0))
+    .toBe(true);
+  expect((await preview.boundingBox())?.width ?? 0).toBeGreaterThan(150);
+  // Leaving the tile closes it.
+  await page.mouse.move(700, 15);
+  await expect(preview).toHaveCount(0);
+
+  // Keyboard: focus opens it at once, Escape closes it, and so does moving focus away.
+  await page.getByLabel('Search icons').focus();
+  const focused = page.locator('.icon-tile:focus');
+  for (let i = 0; i < 6 && (await focused.count()) === 0; i++) await page.keyboard.press('Tab');
+  await expect(focused).toHaveCount(1);
+  await expect(preview).toBeVisible();
+  const id = await focused.getAttribute('data-icon');
+  await expect(preview).toHaveAttribute('data-icon', id ?? '');
+  await page.keyboard.press('Escape');
+  await expect(preview).toHaveCount(0);
+  await expect(page.locator(`.icon-tile[data-icon="${id ?? ''}"]`)).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(preview).toBeVisible();
+  await page.keyboard.press('Shift+Tab');
+  await expect(preview).toHaveAttribute('data-icon', id ?? '');
+  await page.getByLabel('Search icons').focus();
+  await expect(preview).toHaveCount(0);
 });

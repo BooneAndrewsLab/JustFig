@@ -1411,3 +1411,34 @@ button.link {
 .canvas:focus:not(:focus-visible) {
   outline: none;
 }
+
+/* The icon browser's large preview, beside the tile (IconPreview positions it). */
+.icon-preview {
+  position: fixed;
+  z-index: 30;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  width: 200px;
+  padding: 10px;
+  background: var(--panel);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 15%);
+  font-size: 12px;
+  text-align: center;
+}
+
+.icon-preview img {
+  width: 176px;
+  height: 176px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: var(--radius);
+}
+
+.icon-preview-credit,
+.icon-preview-sa {
+  color: var(--ink-2);
+  font-size: 11px;
+}

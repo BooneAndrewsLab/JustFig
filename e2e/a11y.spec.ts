@@ -27,6 +27,10 @@ test('the editor has no serious accessibility problems', async ({ page }) => {
   await page.getByLabel('Search icons').fill('plate');
   await expect(page.locator('.object-tile.tagged').first()).toBeVisible();
   expect(await audit(page, '.icons-panel')).toEqual([]);
+  // The large icon preview, open on a tile.
+  await page.locator('.icon-tile').first().hover();
+  await expect(page.getByRole('tooltip')).toBeVisible();
+  expect(await audit(page, '.icons-panel')).toEqual([]);
 });
 
 test('the figure tab strip is a proper tablist with no problems', async ({ page }) => {

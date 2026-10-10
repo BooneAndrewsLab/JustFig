@@ -4,6 +4,7 @@
  * click to place at the centre of the view or drag onto the canvas, the
  * share-alike opt-in, and the library credits. A search also lists the
  * scientific objects it matches (note 04), first and tagged "Adjustable".
+ * Hovering or keyboard-focusing a tile shows a large preview (IconPreview).
  */
 import { useEffect, useMemo, useState } from 'react';
 
@@ -11,6 +12,8 @@ import type { IconEntry, LibraryManifest } from '@/icons/manifest';
 import { matchKinds } from '@/procedural/search';
 
 import { ICON_DRAG_TYPE } from '../canvas/view';
+import { IconPreview } from './IconPreview';
+import { type Box, PREVIEW_ID, PreviewTimer } from './previewTimer';
 import { ObjectTile, ObjectsShelf } from './ObjectsShelf';
 import { getLibrary, placeIcon } from '../state/session';
 
@@ -36,23 +39,67 @@ function store(key: string, value: string): void {
 /** Whether share-alike icons are shown (the user's opt-in, off by default). */
 const showShareAlike = (): boolean => stored(SA_KEY) === '1';
 
-function Tile({ entry, manifest }: { entry: IconEntry; manifest: LibraryManifest }) {
+interface Previewed {
+  readonly entry: IconEntry;
+  readonly el: HTMLElement;
+}
+
+/** Keyboard focus only: a click focuses the tile too, and places the icon instead. */
+function focusVisible(el: Element): boolean {
+  try {
+    return el.matches(':focus-visible');
+  } catch {
+    return true;
+  }
+}
+
+function Tile({
+  entry,
+  manifest,
+  previewed,
+  timer,
+}: {
+  entry: IconEntry;
+  manifest: LibraryManifest;
+  previewed: boolean;
+  timer: PreviewTimer<Previewed>;
+}) {
   const lib = getLibrary();
   const t = lib.thumb(manifest, entry, TILE);
-  const credit = `${entry.meta.source}${entry.meta.author ? `, ${entry.meta.author}` : ''}, ${entry.meta.license}`;
   return (
     <button
       type="button"
       className="icon-tile"
-      title={`${entry.title} — ${credit}`}
       aria-label={`Place ${entry.title}`}
+      aria-describedby={previewed ? PREVIEW_ID : undefined}
       data-icon={entry.id}
       draggable
+      onMouseEnter={(ev) => {
+        timer.hover({ entry, el: ev.currentTarget });
+      }}
+      onMouseLeave={() => {
+        timer.leave();
+      }}
+      onFocus={(ev) => {
+        if (focusVisible(ev.currentTarget)) timer.focus({ entry, el: ev.currentTarget });
+      }}
+      onBlur={() => {
+        timer.dismiss();
+      }}
+      onKeyDown={(ev) => {
+        // Escape closes the preview first; the next one reaches the editor (deselect).
+        if (ev.key === 'Escape' && timer.current !== null) {
+          ev.stopPropagation();
+          timer.dismiss();
+        }
+      }}
       onDragStart={(ev) => {
+        timer.dismiss();
         ev.dataTransfer.setData(ICON_DRAG_TYPE, entry.id);
         ev.dataTransfer.effectAllowed = 'copy';
       }}
       onClick={() => {
+        timer.dismiss();
         void placeIcon(entry);
       }}
     >
@@ -89,6 +136,21 @@ export function IconBrowser({ onCredits }: { onCredits: () => void }) {
   const [query, setQuery] = useState('');
   const [sa, setSa] = useState(showShareAlike);
   const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{ entry: IconEntry; el: HTMLElement; anchor: Box } | null>(
+    null,
+  );
+  const [timer] = useState(
+    () =>
+      new PreviewTimer<Previewed>((v) => {
+        setPreview(v && { ...v, anchor: v.el.getBoundingClientRect() });
+      }),
+  );
+  useEffect(
+    () => () => {
+      timer.dismiss();
+    },
+    [timer],
+  );
 
   useEffect(() => {
     getLibrary()
@@ -172,7 +234,19 @@ export function IconBrowser({ onCredits }: { onCredits: () => void }) {
           ))}
         </select>
       </header>
-      <div className="icons-scroll" data-testid="icon-results" aria-busy={loading}>
+      <div
+        className="icons-scroll"
+        data-testid="icon-results"
+        aria-busy={loading}
+        onScroll={(ev) => {
+          // The preview follows its tile (focus scrolls it into view), and goes once it is out of sight.
+          if (!preview) return;
+          const r = preview.el.getBoundingClientRect();
+          const view = ev.currentTarget.getBoundingClientRect();
+          if (r.bottom <= view.top || r.top >= view.bottom) timer.dismiss();
+          else setPreview({ ...preview, anchor: r });
+        }}
+      >
         {error && <p className="note">{error}</p>}
         {searching && !loading && (
           <p className="note" role="status">
@@ -200,9 +274,28 @@ export function IconBrowser({ onCredits }: { onCredits: () => void }) {
         {manifest && (
           <div className="icon-grid">
             {icons.map((e) => (
-              <Tile key={e.id} entry={e} manifest={manifest} />
+              <Tile
+                key={e.id}
+                entry={e}
+                manifest={manifest}
+                previewed={preview?.entry.id === e.id}
+                timer={timer}
+              />
             ))}
           </div>
+        )}
+        {preview && icons.some((e) => e.id === preview.entry.id) && (
+          <IconPreview
+            entry={preview.entry}
+            anchor={preview.anchor}
+            svgUrl={getLibrary().svgUrl(preview.entry)}
+            onPointerEnter={() => {
+              timer.keep();
+            }}
+            onPointerLeave={() => {
+              timer.leave();
+            }}
+          />
         )}
       </div>
       <footer className="icons-footer">

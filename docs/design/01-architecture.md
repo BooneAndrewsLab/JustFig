@@ -175,6 +175,20 @@ opt-in (off by default, remembered in localStorage). "Icon credits and licences"
 `CreditsDialog`, which renders CREDITS.md as plain React text (headings, lists, bold, https
 links; never HTML).
 
+**Preview** (`ui/panels/IconPreview.tsx`, logic in `previewTimer.ts`; issue #64): a 176 px
+`role="tooltip"` beside the tile (right of it, else left, kept on screen; the tile's
+`aria-describedby` points at it while open) with the name, source, author and licence; it
+replaces the tile's native `title`. The picture is the icon's own SVG file as an `<img>`: crisp
+at any size, fetched only when a preview opens (then cached by the service worker), and an image
+runs no script, so it needs no sanitising, unlike the placed asset. `PreviewTimer` holds the
+timing: hover opens after 350 ms (no flicker while the mouse crosses the grid), at once if a
+preview is already up; leaving closes after a 150 ms grace, so the pointer can reach the next
+tile or the preview itself (WCAG 1.4.13 hoverable). Keyboard focus opens it at once, but only
+`:focus-visible` focus, since a click focuses the tile and places the icon instead. Blur, click,
+drag and Escape close it, and so does scrolling its tile out of sight (a scroll otherwise moves
+it with the tile: keyboard focus scrolls tiles into view); that Escape stops there, so the next
+one still clears the selection.
+
 **Offline**: the service worker precaches the manifest, shards and search index (~3 MB); SVGs,
 sprite sheets and licence texts (~80 MB in all) are cached on first use (CacheFirst; the
 versioned path never changes).
