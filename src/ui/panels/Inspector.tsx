@@ -36,6 +36,7 @@ import {
 import { needsModifiedNote } from '@/core/attribution/attribution';
 import { splitChannels, splitChannelsOf, splitSetOf } from '@/core/edits/channels';
 import { cropTargets, sharedSize } from '@/core/edits/crop';
+import { canInset, insetMagnification, setInsetMagnification } from '@/core/edits/inset';
 import {
   type LevelsInput,
   type LevelsTarget,
@@ -65,10 +66,11 @@ import { bakeView } from '@/io/cropImage';
 import { bakeLevels, needsBake } from '@/io/levels';
 import { bakeSplit } from '@/io/split';
 import { drawnBoundsIn } from '@/procedural/bounds';
-import { addScaleBar, labelGelImage } from '@/procedural/edits';
+import { addScaleBar, insetSourcePixelSize, labelGelImage } from '@/procedural/edits';
 import { formatLength, fromUnit, toUnit } from '@/core/units';
 
 import { analytics } from '../analytics';
+import { objName } from './objName';
 import { type AppState, currentPage, figure, selectedObjects, store } from '../state/store';
 import {
   copySpacing,
@@ -169,11 +171,13 @@ function restyle(
 export function Inspector({
   onArrangeGrid,
   onCrop,
+  onInset,
   onChannels,
   onSavePreset,
 }: {
   onArrangeGrid: () => void;
   onCrop: () => void;
+  onInset: () => void;
   onChannels: () => void;
   onSavePreset: () => void;
 }) {
@@ -187,6 +191,7 @@ export function Inspector({
       sel={sel}
       onArrangeGrid={onArrangeGrid}
       onCrop={onCrop}
+      onInset={onInset}
       onChannels={onChannels}
       onSavePreset={onSavePreset}
     />
@@ -364,6 +369,7 @@ function SelectionInspector({
   sel,
   onArrangeGrid,
   onCrop,
+  onInset,
   onChannels,
   onSavePreset,
 }: {
@@ -371,6 +377,7 @@ function SelectionInspector({
   sel: readonly Obj[];
   onArrangeGrid: () => void;
   onCrop: () => void;
+  onInset: () => void;
   onChannels: () => void;
   onSavePreset: () => void;
 }) {
@@ -792,6 +799,7 @@ function SelectionInspector({
       <ChannelsSection s={s} sel={sel} onChannels={onChannels} />
       <LevelsSection s={s} sel={sel} />
       <CropSection s={s} sel={sel} onCrop={onCrop} />
+      {one?.type === 'image' && <InsetSection s={s} image={one} onInset={onInset} />}
       {one?.type === 'embedded' && <EmbeddedSection obj={one} />}
       {one?.type === 'procedural' && <ProceduralSection s={s} obj={one} />}
       {one?.type === 'path' && <PathKindsSection s={s} path={one} />}
@@ -1633,6 +1641,73 @@ function CropSection({ s, sel, onCrop }: { s: AppState; sel: readonly Obj[]; onC
           onClick={onCrop}
         >
           Crop and rotate…
+        </button>
+      </div>
+    </Section>
+  );
+}
+
+/** A magnified inset of a region (note 44): make one, or an inset's magnification and region. */
+function InsetSection({
+  s,
+  image,
+  onInset,
+}: {
+  s: AppState;
+  image: Extract<Obj, { type: 'image' }>;
+  onInset: () => void;
+}) {
+  const fig = figure(s);
+  if (!canInset(image, fig)) return null;
+  const page = currentPage(s);
+  const link = image.inset;
+  const source = link ? findObj(page, link.source) : undefined;
+  const mag = insetMagnification(page, image, fig);
+  const own = fig.assets[image.asset];
+  const px =
+    (own?.kind === 'image' ? own.meta.pixelSize : undefined) ?? insetSourcePixelSize(page, image);
+  const c = image.crop;
+  return (
+    <Section title="Magnified inset">
+      {link && source && mag !== null && c && (
+        <>
+          <p className="note">
+            Magnified inset of {objName(source)}: pixels {String(c.x)}, {String(c.y)}, {String(c.w)}{' '}
+            × {String(c.h)}. Drag its box on the picture to show another region.
+            {link.stale === true ? ' Updating its pixels…' : ''}
+          </p>
+          <div className="row">
+            <Num
+              label="Magnification"
+              value={mag}
+              step={0.1}
+              min={0.1}
+              suffix="×"
+              onChange={(v) => {
+                if (v > 0)
+                  store.edit(setInsetMagnification(page.id, image.id, v), {
+                    coalesce: key('inset-mag', [image.id]),
+                    keepSelection: true,
+                  });
+              }}
+            />
+          </div>
+          {px !== null && (
+            <p className="note">
+              Calibration from the picture: {String(px)} µm per pixel, shown{' '}
+              {String(Math.round(mag * 100) / 100)}× larger, so a scale bar added here reads the
+              magnification.
+            </p>
+          )}
+        </>
+      )}
+      <div className="row">
+        <button
+          type="button"
+          title="Show a region of this picture magnified beside it, joined to a box on the picture by two lines"
+          onClick={onInset}
+        >
+          Make inset…
         </button>
       </div>
     </Section>

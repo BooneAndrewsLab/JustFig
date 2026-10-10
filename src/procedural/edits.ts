@@ -6,12 +6,13 @@ import { type Edit, EditError, updateObjects } from '@/core/edits/edits';
 import { refit } from '@/core/geometry/transform';
 import { frame } from '@/core/model/factory';
 import { type Id, newId } from '@/core/model/ids';
-import { mapPageObjs } from '@/core/model/tree';
+import { mapPageObjs, pageObjects } from '@/core/model/tree';
 import type {
   Assets,
   Figure,
   Image,
   Obj,
+  Page,
   PathNode,
   PathObj,
   Procedural,
@@ -215,10 +216,31 @@ export function labelGelImage(pageId: Id, image: Obj): Edit {
 }
 
 /**
+ * The calibration (µm per pixel) of the picture an inset magnifies (note 44):
+ * the pixel size of the scale bar grouped over its source, if it has one. The
+ * inset shows the source's own pixels, so the same pixel size holds; its bar
+ * comes out shorter in µm per point by the magnification.
+ */
+export function insetSourcePixelSize(page: Page, image: Image): number | null {
+  const source = image.inset?.source;
+  if (source === undefined) return null;
+  for (const g of pageObjects(page)) {
+    if (g.type !== 'group' || !g.children.some((c) => c.id === source)) continue;
+    for (const c of g.children) {
+      if (c.type !== 'procedural' || c.kind !== 'scaleBar') continue;
+      const p = c.params as { pixelSize?: unknown } | null;
+      if (typeof p?.pixelSize === 'number' && p.pixelSize > 0) return p.pixelSize;
+    }
+  }
+  return null;
+}
+
+/**
  * "Add scale bar" on a micrograph (note 19): a scale bar on the picture's box
  * that knows the picture's width in pixels, grouped with it so the bar stays
- * calibrated through any resize. Selected, ready for the pixel size (already set when the
- * picture came with one, note 43).
+ * calibrated through any resize. Selected, ready for the pixel size: the
+ * picture's own when it came with one (note 43), else on an inset (note 44)
+ * its source's bar's.
  */
 export function addScaleBar(pageId: Id, image: Obj): Edit {
   if (image.type !== 'image') throw new EditError('Select a micrograph to add a scale bar to.');
@@ -227,10 +249,13 @@ export function addScaleBar(pageId: Id, image: Obj): Edit {
     // A cropped picture shows only the crop's pixels across its box (note 20).
     const w = o.crop?.w ?? (a?.kind === 'image' ? a.meta.width : 0);
     if (a?.kind !== 'image' || w <= 0) return {};
-    // A TIFF's stated pixel size (note 43) is taken as it is: nothing to type.
+    // A TIFF's stated pixel size (note 43) is taken as it is; an inset of a picture
+    // without one takes its source's bar's (note 44).
+    const page = f.doc.pages.find((p) => p.id === pageId);
+    const px = a.meta.pixelSize ?? (page ? insetSourcePixelSize(page, o) : null);
     return {
       imageWidth: Math.round(w),
-      ...(a.meta.pixelSize === undefined ? {} : { pixelSize: a.meta.pixelSize }),
+      ...(px === null ? {} : { pixelSize: px }),
     };
   });
 }

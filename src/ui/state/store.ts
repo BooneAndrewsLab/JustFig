@@ -293,6 +293,28 @@ export class AppStore {
     return true;
   }
 
+  /**
+   * Applies an edit that completes the present instead of being a change of
+   * its own (re-baked inset pixels, note 44): no undo step, and the figure's
+   * saved state is unaffected beyond what the edit sets. Returns whether it applied.
+   */
+  amend(e: Edit, tabKey?: string): boolean {
+    const t = this.tab(tabKey ?? this.frontKey);
+    if (!t) return false;
+    const base = t.history.present;
+    let next: Figure;
+    try {
+      next = reconcileNotes(reconcileBindings(base, e.apply(base)));
+    } catch (err: unknown) {
+      if (!(err instanceof EditError)) throw err;
+      return false;
+    }
+    if (next === base) return false;
+    const history = t.history.amended(next);
+    this.replaceTab(fix({ ...t, history }, history.present, t.selection));
+    return true;
+  }
+
   /** The figure an open run of edits with this coalesce key started from, if one is open. */
   runStart(key: string): Figure | undefined {
     return this.state.history.runStart(key, Date.now(), COALESCE_MS);

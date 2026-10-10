@@ -9,6 +9,7 @@ import { flatten } from '../geometry/sampling';
 import { type Box, apply, center, corners, frameMatrix } from '../geometry/matrix';
 import { objBounds } from '../geometry/transform';
 import { localise } from './factory';
+import { remapInset, reconcileInsets } from './inset';
 import type { Id } from './ids';
 import { hasChildren, mapPageObjs, pageObjects } from './tree';
 import type { Arrow, Figure, Obj, Page, PathNode, Vec2 } from './types';
@@ -255,8 +256,13 @@ function reconcilePage(before: Page | undefined, page: Page): Page {
   return next;
 }
 
-/** Re-solves bound arrows after an edit turned `before` into `after` (note 06). */
-export function reconcileBindings(before: Figure, after: Figure): Figure {
+/**
+ * Re-solves bound objects after an edit turned `before` into `after`: first
+ * magnified insets' boxes and lines (note 44), then bound arrows (note 06),
+ * so an arrow bound to an inset or its box follows them too.
+ */
+export function reconcileBindings(before: Figure, edited: Figure): Figure {
+  const after = reconcileInsets(before, edited);
   const pages = after.doc.pages.map((p) =>
     reconcilePage(
       before.doc.pages.find((q) => q.id === p.id),
@@ -267,10 +273,14 @@ export function reconcileBindings(before: Figure, after: Figure): Figure {
   return { ...after, doc: { ...after.doc, pages } };
 }
 
-/** Bindings remapped to copies (paste, duplicate); a binding to an object not copied is dropped. */
+/**
+ * Bindings remapped to copies (paste, duplicate); a binding to an object not
+ * copied is dropped, and an inset link whose source or box was not copied (note 44).
+ */
 export function remapBindings(objs: readonly Obj[], ids: ReadonlyMap<Id, Id>): Obj[] {
   const fix = (o: Obj): Obj => {
     if (hasChildren(o)) return { ...o, children: o.children.map(fix) };
+    if (o.type === 'image') return remapInset(o, ids);
     if (o.type !== 'arrow' || !o.bind) return o;
     const bind: { start?: Id; end?: Id } = {};
     for (const end of ['start', 'end'] as const) {

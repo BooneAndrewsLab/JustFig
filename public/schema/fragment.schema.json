@@ -691,6 +691,10 @@
             "$ref": "#/$defs/Id"
           },
           "description": "The pictures of one \"Split channels\" row (note 45), this one included: a crop or levels change on one is offered to the rest. Ids that no longer exist are ignored."
+        },
+        "inset": {
+          "$ref": "#/$defs/InsetLink",
+          "description": "A magnified inset of a region of another picture (note 44)."
         }
       },
       "required": [
@@ -787,6 +791,37 @@
       ],
       "additionalProperties": false,
       "description": "Levels and invert for one picture (note 27): `min`..`max` (0–255) stretched to the full range on every colour component, then optionally inverted. `base` is the picture before this (the plain picture or the channel merge), kept so levels can be changed or removed without compounding; `Image.asset` is then the baked result."
+    },
+    "InsetLink": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/Id",
+          "description": "The picture the region is of."
+        },
+        "box": {
+          "$ref": "#/$defs/Id",
+          "description": "The outline rectangle on the source; dragging it re-crops the inset."
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          },
+          "description": "The connector lines (open two-node paths), box corners to inset corners."
+        },
+        "stale": {
+          "type": "boolean",
+          "description": "`crop` changed since `cropped` was baked: the app re-bakes the pixels."
+        }
+      },
+      "required": [
+        "source",
+        "box",
+        "lines"
+      ],
+      "additionalProperties": false,
+      "description": "What makes a picture a magnified inset of a region of another (note 44): the region is its own `crop` (with `turn`) in pixels of the source's `asset`; the outline box on the source and the connector lines are plain objects named here, laid out only by `reconcileBindings` (note 06)."
     },
     "Procedural": {
       "type": "object",

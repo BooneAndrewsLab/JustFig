@@ -101,6 +101,14 @@ To crop a turned picture along the page instead (turn a field so a cell is level
 
 A see-through picture from an imported plot has a backdrop under it (what the plot drew there, see [Importing and other apps](11-import-and-other-apps.md)); cropping or turning the picture crops and turns its backdrop with it.
 
+### Magnified inset
+
+Shown when one PNG or JPEG picture is selected. **Make inset…** opens the **Make inset** dialog, for the usual micrograph panel of a box on the picture and an enlarged copy of that region beside it. Drag a rectangle on the preview, or type the region as **Left**, **Top**, **Width** and **Height** in pixels of the picture as it is shown, and set **Magnification (×)** (2 at first); click **Make inset**. The inset is a new picture of just those pixels, placed to the right of the picture; a thin box marks the region on the picture and two lines join the box's corners to the inset's. It is one step to undo.
+
+The three stay linked. Move or resize the picture and the box and lines follow it; move the inset anywhere and the lines go to the corners that face each other (they swap sides when you put the inset below, above or to the left). Resize the inset to change its magnification, or type a new **Magnification** in its **Magnified inset** section, which resizes it from its top-left corner; the section also shows the region in pixels. Drag or resize the box on the picture to show another region: the inset follows at the same magnification (its pixels are cut again a moment later). Delete the picture, the box or the inset and the box and lines go too; an inset left on its own is an ordinary cropped picture. Recolour the box and lines like any shape. Copying the picture with its inset, box and lines copies the link; copying only some of them copies plain objects.
+
+For a scale bar on the inset, select it and click **Add scale bar**: when the picture has a scale bar, its **Pixel size** is copied, and since the inset shows the same pixels larger, its bar is drawn longer by the magnification. Insets export as plain pictures and lines, like a crop.
+
 ### From BarelySig
 
 For a graph imported from BarelySig with its data. It explains that the graph is drawn from the picture BarelySig made, and has **Download .bsig for BarelySig**. See [Importing and other apps](11-import-and-other-apps.md).

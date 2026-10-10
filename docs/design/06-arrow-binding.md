@@ -26,6 +26,9 @@ resize, rotate, flip, align, distribute, Inspector changes, paste — without ea
 about arrows. Undo and redo restore whole snapshots, which are already consistent, so they do
 not run it.
 
+Magnified insets (note 44) are bound the same way: `reconcileInsets` runs first inside
+`reconcileBindings` and lays out each inset's box and connector lines (or re-crops it).
+
 For each arrow with a `bind` in `after`, per bound end:
 
 | Situation                                                       | Result                          |

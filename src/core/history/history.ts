@@ -408,6 +408,25 @@ export class History<T> {
   }
 
   /**
+   * The history with the present replaced and no step recorded: for work
+   * that completes the last change rather than being one (an inset's pixels
+   * baked after the edit that re-cropped it). Undo still returns to the state
+   * before that change; any run stays open.
+   */
+  amended(next: T): History<T> {
+    if (next === this.present) return this;
+    return new History(
+      next,
+      this.past,
+      this.future,
+      this.limit,
+      this.startedAt,
+      this.truncated,
+      this.kept,
+    );
+  }
+
+  /**
    * Ends any run at the present, so the next change starts a step of its own
    * and this state stays reachable as a step. Callers seal wherever the
    * present has become a landmark: it was written to a file, or the user

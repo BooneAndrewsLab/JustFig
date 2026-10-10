@@ -183,6 +183,23 @@ export interface Levels {
   readonly base: AssetHash;
 }
 
+/**
+ * What makes a picture a magnified inset of a region of another (note 44):
+ * the region is its own `crop` (with `turn`) in pixels of the source's
+ * `asset`; the outline box on the source and the connector lines are plain
+ * objects named here, laid out only by `reconcileBindings` (note 06).
+ */
+export interface InsetLink {
+  /** The picture the region is of. */
+  readonly source: Id;
+  /** The outline rectangle on the source; dragging it re-crops the inset. */
+  readonly box: Id;
+  /** The connector lines (open two-node paths), box corners to inset corners. */
+  readonly lines: readonly Id[];
+  /** `crop` changed since `cropped` was baked: the app re-bakes the pixels. */
+  readonly stale?: boolean;
+}
+
 export interface Image extends Base {
   readonly type: 'image';
   /**
@@ -223,6 +240,8 @@ export interface Image extends Base {
    * change on one is offered to the rest. Ids that no longer exist are ignored.
    */
   readonly splitSet?: readonly Id[];
+  /** A magnified inset of a region of another picture (note 44). */
+  readonly inset?: InsetLink;
 }
 
 export interface Procedural extends Base {

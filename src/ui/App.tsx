@@ -13,6 +13,7 @@ import { ExportDialog } from './dialogs/ExportDialog';
 import { GalleryDialog } from './dialogs/GalleryDialog';
 import { ChannelsDialog } from './dialogs/ChannelsDialog';
 import { CropDialog } from './dialogs/CropDialog';
+import { InsetDialog } from './dialogs/InsetDialog';
 import { GridDialog } from './dialogs/GridDialog';
 import { GuideDialog } from './dialogs/GuideDialog';
 import { RecentDialog } from './dialogs/RecentDialog';
@@ -29,6 +30,7 @@ import { SaveFailureBanner } from './panels/SaveFailureBanner';
 import { TabStrip } from './panels/TabStrip';
 import { ToolPalette } from './panels/ToolPalette';
 import { copyAsImage } from './copyImage';
+import { startInsetBaker } from './insetBaker';
 import { resolveBindings, withKey } from './keyBindings';
 import { onCopy, onKeyDown, onPaste } from './shortcuts';
 import { canSaveInPlace } from '@/io/fileHandles';
@@ -57,6 +59,7 @@ type DialogId =
   | 'guide'
   | 'grid'
   | 'crop'
+  | 'inset'
   | 'channels'
   | 'save-preset'
   | 'save-template'
@@ -101,6 +104,9 @@ export function App() {
       }),
     [],
   );
+
+  // Insets re-cropped by dragging their box get their pixels re-baked (note 44).
+  useEffect(() => startInsetBaker(), []);
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -391,6 +397,9 @@ export function App() {
           onCrop={() => {
             setDialog('crop');
           }}
+          onInset={() => {
+            setDialog('inset');
+          }}
           onChannels={() => {
             setDialog('channels');
           }}
@@ -492,6 +501,13 @@ export function App() {
       )}
       {dialog === 'crop' && (
         <CropDialog
+          onClose={() => {
+            setDialog(null);
+          }}
+        />
+      )}
+      {dialog === 'inset' && (
+        <InsetDialog
           onClose={() => {
             setDialog(null);
           }}

@@ -425,3 +425,16 @@ describe('History names (#4)', () => {
     expect(History.fromRecord(unnamed).kept).toEqual([]);
   });
 });
+
+describe('amended', () => {
+  it('replaces the present without a step: undo goes back past it, a run stays open', () => {
+    const h = History.create('a', { at: 0 }).push('b', 'B', 1, { follows: 'k', key: 'k' });
+    const a = h.amended('b2');
+    expect(a.present).toBe('b2');
+    expect(a.size).toBe(1);
+    expect(a.undo().present).toBe('a');
+    expect(a.undo().redo().present).toBe('b2');
+    expect(a.push('c', 'C', 2, { follows: 'k', key: 'k' }).size).toBe(1);
+    expect(h.amended('b')).toBe(h);
+  });
+});

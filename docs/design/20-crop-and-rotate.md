@@ -99,6 +99,10 @@ in-app crop comes first.
   so the export stays plain SVG and nothing outside is left. It is vector: a level crop turns it
   exactly, without resampling. Synchronous, so it runs inside the edit.
 
+A magnified inset (note 44) is a cropped picture of its source's asset, its box and lines
+bound through `reconcileBindings`; the view geometry (`viewFrame`, `currentView`, `clampCrop`)
+now lives in `core/geometry/view.ts`, re-exported by `edits/crop.ts`.
+
 ## Known limits
 
 - Pictures of different sizes are cropped by fraction, not registered: no shift or scale

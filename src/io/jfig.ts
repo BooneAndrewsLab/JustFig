@@ -17,6 +17,7 @@ import {
   type Frame,
   type Head,
   type IconMeta,
+  type InsetLink,
   type Levels,
   type Layer,
   type Note,
@@ -228,6 +229,16 @@ function levels(v: unknown, p: Path): Levels {
   };
 }
 
+function insetLink(v: unknown, p: Path): InsetLink {
+  const o = obj(v, p);
+  return {
+    source: asId(str(o['source'], p.key('source'))),
+    box: asId(str(o['box'], p.key('box'))),
+    lines: list(o['lines'], p.key('lines'), (x, q) => asId(str(x, q))),
+    ...flag(o, 'stale', p),
+  };
+}
+
 function channel(v: unknown, p: Path): Channel {
   const o = obj(v, p);
   const level = (k: 'min' | 'max') => {
@@ -348,6 +359,7 @@ export function object(v: unknown, p: Path): Obj {
         ...opt(o, 'channels', p, (x, q) => list(x, q, channel)),
         ...opt(o, 'levels', p, levels),
         ...opt(o, 'splitSet', p, (x, q) => list(x, q, (y, r) => asId(str(y, r)))),
+        ...opt(o, 'inset', p, insetLink),
       };
     case 'procedural':
       return {

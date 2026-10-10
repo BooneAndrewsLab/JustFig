@@ -177,8 +177,19 @@ const leafArb: fc.Arbitrary<Obj> = fc.oneof(
           nil: undefined,
         },
       ),
+      fc.option(
+        fc
+          .tuple(id, id, fc.array(id, { maxLength: 2 }), fc.boolean())
+          .map(([source, box, lines, stale]) => ({
+            source,
+            box,
+            lines,
+            ...(stale ? { stale: true as const } : {}),
+          })),
+        { nil: undefined },
+      ),
     )
-    .map(([b, a, c, channels, levels, splitSet]): Obj => ({
+    .map(([b, a, c, channels, levels, splitSet, inset]): Obj => ({
       ...b,
       type: 'image',
       asset: a,
@@ -187,6 +198,7 @@ const leafArb: fc.Arbitrary<Obj> = fc.oneof(
       ...(channels ? { channels } : {}),
       ...(levels ? { levels } : {}),
       ...(splitSet ? { splitSet } : {}),
+      ...(inset ? { inset } : {}),
     })),
   fc
     .tuple(baseArb, fc.string(), fc.nat(5), json, asset)
