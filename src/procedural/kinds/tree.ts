@@ -5,6 +5,7 @@
  * (one path), and labels as text with explicit x/y. A bad string draws a short message in the
  * frame, and `problems` carries the full text to the Inspector. Text sizes are in points.
  */
+import { measure } from '@/core/text/layout';
 import { type Prim, type Sub, arcNodes, pathPrim, poly } from '../prims';
 import { type NewickNode, parseNewick } from '../newick';
 import { defineKind } from '../types';
@@ -118,10 +119,20 @@ interface Analysis {
   readonly span: number;
   readonly unmatched: readonly string[];
   readonly longest: number;
+  /** Every drawn leaf or collapsed-clade label (the circular layout measures them). */
+  readonly shown: readonly string[];
 }
 
 function analyse(p: TreeParams): Analysis {
-  const empty = { root: null, rows: 0, hasLengths: false, span: 0, unmatched: [], longest: 0 };
+  const empty = {
+    root: null,
+    rows: 0,
+    hasLengths: false,
+    span: 0,
+    unmatched: [],
+    longest: 0,
+    shown: [],
+  };
   const parsed = parseNewick(p.newick);
   if (!parsed.ok) return { ...empty, error: parsed.error };
   const tree = parsed.root;
@@ -157,6 +168,7 @@ function analyse(p: TreeParams): Analysis {
 
   let row = 0;
   let longest = 0;
+  const shownAll: string[] = [];
   const build = (n: NewickNode): LNode => {
     const collapsed = n.children.length > 0 && collapseAt.has(n);
     const x = lengthMode ? (rawDepth.get(n) ?? 0) / maxDepth : H === 0 ? 0 : (H - heightOf(n)) / H;
@@ -170,6 +182,7 @@ function analyse(p: TreeParams): Analysis {
     if (collapsed || n.children.length === 0) {
       const shown = collapsed ? `${key} (${String(leaves)})` : n.name;
       longest = Math.max(longest, shown.length);
+      if (shown !== '') shownAll.push(shown);
       return { n, kids: [], collapsed, leaves, x, tip, row: row++, key };
     }
     const kids = n.children.map(build);
@@ -195,8 +208,15 @@ function analyse(p: TreeParams): Analysis {
     span: lengthMode ? maxDepth : 0,
     unmatched,
     longest,
+    shown: shownAll,
   };
 }
+
+/** The widest label in points, measured with the text layout's font (Arimo). */
+const widestOf = (t: string, size: number): number =>
+  measure({ text: t, font: 'arimo', size, color: { hex: '#000000' } }, t);
+const widestLabel = (a: Analysis, size: number): number =>
+  a.shown.reduce((w, t) => Math.max(w, widestOf(t, size)), 0);
 
 const shownLabel = (l: LNode): string =>
   l.collapsed ? `${l.key} (${String(l.leaves)})` : l.n.name;
@@ -320,6 +340,8 @@ export const tree = defineKind<TreeParams>({
   // below; a frame smaller than its text lets all of it spill.
   overhang: (p) => {
     const a = analyse(p);
+    if (p.layout === 'circular' && !a.error && p.labels)
+      return widestLabel(a, p.size) + 1.5 * p.size + p.lineWidth;
     const longest = Math.max(a.longest, a.error ? 24 : 0, 8);
     return EST * p.size * longest + 4 * p.size + p.lineWidth;
   },
@@ -446,10 +468,22 @@ export const tree = defineKind<TreeParams>({
     } else {
       const cx = w / 2;
       const cy = h / 2;
-      const half = Math.min(w, h) / 2;
-      const R = Math.max(0, half - pad - Math.min(labelW + gap, half * 0.5));
       const step = (2 * Math.PI) / n;
       const ang = (r: number) => (r + 0.5) * step;
+      // Largest radius at which every tip, and the label after it, stays inside the frame: a label
+      // runs radially, so its far end is (x * R + gap + width) along the leaf's direction.
+      const hw = Math.max(1, w / 2 - pad - s * 0.5);
+      const hh = Math.max(1, h / 2 - pad - s * 0.5);
+      const fit = (l: LNode): number => {
+        if (l.kids.length > 0 && !l.collapsed) return Math.min(...l.kids.map(fit));
+        const t = ang(l.row);
+        const reach = Math.max(Math.abs(Math.cos(t)) / hw, Math.abs(Math.sin(t)) / hh);
+        const lab =
+          p.labels && (l.n.name !== '' || l.collapsed) ? widestOf(shownLabel(l), s) + gap : 0;
+        const x = l.collapsed ? Math.max(l.x, l.tip) : l.x;
+        return x > 1e-9 ? (1 / reach - lab) / x : Infinity;
+      };
+      const R = Math.max(0, Math.min(fit(root), Math.min(w, h) * 2));
       const at = (r: number, t: number) => ({ x: cx + r * Math.cos(t), y: cy + r * Math.sin(t) });
       const walk = (l: LNode, parentR: number | null) => {
         const t = ang(l.row);
@@ -492,7 +526,8 @@ export const tree = defineKind<TreeParams>({
           const ts = l.kids.map((k) => ang(k.row));
           const t0 = Math.min(...ts);
           const t1 = Math.max(...ts);
-          if (r > 0 && t1 - t0 > 1e-9) lines.push(poly(arcNodes(cx, cy, r, t0, t1)));
+          if (r > 0 && t1 - t0 > 1e-9)
+            lines.push({ t: 'poly', nodes: arcNodes(cx, cy, r, t0, t1), closed: false });
           for (const k of l.kids) walk(k, r);
         }
       };

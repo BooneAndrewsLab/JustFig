@@ -1,9 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
+
+import { loadTestFonts } from '@/test/fonts';
 
 import { tree } from './kinds/tree';
 import { decodeParams, defaultParams } from './params';
 import type { PathPrim, TextPrim } from './prims';
 import type { Params } from './types';
+
+beforeAll(loadTestFonts);
 
 const slots = { branch: '#000000', text: '#111111', support: '#222222', clade: '#333333' };
 const params = (over: Params = {}) =>

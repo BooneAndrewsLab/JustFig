@@ -67,3 +67,11 @@ circular, collapsed, circular with collapsed clades, and a malformed string.
 
 Not done: unrooted (equal-angle) layouts, per-clade colours, italic species names, labels that
 shrink to fit, branch-length axis for circular trees. Params shape changes would bump `version`.
+
+## Circular polish
+
+The circular layout sizes the tree from the frame: the radius is the largest at which every tip and
+its label (measured with the text layout, Arimo, not the 0.55 em estimate) plus a small gap stays
+inside the frame, so the labelled tree fills it, centred; `overhang` uses the same measure. The sibling arcs were passing
+through `poly()`, which dropped the Bezier handles and left straight kinks; they now keep their
+cubic arc nodes (plain SVG 1.1 `C` segments, at most 45 degrees each).
