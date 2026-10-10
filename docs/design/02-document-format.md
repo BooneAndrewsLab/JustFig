@@ -171,3 +171,8 @@ capped too but never evicted: a save past the cap is refused, since the user kep
 Schema v4 adds a `versions` table (note 23): named copies of a figure's `.jfig` text, keyed to
 their figure by an indexed `owner` (its `doc.id`). Refused past their caps like presets. Eviction
 above skips any figure that has saved versions, and deleting a figure deletes its versions.
+
+### Save in place
+
+Schema v5 adds a `handles` table (note 38): the file handle a figure saves to, one row per
+`doc.id`, deleted with the figure. Handles never enter the `.jfig` or the document model.

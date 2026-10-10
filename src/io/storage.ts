@@ -8,6 +8,7 @@ import Dexie, { type EntityTable } from 'dexie';
 import { newId } from '@/core/model/ids';
 import type { Figure } from '@/core/model/types';
 
+import { type HandleRow, HandleStore } from './fileHandles';
 import { type SavedFigure, readJfig, writeJfig } from './jfig';
 
 export interface StoredFigure {
@@ -49,6 +50,7 @@ export class FigureDb extends Dexie {
   declare figures: EntityTable<StoredFigure, 'id'>;
   declare presets: EntityTable<NamedRow, 'id'>;
   declare versions: EntityTable<NamedRow, 'id'>;
+  declare handles: EntityTable<HandleRow, 'id'>;
 
   constructor(name = DB_NAME) {
     super(name);
@@ -72,6 +74,13 @@ export class FigureDb extends Dexie {
       figures: 'id, updatedAt',
       presets: 'id, updatedAt',
       versions: 'id, updatedAt, owner',
+    });
+    // v5 adds the file handles of save in place (note 38), one row per figure id.
+    this.version(5).stores({
+      figures: 'id, updatedAt',
+      presets: 'id, updatedAt',
+      versions: 'id, updatedAt, owner',
+      handles: 'id',
     });
   }
 }
@@ -179,10 +188,17 @@ export class FigureStorage {
 
   /** Deletes a figure and its saved versions (note 23). */
   async remove(id: string): Promise<void> {
-    await this.db.transaction('rw', this.db.figures, this.db.versions, async () => {
-      await this.db.figures.delete(id);
-      await this.db.versions.where('owner').equals(id).delete();
-    });
+    await this.db.transaction(
+      'rw',
+      this.db.figures,
+      this.db.versions,
+      this.db.handles,
+      async () => {
+        await this.db.figures.delete(id);
+        await this.db.handles.delete(id);
+        await this.db.versions.where('owner').equals(id).delete();
+      },
+    );
   }
 }
 
@@ -363,6 +379,14 @@ let sharedDb: FigureDb | null = null;
 function db(): FigureDb {
   sharedDb ??= new FigureDb();
   return sharedDb;
+}
+
+let handles: HandleStore | null = null;
+
+/** The kept file handles of save in place (note 38). */
+export function getHandles(): HandleStore {
+  handles ??= new HandleStore(db());
+  return handles;
 }
 
 /** The app's storage, created on first use so importing this module has no side effects. */

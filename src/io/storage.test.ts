@@ -235,6 +235,51 @@ describe('NamedStore (saved versions, note 23)', () => {
   });
 });
 
+describe('file handles (note 38)', () => {
+  it('opens a v4 database with its rows and an empty handles table', async () => {
+    const name = dbName();
+    const v4 = new Dexie(name);
+    v4.version(4).stores({
+      figures: 'id, updatedAt',
+      presets: 'id, updatedAt',
+      versions: 'id, updatedAt, owner',
+    });
+    const old = fig('Kept');
+    await v4.table('figures').put({
+      id: old.doc.id,
+      title: 'Kept',
+      text: writeJfig(old, APP),
+      downloaded: false,
+      updatedAt: 1,
+      thumb: null,
+    });
+    await v4.table('presets').put({ id: 'k_1', name: 'Box', text: '{}', updatedAt: 2 });
+    await v4
+      .table('versions')
+      .put({ id: 'v_1', name: 'v', text: '{}', updatedAt: 3, owner: old.doc.id });
+    v4.close();
+    const db = new FigureDb(name);
+    expect((await new FigureStorage(db).list()).map((r) => r.title)).toEqual(['Kept']);
+    expect(await db.presets.count()).toBe(1);
+    expect(await db.versions.count()).toBe(1);
+    expect(await db.handles.count()).toBe(0);
+  });
+
+  it('removing a figure removes its handle', async () => {
+    const db = new FigureDb(dbName());
+    const f = fig('A');
+    await new FigureStorage(db).save(f, APP);
+    await db.handles.put({
+      id: f.doc.id,
+      handle: { name: 'a.jfig' } as never,
+      name: 'a.jfig',
+      updatedAt: 1,
+    });
+    await new FigureStorage(db).remove(f.doc.id);
+    expect(await db.handles.count()).toBe(0);
+  });
+});
+
 describe('durable storage (note 02)', () => {
   it('asks for persistence once, and copes with a browser that has none', async () => {
     const persist = vi.fn().mockResolvedValue(true);

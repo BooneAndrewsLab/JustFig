@@ -24,7 +24,14 @@ import { findObj } from '@/core/model/tree';
 
 import { canvasSize, fitPage, zoomAt } from './canvas/view';
 import { actionFor, resolveBindings } from './keyBindings';
-import { closeTab, copySelection, duplicateSelection, pasteText, saveFile } from './state/session';
+import {
+  closeTab,
+  copySelection,
+  duplicateSelection,
+  pasteText,
+  saveFile,
+  saveFileAs,
+} from './state/session';
 import { type ToolId, currentPage, selectedObjects, store } from './state/store';
 
 export function isTyping(t: EventTarget | null): boolean {
@@ -182,9 +189,9 @@ export function onKeyDown(e: KeyboardEvent, open: ShortcutTargets): void {
       store.redo();
       return;
     }
-    if (k === 'KeyS' && !e.shiftKey) {
+    if (k === 'KeyS') {
       handled();
-      saveFile();
+      void (e.shiftKey ? saveFileAs() : saveFile());
       return;
     }
   }

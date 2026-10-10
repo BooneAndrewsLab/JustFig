@@ -44,7 +44,8 @@ Every shortcut in JustFig is in this table. **Ctrl** means **⌘** on a Mac. Sho
 | Close the figure tab                                                                   | `Alt+W`               | The tab in front.                                                         |
 | Move the figure tab left                                                               | `Alt+Shift+Page Up`   | The tab in front.                                                         |
 | Move the figure tab right                                                              | `Alt+Shift+Page Down` | The tab in front.                                                         |
-| Download the figure file                                                               | `Ctrl+S`              | Fixed.                                                                    |
+| Save the figure file                                                                   | `Ctrl+S`              | Fixed.                                                                    |
+| Save the figure file as a new file                                                     | `Ctrl+Shift+S`        | Fixed. Always asks where.                                                 |
 | Undo (with Shift, redo; Ctrl+Y also redoes)                                            | `Ctrl+Z`              | Fixed.                                                                    |
 | Redo                                                                                   | `Ctrl+Y`              | Fixed.                                                                    |
 | Copy, cut (Ctrl+X) and paste (Ctrl+V)                                                  | `Ctrl+C`              | Fixed.                                                                    |

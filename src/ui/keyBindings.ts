@@ -107,9 +107,16 @@ export const KEY_ACTIONS: readonly KeyAction[] = [
   },
   {
     id: 'save',
-    label: 'Download the figure file',
+    label: 'Save the figure file',
     group: 'Fixed',
     defaultBinding: 'ctrl+KeyS',
+    fixed: true,
+  },
+  {
+    id: 'save-as',
+    label: 'Save the figure file as a new file',
+    group: 'Fixed',
+    defaultBinding: 'ctrl+shift+KeyS',
     fixed: true,
   },
   {

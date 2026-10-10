@@ -1,7 +1,8 @@
 /**
  * What the menus and shortcuts do with files, the clipboard, icons and
- * exports: everything that reaches outside the store. Saving downloads a
- * file (never a kept handle); autosave keeps a copy in IndexedDB.
+ * exports: everything that reaches outside the store. Saving writes back to
+ * a kept file handle where the browser allows (note 38), else downloads;
+ * autosave keeps a copy in IndexedDB.
  */
 import { BRAND } from '@/brand';
 import {
@@ -59,8 +60,21 @@ import {
   requestPersistence,
   cleanName,
   getPresetStore,
+  getHandles,
   getStorage,
 } from '@/io/storage';
+import {
+  type FileHandleLike,
+  type FsHost,
+  type PickerType,
+  canOpenWithPicker,
+  canSaveInPlace,
+  ensureWritable,
+  isHandleLost,
+  pickOpenHandle,
+  pickSaveHandle,
+  writeToHandle,
+} from '@/io/fileHandles';
 import { bakedSwatches } from '@/palette/recolor';
 
 import { analytics } from '../analytics';
@@ -112,7 +126,10 @@ export async function startSession(): Promise<void> {
         }, 1500);
       }),
     ]);
-    if (kept) reopenTabs(store, kept);
+    if (kept) {
+      reopenTabs(store, kept);
+      void loadHandles(store.getState().tabs.map((t) => figure(t).doc.id));
+    }
   } catch {
     // A wedged IndexedDB must not block the app.
   }
@@ -323,6 +340,7 @@ export async function deleteRecent(id: string): Promise<void> {
   // A figure open in a tab is not deleted: autosave would only write it back.
   if (store.tabOf(id) !== undefined) return;
   await getStorage().remove(id);
+  liveHandles.delete(id);
 }
 
 export async function downloadRecent(id: string): Promise<void> {
@@ -355,7 +373,7 @@ export async function downloadRecent(id: string): Promise<void> {
 const sameFigure = (a: Figure, b: Figure): boolean =>
   writeJfig(figureWithSnapshots(a), APP) === writeJfig(figureWithSnapshots(b), APP);
 
-export async function openFile(file: File): Promise<void> {
+export async function openFile(file: File, handle?: FileHandleLike): Promise<void> {
   try {
     if (!file.name.toLowerCase().endsWith(BRAND.fileExt) && file.type !== BRAND.mime) {
       await importToCanvas(file);
@@ -381,21 +399,142 @@ export async function openFile(file: File): Promise<void> {
     } else {
       store.open(saved, { hasFile: true });
     }
+    if (handle) keepHandle(saved.doc.id, handle);
     analytics.track('file', 'open');
   } catch (e: unknown) {
     store.notify(e instanceof Error ? e.message : 'Could not open that file.', 'error');
   }
 }
 
-export function saveFile(): void {
-  const f = figure(store.getState());
-  download(
-    writeJfig(figureWithSnapshots(f), APP),
-    `${safeName(f.doc.title)}${BRAND.fileExt}`,
-    BRAND.mime,
-  );
-  store.markDownloaded();
-  analytics.track('file', 'download');
+// --- save in place (note 38) ---------------------------------------------------------
+
+const host = (): FsHost => window as unknown as FsHost;
+const FILE_TYPES: readonly PickerType[] = [
+  { description: 'Figure file', accept: { [BRAND.mime]: [BRAND.fileExt] } },
+];
+
+const liveHandles = new Map<string, FileHandleLike>();
+const nameListeners = new Set<() => void>();
+
+/** The file name a figure saves to, where one is known (a store for `useSyncExternalStore`). */
+export const fileNames = {
+  get: (id: string): string | undefined => liveHandles.get(id)?.name,
+  subscribe: (cb: () => void): (() => void) => {
+    nameListeners.add(cb);
+    return () => nameListeners.delete(cb);
+  },
+  /** Changes whenever a handle is kept or dropped. */
+  version: 0,
+};
+
+function keepHandle(id: string, handle: FileHandleLike | null): void {
+  if (handle) liveHandles.set(id, handle);
+  else liveHandles.delete(id);
+  fileNames.version++;
+  for (const cb of nameListeners) cb();
+  const kept = getHandles();
+  void (handle ? kept.put(id, handle) : kept.remove(id)).catch(() => undefined);
+}
+
+/** Loads the kept handles of the open figures, so their file names show after a reload. */
+async function loadHandles(ids: readonly string[]): Promise<void> {
+  for (const id of ids) {
+    try {
+      const h = await getHandles().get(id);
+      if (h && !liveHandles.has(id)) liveHandles.set(id, h);
+    } catch {
+      // No kept handle is not an error.
+    }
+  }
+  fileNames.version++;
+  for (const cb of nameListeners) cb();
+}
+
+/** The kept handle of a figure, when it may still be written (asks once after a reload). */
+async function writableHandle(id: string): Promise<FileHandleLike | null> {
+  let h = liveHandles.get(id) ?? null;
+  if (!h) {
+    try {
+      h = await getHandles().get(id);
+    } catch {
+      return null;
+    }
+  }
+  if (!h) return null;
+  if (!(await ensureWritable(h))) return null;
+  return h;
+}
+
+/**
+ * Saves the open figure. Where the browser can write files, Save writes back
+ * to the kept file (the first save, or `as`, asks where); elsewhere it
+ * downloads, as it always did.
+ */
+export async function saveFile(opts: { as?: boolean } = {}): Promise<void> {
+  const state = store.getState();
+  const f = figure(state);
+  const id = f.doc.id;
+  const name = `${safeName(f.doc.title)}${BRAND.fileExt}`;
+  const bytes = writeJfig(figureWithSnapshots(f), APP);
+  const tab = state.tabs.find((t) => figure(t).doc.id === id);
+  const present = tab?.history.present;
+  const markClean = (): void => {
+    // Only when nothing changed while the file was being written.
+    const now = store.getState().tabs.find((t) => figure(t).doc.id === id);
+    if (now && now.history.present === present) store.markDownloaded(now.key);
+  };
+  if (!canSaveInPlace(host())) {
+    download(bytes, name, BRAND.mime);
+    store.markDownloaded();
+    analytics.track('file', 'download');
+    return;
+  }
+  try {
+    await flushCurrent();
+    let handle = opts.as === true ? null : await writableHandle(id);
+    if (handle) {
+      try {
+        await writeToHandle(handle, bytes);
+        markClean();
+        analytics.track('file', 'save-in-place');
+        return;
+      } catch (e) {
+        if (!isHandleLost(e)) throw e;
+        // The file or folder is gone, or access was refused: ask where to save instead.
+        keepHandle(id, null);
+        handle = null;
+      }
+    }
+    const picked = await pickSaveHandle(host(), name, FILE_TYPES);
+    if (!picked) return;
+    await writeToHandle(picked, bytes);
+    keepHandle(id, picked);
+    markClean();
+    analytics.track('file', opts.as === true ? 'save-as' : 'save-in-place');
+  } catch (e: unknown) {
+    store.notify(
+      e instanceof Error ? `Could not save the file: ${e.message}` : 'Could not save the file.',
+      'error',
+    );
+  }
+}
+
+export const saveFileAs = (): Promise<void> => saveFile({ as: true });
+
+/** Open… : the file picker where there is one (it keeps the handle), else `fallback` (the file input). */
+export function chooseFile(fallback: () => void): void {
+  if (!canOpenWithPicker(host())) {
+    fallback();
+    return;
+  }
+  void (async () => {
+    try {
+      const handle = await pickOpenHandle(host(), FILE_TYPES);
+      if (handle) await openFile(await handle.getFile(), handle);
+    } catch (e: unknown) {
+      store.notify(e instanceof Error ? e.message : 'Could not open that file.', 'error');
+    }
+  })();
 }
 
 /** Where new things go: the centre of the visible canvas, in page coordinates. */

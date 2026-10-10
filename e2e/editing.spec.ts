@@ -167,6 +167,12 @@ test('pen draws a curved path; Enter finishes it', async ({ page }) => {
 test('save, open, import an SVG, attribution, and autosave survive a reload', async ({
   page,
 }, info) => {
+  // Chromium can save in place; this test is about the download fallback of other browsers.
+  await page.addInitScript(() => {
+    Reflect.deleteProperty(window, 'showSaveFilePicker');
+    Reflect.deleteProperty(window, 'showOpenFilePicker');
+  });
+  await page.goto('/');
   await (await iconTile(page, 'petri-dish', 'petri dish')).click();
   await rect(page, 10, 10, 30, 30);
   const svgPath = info.outputPath('shape.svg');

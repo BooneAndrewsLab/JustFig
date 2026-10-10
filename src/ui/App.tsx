@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import { BRAND } from '@/brand';
 import { updateDoc } from '@/core/edits/edits';
@@ -31,7 +31,17 @@ import { ToolPalette } from './panels/ToolPalette';
 import { copyAsImage } from './copyImage';
 import { resolveBindings, withKey } from './keyBindings';
 import { onCopy, onKeyDown, onPaste } from './shortcuts';
-import { importToCanvas, newFigure, openFile, saveFile } from './state/session';
+import { canSaveInPlace } from '@/io/fileHandles';
+
+import {
+  chooseFile,
+  fileNames,
+  importToCanvas,
+  newFigure,
+  openFile,
+  saveFile,
+  saveFileAs,
+} from './state/session';
 import { currentPage, figure, isUnsaved, selectedObjects, store } from './state/store';
 import { useAppState } from './state/useAppState';
 import { usePdfPageRequest } from './state/pdfPagePicker';
@@ -67,6 +77,12 @@ function presetName(s: ReturnType<typeof useAppState>): string {
 export function App() {
   const s = useAppState();
   const fig = figure(s);
+  const inPlace = canSaveInPlace(window as never);
+  useSyncExternalStore(fileNames.subscribe, () => fileNames.version);
+  const savedAs = fileNames.get(fig.doc.id);
+  useEffect(() => {
+    document.title = savedAs ? `${savedAs} · ${BRAND.name}` : BRAND.name;
+  }, [savedAs]);
   const [dialog, setDialog] = useState<DialogId>(null);
   const pdfPage = usePdfPageRequest();
   const openInput = useRef<HTMLInputElement>(null);
@@ -82,7 +98,9 @@ export function App() {
         exportDialog: () => {
           setDialog('export');
         },
-        openFile: () => openInput.current?.click(),
+        openFile: () => {
+          chooseFile(() => openInput.current?.click());
+        },
         recent: () => {
           setDialog('recent');
         },
@@ -167,7 +185,9 @@ export function App() {
           <button
             type="button"
             title={withKey('Open a figure file', 'open', bound)}
-            onClick={() => openInput.current?.click()}
+            onClick={() => {
+              chooseFile(() => openInput.current?.click());
+            }}
           >
             Open…
           </button>
@@ -182,11 +202,28 @@ export function App() {
           </button>
           <button
             type="button"
-            title={withKey('Download the figure file', 'save', bound)}
-            onClick={saveFile}
+            title={withKey(
+              inPlace
+                ? savedAs
+                  ? `Save to ${savedAs}`
+                  : 'Save the figure file (asks where the first time)'
+                : 'Download the figure file',
+              'save',
+              bound,
+            )}
+            onClick={() => void saveFile()}
           >
             Save
           </button>
+          {inPlace && (
+            <button
+              type="button"
+              title={withKey('Save the figure to a new file', 'save-as', bound)}
+              onClick={() => void saveFileAs()}
+            >
+              Save as…
+            </button>
+          )}
           <button
             type="button"
             title="Import an SVG, PNG or JPEG (a BarelySig SVG keeps its graph data)"
