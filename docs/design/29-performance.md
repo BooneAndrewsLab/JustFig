@@ -26,7 +26,8 @@ one `PERF {json}` line and attached to the report.
 ## Numbers (this machine, headless, two runs each)
 
 The baseline as #55 measured it; note 30 has the numbers after the working
-copies (Firefox at 20 Mpx: open 2 - 4 s, PDF 7 - 8 s, PNG 2 - 3 s).
+copies (Firefox at 20 Mpx: open 2 - 4 s, PDF 7 - 8 s, PNG 2 - 3 s), note 31
+after PDF pictures went in as they are (PDF 1.5 - 1.9 s in both browsers).
 
 |                                     | Chromium (20 Mpx) | Firefox (6.25 Mpx)  |
 | ----------------------------------- | ----------------- | ------------------- |
@@ -55,7 +56,7 @@ dropped frames), p95 at 150 ms; the worst frame is reported, not asserted.
 | drag frame median (one, all) | 50 ms  |
 | drag frame p95               | 150 ms |
 | SVG export                   | 8 s    |
-| PDF export                   | 30 s   |
+| PDF export                   | 15 s   |
 | PNG export                   | 15 s   |
 
 ## What the baseline found

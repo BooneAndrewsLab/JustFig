@@ -88,11 +88,15 @@ export function filterRows(px: Pixels): Uint8Array {
   return out;
 }
 
-async function deflate(bytes: Uint8Array): Promise<Uint8Array> {
-  const stream = new Blob([bytes as Uint8Array<ArrayBuffer>])
-    .stream()
-    .pipeThrough(new CompressionStream('deflate'));
-  return new Uint8Array(await new Response(stream).arrayBuffer());
+/** zlib-format deflate on the platform's `CompressionStream`. */
+export async function deflate(bytes: Uint8Array): Promise<Uint8Array> {
+  // Written straight to the stream (not through a Blob, whose `stream()` jsdom lacks); not
+  // awaited, as the write only settles once the output is being read.
+  const cs = new CompressionStream('deflate');
+  const writer = cs.writable.getWriter();
+  void writer.write(bytes as Uint8Array<ArrayBuffer>);
+  void writer.close();
+  return new Uint8Array(await new Response(cs.readable).arrayBuffer());
 }
 
 function assemble(px: Pixels, idat: Uint8Array): Uint8Array {
@@ -347,7 +351,10 @@ export function base64(bytes: Uint8Array): string {
   return btoa(s);
 }
 
+/** Bytes of base64: natively where the browser can (30 ms for 21 M characters, the loop 0.6 s). */
 export function fromBase64(s: string): Uint8Array {
+  const native = (Uint8Array as { fromBase64?: (s: string) => Uint8Array }).fromBase64;
+  if (native) return native.call(Uint8Array, s);
   const bin = atob(s);
   const out = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);

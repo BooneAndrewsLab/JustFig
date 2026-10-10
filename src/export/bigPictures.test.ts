@@ -2,7 +2,8 @@
 /**
  * Big pictures (notes 29, 30): their stand-ins on screen and in exports. The
  * renderer only swaps the href; PDF gets every pixel through a blob URL; a
- * raster gets a copy at the pixels the picture covers.
+ * raster gets a copy at the pixels the picture covers. (PNG and JPEG
+ * pictures jsPDF does not have to take: pdfImages.test.ts.)
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -12,7 +13,7 @@ import type { Figure, Image } from '@/core/model/types';
 import { type ImageHref, pageToNode } from '@/render/objectToNode';
 import { nodeToSvgString } from '@/render/svgNode';
 
-import { bigPictureUrls } from './pdf';
+import { pdfPictures } from './pdf';
 import { RESAMPLE_MIN_CHARS, resamplePlan } from './resample';
 import { exportRoot } from './svg';
 
@@ -70,8 +71,8 @@ describe('the renderer with an ImageHref', () => {
   });
 });
 
-describe('bigPictureUrls (PDF)', () => {
-  it('leaves small pictures as data URIs and gives big ones blob URLs with the format', () => {
+describe('pdfPictures (PDF), pictures jsPDF has to take', () => {
+  it('leaves small pictures as data URIs and gives big ones blob URLs with the format', async () => {
     const create = vi.fn(() => 'blob:test/abc');
     vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: create }));
     const big = 'QUJD'.repeat(1_100_000);
@@ -79,7 +80,8 @@ describe('bigPictureUrls (PDF)', () => {
       small: picture('QUJD'),
       big: picture(big, 5000, 4000, 'image/jpeg'),
     });
-    const { href, urls } = bigPictureUrls(f, page0(f));
+    const { href, urls, stubs } = await pdfPictures(f, [page0(f)]);
+    expect(stubs.size).toBe(0);
     expect(urls).toEqual(['blob:test/abc']);
     expect(href?.('small', picture('QUJD'))).toBeUndefined();
     expect(href?.('big', picture(big))).toBe('blob:test/abc#.jpeg');
@@ -99,9 +101,13 @@ describe('bigPictureUrls (PDF)', () => {
     expect(text).not.toContain(big.slice(0, 1000));
   });
 
-  it('has nothing to do for a page of small pictures', () => {
+  it('has nothing to do for a page of small pictures', async () => {
     const f = figure([image('small')], { small: picture('QUJD') });
-    expect(bigPictureUrls(f, page0(f))).toEqual({ href: undefined, urls: [] });
+    expect(await pdfPictures(f, [page0(f)])).toEqual({
+      href: undefined,
+      stubs: new Map(),
+      urls: [],
+    });
   });
 });
 

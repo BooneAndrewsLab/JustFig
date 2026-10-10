@@ -73,12 +73,12 @@ gets the 20 Mpx micrograph again and the budgets are shared: open 15 s
 
 ## Known limits
 
-- PDF export is still about 7 s for a 20 Mpx picture in both browsers: jsPDF
-  decodes the PNG and deflates its pixels again in JavaScript. Passing a
-  PNG's IDAT straight through as a `/Predictor 15` stream would avoid it;
-  not done (issue #58).
+- PDF export was still about 7 s for a 20 Mpx picture in both browsers
+  (jsPDF decoded the PNG and deflated its pixels again). Now 1.5 - 1.9 s:
+  PNG and JPEG pictures go in as they are (note 31, issue #58); pictures
+  jsPDF still has to take keep the blob URL above.
 - A raster at a resolution where the picture keeps all its pixels (a full
   page 20 Mpx picture at 600 dpi) still sends the whole data URI through
   Firefox's XML parser and is slow there. Drawing big pictures straight onto
   the canvas between SVG layers would avoid it but needs z-order and group
-  opacity handled outside the renderer (same issue).
+  opacity handled outside the renderer (issue #59 lists the options).

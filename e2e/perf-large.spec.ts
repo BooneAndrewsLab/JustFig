@@ -27,7 +27,7 @@ const BUDGET = {
   dragAllMedianMs: 50,
   dragP95Ms: 150,
   svgMs: 8_000,
-  pdfMs: 30_000,
+  pdfMs: 15_000,
   pngMs: 15_000,
 };
 
