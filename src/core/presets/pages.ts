@@ -5,8 +5,14 @@
  * user changes. All values in mm. `maxHMm` (maximum figure depth) is set
  * only where an official page was checked (2026-10): Nature 170 (leaves
  * room for the legend; research-figure-guide.nature.com), PLOS 222.25
- * (8.75 in, 2625 px at 300 dpi; journals.plos.org figures page). Cell,
- * Science and PNAS are unchecked until their guidelines are verified.
+ * (8.75 in, 2625 px at 300 dpi; journals.plos.org figures page), Cell 200
+ * (6.5 x 8 in; "We recommend that figures be a maximum of 6.5 x 8 in (16.5 x 20 cm)",
+ * www.cell.com/information-for-authors/figure-guidelines, a recommendation for
+ * production files, checked 2026-10-10). Science states no maximum height (only
+ * widths of 5.7, 12.1 and 18.4 cm; www.science.org/content/page/instructions-
+ * preparing-initial-manuscript and ...-revised-manuscript, checked 2026-10-10),
+ * so none is set. PNAS is unchecked: pnas.org served a bot check to the
+ * browser on 2026-10-10 (lead: its digital art PDF, 9 in / 22.5 cm).
  */
 import { mmToPt } from '../units';
 
@@ -55,6 +61,7 @@ export const PAGE_PRESETS: readonly PagePreset[] = [
     wMm: 85,
     hMm: 85,
     journal: 'Cell',
+    maxHMm: 200,
   },
   {
     id: 'cell-2',
@@ -63,6 +70,7 @@ export const PAGE_PRESETS: readonly PagePreset[] = [
     wMm: 174,
     hMm: 130,
     journal: 'Cell',
+    maxHMm: 200,
   },
   {
     id: 'science-1',

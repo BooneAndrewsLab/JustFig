@@ -38,7 +38,7 @@ The **Check before export** section of the Export figure dialog lists what journ
 - **Low-resolution pictures**: pictures under 300 dpi at the size they are placed. Make the picture smaller on the page, or import a larger one.
 - **Overlapping text**: text on top of other text or a panel label, text crossing the edge of a panel (a per-panel export cuts it), a panel label outside its panel, and text running off the page. Text over shapes and pictures is not flagged.
 - **Page width**: choose the journal in the **Journal** list (it starts at the journal of the page size you picked, if any). JustFig warns when the page is wider than the journal's widest figure, and then checks the sizes above at the scale the journal will shrink it to. It also warns when the page is just over a column width, for example 95 mm for Nature's 89 mm column.
-- **Page height**: JustFig warns when the page is taller than the journal's published maximum figure height (Nature 170 mm, which leaves room for the legend; PLOS 222.25 mm), measured after the journal shrinks a too-wide page. Other journals' heights are not checked yet.
+- **Page height**: JustFig warns when the page is taller than the journal's published maximum figure height (Nature 170 mm, which leaves room for the legend; PLOS 222.25 mm; Cell 200 mm, which Cell Press recommends), measured after the journal shrinks a too-wide page. Science publishes no maximum height, and PNAS is not checked yet.
 
 Choose a warning (click it, or Tab to it and press Enter) to close the dialog with the object it is about selected, on its page. When there are more than five of a kind, **Select all** selects them together. With **All pages** on for a PDF, every page is checked.
 
