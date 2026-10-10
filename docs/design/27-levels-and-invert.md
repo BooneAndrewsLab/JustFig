@@ -28,5 +28,7 @@ display ranges, note 21). Levels (black and white point) and Invert for one pict
 
 ## Known limits
 
-- Levels apply to one picture at a time (no shared setting across a panel's pictures); no gamma or
+- Levels apply to one picture at a time (note 37 copies them across pictures); no gamma or
   auto-contrast; no per-channel RGB levels.
+
+See note 37 (Same levels, the export check and the Image adjustments statement).

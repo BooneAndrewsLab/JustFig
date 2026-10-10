@@ -35,7 +35,14 @@ import {
 } from '@/core/edits/style';
 import { needsModifiedNote } from '@/core/attribution/attribution';
 import { cropTargets, sharedSize } from '@/core/edits/crop';
-import { type LevelsInput, isIdentity, setLevels } from '@/core/edits/levels';
+import {
+  type LevelsInput,
+  type LevelsTarget,
+  isIdentity,
+  levelsToMatch,
+  matchLevels,
+  setLevels,
+} from '@/core/edits/levels';
 import { editableNodes } from '@/core/edits/nodes';
 import { center } from '@/core/geometry/matrix';
 import { boundsOf, normAngle, objBounds, rebase, rotateObj } from '@/core/geometry/transform';
@@ -543,6 +550,7 @@ function SelectionInspector({
             ))}
           </div>
         )}
+        {sel.length > 1 && <SameLevels s={s} sel={sel} />}
         {sel.length > 1 && (
           <div className="row">
             <button
@@ -1335,6 +1343,59 @@ function ChannelsSection({
         </button>
       </div>
     </Section>
+  );
+}
+
+/**
+ * "Same levels" (note 37): the first selected picture's levels and inversion for the other
+ * selected pictures, each baked from its own unadjusted pixels. Offered for two pictures or more.
+ */
+function SameLevels({ s, sel }: { s: AppState; sel: readonly Obj[] }) {
+  const [busy, setBusy] = useState(false);
+  const pics = cropTargets(sel, figure(s).assets);
+  if (pics.length < 2) return null;
+  const run = async () => {
+    setBusy(true);
+    try {
+      const st = store.getState();
+      const page = currentPage(st).id;
+      const assets = figure(st).assets;
+      const plan = levelsToMatch(pics);
+      if (!plan) return;
+      const targets: LevelsTarget[] = [];
+      for (const o of plan.targets) {
+        const base = assets[o.levels?.base ?? o.asset];
+        if (base?.kind !== 'image') throw new Error('A picture is missing.');
+        const adjusted = isIdentity(plan.levels) ? undefined : await bakeLevels(base, plan.levels);
+        const src = adjusted?.asset ?? base;
+        const cropped = o.crop
+          ? await bakeView(src, { turn: o.turn ?? 0, crop: o.crop })
+          : undefined;
+        targets.push({
+          id: o.id,
+          baked: { ...(adjusted ? { adjusted } : {}), ...(cropped ? { cropped } : {}) },
+        });
+      }
+      store.edit(matchLevels(page, plan.levels, targets), { keepSelection: true });
+    } catch (e: unknown) {
+      store.notify(e instanceof Error ? e.message : String(e), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="row">
+      <button
+        type="button"
+        disabled={busy}
+        title="Give the other selected pictures the levels and inversion of the first one"
+        onClick={() => {
+          void run();
+        }}
+      >
+        Same levels
+      </button>
+    </div>
   );
 }
 

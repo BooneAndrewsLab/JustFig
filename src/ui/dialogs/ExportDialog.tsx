@@ -18,6 +18,7 @@ import {
   checkPage,
   minTextFor,
 } from '@/export/checks';
+import { adjustmentsStatement } from '@/export/adjustments';
 import { MAX_PIXELS, rasterLimit, rasterSize } from '@/export/raster';
 import { panelCrops } from '@/export/panels';
 import { pageCredit } from '@/export/svg';
@@ -45,6 +46,7 @@ const RULE_TITLES: Record<CheckRule, string> = {
   'text-size': 'Small text',
   'stroke-width': 'Thin lines',
   'image-dpi': 'Low-resolution pictures',
+  'image-levels': 'Different levels in a panel',
   overlap: 'Overlapping text',
 };
 const RULE_ORDER: readonly CheckRule[] = [
@@ -53,8 +55,46 @@ const RULE_ORDER: readonly CheckRule[] = [
   'text-size',
   'stroke-width',
   'image-dpi',
+  'image-levels',
   'overlap',
 ];
+/**
+ * "Image adjustments" (note 37): the derived Methods paragraph about levels and inversion,
+ * with a copy button; shown only when a picture was adjusted.
+ */
+function AdjustmentsStatement() {
+  const s = useAppState();
+  const text = useMemo(() => adjustmentsStatement(figure(s)), [s]);
+  if (text === '') return null;
+  return (
+    <fieldset>
+      <legend>Image adjustments</legend>
+      <p className="note">For your Methods section, from the levels set on pictures:</p>
+      <p className="credit-box" data-testid="adjustments-text">
+        {text}
+      </p>
+      <div className="row">
+        <button
+          type="button"
+          onClick={() => {
+            void navigator.clipboard.writeText(text).then(
+              () => {
+                store.notify('Statement copied.');
+              },
+              () => {
+                store.notify('Copying is blocked here; select the text instead.', 'warning');
+              },
+            );
+            analytics.track('export', 'copy-adjustments');
+          }}
+        >
+          Copy statement
+        </button>
+      </div>
+    </fieldset>
+  );
+}
+
 /** Warnings listed per rule before "Select all". */
 const SHOWN = 5;
 
@@ -116,7 +156,8 @@ function ExportChecks({
       </div>
       <p className="note">
         Looks for text under {String(minTextFor(journal))} pt, lines under {String(MIN_STROKE_PT)}{' '}
-        pt, pictures under {String(MIN_DPI)} dpi and overlapping text
+        pt, pictures under {String(MIN_DPI)} dpi, pictures with different levels in one panel and
+        overlapping text
         {journal === null ? '' : `, and the page width against ${journal}'s columns`}. Warnings
         only: you can still export. Choose one to select what it is about.
       </p>
@@ -383,6 +424,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
           .
         </p>
       </fieldset>
+      <AdjustmentsStatement />
       <ExportChecks
         allPages={format === 'pdf' && allPages}
         initialJournal={presetJournal(page)}

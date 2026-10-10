@@ -22,6 +22,7 @@ import {
   type CheckWarning,
   checkJournalHeight,
   checkJournalWidth,
+  checkLevels,
   checkOverlap,
   checkPage,
   dataUriPixels,
@@ -337,5 +338,30 @@ describe('checkPage', () => {
     if (!layer) throw new Error('no layer');
     const off = { ...page, layers: [{ ...layer, visible: false }] };
     expect(checkPage(figure, off, { journal: null })).toEqual([]);
+  });
+});
+
+describe('levels in a panel (note 37)', () => {
+  const pic = (id: string, min?: number): Obj => ({
+    ...image(id, 'a', 20, 20),
+    ...(min === undefined ? {} : { levels: { min, max: 255, invert: false, base: 'a' } }),
+  });
+  const panelOf = (kids: Obj[]): Obj => ({ ...createPanel(frame(0, 0, 200, 100)), children: kids });
+
+  it('warns once per panel whose pictures differ, selecting those pictures', () => {
+    const { figure, page } = fig([panelOf([pic('p1', 10), pic('p2')])]);
+    const ws = rules(checkPage(figure, page, { journal: null }), 'image-levels');
+    expect(ws).toHaveLength(1);
+    expect(ws[0]?.ids).toEqual(['p1', 'p2']);
+    expect(ws[0]?.message).toMatch(/panel A/);
+  });
+
+  it('passes pictures with the same levels, a lone picture and pictures in different panels', () => {
+    const same = fig([panelOf([pic('p1', 10), pic('p2', 10)])]);
+    expect(checkLevels(same.figure, same.page)).toEqual([]);
+    const lone = fig([panelOf([pic('p1', 10)])]);
+    expect(checkLevels(lone.figure, lone.page)).toEqual([]);
+    const apart = fig([panelOf([pic('p1', 10)]), panelOf([pic('p2')])]);
+    expect(checkLevels(apart.figure, apart.page)).toEqual([]);
   });
 });

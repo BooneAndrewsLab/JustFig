@@ -5,7 +5,15 @@
  */
 import type { Id } from './ids';
 import { pageObjects } from './tree';
-import type { Page, Panel, PanelLabelFormat } from './types';
+import type { Obj, Page, Panel, PanelLabelFormat } from './types';
+
+/** A panel's own objects, through groups but not into panels nested in it (they have their own letter). */
+export function* ownObjects(children: readonly Obj[]): Generator<Obj> {
+  for (const o of children) {
+    yield o;
+    if (o.type === 'group') yield* ownObjects(o.children);
+  }
+}
 
 /** Tops closer than this (points, ~5 mm) count as one row. */
 export const ROW_TOLERANCE = 14;

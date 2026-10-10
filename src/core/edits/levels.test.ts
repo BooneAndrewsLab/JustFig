@@ -3,14 +3,14 @@ import { describe, expect, it } from 'vitest';
 
 import { addObjects } from '@/core/edits/edits';
 import { History } from '@/core/history/history';
-import { createDoc } from '@/core/model/factory';
+import { createDoc, createRect, frame } from '@/core/model/factory';
 import { type Id, newId } from '@/core/model/ids';
 import { objectAssets, pageObjects } from '@/core/model/tree';
 import type { Figure, Image } from '@/core/model/types';
 
 import { type BakedMerge, channelsOf, setChannels } from './channels';
 import type { CroppedPicture } from './crop';
-import { isIdentity, setLevels } from './levels';
+import { isIdentity, levelsToMatch, matchLevels, setLevels } from './levels';
 
 const meta = { name: 'b.png', width: 200, height: 100 };
 const assets: Figure['assets'] = {
@@ -117,5 +117,70 @@ describe('setLevels', () => {
     const re = setChannels(page, id, ch, { merge: baked('l2'), unadjusted: baked('m2') }).apply(lv);
     expect(img(re, id).asset).toBe('l2');
     expect(img(re, id).levels).toEqual({ min: 5, max: 200, invert: true, base: 'm2' });
+  });
+});
+
+describe('same levels (note 37)', () => {
+  /** Two pictures: `a` adjusted, `b` plain with its own base, plus a rectangle. */
+  function two() {
+    const { f, id: a, page } = fig();
+    const b: Image = {
+      id: newId('o'),
+      type: 'image',
+      asset: 'other',
+      frame: { x: 120, y: 0, w: 100, h: 50, rotation: 0 },
+      opacity: 1,
+    };
+    const rect = createRect(frame(0, 100, 10, 10));
+    const f2 = addObjects(page, [b, rect]).apply({
+      ...f,
+      assets: {
+        ...f.assets,
+        other: { kind: 'image', mime: 'image/png', dataBase64: 'BBBB', meta },
+      },
+    });
+    const adjusted = setLevels(page, a, levels(10, true), { adjusted: baked('la') }).apply(f2);
+    return { f: adjusted, a, b: b.id, rect: rect.id, page };
+  }
+
+  it('gives the others the first picture’s levels and inversion, each from its own base', () => {
+    const { f, a, b, rect, page } = two();
+    const plan = levelsToMatch([img(f, a), img(f, b)]);
+    expect(plan?.levels).toEqual({ min: 10, max: 200, invert: true });
+    if (!plan) throw new Error('no plan');
+    const next = matchLevels(page, plan.levels, [
+      { id: b, baked: { adjusted: baked('lb') } },
+    ]).apply(f);
+    expect(img(next, b).levels).toEqual({ min: 10, max: 200, invert: true, base: 'other' });
+    expect(img(next, b).asset).toBe('lb');
+    expect(img(next, a)).toEqual(img(f, a));
+    const p = next.doc.pages[0];
+    expect([...pageObjects(p!)].find((o) => o.id === rect)?.type).toBe('rect');
+  });
+
+  it('is one undo step', () => {
+    const { f, a, b, page } = two();
+    const plan = levelsToMatch([img(f, a), img(f, b)]);
+    if (!plan) throw new Error('no plan');
+    const e = matchLevels(page, plan.levels, [{ id: b, baked: { adjusted: baked('lb') } }]);
+    expect(e.label).toBe('Same levels');
+    expect(History.create(f).push(e.apply(f), e.label).undo().present).toEqual(f);
+  });
+
+  it('does nothing for fewer than two pictures, or when they already match', () => {
+    const { f, a, b } = two();
+    expect(levelsToMatch([img(f, a)])).toBeNull();
+    expect(levelsToMatch([])).toBeNull();
+    expect(levelsToMatch([img(f, b), img(f, b)])).toBeNull();
+  });
+
+  it('an unadjusted first picture resets the others', () => {
+    const { f, a, b, page } = two();
+    const plan = levelsToMatch([img(f, b), img(f, a)]);
+    if (!plan) throw new Error('no plan');
+    expect(plan.targets.map((o) => o.id)).toEqual([a]);
+    const next = matchLevels(page, plan.levels, [{ id: a, baked: {} }]).apply(f);
+    expect(img(next, a).levels).toBeUndefined();
+    expect(img(next, a).asset).toBe('orig');
   });
 });

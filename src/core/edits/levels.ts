@@ -71,3 +71,51 @@ export function setLevels(
     },
   };
 }
+
+/** A picture's levels as a setting (the identity when it has none). */
+export const levelsOf = (o: Image): LevelsInput =>
+  o.levels
+    ? { min: o.levels.min, max: o.levels.max, invert: o.levels.invert }
+    : { min: 0, max: 255, invert: false };
+
+/** Whether two pictures show the same levels (none counts as the identity). */
+export const sameLevels = (a: Image, b: Image): boolean => {
+  const [x, y] = [levelsOf(a), levelsOf(b)];
+  return x.min === y.min && x.max === y.max && x.invert === y.invert;
+};
+
+/** One picture to bring to the shared levels, with its pixels baked beforehand. */
+export interface LevelsTarget {
+  readonly id: Id;
+  readonly baked: BakedLevels;
+}
+
+/**
+ * The pictures "Same levels" changes and the setting it copies (note 37): the first picture's
+ * levels (the identity when it has none) for each other picture that differs. Give it the
+ * pictures only (`cropTargets`); `null` when fewer than two are given or none differs.
+ */
+export function levelsToMatch(
+  pics: readonly Image[],
+): { levels: LevelsInput; targets: Image[] } | null {
+  const [ref, ...rest] = pics;
+  if (!ref) return null;
+  const targets = rest.filter((o) => !sameLevels(o, ref));
+  return targets.length === 0 ? null : { levels: levelsOf(ref), targets };
+}
+
+/**
+ * "Same levels": gives each target picture the levels (and inversion) `levels`, each baked
+ * from its own unadjusted pixels. One undo step. An identity setting resets the targets.
+ */
+export function matchLevels(
+  pageId: Id,
+  levels: LevelsInput,
+  targets: readonly LevelsTarget[],
+): Edit {
+  const edits = targets.map((t) => setLevels(pageId, t.id, levels, t.baked));
+  return {
+    label: 'Same levels',
+    apply: (f) => edits.reduce((acc, e) => e.apply(acc), f),
+  };
+}

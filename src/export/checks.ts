@@ -10,8 +10,9 @@
  */
 import { type Box, apply, boxOfPoints, frameMatrix } from '@/core/geometry/matrix';
 import type { Id } from '@/core/model/ids';
-import { panelLabels } from '@/core/model/panels';
-import type { Figure, Obj, Page, Text } from '@/core/model/types';
+import { sameLevels } from '@/core/edits/levels';
+import { ownObjects, panelLabels } from '@/core/model/panels';
+import type { Figure, Image, Obj, Page, Text } from '@/core/model/types';
 import { journalColumns, journalMaxHeightMm } from '@/core/presets/pages';
 import { layoutText, plainText } from '@/core/text/layout';
 import { mmToPt, ptToMm } from '@/core/units';
@@ -22,7 +23,13 @@ import { labelText, pageToNode } from '@/render/objectToNode';
 import type { SvgNode } from '@/render/svgNode';
 
 export type CheckRule =
-  'text-size' | 'stroke-width' | 'overlap' | 'journal-width' | 'journal-height' | 'image-dpi';
+  | 'text-size'
+  | 'stroke-width'
+  | 'overlap'
+  | 'journal-width'
+  | 'journal-height'
+  | 'image-dpi'
+  | 'image-levels';
 
 export interface CheckWarning {
   readonly rule: CheckRule;
@@ -363,6 +370,31 @@ export function checkOverlap(fig: Figure, page: Page): CheckWarning[] {
 
 /* ------------------------------------------------------------------ */
 
+/**
+ * Pictures of one panel shown with different levels or inversion (note 37): compared
+ * panels should share one display range. One warning per such panel, selecting its pictures.
+ */
+export function checkLevels(fig: Figure, page: Page): CheckWarning[] {
+  const labels = panelLabels(page, fig.doc.panelLabelStyle.format);
+  const out: CheckWarning[] = [];
+  for (const p of visibleObjects(page)) {
+    if (p.type !== 'panel') continue;
+    const pics = [...ownObjects(p.children)].filter(
+      (o): o is Image => o.type === 'image' && o.hidden !== true,
+    );
+    const [first, ...rest] = pics;
+    if (!first || rest.every((o) => sameLevels(o, first))) continue;
+    const label = labels.get(p.id) ?? p.label;
+    out.push({
+      rule: 'image-levels',
+      pageId: page.id,
+      ids: pics.map((o) => o.id),
+      message: `The pictures in ${label === '' ? 'a panel' : `panel ${label}`} have different levels. Compared pictures should share one display range: select them and use Same levels.`,
+    });
+  }
+  return out;
+}
+
 function describe(o: Obj | undefined): string {
   if (!o) return 'An object';
   if (o.name !== undefined && o.name !== '') return quote(o.name);
@@ -436,6 +468,7 @@ export function checkPage(fig: Figure, page: Page, opts: CheckOptions): CheckWar
       ids: [id],
       message: `${describe(byId.get(id))} is ${fmt(v, 0)} dpi at its placed size${scaled}, under ${fmt(limits.dpi, 0)} dpi.`,
     });
+  out.push(...checkLevels(fig, page));
   out.push(...checkOverlap(fig, page));
   return out;
 }

@@ -5,7 +5,7 @@
  * pure function of the figure, like `creditLine`.
  */
 import { docCreditItems } from '@/core/attribution/attribution';
-import { panelLabels, readingOrder } from '@/core/model/panels';
+import { ownObjects, panelLabels, readingOrder } from '@/core/model/panels';
 import { walk } from '@/core/model/tree';
 import type { Figure, Obj, Panel, Text } from '@/core/model/types';
 import { lengthLabel } from '@/procedural/kinds/scaleBar';
@@ -16,14 +16,6 @@ const squash = (s: string): string => s.replace(/\s+/g, ' ').trim();
 /** A text object's words, its paragraphs joined by spaces. */
 const textOf = (t: Text): string =>
   squash(t.runs.map((p) => p.map((r) => r.text).join('')).join(' '));
-
-/** A panel's own objects, through groups but not into panels nested in it (they have their own letter). */
-function* ownObjects(children: readonly Obj[]): Generator<Obj> {
-  for (const o of children) {
-    yield o;
-    if (o.type === 'group') yield* ownObjects(o.children);
-  }
-}
 
 /** The panel's title: its topmost (then leftmost) text object with any words in it. */
 function titleOf(p: Panel): string {
