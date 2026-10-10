@@ -138,9 +138,9 @@ and runs on the current page (every page for an all-pages PDF). Rules:
   (`PagePreset.maxHMm`), set only where the journal's own page was checked (2026-10): Nature
   170 mm (room left for the legend), PLOS 222.25 mm, Cell 200 mm (6.5 x 8 in; Cell Press words it as
   a recommendation for production files, "to allow for page margins and text", and we treat it
-  as the limit). Science states no maximum height (only column widths), so none is set. PNAS is
-  not checked yet (its pages sit behind a bot check; its digital art PDF suggests 9 in / 22.5 cm,
-  unverified); eLife publishes none.
+  as the limit), PNAS 225 mm (its digital art PDF: "Recommended max height: 54 picas / 9" /
+  22.5 cm"; 9 in is 228.6 mm, so we take the smaller). Science states no maximum height (only
+  column widths), so none is set; eLife publishes none.
   A page whose height, multiplied by `journalScale`, exceeds it is warned about (0.5 pt
   tolerance). The presets' own heights are defaults below those maxima.
 - **Overlap** is kept to cases that are almost always mistakes, measured on the text layout

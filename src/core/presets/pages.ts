@@ -11,8 +11,9 @@
  * production files, checked 2026-10-10). Science states no maximum height (only
  * widths of 5.7, 12.1 and 18.4 cm; www.science.org/content/page/instructions-
  * preparing-initial-manuscript and ...-revised-manuscript, checked 2026-10-10),
- * so none is set. PNAS is unchecked: pnas.org served a bot check to the
- * browser on 2026-10-10 (lead: its digital art PDF, 9 in / 22.5 cm).
+ * so none is set. PNAS 225 ("Recommended max height: 54 picas / 9" / 22.5 cm",
+ * www.pnas.org/pb-assets/authors/digitalart-1675347574760.pdf, checked
+ * 2026-10-10; 9 in is 228.6 mm, we take the smaller 22.5 cm).
  */
 import { mmToPt } from '../units';
 
@@ -103,6 +104,7 @@ export const PAGE_PRESETS: readonly PagePreset[] = [
     wMm: 87,
     hMm: 87,
     journal: 'PNAS',
+    maxHMm: 225,
   },
   {
     id: 'pnas-2',
@@ -111,6 +113,7 @@ export const PAGE_PRESETS: readonly PagePreset[] = [
     wMm: 178,
     hMm: 130,
     journal: 'PNAS',
+    maxHMm: 225,
   },
   {
     id: 'plos',
