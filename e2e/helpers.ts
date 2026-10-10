@@ -5,6 +5,17 @@ import type * as Utif from 'utif';
 /** UTIF is CommonJS; Playwright's ESM loader needs require for it. */
 export const UTIF = createRequire(import.meta.url)('utif') as typeof Utif;
 
+/**
+ * Makes Save download the file even in Chromium, which otherwise saves in place
+ * through showSaveFilePicker (note 38). Call before the page is (re)loaded.
+ */
+export async function downloadFallback(page: Page) {
+  await page.addInitScript(() => {
+    Reflect.deleteProperty(window, 'showSaveFilePicker');
+    Reflect.deleteProperty(window, 'showOpenFilePicker');
+  });
+}
+
 /** The page's on-screen box (the outline rect over the page). */
 export async function pageBox(page: Page) {
   const b = await page.getByTestId('page').boundingBox();

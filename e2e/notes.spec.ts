@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 
 import { type Page, expect, test } from '@playwright/test';
 
-import { exportVia, pageBox } from './helpers';
+import { downloadFallback, exportVia, pageBox } from './helpers';
 
 const PAGE_W = (183 / 25.4) * 72;
 
@@ -131,6 +131,8 @@ test('notes on an object and on a point: write, follow, edit, resolve, reply, de
 test('notes survive saving and reopening the file, and no export carries them', async ({
   page,
 }, info) => {
+  await downloadFallback(page);
+  await page.goto('./');
   await rect(page, 30, 30, 60, 40);
   await page.keyboard.press('Escape');
   await notes(page).getByRole('button', { name: '+ Note' }).click();

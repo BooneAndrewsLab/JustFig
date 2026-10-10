@@ -17,7 +17,7 @@ import { deflateSync } from 'node:zlib';
 
 import { type Page, expect, test } from '@playwright/test';
 
-import { exportVia, pageBox } from './helpers';
+import { downloadFallback, exportVia, pageBox } from './helpers';
 
 const here = (p: string) => new URL(p, import.meta.url);
 const plot = (name: string) => fileURLToPath(here(`../src/io/svg/fixtures/${name}.svg`));
@@ -219,6 +219,7 @@ const frameDone = (page: Page) =>
 
 test('a large figure: first render, drag frames, export times', async ({ page }, info) => {
   test.setTimeout(240_000);
+  await downloadFallback(page);
   await page.goto('./');
   await expect(page.locator('.icon-tile').first()).toBeVisible();
 
