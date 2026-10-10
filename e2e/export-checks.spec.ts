@@ -46,3 +46,31 @@ test('a clean page says so', async ({ page }) => {
   const dialog = page.getByRole('dialog', { name: 'Export figure' });
   await expect(dialog.getByText('No problems found.')).toBeVisible();
 });
+
+test('swatches that look alike in colour-blind vision are warned about, and selected', async ({
+  page,
+}) => {
+  await page.goto('./');
+  await page.getByRole('button', { name: 'Templates…' }).click();
+  const gallery = page.getByRole('dialog', { name: 'Templates and examples' });
+  await gallery.getByRole('tab', { name: 'Examples' }).click();
+  await gallery.locator('[data-entry="signalling-pathway"]').click();
+  await expect(gallery).toBeHidden();
+
+  // Okabe-Ito is colourblind-safe: no warning. The classic palette puts orange beside green.
+  await page.getByRole('button', { name: 'Export…' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Export figure' });
+  await expect(dialog.getByRole('button', { name: /look alike with/ })).toHaveCount(0);
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+  await page.locator('#palette-choice').selectOption('classic');
+  await page.getByRole('button', { name: 'Apply to figure' }).click();
+
+  await page.getByRole('button', { name: 'Export…' }).click();
+  const warning = dialog.getByRole('button', {
+    name: /look alike with .*(deuteranopia|protanopia)/,
+  });
+  await expect(warning.first()).toBeVisible();
+  await warning.first().click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.locator('.status')).toContainText(/[2-9] selected/);
+});

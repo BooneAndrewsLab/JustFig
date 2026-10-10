@@ -8,11 +8,12 @@
  * every transform applied. Overlap is measured on the text layout instead
  * (the SvgNode carries no glyph widths).
  */
+import { resolvePaint } from '@/core/color/color';
 import { type Box, apply, boxOfPoints, frameMatrix } from '@/core/geometry/matrix';
 import type { Id } from '@/core/model/ids';
 import { sameLevels } from '@/core/edits/levels';
 import { ownObjects, panelLabels } from '@/core/model/panels';
-import type { Figure, Image, Obj, Page, Text } from '@/core/model/types';
+import type { Doc, Figure, Image, Obj, Page, Paint, Text } from '@/core/model/types';
 import { journalColumns, journalMaxHeightMm } from '@/core/presets/pages';
 import { layoutText, plainText } from '@/core/text/layout';
 import { mmToPt, ptToMm } from '@/core/units';
@@ -22,6 +23,8 @@ import { imageSize } from '@/io/png';
 import { labelText, pageToNode } from '@/render/objectToNode';
 import type { SvgNode } from '@/render/svgNode';
 
+import { DEFICIENCY_NAMES, confusions, greyConfusions, hasRedAndGreen } from './colourVision';
+
 export type CheckRule =
   | 'text-size'
   | 'stroke-width'
@@ -29,7 +32,10 @@ export type CheckRule =
   | 'journal-width'
   | 'journal-height'
   | 'image-dpi'
-  | 'image-levels';
+  | 'image-levels'
+  | 'colour-confusion'
+  | 'colour-greyscale'
+  | 'channels-red-green';
 
 export interface CheckWarning {
   readonly rule: CheckRule;
@@ -395,6 +401,152 @@ export function checkLevels(fig: Figure, page: Page): CheckWarning[] {
   return out;
 }
 
+/* ------------------------------------------------------------------ */
+
+/** One panel's own objects, or the page's objects outside any panel (`panel` null). */
+interface Scope {
+  readonly panel: Obj | null;
+  readonly objs: Obj[];
+}
+
+/** The visible objects split by lettered panel (groups are entered, nested panels are their own scope). */
+function scopesOf(page: Page): Scope[] {
+  const root: Scope = { panel: null, objs: [] };
+  const out: Scope[] = [root];
+  const walk = (children: readonly Obj[], scope: Scope): void => {
+    for (const o of children) {
+      if (o.hidden === true) continue;
+      if (o.type === 'panel') {
+        const own: Scope = { panel: o, objs: [] };
+        out.push(own);
+        walk(o.children, own);
+      } else {
+        scope.objs.push(o);
+        if (o.type === 'group') walk(o.children, scope);
+      }
+    }
+  };
+  for (const l of page.layers) if (l.visible) walk(l.children, root);
+  return out;
+}
+
+/** The paints an object's fills, strokes, text and slot overrides use. */
+function paintsOf(o: Obj): Paint[] {
+  switch (o.type) {
+    case 'rect':
+    case 'ellipse':
+    case 'path':
+    case 'arrow':
+      return [o.style.fill, o.style.stroke].filter((p): p is Paint => p !== null);
+    case 'text':
+      return o.runs.flatMap((para) => para.map((r) => r.color));
+    case 'icon':
+    case 'procedural':
+      return Object.values(o.slots);
+    case 'image':
+    case 'group':
+    case 'panel':
+    case 'embedded':
+      return [];
+  }
+}
+
+interface Used {
+  readonly name: string;
+  readonly hex: string;
+  readonly ids: Id[];
+}
+
+/** The linked swatches a scope's objects use, in first-use order (fixed colours are the user's choice). */
+function swatchesUsed(doc: Doc, objs: readonly Obj[]): Used[] {
+  const by = new Map<string, Used>();
+  for (const o of objs)
+    for (const p of paintsOf(o)) {
+      if (!('swatch' in p)) continue;
+      const sw = doc.palette.find((s) => s.id === p.swatch);
+      if (!sw) continue;
+      const u = by.get(sw.id) ?? { name: sw.name, hex: resolvePaint(p, doc.palette), ids: [] };
+      if (!u.ids.includes(o.id)) u.ids.push(o.id);
+      by.set(sw.id, u);
+    }
+  return [...by.values()];
+}
+
+const scopeName = (s: Scope, labels: Map<Id, string>): string => {
+  if (s.panel === null) return 'the page';
+  const label = labels.get(s.panel.id) ?? '';
+  return label === '' ? 'a panel' : `panel ${label}`;
+};
+
+const merged = <T>(a: readonly T[], b: readonly T[]): T[] => [...new Set([...a, ...b])];
+
+/**
+ * Swatches of one panel (or of the page outside panels) that look alike in colour-blind
+ * vision (note 46): a pair told apart in normal vision (CIE76 ΔE of 25 or more) whose
+ * simulation under deuteranopia, protanopia or tritanopia falls below ΔE 12. One warning
+ * per panel, for its worst pair; clicking selects the objects using the two swatches.
+ */
+export function checkColourConfusion(fig: Figure, page: Page): CheckWarning[] {
+  const labels = panelLabels(page, fig.doc.panelLabelStyle.format);
+  const out: CheckWarning[] = [];
+  for (const s of scopesOf(page)) {
+    const used = swatchesUsed(fig.doc, s.objs);
+    const found = confusions(used.map((u) => u.hex));
+    const worst = found[0];
+    const a = worst ? used[worst.a] : undefined;
+    const b = worst ? used[worst.b] : undefined;
+    if (!worst || !a || !b) continue;
+    const more = new Set(found.map((c) => `${String(c.a)}-${String(c.b)}`)).size - 1;
+    out.push({
+      rule: 'colour-confusion',
+      pageId: page.id,
+      ids: merged(a.ids, b.ids),
+      message: `In ${scopeName(s, labels)}, "${a.name}" and "${b.name}" look alike with ${DEFICIENCY_NAMES[worst.deficiency]}${more > 0 ? `, and ${String(more)} more pair${more > 1 ? 's' : ''} like it` : ''}. Pick colours that differ in lightness too, such as a colourblind-safe palette.`,
+    });
+  }
+  return out;
+}
+
+/**
+ * Swatches of one panel that a greyscale print renders at nearly the same lightness
+ * (ΔL* under 8 though told apart in colour). One warning per panel, for its worst pair.
+ */
+export function checkGreyscale(fig: Figure, page: Page): CheckWarning[] {
+  const labels = panelLabels(page, fig.doc.panelLabelStyle.format);
+  const out: CheckWarning[] = [];
+  for (const s of scopesOf(page)) {
+    const used = swatchesUsed(fig.doc, s.objs);
+    const found = greyConfusions(used.map((u) => u.hex));
+    const worst = found[0];
+    const a = worst ? used[worst.a] : undefined;
+    const b = worst ? used[worst.b] : undefined;
+    if (!worst || !a || !b) continue;
+    out.push({
+      rule: 'colour-greyscale',
+      pageId: page.id,
+      ids: merged(a.ids, b.ids),
+      message: `In ${scopeName(s, labels)}, "${a.name}" and "${b.name}" are about equally light, so they look the same in a black-and-white print. Make one lighter or darker.`,
+    });
+  }
+  return out;
+}
+
+/** Pictures whose channel merge uses red and green together: suggest magenta and green. */
+export function checkRedGreenMerge(page: Page): CheckWarning[] {
+  const out: CheckWarning[] = [];
+  for (const o of visibleObjects(page)) {
+    if (o.type !== 'image' || !o.channels) continue;
+    if (!hasRedAndGreen(o.channels.filter((c) => c.on).map((c) => c.color))) continue;
+    out.push({
+      rule: 'channels-red-green',
+      pageId: page.id,
+      ids: [o.id],
+      message: `${describe(o)} merges a red and a green channel, which people with red-green colour blindness cannot tell apart where they overlap. Use magenta and green instead.`,
+    });
+  }
+  return out;
+}
+
 function describe(o: Obj | undefined): string {
   if (!o) return 'An object';
   if (o.name !== undefined && o.name !== '') return quote(o.name);
@@ -470,5 +622,10 @@ export function checkPage(fig: Figure, page: Page, opts: CheckOptions): CheckWar
     });
   out.push(...checkLevels(fig, page));
   out.push(...checkOverlap(fig, page));
+  out.push(
+    ...checkRedGreenMerge(page),
+    ...checkColourConfusion(fig, page),
+    ...checkGreyscale(fig, page),
+  );
   return out;
 }

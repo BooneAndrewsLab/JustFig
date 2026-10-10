@@ -52,6 +52,8 @@ The **Preview as** list in the Palette section shows the canvas as people with o
 
 This colour-vision preview changes only what you see on screen. Your exports are never affected. Check that groups you want to tell apart still look different, and that nothing disappears in greyscale, since many readers print figures in black and white. Set it back to Normal colour vision when you have finished.
 
+You do not have to look for every problem yourself: **Check before export** (see Export) warns about swatches in one panel that look alike with deuteranopia, protanopia or tritanopia or in greyscale, and about red and green channels merged in one picture.
+
 ## Colours in templates
 
 The example figures in the gallery are linked to their palettes, so applying another palette to one recolours it (see [Templates and examples](10-templates.md)).

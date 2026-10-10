@@ -51,6 +51,7 @@ import { PagesBar } from '../panels/PagesBar';
 import { ICON_DRAG_TYPE, KIND_DRAG_TYPE, fitPage, zoomAt } from './view';
 import { resolveBindings } from '../keyBindings';
 import { NodeOverlay, NodeStatus } from './NodeOverlay';
+import { DEFICIENCIES, cvdFilterValues } from '@/export/colourVision';
 import { NoteMarkers } from './NoteMarkers';
 import { PageView } from './PageView';
 import { Ruler } from './Rulers';
@@ -171,21 +172,13 @@ function pickTarget(target: EventTarget | null, page: Page): Id | null {
  * (2009) matrices at full severity, applied in linear RGB (the filter
  * default), and a greyscale for print.
  */
-const CVD: Readonly<Record<string, string>> = {
-  protanopia:
-    '0.152286 1.052583 -0.204868 0 0 0.114503 0.786281 0.099216 0 0 -0.003882 -0.048116 1.051998 0 0 0 0 0 1 0',
-  deuteranopia:
-    '0.367322 0.860646 -0.227968 0 0 0.280085 0.672501 0.047413 0 0 -0.01182 0.04294 0.968881 0 0 0 0 0 1 0',
-  tritanopia:
-    '1.255528 -0.076749 -0.178779 0 0 -0.078411 0.930809 0.147602 0 0 0.004733 0.691367 0.3039 0 0 0 0 0 1 0',
-};
 
 function VisionFilters() {
   return (
     <defs>
-      {Object.entries(CVD).map(([id, m]) => (
+      {DEFICIENCIES.map((id) => (
         <filter key={id} id={`vision-${id}`}>
-          <feColorMatrix type="matrix" values={m} />
+          <feColorMatrix type="matrix" values={cvdFilterValues(id)} />
         </filter>
       ))}
       <filter id="vision-greyscale">

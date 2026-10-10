@@ -6,6 +6,7 @@ import {
   createPanel,
   createPath,
   createRect,
+  DEFAULT_SHAPE,
   createText,
   defaultRun,
   frame,
@@ -20,11 +21,14 @@ import { loadTestFonts } from '@/test/fonts';
 
 import {
   type CheckWarning,
+  checkColourConfusion,
+  checkGreyscale,
   checkJournalHeight,
   checkJournalWidth,
   checkLevels,
   checkOverlap,
   checkPage,
+  checkRedGreenMerge,
   dataUriPixels,
   journalScale,
   minTextFor,
@@ -363,5 +367,98 @@ describe('levels in a panel (note 37)', () => {
     expect(checkLevels(lone.figure, lone.page)).toEqual([]);
     const apart = fig([panelOf([pic('p1', 10)]), panelOf([pic('p2')])]);
     expect(checkLevels(apart.figure, apart.page)).toEqual([]);
+  });
+});
+
+describe('colour-vision checks (note 46)', () => {
+  const sw = (id: string, name: string, h: string) => ({ id, name, hex: h });
+  const palette = [
+    sw('red', 'Orange', '#ff7f0e'),
+    sw('green', 'Green', '#2ca02c'),
+    sw('blue', 'Blue', '#0072b2'),
+    sw('amber', 'Amber', '#e69f00'),
+  ];
+  const box = (id: string, swatch: string): Obj => ({
+    ...createRect(frame(0, 0, 20, 20), { ...DEFAULT_SHAPE, fill: { swatch }, stroke: null }),
+    id: id as Id,
+  });
+  const panelOf = (kids: Obj[], x = 0): Obj => ({
+    ...createPanel(frame(x, 0, 200, 100)),
+    children: kids,
+  });
+  const withPalette = (children: Obj[], pal = palette) => {
+    const r = fig(children);
+    return { ...r, figure: { ...r.figure, doc: { ...r.figure.doc, palette: pal } } as Figure };
+  };
+
+  it('warns once per panel about swatches that look alike, selecting the objects using them', () => {
+    const { figure, page } = withPalette([
+      panelOf([box('a', 'red'), box('b', 'green'), box('c', 'green'), box('d', 'blue')]),
+    ]);
+    const ws = rules(checkPage(figure, page, { journal: null }), 'colour-confusion');
+    expect(ws).toHaveLength(1);
+    expect(ws[0]?.ids).toEqual(['a', 'b', 'c']);
+    expect(ws[0]?.message).toMatch(/panel A.*Orange.*Green.*(deuteranopia|protanopia)/);
+  });
+
+  it('keeps panels apart and judges the page outside panels on its own', () => {
+    const { figure, page } = withPalette([
+      panelOf([box('a', 'red')]),
+      panelOf([box('b', 'green')], 300),
+      box('c', 'red'),
+      box('d', 'green'),
+    ]);
+    const ws = rules(checkPage(figure, page, { journal: null }), 'colour-confusion');
+    expect(ws.map((w) => w.ids)).toEqual([['c', 'd']]);
+    expect(ws[0]?.message).toMatch(/the page/);
+  });
+
+  it('passes safe palettes, fixed colours and hidden objects', () => {
+    const safe = withPalette([panelOf([box('a', 'blue'), box('b', 'amber')])]);
+    expect(checkColourConfusion(safe.figure, safe.page)).toEqual([]);
+    const fixed = fig([panelOf([createRect(frame(0, 0, 9, 9)), createRect(frame(0, 0, 9, 9))])]);
+    expect(checkColourConfusion(fixed.figure, fixed.page)).toEqual([]);
+    const hidden = withPalette([
+      panelOf([box('a', 'red'), { ...box('b', 'green'), hidden: true }]),
+    ]);
+    expect(checkColourConfusion(hidden.figure, hidden.page)).toEqual([]);
+  });
+
+  it('warns about swatches that are equally light in greyscale', () => {
+    const grey = [
+      sw('r', 'Red', '#ff0000'),
+      sw('g', 'Dark green', '#008a00'),
+      sw('k', 'Black', '#000000'),
+    ];
+    const { figure, page } = withPalette(
+      [panelOf([box('a', 'r'), box('b', 'g'), box('c', 'k')])],
+      grey,
+    );
+    const ws = checkGreyscale(figure, page);
+    expect(ws).toHaveLength(1);
+    expect(ws[0]?.ids).toEqual(['a', 'b']);
+    expect(ws[0]?.rule).toBe('colour-greyscale');
+  });
+
+  it('warns when a channel merge uses red and green, and not for magenta and green', () => {
+    const merge = (colors: string[], on = [true, true]): Obj =>
+      ({
+        ...image('m', 'a', 20, 20),
+        channels: colors.map((color, i) => ({
+          asset: `c${String(i)}`,
+          color,
+          on: on[i] ?? true,
+          min: 0,
+          max: 255,
+        })),
+      }) as Obj;
+    const bad = fig([merge(['#ff0000', '#00ff00'])]);
+    const ws = checkRedGreenMerge(bad.page);
+    expect(ws.map((w) => [w.rule, w.ids])).toEqual([['channels-red-green', ['m']]]);
+    expect(ws[0]?.message).toMatch(/magenta/);
+    const good = fig([merge(['#ff00ff', '#00ff00'])]);
+    expect(checkRedGreenMerge(good.page)).toEqual([]);
+    const muted = fig([merge(['#ff0000', '#00ff00'], [true, false])]);
+    expect(checkRedGreenMerge(muted.page)).toEqual([]);
   });
 });

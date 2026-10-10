@@ -48,6 +48,9 @@ const RULE_TITLES: Record<CheckRule, string> = {
   'image-dpi': 'Low-resolution pictures',
   'image-levels': 'Different levels in a panel',
   overlap: 'Overlapping text',
+  'colour-confusion': 'Colours that look alike in colour-blind vision',
+  'colour-greyscale': 'Colours that look alike in greyscale',
+  'channels-red-green': 'Red and green merged',
 };
 const RULE_ORDER: readonly CheckRule[] = [
   'journal-width',
@@ -57,6 +60,9 @@ const RULE_ORDER: readonly CheckRule[] = [
   'image-dpi',
   'image-levels',
   'overlap',
+  'channels-red-green',
+  'colour-confusion',
+  'colour-greyscale',
 ];
 /**
  * "Image adjustments" (note 37): the derived Methods paragraph about levels and inversion,

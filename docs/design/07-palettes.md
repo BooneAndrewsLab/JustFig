@@ -60,7 +60,8 @@ the same swatches copy their hex and say so.
 **Preview as** applies an SVG colour-matrix filter to the page on screen only (Machado, Oliveira
 & Fernandes 2009 at full severity for protanopia, deuteranopia and tritanopia, applied in
 linear RGB; and greyscale for print). It lives in editor state, not the document, and never
-reaches an export (exports serialise the page, not the canvas).
+reaches an export (exports serialise the page, not the canvas). The export check reuses the same
+matrices to warn about confusable swatches (note 46).
 
 ## Tests
 
