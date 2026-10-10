@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 230">
+<path d="M171.02 131.99L189.02 119.64C188.04 132.11 183.14 143.94 175.02 153.45ZM102.65 126.33L84.98 153.45C76.86 143.94 71.96 132.11 70.98 119.64Z" fill="#b8c4d0"/>
+<path d="M130 115L125.7 129.16M138.22 127.31L130 129.8L121.78 127.31L116.33 120.66M138.22 127.31L146.44 139.61M157.35 126.33L146.44 139.61L130 144.6M157.35 126.33L171.02 131.99M130 144.6L130 159.4M146.99 156.02L113.01 156.02M146.99 156.02L152.65 169.69M113.01 156.02L107.35 169.69M116.33 120.66L102.65 126.33M130 115L124.34 101.33M116.33 109.34L124.34 101.33L135.66 101.33M116.33 109.34L75.31 92.35M124.34 101.33L107.35 60.31M135.66 101.33L152.65 60.31M130 115L184.69 92.35" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<g transform="translate(137.68 132.55)"><text xml:space="preserve"><tspan x="0" y="5.72" font-family="Arimo" font-size="6.75" fill="#7b8794">95</tspan></text></g>
+<g transform="translate(114.85 152.33)"><text xml:space="preserve"><tspan x="0" y="5.72" font-family="Arimo" font-size="6.75" fill="#7b8794">Beta</tspan></text></g>
+<g transform="matrix(0.9239 0.3827 -0.3827 0.9239 189.326 134.7029)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" fill="#1f2933">Alpha (4)</tspan></text></g>
+<g transform="matrix(0.3827 0.9239 -0.9239 0.3827 158.0178 170.8818)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" fill="#1f2933">B1</tspan></text></g>
+<g transform="matrix(0.3827 -0.9239 0.9239 0.3827 97.7695 181.0522)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" fill="#1f2933">B2</tspan></text></g>
+<g transform="matrix(0.9239 -0.3827 0.3827 0.9239 28.6326 152.117)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" fill="#1f2933">Gamma (3)</tspan></text></g>
+<g transform="matrix(0.9239 0.3827 -0.3827 0.9239 63.4891 82.5795)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" fill="#1f2933">D1</tspan></text></g>
+<g transform="matrix(0.3827 0.9239 -0.9239 0.3827 105.8944 45.0449)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" fill="#1f2933">D2</tspan></text></g>
+<g transform="matrix(0.3827 -0.9239 0.9239 0.3827 149.7029 55.674)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" fill="#1f2933">D3</tspan></text></g>
+<g transform="matrix(0.9239 -0.3827 0.3827 0.9239 185.8818 86.9822)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" fill="#1f2933">E</tspan></text></g>
+</svg>

@@ -115,6 +115,11 @@ export interface ProceduralKind<P = Params> {
   readonly migrate?: (raw: unknown, from: number) => unknown;
   /** How far the drawing may reach past the frame (or path), points. */
   readonly overhang?: (p: P) => number;
+  /**
+   * PURE: messages the Inspector shows under the fields (a Newick string that does not parse).
+   * The render still draws something; nothing here throws.
+   */
+  readonly problems?: (p: P) => readonly string[];
   /** PURE: params → primitives in frame-local points. */
   readonly render: (p: P, input: RenderInput) => readonly Prim[];
 }

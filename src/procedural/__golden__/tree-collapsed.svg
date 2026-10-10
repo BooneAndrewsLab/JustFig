@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 230">
+<path d="M154.05 17.53L204.2 6.39L204.2 28.67ZM154.05 101.08L204.2 89.94L204.2 112.22Z" fill="#b8c4d0"/>
+<path d="M3.6 69.74L3.6 212.48M3.6 69.74L53.75 69.74M53.75 38.41L53.75 101.08M53.75 38.41L103.9 38.41M103.9 17.53L103.9 59.3M103.9 17.53L154.05 17.53M103.9 59.3L154.05 59.3M154.05 45.38L154.05 73.22M154.05 45.38L204.2 45.38M154.05 73.22L204.2 73.22M53.75 101.08L154.05 101.08M3.6 156.78L154.05 156.78M154.05 128.93L154.05 184.63M154.05 128.93L204.2 128.93M154.05 156.78L204.2 156.78M154.05 184.63L204.2 184.63M3.6 212.48L204.2 212.48" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<g transform="translate(41.23 62.68)"><text xml:space="preserve"><tspan x="0" y="5.72" font-family="Arimo" font-size="6.75" fill="#7b8794">100</tspan></text></g>
+<g transform="translate(95.13 31.35)"><text xml:space="preserve"><tspan x="0" y="5.72" font-family="Arimo" font-size="6.75" fill="#7b8794">95</tspan></text></g>
+<g transform="translate(138.9 52.23)"><text xml:space="preserve"><tspan x="0" y="5.72" font-family="Arimo" font-size="6.75" fill="#7b8794">Beta</tspan></text></g>
+<g transform="translate(145.28 149.71)"><text xml:space="preserve"><tspan x="0" y="5.72" font-family="Arimo" font-size="6.75" fill="#7b8794">88</tspan></text></g>
+<g transform="translate(207.35 13.03)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" fill="#1f2933">Alpha (4)</tspan></text></g>
+<g transform="translate(207.35 40.88)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" fill="#1f2933">B1</tspan></text></g>
+<g transform="translate(207.35 68.72)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" fill="#1f2933">B2</tspan></text></g>
+<g transform="translate(207.35 96.58)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" fill="#1f2933">Gamma (3)</tspan></text></g>
+<g transform="translate(207.35 124.43)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" fill="#1f2933">D1</tspan></text></g>
+<g transform="translate(207.35 152.28)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" fill="#1f2933">D2</tspan></text></g>
+<g transform="translate(207.35 180.13)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" fill="#1f2933">D3</tspan></text></g>
+<g transform="translate(207.35 207.98)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" fill="#1f2933">E</tspan></text></g>
+</svg>

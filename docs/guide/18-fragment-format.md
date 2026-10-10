@@ -277,6 +277,20 @@ A `procedural` object is drawn by JustFig from a short list of parameters, so a 
 - `arrow`: true or false, default true
 - `size`: number 4 to 24 pt, default 8
 
+### `tree`: Tree from Newick
+
+`kindVersion` 1. A phylogenetic or clustering tree drawn from a Newick string, rectangular or circular, with optional collapsed clades. Default size 260 x 230 pt.
+
+- `newick`: text up to 4000 characters; kept as given, parsed when drawn (a string that does not parse draws a message)
+- `layout`: one of `rectangular`, `circular`, default `rectangular`
+- `branchLengths`: true or false, default true
+- `support`: true or false, default true
+- `labels`: true or false, default true
+- `collapse`: list of 0 to 20 items; each item: `name` (text up to 80 characters: a clade's label, a leaf name for its parent clade, or two leaf names separated by a comma for the smallest clade holding both)
+- `scaleBar`: true or false, default true
+- `size`: number 4 to 24 pt, default 9
+- `lineWidth`: number 0.25 to 6 pt, default 1
+
 ### `placeholderPlot`: Placeholder plot
 
 `kindVersion` 1. A plot-shaped placeholder (PCA, UMAP, scatter, bar or flow cytometry) drawn from a seed. Default size 200 x 160 pt.

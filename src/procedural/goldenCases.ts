@@ -194,4 +194,27 @@ export const GOLDEN_CASES: Readonly<Record<string, Readonly<Record<string, Parti
   cell: {
     irregular: { shape: 'irregular', er: false, mitochondria: 10, seed: 11 },
   },
+  tree: {
+    support: {
+      newick:
+        "((('Homo sapiens':0.10,Pan_troglodytes:0.12)99:0.06,Gorilla_gorilla:0.2)87:0.05,((Mus_musculus:0.20,Rattus_norvegicus:0.18)100:0.07,Cavia_porcellus:0.3)92:0.1,Gallus_gallus:0.6);",
+    },
+    cladogram: { branchLengths: false, scaleBar: false },
+    circular: {
+      layout: 'circular',
+      newick:
+        '(((Human:0.1,Chimp:0.12)99:0.06,Gorilla:0.2)87:0.05,((Mouse:0.2,Rat:0.18)100:0.07,Guinea_pig:0.3)92:0.1,(Chicken:0.5,Duck:0.45)100:0.1,Frog:0.7);',
+    },
+    collapsed: {
+      newick: '((((A1,A2,A3,A4)Alpha,(B1,B2)Beta)95,(C1,C2,C3)Gamma)100,(D1,D2,D3)88,E);',
+      collapse: [{ name: 'Alpha' }, { name: 'C1,C3' }],
+    },
+    'circular-collapsed': {
+      layout: 'circular',
+      newick:
+        '((((A1:1,A2:1,A3:1,A4:1)Alpha:1,(B1:1,B2:1)Beta:1)95:1,(C1:2,C2:2,C3:2)Gamma:1)100:1,(D1:3,D2:3,D3:3)88:1,E:4);',
+      collapse: [{ name: 'Alpha' }, { name: 'Gamma' }],
+    },
+    malformed: { newick: '((A:1,B:x),C' },
+  },
 };

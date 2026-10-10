@@ -12,6 +12,7 @@ import { scaleBar } from './scaleBar';
 import { sequenceSnippet } from './sequence';
 import { studyDesign } from './studyDesign';
 import { timeline } from './timeline';
+import { tree } from './tree';
 import { wellPlate } from './wellPlate';
 
 export const KINDS: readonly ProceduralKind[] = [
@@ -29,5 +30,6 @@ export const KINDS: readonly ProceduralKind[] = [
   timeline,
   sequenceSnippet,
   studyDesign,
+  tree,
   placeholderPlot,
 ];

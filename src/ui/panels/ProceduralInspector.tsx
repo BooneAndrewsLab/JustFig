@@ -369,6 +369,11 @@ export function ProceduralSection({ s, obj }: { s: AppState; obj: Procedural }) 
         {visibleFields(kind.fields, params).map((f) => (
           <FieldControl key={f.key} s={s} o={obj} f={f} params={params} palette={fig.doc.palette} />
         ))}
+        {(kind.problems?.(params) ?? []).map((msg) => (
+          <p key={msg} className="note" role="alert">
+            {msg}
+          </p>
+        ))}
       </section>
       {kind.slots.length > 0 && (
         <section className="section" aria-label="Colours">

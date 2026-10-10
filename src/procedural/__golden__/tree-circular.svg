@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 230">
+<path d="M130 115L131.33 118.64M132.97 117.49L131.33 118.64L129.33 118.82M132.97 117.49L136.53 120.48M138.01 117.92L134.26 122.38M138.01 117.92L145.29 120.57M134.26 122.38L138.91 130.44M129.33 118.82L126.64 134.08M130 115L122.37 113.65M122.72 117.65L122.37 113.65L124.06 110.02M122.72 117.65L117.62 119.51M119.91 123.47L116.83 115M119.91 123.47L108.03 133.43M116.83 115L102.88 115M124.06 110.02L106.25 95.07M130 115L131.35 107.37M128.65 107.37L133.88 108.29M128.65 107.37L121.93 69.21M133.88 108.29L151.31 78.09M130 115L180.98 96.45" fill="none" stroke="#1f2933" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<g transform="matrix(0.9397 0.342 -0.342 0.9397 149.7926 117.4151)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" fill="#1f2933">Human</tspan></text></g>
+<g transform="matrix(0.5 0.866 -0.866 0.5 144.3846 130.9149)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" fill="#1f2933">Chimp</tspan></text></g>
+<g transform="matrix(0.1736 -0.9848 0.9848 0.1736 117.1409 162.0131)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" fill="#1f2933">Gorilla</tspan></text></g>
+<g transform="matrix(0.766 -0.6428 0.6428 0.766 82.0348 149.3733)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" fill="#1f2933">Mouse</tspan></text></g>
+<g transform="translate(85.72 110.5)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" fill="#1f2933">Rat</tspan></text></g>
+<g transform="matrix(0.766 0.6428 -0.6428 0.766 73.3845 61.6196)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" fill="#1f2933">Guinea pig</tspan></text></g>
+<g transform="matrix(0.1736 0.9848 -0.9848 0.1736 120.1638 33.3017)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" fill="#1f2933">Chicken</tspan></text></g>
+<g transform="matrix(0.5 -0.866 0.866 0.5 148.9904 73.1077)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" fill="#1f2933">Duck</tspan></text></g>
+<g transform="matrix(0.9397 -0.342 0.342 0.9397 182.3993 91.1394)"><text xml:space="preserve"><tspan x="0" y="7.62" font-family="Arimo" font-size="9" fill="#1f2933">Frog</tspan></text></g>
+</svg>
