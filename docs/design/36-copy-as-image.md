@@ -1,8 +1,9 @@
 # 36 Copy as image
 
 Issue #72: getting a figure into a slide deck meant export, find the file,
-insert. The top bar has **Copy as image** (no shortcut: the obvious keys
-belong to the browser, and Ctrl+C copies fragments, note 05).
+insert. The Export dialog has **Copy as image** beside Export (no shortcut: the obvious keys
+belong to the browser, and Ctrl+C copies fragments, note 05). It started in the top bar,
+which put the bar over one row at 1280 px; a copy is an export, so it moved.
 
 ## What is copied
 

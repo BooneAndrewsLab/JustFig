@@ -24,6 +24,7 @@ import { panelCrops } from '@/export/panels';
 import { pageCredit } from '@/export/svg';
 
 import { analytics } from '../analytics';
+import { copyAsImage } from '../copyImage';
 import { type ExportFormat, runExport } from '../state/session';
 import { currentPage, figure, store } from '../state/store';
 import { useAppState } from '../state/useAppState';
@@ -439,6 +440,14 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
       <div className="actions">
         <button type="button" onClick={onClose}>
           Cancel
+        </button>
+        <button
+          type="button"
+          title="Copy the selection, or the page, to the clipboard as a 300 dpi image (note 36)"
+          disabled={busy}
+          onClick={() => void copyAsImage()}
+        >
+          Copy as image
         </button>
         <button
           type="button"

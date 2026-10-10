@@ -201,7 +201,8 @@ select {
 .topbar .title {
   border: 1px solid transparent;
   background: transparent;
-  width: 16em;
+  flex: 0 1 12em;
+  min-width: 8em;
 }
 
 .topbar .title:hover,
@@ -247,6 +248,7 @@ select {
 }
 
 .icons-panel header {
+  flex-shrink: 0;
   padding: 8px;
   border-bottom: 1px solid var(--rule);
 }
@@ -262,11 +264,13 @@ select {
 
 .icons-scroll {
   flex: 1;
+  min-height: 0;
   overflow: auto;
   padding: 4px 8px 12px;
 }
 
 .icons-footer {
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -789,6 +793,12 @@ button.link {
 /* --- procedural objects (note 04) --- */
 
 .objects-shelf {
+  /* At most under half the panel, scrolling inside, so the icon results and the panel's
+     footer keep their room however many kinds there are (issue #77 made 16). */
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 45%;
+  overflow: auto;
   border-bottom: 1px solid var(--rule);
   padding: 6px 8px;
 }

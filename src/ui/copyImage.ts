@@ -1,4 +1,4 @@
-/** Copy as image (note 36) from the top bar: the selection, else the page, to the clipboard. */
+/** Copy as image (note 36) from the Export dialog: the selection, else the page, to the clipboard. */
 import {
   copyPixelSize,
   copyPngBytes,
