@@ -11,7 +11,8 @@ import type { Box } from '@/core/geometry/matrix';
 import type { Figure, Page } from '@/core/model/types';
 import { nodeToSvgString } from '@/render/svgNode';
 
-import { pHYs, PngWriter, tEXt, withChunks } from './png';
+import { pHYs, tEXt, withChunks } from './png';
+import { pngEncoder } from './pngEncoder';
 import { type RasterPictures, rasterPictures } from './resample';
 import { exportRoot } from './svg';
 import { TiffWriter } from './tiff';
@@ -225,15 +226,20 @@ export async function exportPng(
     const png = new Uint8Array(await blob.arrayBuffer());
     return withChunks(png, [pHYs(opts.dpi), tEXt('Software', software)]);
   }
-  const writer = new PngWriter({
+  const encoder = pngEncoder({
     width: w,
     height: h,
     dpi: opts.dpi,
     alpha: opts.transparent,
     software,
   });
-  await renderBands(figure, page, opts, (rgba) => writer.push(rgba));
-  return writer.finish();
+  try {
+    await renderBands(figure, page, opts, (rgba) => encoder.push(rgba));
+  } catch (e) {
+    encoder.abort?.();
+    throw e;
+  }
+  return encoder.finish();
 }
 
 export async function exportTiff(

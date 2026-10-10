@@ -52,39 +52,112 @@ const paeth = (a: number, b: number, c: number): number => {
   return pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
 };
 
+/** |v| of a byte difference read as signed (the minimum-sum score), without branches. */
+const score = (v: number): number => {
+  const s = (v << 24) >> 24;
+  const m = s >> 31;
+  return (s ^ m) - m;
+};
+
+/* eslint-disable @typescript-eslint/no-non-null-assertion -- the hot loops of a big PNG:
+   every index is inside the row, and `?? 0` costs a fifth of the time. */
+
+/**
+ * Filters one scanline into `out` at `at`: the filter type byte, then the
+ * filtered bytes. Picks the filter whose bytes sum smallest (as signed, first
+ * on a tie), from one pass that scores all five and a second that writes the
+ * winner (issue 60, note 33: five trial rows per scanline were most of the
+ * time of a big PNG). `up` is the row above, all zeros for the first.
+ */
+export function filterRow(
+  row: Uint8Array,
+  up: Uint8Array,
+  bpp: number,
+  out: Uint8Array,
+  at: number,
+): void {
+  const n = row.length;
+  let s0 = 0;
+  let s1 = 0;
+  let s2 = 0;
+  let s3 = 0;
+  let s4 = 0;
+  // The first pixel has nothing to its left (a = c = 0).
+  for (let i = 0; i < bpp; i++) {
+    const x = row[i]!;
+    const b = up[i]!;
+    s0 += score(x);
+    s1 += score(x);
+    s2 += score(x - b);
+    s3 += score(x - (b >> 1));
+    s4 += score(x - b);
+  }
+  for (let i = bpp; i < n; i++) {
+    const x = row[i]!;
+    const a = row[i - bpp]!;
+    const b = up[i]!;
+    const c = up[i - bpp]!;
+    s0 += score(x);
+    s1 += score(x - a);
+    s2 += score(x - b);
+    s3 += score(x - ((a + b) >> 1));
+    s4 += score(x - paeth(a, b, c));
+  }
+  let best = 0;
+  let sum = s0;
+  if (s1 < sum) {
+    best = 1;
+    sum = s1;
+  }
+  if (s2 < sum) {
+    best = 2;
+    sum = s2;
+  }
+  if (s3 < sum) {
+    best = 3;
+    sum = s3;
+  }
+  if (s4 < sum) best = 4;
+  out[at] = best;
+  const o = at + 1;
+  switch (best) {
+    case 0:
+      out.set(row, o);
+      return;
+    case 1:
+      out.set(row.subarray(0, bpp), o);
+      for (let i = bpp; i < n; i++) out[o + i] = row[i]! - row[i - bpp]!;
+      return;
+    case 2:
+      for (let i = 0; i < n; i++) out[o + i] = row[i]! - up[i]!;
+      return;
+    case 3:
+      for (let i = 0; i < bpp; i++) out[o + i] = row[i]! - (up[i]! >> 1);
+      for (let i = bpp; i < n; i++) out[o + i] = row[i]! - ((row[i - bpp]! + up[i]!) >> 1);
+      return;
+    default:
+      for (let i = 0; i < bpp; i++) out[o + i] = row[i]! - up[i]!;
+      for (let i = bpp; i < n; i++)
+        out[o + i] = row[i]! - paeth(row[i - bpp]!, up[i]!, up[i - bpp]!);
+  }
+}
+
+/* eslint-enable @typescript-eslint/no-non-null-assertion */
+
 /** The filtered scanlines: each row gets the filter whose bytes sum smallest (as signed). */
 export function filterRows(px: Pixels): Uint8Array {
   const { width, height, channels: bpp, data } = px;
   const stride = width * bpp;
   const out = new Uint8Array(height * (stride + 1));
-  const trial = Array.from({ length: 5 }, () => new Uint8Array(stride));
-  for (let y = 0; y < height; y++) {
-    const row = data.subarray(y * stride, (y + 1) * stride);
-    const up = y > 0 ? data.subarray((y - 1) * stride, y * stride) : null;
-    let best = 0;
-    let bestSum = Infinity;
-    for (let f = 0; f < 5; f++) {
-      const t = trial[f] ?? new Uint8Array(stride);
-      let sum = 0;
-      for (let i = 0; i < stride; i++) {
-        const x = row[i] ?? 0;
-        const a = i >= bpp ? (row[i - bpp] ?? 0) : 0;
-        const b = up ? (up[i] ?? 0) : 0;
-        const c = up && i >= bpp ? (up[i - bpp] ?? 0) : 0;
-        const pred =
-          f === 0 ? 0 : f === 1 ? a : f === 2 ? b : f === 3 ? (a + b) >> 1 : paeth(a, b, c);
-        const v = (x - pred) & 0xff;
-        t[i] = v;
-        sum += v < 128 ? v : 256 - v;
-      }
-      if (sum < bestSum) {
-        bestSum = sum;
-        best = f;
-      }
-    }
-    out[y * (stride + 1)] = best;
-    out.set(trial[best] ?? row, y * (stride + 1) + 1);
-  }
+  const zeros = new Uint8Array(stride);
+  for (let y = 0; y < height; y++)
+    filterRow(
+      data.subarray(y * stride, (y + 1) * stride),
+      y > 0 ? data.subarray((y - 1) * stride, y * stride) : zeros,
+      bpp,
+      out,
+      y * (stride + 1),
+    );
   return out;
 }
 

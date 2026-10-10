@@ -77,8 +77,8 @@ The writers take the rows band by band and never hold the raw image: `TiffWriter
 64 KB strips and LZW-compresses each as it fills (byte for byte what `encodeTiff` makes), and
 `PngWriter` filters them against the row above (carried across band edges, so no seam) into the
 platform's `CompressionStream` and writes the IDAT chunks as they come (fflate's streaming
-`Deflate` was not used: it wrote invalid data for some tiny inputs). Only the compressed data is
-kept. A page that fits one canvas still goes through `canvas.toBlob`. An upper bound remains for
+`Deflate` was not used: it wrote invalid data for some tiny inputs), in a worker that encodes one
+band while the next is drawn (note 33). Only the compressed data is kept. A page that fits one canvas still goes through `canvas.toBlob`. An upper bound remains for
 memory: 400 Mpx in all and 32767 px wide, refused with "Use at most N dpi, or export PDF or SVG".
 Unit tests check tiled output against untiled output with a tiny artificial cap; an e2e exports
 the torture figure at 600 dpi (over the cap) and compares it with the 150 dpi golden. The export

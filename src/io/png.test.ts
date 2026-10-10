@@ -1,4 +1,5 @@
 /** PNG encoding for pictures inside imported PDF plots (issue 24), checked by decoding with pngjs. */
+import fc from 'fast-check';
 import { PNG } from 'pngjs';
 import { describe, expect, it } from 'vitest';
 
@@ -11,6 +12,36 @@ import {
   fromBase64,
   isOpaqueImage,
 } from './png';
+
+/** The five-trial-rows filter chooser filterRow replaced (issue 60): the output must not change. */
+function referenceFilter(width: number, height: number, bpp: number, data: Uint8Array) {
+  const stride = width * bpp;
+  const out = new Uint8Array(height * (stride + 1));
+  const paeth = (a: number, b: number, c: number) => {
+    const p = a + b - c;
+    const [pa, pb, pc] = [Math.abs(p - a), Math.abs(p - b), Math.abs(p - c)];
+    return pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+  };
+  for (let y = 0; y < height; y++) {
+    let best: number[] = [];
+    let bestSum = Infinity;
+    for (let f = 0; f < 5; f++) {
+      const t: number[] = [];
+      for (let i = 0; i < stride; i++) {
+        const x = data[y * stride + i]!;
+        const a = i >= bpp ? data[y * stride + i - bpp]! : 0;
+        const b = y > 0 ? data[(y - 1) * stride + i]! : 0;
+        const c = y > 0 && i >= bpp ? data[(y - 1) * stride + i - bpp]! : 0;
+        const pred = [0, a, b, (a + b) >> 1, paeth(a, b, c)][f]!;
+        t.push((x - pred) & 0xff);
+      }
+      const sum = t.reduce((n, v) => n + (v < 128 ? v : 256 - v), 0);
+      if (sum < bestSum) [bestSum, best] = [sum, [f, ...t]];
+    }
+    out.set(best, y * (stride + 1));
+  }
+  return out;
+}
 
 const gradient = (w: number, h: number, ch: 3 | 4) =>
   Uint8Array.from({ length: w * h * ch }, (_, i) =>
@@ -35,6 +66,32 @@ describe('png', () => {
     const rows = filterRows({ width: 64, height: 1, channels: 3, data });
     expect(rows[0]).toBe(1); // Sub: each pixel minus the one before
     expect([...rows.subarray(4, 10)]).toEqual([4, 4, 4, 4, 4, 4]);
+  });
+
+  it('chooses and applies the same filters as five trial rows did (issue 60)', () => {
+    const used = new Set<number>();
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 9 }),
+        fc.integer({ min: 1, max: 6 }),
+        fc.constantFrom(3 as const, 4 as const),
+        fc.integer(),
+        (w, h, bpp, seed) => {
+          let s = seed;
+          // Runs, ramps and noise, so every filter wins somewhere.
+          const data = Uint8Array.from({ length: w * h * bpp }, (_, i) => {
+            s = (Math.imul(s, 1103515245) + 12345) | 0;
+            const mode = (s >>> 28) & 3;
+            return mode === 0 ? 200 : mode === 1 ? (i * 5) & 0xff : (s >>> 16) & 0xff;
+          });
+          const out = filterRows({ width: w, height: h, channels: bpp, data });
+          expect(out).toEqual(referenceFilter(w, h, bpp, data));
+          for (let y = 0; y < h; y++) used.add(out[y * (w * bpp + 1)]!);
+        },
+      ),
+      { numRuns: 300 },
+    );
+    expect([...used].sort()).toEqual([0, 1, 2, 3, 4]); // every filter won somewhere
   });
 
   it('tells opaque headers from see-through ones', () => {

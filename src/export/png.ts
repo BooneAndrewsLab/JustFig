@@ -4,7 +4,7 @@
  * from one. Pure byte handling.
  */
 
-import { filterRows } from '@/io/png';
+import { filterRow } from '@/io/png';
 
 const SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10];
 
@@ -147,6 +147,18 @@ export function readDpi(png: Uint8Array): number | null {
 
 export const pngCrc32 = crc32;
 
+/** The RGB bytes of RGBA pixels (alpha dropped). */
+function rgbaToRgb(rgba: Uint8Array): Uint8Array {
+  const n = rgba.length >> 2;
+  const out = new Uint8Array(n * 3);
+  for (let p = 0, i = 0, o = 0; p < n; p += 1, i += 4, o += 3) {
+    out[o] = rgba[i] ?? 0;
+    out[o + 1] = rgba[i + 1] ?? 0;
+    out[o + 2] = rgba[i + 2] ?? 0;
+  }
+  return out;
+}
+
 export interface PngStreamOptions {
   readonly width: number;
   readonly height: number;
@@ -168,11 +180,13 @@ export class PngWriter {
   private readonly z = new CompressionStream('deflate');
   private readonly writer = this.z.writable.getWriter();
   private readonly drained: Promise<void>;
-  private prev: Uint8Array | null = null;
+  /** The row above the next band: zeros above the first. */
+  private readonly prev: Uint8Array;
   private rowsIn = 0;
 
   constructor(private readonly opts: PngStreamOptions) {
     this.channels = opts.alpha ? 4 : 3;
+    this.prev = new Uint8Array(opts.width * this.channels);
     this.drained = (async () => {
       const reader = this.z.readable.getReader();
       for (;;) {
@@ -189,19 +203,25 @@ export class PngWriter {
     if (rgba.length % (w * 4) !== 0) throw new RangeError('pixel data does not match the size');
     const rows = rgba.length / (w * 4);
     if (this.rowsIn + rows > h) throw new RangeError('more rows than the image has');
+    if (rows === 0) return;
     const ch = this.channels;
     const stride = w * ch;
-    const above = this.prev ? 1 : 0;
-    // The previous band's last row goes in front, so rows filter against it.
-    const data = new Uint8Array((rows + above) * stride);
-    if (this.prev) data.set(this.prev);
+    const px =
+      rgba instanceof Uint8Array ? rgba : new Uint8Array(rgba.buffer, rgba.byteOffset, rgba.length);
+    // RGBA rows are filtered where they are; RGB ones lose their alpha first.
+    const data = ch === 4 ? px : rgbaToRgb(px);
+    const filtered = new Uint8Array(rows * (stride + 1));
     for (let r = 0; r < rows; r += 1)
-      for (let x = 0; x < w; x += 1)
-        for (let c = 0; c < ch; c += 1)
-          data[(r + above) * stride + x * ch + c] = rgba[r * w * 4 + x * 4 + c] ?? 0;
-    const filtered = filterRows({ width: w, height: rows + above, channels: ch, data });
-    await this.writer.write(filtered.slice(above * (stride + 1)));
-    this.prev = data.slice((rows + above - 1) * stride);
+      filterRow(
+        data.subarray(r * stride, (r + 1) * stride),
+        r > 0 ? data.subarray((r - 1) * stride, r * stride) : this.prev,
+        ch,
+        filtered,
+        r * (stride + 1),
+      );
+    // The band's last row is the next band's row above (so band edges do not show).
+    this.prev.set(data.subarray((rows - 1) * stride, rows * stride));
+    await this.writer.write(filtered);
     this.rowsIn += rows;
   }
 
