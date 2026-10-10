@@ -193,4 +193,5 @@ any valid params (from the field arbitraries, any frame from 1 to 2,000 pt, any 
 decode to themselves, render only finite numbers, at most 50,000 subpaths and labels, every point
 inside the frame plus the kind's `overhang`, and serialise with no NaN or Infinity
 (`PROC_RUNS=n` raises the 40 runs; 800 runs per kind passed), and that Convert to shapes keeps
-every fill colour.
+every fill colour. The NaN/Infinity check reads markup only: a label the user types as "NaN" is
+text, not a bad number (issue #62: `fc.string` produced it once in ~10,000 runs).

@@ -57,6 +57,18 @@ function primsFinite(prims: readonly Prim[]): boolean {
   return true;
 }
 
+/**
+ * No NaN or Infinity in the serialised SVG. Text content is the user's own
+ * words (a label may legitimately read "NaN", issue #62), so only markup is
+ * checked, with the characters between tags dropped.
+ */
+function svgNumbersClean(prims: readonly Prim[]): boolean {
+  const svg = primNodes(prims, 'text', [])
+    .map((n) => nodeToSvgString(n))
+    .join('');
+  return !/NaN|Infinity/.test(svg.replace(/>[^<]*</g, '><'));
+}
+
 const units = (prims: readonly Prim[]): number =>
   prims.reduce((n, p) => n + (p.kind === 'path' ? p.subs.length : 1), 0);
 
@@ -104,10 +116,7 @@ describe.each(allKinds().map((k) => [k.kind, k] as const))('%s', (_name, k) => {
               expect(q.x).toBeLessThanOrEqual(w + pad);
               expect(q.y).toBeLessThanOrEqual(h + pad);
             }
-          const svg = primNodes(prims, 'text', [])
-            .map((n) => nodeToSvgString(n))
-            .join('');
-          expect(svg).not.toMatch(/NaN|Infinity/);
+          expect(svgNumbersClean(prims)).toBe(true);
         }),
         { numRuns: Number(process.env['PROC_RUNS'] ?? 40) },
       );
@@ -138,5 +147,23 @@ describe.each(allKinds().map((k) => [k.kind, k] as const))('%s', (_name, k) => {
     for (const ob of objs)
       if ('style' in ob && ob.style.fill && 'hex' in ob.style.fill) got.add(ob.style.fill.hex);
     for (const c of colours) expect(got).toContain(c);
+  });
+});
+
+describe('svgNumbersClean', () => {
+  it('lets a label read "NaN" but still catches a NaN coordinate (issue #62)', () => {
+    const text = (t: string, x: number): Prim => ({
+      kind: 'text',
+      text: t,
+      x,
+      y: 0,
+      size: 4,
+      color: '#000000',
+      anchor: 'start',
+      baseline: 'alphabetic',
+    });
+    expect(svgNumbersClean([text('NaN', 0)])).toBe(true);
+    expect(svgNumbersClean([text('Infinity', 0)])).toBe(true);
+    expect(svgNumbersClean([text('ok', Number.NaN)])).toBe(false);
   });
 });
