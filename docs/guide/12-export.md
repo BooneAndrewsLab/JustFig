@@ -61,6 +61,7 @@ Turning it off in the Export dialog also changes the figure's setting. If you tu
 
 **Attribution** in the top bar opens the Attribution and licences dialog. It shows:
 
+- the **legend skeleton** with **Copy legend** (see below);
 - the **credit line** for the whole figure, with **Copy** to put it on the clipboard and **Add as text object** to place it on the page as text, at the bottom;
 - a table of every icon and credited picture with its source and licence, linked to the originals;
 - a warning if any icon is share-alike (CC BY-SA);
@@ -69,5 +70,16 @@ Turning it off in the Export dialog also changes the figure's setting. If you tu
 - **Icon library credits**, which opens the full list (see [Icons](07-icons.md)).
 
 If the figure uses no library icons or credited images, the dialog says no credit line is needed.
+
+### Copy legend
+
+The same dialog writes the skeleton of your figure legend as plain text, so you do not retype what the figure already knows. **Copy legend** puts it on the clipboard. It has:
+
+- one line per panel, in reading order, with the panel's letter in your label format and its title: the topmost text in the panel (a panel with no text gets its letter alone);
+- "Scale bars, 10 µm." from the scale bars, equal lengths said once; when lengths differ, each is followed by the panels it is in;
+- "Channels: dapi, gfp." from merged channels that are switched on, named after their files;
+- "Images: …" with the credits you typed for pictures.
+
+It is only a skeleton: it does not describe the experiment, the n or the statistics. It is built fresh each time, so it always matches the figure, and it is empty (the button disappears) when the figure has nothing to say.
 
 For how to cite JustFig itself, see [Citing JustFig](15-citing.md).

@@ -6,6 +6,7 @@
 import { BRAND } from '@/brand';
 import { creditLine, docCreditItems, needsModifiedNote } from '@/core/attribution/attribution';
 import { setCreditFooter } from '@/core/edits/edits';
+import { legendText } from '@/export/legend';
 
 import { analytics } from '../analytics';
 import { addCreditText } from '../state/session';
@@ -24,11 +25,43 @@ export function AttributionDialog({
   const fig = figure(s);
   const items = docCreditItems(fig.doc, fig.assets);
   const line = creditLine(items, BRAND.name);
+  const legend = legendText(fig);
   const sa = items.filter((i) => i.shareAlike);
   const needsNotice = items.filter((i) => /^(MIT|BSD|Apache)/.test(i.license));
   const modified = items.filter((i) => i.modified !== undefined && needsModifiedNote(i.license));
   return (
     <Dialog title="Attribution and licences" onClose={onClose}>
+      <p className="note">
+        Legend skeleton: a line per panel with its title, the scale bars, channel names and picture
+        credits, to paste into your figure legend.
+      </p>
+      {legend === '' ? (
+        <p>Nothing to put in a legend yet: add panels, scale bars, merges or picture credits.</p>
+      ) : (
+        <>
+          <pre className="credit-box" data-testid="legend-text" style={{ whiteSpace: 'pre-wrap' }}>
+            {legend}
+          </pre>
+          <div className="row" style={{ marginTop: 8 }}>
+            <button
+              type="button"
+              onClick={() => {
+                void navigator.clipboard.writeText(legend).then(
+                  () => {
+                    store.notify('Legend copied.');
+                  },
+                  () => {
+                    store.notify('Copying is blocked here; select the text instead.', 'warning');
+                  },
+                );
+                analytics.track('attribution', 'copy-legend');
+              }}
+            >
+              Copy legend
+            </button>
+          </div>
+        </>
+      )}
       {items.length === 0 ? (
         <p>This figure uses no library icons or credited images, so it needs no credit line.</p>
       ) : (

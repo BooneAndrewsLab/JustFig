@@ -62,7 +62,7 @@ export const EVENTS = {
   export: ['svg', 'pdf', 'png', 'tiff', 'panels'],
   /** A check warning chosen in the Export dialog; the rule id (app vocabulary) as the name. */
   check: ['select'],
-  attribution: ['open', 'copy', 'add-text'],
+  attribution: ['open', 'copy', 'add-text', 'copy-legend'],
   preset: ['save', 'place', 'export', 'import'],
   /** Saved versions of a figure (note 23); never a name. */
   version: ['save', 'restore', 'compare'],
