@@ -3,7 +3,8 @@
  * load, images already data URIs, nothing external, so Safari does not
  * taint the canvas) drawn through an <img> onto a canvas at the chosen
  * DPI. Main thread: only a document can decode SVG into an image. Big
- * pictures go in redrawn at the pixels they cover (note 30).
+ * pictures go in redrawn at the pixels they cover (note 30), cut into
+ * strips; a band leaves out the strips outside it (note 32).
  */
 import { BRAND } from '@/brand';
 import type { Box } from '@/core/geometry/matrix';
@@ -11,7 +12,7 @@ import type { Figure, Page } from '@/core/model/types';
 import { nodeToSvgString } from '@/render/svgNode';
 
 import { pHYs, PngWriter, tEXt, withChunks } from './png';
-import { resampledPictures } from './resample';
+import { type RasterPictures, rasterPictures } from './resample';
 import { exportRoot } from './svg';
 import { TiffWriter } from './tiff';
 import {
@@ -118,15 +119,36 @@ async function drawBand(
   }
 }
 
-/** The page's export root, big pictures redrawn at the pixels they cover (note 30). */
-async function pageRoot(figure: Figure, page: Page, opts: RasterOptions): Promise<Root> {
+/** The page's export root, big pictures as `imageHref` gives them (notes 30, 32). */
+function pageRoot(
+  figure: Figure,
+  page: Page,
+  opts: RasterOptions,
+  imageHref: RasterPictures['href'],
+): Root {
   return exportRoot(figure, page, {
     textMode: 'outline',
     footer: opts.footer,
     background: !opts.transparent,
     ...(opts.crop ? { crop: opts.crop } : {}),
-    imageHref: await resampledPictures(figure, page, opts.dpi / 72),
+    imageHref,
   });
+}
+
+/** Rows y0 .. y0 + rows of the raster in page coordinates, a few pixels wider each way. */
+export function bandBox(
+  root: Pick<Root, 'x' | 'y' | 'width'>,
+  ky: number,
+  y0: number,
+  rows: number,
+): Box {
+  const pad = 4 / ky;
+  return {
+    x: root.x - pad,
+    y: root.y + y0 / ky - pad,
+    w: root.width + 2 * pad,
+    h: rows / ky + 2 * pad,
+  };
 }
 
 /** The page drawn on one canvas at the DPI (thumbnails; exports use bands). */
@@ -135,7 +157,8 @@ export async function renderCanvas(
   page: Page,
   opts: RasterOptions,
 ): Promise<HTMLCanvasElement> {
-  const root = await pageRoot(figure, page, opts);
+  const pictures = await rasterPictures(figure, page, opts.dpi / 72);
+  const root = pageRoot(figure, page, opts, pictures.href);
   const k = opts.dpi / 72;
   const w = Math.max(1, Math.round(root.width * k));
   const h = Math.max(1, Math.round(root.height * k));
@@ -160,12 +183,20 @@ export async function renderBands(
 ): Promise<{ w: number; h: number }> {
   const limit = rasterLimitMessage(figure, page, opts);
   if (limit) throw new RasterTooLargeError(limit);
-  const root = await pageRoot(figure, page, opts);
+  const pictures = await rasterPictures(figure, page, opts.dpi / 72);
+  const root = pageRoot(figure, page, opts, pictures.href);
   const k = opts.dpi / 72;
   const w = Math.max(1, Math.round(root.width * k));
   const h = Math.max(1, Math.round(root.height * k));
-  for (const band of planBands(w, h, maxPixels)) {
-    const canvas = await drawBand(root, w, h, band.y0, band.rows, opts.transparent);
+  const bands = planBands(w, h, maxPixels);
+  const ky = h / root.height;
+  for (const band of bands) {
+    // Each band's SVG is parsed on its own: leave out the strips it does not reach.
+    const own =
+      pictures.striped && bands.length > 1
+        ? pageRoot(figure, page, opts, pictures.within(bandBox(root, ky, band.y0, band.rows)))
+        : root;
+    const canvas = await drawBand(own, w, h, band.y0, band.rows, opts.transparent);
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('No 2D canvas in this browser.');
     await onBand(ctx.getImageData(0, 0, w, band.rows).data);

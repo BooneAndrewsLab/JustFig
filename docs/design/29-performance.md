@@ -50,14 +50,15 @@ They sit 4 - 8 times above the measured numbers, to catch a 3 - 5x
 regression and not CI noise. A frame median is capped at 50 ms (three
 dropped frames), p95 at 150 ms; the worst frame is reported, not asserted.
 
-|                              | Budget |
-| ---------------------------- | ------ |
-| first render after open      | 15 s   |
-| drag frame median (one, all) | 50 ms  |
-| drag frame p95               | 150 ms |
-| SVG export                   | 8 s    |
-| PDF export                   | 15 s   |
-| PNG export                   | 15 s   |
+|                               | Budget |
+| ----------------------------- | ------ |
+| first render after open       | 15 s   |
+| drag frame median (one, all)  | 50 ms  |
+| drag frame p95                | 150 ms |
+| SVG export                    | 8 s    |
+| PDF export                    | 15 s   |
+| PNG export                    | 15 s   |
+| PNG export, 600 dpi (note 32) | 100 s  |
 
 ## What the baseline found
 

@@ -3,7 +3,9 @@
  * objects, two imported multi-panel plots, a well plate, a plasmid map and a
  * 20 Mpx micrograph. Measures the first render after opening the saved
  * figure (the micrograph's working copy shown, note 30), drag frame time (one object, then the whole selection) and SVG,
- * PDF and PNG export time. Logs one `PERF {json}` line per browser.
+ * PDF and PNG export time (PNG at 150 dpi, then at 600 dpi with the
+ * micrograph large enough to keep every pixel, note 32). Logs one
+ * `PERF {json}` line per browser.
  *
  * The budgets are generous (note 29 lists the numbers they are set from):
  * they catch a 3-5x regression such as a per-object cost on every frame,
@@ -29,6 +31,7 @@ const BUDGET = {
   svgMs: 8_000,
   pdfMs: 15_000,
   pngMs: 15_000,
+  png600Ms: 100_000,
 };
 
 const OBJECTS = 480;
@@ -293,6 +296,26 @@ test('a large figure: first render, drag frames, export times', async ({ page },
     expect(statSync(path).size).toBeGreaterThan(least);
   }
 
+  // PNG at 600 dpi with the micrograph drawn large enough to keep all its
+  // pixels (note 32): the whole picture goes in, as strips.
+  await page.keyboard.press('Escape');
+  await names
+    .filter({ hasText: /^Image$/ })
+    .first()
+    .click(); // the micrograph: added last, listed first
+  await side(page).getByLabel('W', { exact: true }).fill('215');
+  await side(page).getByLabel('W', { exact: true }).press('Enter');
+  await side(page).getByLabel('H', { exact: true }).fill('172');
+  await side(page).getByLabel('H', { exact: true }).press('Enter');
+  await page.keyboard.press('Escape');
+  {
+    const t = Date.now();
+    const d = await exportVia(page, 'PNG', { dpi: 600 });
+    const path = await d.path();
+    exp['PNG600'] = Date.now() - t;
+    expect(statSync(path).size).toBeGreaterThan(1000);
+  }
+
   const report = {
     browser: info.project.name,
     objects,
@@ -317,4 +340,5 @@ test('a large figure: first render, drag frames, export times', async ({ page },
   expect(exp['SVG']).toBeLessThan(BUDGET.svgMs);
   expect(exp['PDF']).toBeLessThan(BUDGET.pdfMs);
   expect(exp['PNG']).toBeLessThan(BUDGET.pngMs);
+  expect(exp['PNG600']).toBeLessThan(BUDGET.png600Ms);
 });

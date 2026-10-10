@@ -9,6 +9,7 @@ import type {
   Arrow,
   AssetHash,
   Assets,
+  Frame,
   Obj,
   Page,
   PanelLabelStyle,
@@ -22,25 +23,35 @@ import { layoutText } from '@/core/text/layout';
 import { panelLabels } from '@/core/model/panels';
 
 import { endDirections, headLength, headShape, inset, shortened } from './arrows';
-import { iconNode, imageNode, snapshotNode, svgImportNode } from './assets';
+import {
+  type PictureStrips,
+  iconNode,
+  imageNode,
+  snapshotNode,
+  stripsNode,
+  svgImportNode,
+} from './assets';
 import { pathData } from './path';
 import { proceduralNodes } from './procedural';
 import { type AttrValue, type SvgNode, el, num } from './svgNode';
 
 import { type TextMode, textNodes } from './textNodes';
 
-export { type TextMode, textNodes };
+export { type PictureStrips, type TextMode, textNodes };
 
 /**
  * A stand-in for a picture's pixels (note 30): the screen's working copy of a
  * big picture, or a raster export's copy at the output's pixel size. The
  * asset's own data when it returns undefined; a grey box while it is null
  * (the copy is not ready yet). Only the href changes: the object is drawn as always.
+ * A raster export may hand a big picture in as strips instead (note 32); `frame`
+ * is the drawing object's, so it can leave out strips outside a band.
  */
 export type ImageHref = (
   hash: AssetHash,
   asset: Extract<Assets[string], { kind: 'image' }>,
-) => string | null | undefined;
+  frame: Frame,
+) => string | null | undefined | PictureStrips;
 
 export interface RenderCtx {
   readonly palette: readonly Swatch[];
@@ -200,15 +211,23 @@ function placeholder(w: number, h: number): SvgNode {
   });
 }
 
+/**
+ * Pictures drawn, counted so the memo knows which objects drew one: only
+ * those depend on `imageHref` (a new hook redraws them alone).
+ */
+let hrefCalls = 0;
+
 function picture(
   hash: AssetHash,
   a: Extract<Assets[string], { kind: 'image' }>,
-  w: number,
-  h: number,
+  frame: Frame,
   ctx: RenderCtx,
 ): SvgNode {
-  const href = ctx.imageHref?.(hash, a);
+  const { w, h } = frame;
+  hrefCalls += 1; // with or without a hook: a later hook changes what it draws
+  const href = ctx.imageHref?.(hash, a, frame);
   if (href === null) return el('rect', { x: 0, y: 0, width: w, height: h, fill: '#e4e7eb' });
+  if (typeof href === 'object') return stripsNode(href, w, h);
   return imageNode(a, w, h, href);
 }
 
@@ -254,11 +273,12 @@ function content(o: Obj, ctx: RenderCtx): SvgNode[] {
     case 'image': {
       // A crop draws its own re-encoded pixels (note 20): the export subset cannot clip.
       const c = o.crop && o.cropped !== undefined ? ctx.assets[o.cropped] : undefined;
-      if (c?.kind === 'image' && o.cropped !== undefined) return [picture(o.cropped, c, w, h, ctx)];
+      if (c?.kind === 'image' && o.cropped !== undefined)
+        return [picture(o.cropped, c, o.frame, ctx)];
       // A see-through picture's backdrop cut with its picture's crop (issue 48).
       if (c?.kind === 'svgImport') return [svgImportNode(c.svg, w, h, ctx.textMode)];
       const a = ctx.assets[o.asset];
-      if (a?.kind === 'image') return [picture(o.asset, a, w, h, ctx)];
+      if (a?.kind === 'image') return [picture(o.asset, a, o.frame, ctx)];
       if (a?.kind === 'svgImport') return [svgImportNode(a.svg, w, h, ctx.textMode)];
       return [placeholder(w, h)];
     }
@@ -288,6 +308,8 @@ interface Memo {
   readonly label: string | undefined;
   readonly labelStyle: PanelLabelStyle;
   readonly imageHref: ImageHref | undefined;
+  /** It (or an object in it) drew a picture through `imageHref`. */
+  readonly usesHref: boolean;
 }
 
 const memos = new Map<string, WeakMap<Obj, Memo>>();
@@ -328,9 +350,12 @@ export function objectToNode(o: Obj, ctx: RenderCtx): SvgNode | null {
     hit.assets === ctx.assets &&
     hit.label === label &&
     hit.labelStyle === ctx.labelStyle &&
-    hit.imageHref === ctx.imageHref
-  )
+    (hit.imageHref === ctx.imageHref || !hit.usesHref)
+  ) {
+    if (hit.usesHref) hrefCalls += 1; // a group holding it depends on the hook too
     return hit.node;
+  }
+  const before = hrefCalls;
   const node = build(o, ctx);
   memo.set(o, {
     node,
@@ -339,6 +364,7 @@ export function objectToNode(o: Obj, ctx: RenderCtx): SvgNode | null {
     label,
     labelStyle: ctx.labelStyle,
     imageHref: ctx.imageHref,
+    usesHref: hrefCalls !== before,
   });
   return node;
 }

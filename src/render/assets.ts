@@ -167,6 +167,38 @@ export function snapshotNode(
   );
 }
 
+/**
+ * A big picture as horizontal strips of its own pixel rows (note 32), for the
+ * PNG/TIFF rasteriser: Firefox parses many short data URIs far faster than one
+ * long one. A strip starts at row `y` and holds `rows` rows; each overlaps the
+ * next a little and is drawn under it, so abutting antialiased edges never let
+ * the background through (only for opaque pictures).
+ */
+export interface PictureStrips {
+  /** Pixel rows of the whole picture the strips are cut from. */
+  readonly height: number;
+  readonly strips: readonly { readonly y: number; readonly rows: number; readonly href: string }[];
+}
+
+/** Strips placed in the picture's w x h box, edge to edge as the whole picture would be. */
+export function stripsNode(p: PictureStrips, w: number, h: number): SvgNode {
+  const k = h / p.height;
+  return el(
+    'g',
+    {},
+    p.strips.map((s) =>
+      el('image', {
+        x: 0,
+        y: num4(s.y * k), // finer than num(): strip edges must meet
+        width: w,
+        height: num4(s.rows * k),
+        preserveAspectRatio: 'none',
+        'xlink:href': s.href,
+      }),
+    ),
+  );
+}
+
 /** A picture stretched over w x h; `href` stands in for its data (a working copy, note 30). */
 export function imageNode(
   asset: Extract<Asset, { kind: 'image' }>,

@@ -1,15 +1,15 @@
 /**
  * A picture redrawn smaller by the browser's canvas (note 30): the screen's
  * working copy of a big picture and a raster export's copy at its output
- * size. Halved step by step before the last draw, so a large reduction
- * averages every source pixel instead of skipping most of them. Always a
- * PNG: lossless, alpha kept.
+ * size (whole, or cut into strips, note 32). Halved step by step before the
+ * last draw, so a large reduction averages every source pixel instead of
+ * skipping most of them. Always a PNG: lossless, alpha kept.
  */
 import type { ImageAsset } from '@/core/edits/crop';
 
 import { fromBase64 } from './png';
 
-function canvasOf(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
+export function canvasOf(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
   const canvas = document.createElement('canvas');
   canvas.width = w;
   canvas.height = h;
@@ -20,13 +20,23 @@ function canvasOf(w: number, h: number): [HTMLCanvasElement, CanvasRenderingCont
   return [canvas, ctx];
 }
 
-/** The picture at `w` x `h` pixels (each at most its own size), as a PNG blob. */
-export async function downscalePicture(src: ImageAsset, w: number, h: number): Promise<Blob> {
+/**
+ * Runs `draw` with the picture at `w` x `h` pixels (each at most its own size):
+ * the decoded bitmap itself when that is its size, else a canvas redrawn from
+ * it. Everything is freed when `draw` settles.
+ */
+export async function withPictureAt<T>(
+  src: ImageAsset,
+  w: number,
+  h: number,
+  draw: (image: CanvasImageSource) => Promise<T>,
+): Promise<T> {
   const bitmap = await createImageBitmap(
     new Blob([new Uint8Array(fromBase64(src.dataBase64))], { type: src.mime }),
   );
+  let from: CanvasImageSource = bitmap;
   try {
-    let from: CanvasImageSource = bitmap;
+    if (bitmap.width === w && bitmap.height === h) return await draw(bitmap);
     let fw = bitmap.width;
     let fh = bitmap.height;
     while (fw >= w * 2 && fh >= h * 2) {
@@ -40,15 +50,35 @@ export async function downscalePicture(src: ImageAsset, w: number, h: number): P
     const [canvas, ctx] = canvasOf(w, h);
     ctx.drawImage(from, 0, 0, w, h);
     if (from instanceof HTMLCanvasElement) from.width = 0;
-    const blob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob(resolve, 'image/png');
-    });
-    canvas.width = 0;
-    if (!blob) throw new Error('This browser cannot redraw pictures.');
-    return blob;
+    from = canvas;
+    return await draw(canvas);
   } finally {
+    if (from instanceof HTMLCanvasElement) from.width = 0;
     bitmap.close();
   }
+}
+
+/** A canvas as a PNG blob. */
+export async function canvasPng(canvas: HTMLCanvasElement): Promise<Blob> {
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, 'image/png');
+  });
+  if (!blob) throw new Error('This browser cannot redraw pictures.');
+  return blob;
+}
+
+/** The picture at `w` x `h` pixels (each at most its own size), as a PNG blob. */
+export function downscalePicture(src: ImageAsset, w: number, h: number): Promise<Blob> {
+  return withPictureAt(src, w, h, async (image) => {
+    if (image instanceof HTMLCanvasElement) return canvasPng(image);
+    const [canvas, ctx] = canvasOf(w, h);
+    try {
+      ctx.drawImage(image, 0, 0);
+      return await canvasPng(canvas);
+    } finally {
+      canvas.width = 0;
+    }
+  });
 }
 
 /** A blob as a data URI (the browser's encoder: fast for large blobs). */

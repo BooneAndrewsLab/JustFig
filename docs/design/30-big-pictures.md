@@ -78,7 +78,6 @@ gets the 20 Mpx micrograph again and the budgets are shared: open 15 s
   PNG and JPEG pictures go in as they are (note 31, issue #58); pictures
   jsPDF still has to take keep the blob URL above.
 - A raster at a resolution where the picture keeps all its pixels (a full
-  page 20 Mpx picture at 600 dpi) still sends the whole data URI through
-  Firefox's XML parser and is slow there. Drawing big pictures straight onto
-  the canvas between SVG layers would avoid it but needs z-order and group
-  opacity handled outside the renderer (issue #59 lists the options).
+  page 20 Mpx picture at 600 dpi) sent the whole data URI through Firefox's
+  XML parser: 6.4 minutes. Now big opaque pictures go in as strips of short
+  data URIs (note 32, issue #59): 25 s.
