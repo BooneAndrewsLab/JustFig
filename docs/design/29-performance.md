@@ -12,17 +12,21 @@ the baseline found.
 - the `matplotlib-subplots` and `r-facets` SVG plot fixtures, imported;
 - a 384-well plate and the pBR322 plasmid map (two procedural objects);
 - a grey 8-bit micrograph, 5000 x 4000 px (20 Mpx, a 16 MB PNG), encoded in
-  the test (Firefox: 2500 x 2500, see below).
+  the test (Firefox had 2500 x 2500 until note 30).
 
 The test saves the figure, closes it and opens the file again; "first render"
-is the time from choosing the file to every layer row being present and two
-animation frames having passed. Drag timing is the `requestAnimationFrame`
+is the time from choosing the file to every layer row being present, the
+micrograph's working copy on the canvas (note 30) and two animation frames
+having passed. Drag timing is the `requestAnimationFrame`
 interval while the pointer moves 40 steps, first on one object, then with
 everything selected (Ctrl+A). Export is the whole Export dialog round trip
 (SVG, PDF, PNG at 150 dpi) until the download exists. The result is logged as
 one `PERF {json}` line and attached to the report.
 
 ## Numbers (this machine, headless, two runs each)
+
+The baseline as #55 measured it; note 30 has the numbers after the working
+copies (Firefox at 20 Mpx: open 2 - 4 s, PDF 7 - 8 s, PNG 2 - 3 s).
 
 |                                     | Chromium (20 Mpx) | Firefox (6.25 Mpx)  |
 | ----------------------------------- | ----------------- | ------------------- |
@@ -45,14 +49,14 @@ They sit 4 - 8 times above the measured numbers, to catch a 3 - 5x
 regression and not CI noise. A frame median is capped at 50 ms (three
 dropped frames), p95 at 150 ms; the worst frame is reported, not asserted.
 
-|                              | Budget                          |
-| ---------------------------- | ------------------------------- |
-| first render after open      | 30 s                            |
-| drag frame median (one, all) | 50 ms                           |
-| drag frame p95               | 150 ms                          |
-| SVG export                   | 8 s                             |
-| PDF export                   | 30 s                            |
-| PNG export                   | 15 s (Chromium), 60 s (Firefox) |
+|                              | Budget |
+| ---------------------------- | ------ |
+| first render after open      | 15 s   |
+| drag frame median (one, all) | 50 ms  |
+| drag frame p95               | 150 ms |
+| SVG export                   | 8 s    |
+| PDF export                   | 30 s   |
+| PNG export                   | 15 s   |
 
 ## What the baseline found
 
@@ -65,16 +69,15 @@ dropped frames), p95 at 150 ms; the worst frame is reported, not asserted.
   URL (`blob:...#.png`, the suffix is how svg2pdf learns the format), which
   svg2pdf reads as bytes; the blob is revoked once the page is drawn.
   `src/export/pdfBigImage.test.ts` covers the rewrite.
-- **Firefox is slow with big pictures (not fixed).** At 12 Mpx Firefox needs
+- **Firefox is slow with big pictures (fixed by note 30).** At 12 Mpx Firefox needs
   about 40 s each to open the figure, to export PNG and to export PDF
   (6 Mpx: 1 s open, 20 s PNG), against 2 - 8 s for 20 Mpx in Chromium, so the
   spec uses 6.25 Mpx there. Plain image decoding, base64 and `fetch` are fast
-  in Firefox, so it is how Firefox paints a huge `<image>` in the page and in
-  the rasteriser's SVG; a lower-resolution preview of big pictures is the
-  likely remedy and a change of its own.
-- Dragging with everything selected can stall for about a second in Chromium
-  (one frame, 20 Mpx picture in the selection); it is within the budgets
-  and not asserted.
+  in Firefox; it turned out to be Firefox's XML parser on the long data URI
+  (note 30), mostly in the autosave thumbnail and the rasteriser.
+- Dragging with everything selected could stall for about a second in
+  Chromium (one frame, 20 Mpx picture in the selection); with the working
+  copy the worst frame is under 0.2 s. It is reported, not asserted.
 
 ## Re-measuring
 

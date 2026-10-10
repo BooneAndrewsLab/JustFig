@@ -2,7 +2,7 @@
  * Large-figure performance baseline (issue 55, note 29): about 500 mixed
  * objects, two imported multi-panel plots, a well plate, a plasmid map and a
  * 20 Mpx micrograph. Measures the first render after opening the saved
- * figure, drag frame time (one object, then the whole selection) and SVG,
+ * figure (the micrograph's working copy shown, note 30), drag frame time (one object, then the whole selection) and SVG,
  * PDF and PNG export time. Logs one `PERF {json}` line per browser.
  *
  * The budgets are generous (note 29 lists the numbers they are set from):
@@ -22,25 +22,18 @@ const plot = (name: string) => fileURLToPath(here(`../src/io/svg/fixtures/${name
 const side = (page: Page) => page.locator('.side');
 
 const BUDGET = {
-  /** Firefox's open varies from 1 s to 15 s with the big picture (note 29). */
-  openMs: 30_000,
+  openMs: 15_000,
   dragOneMedianMs: 50,
   dragAllMedianMs: 50,
   dragP95Ms: 150,
   svgMs: 8_000,
   pdfMs: 30_000,
   pngMs: 15_000,
-  /** Firefox rasterises the big picture slowly (20 s measured at 6 Mpx). */
-  pngMsFirefox: 60_000,
 };
 
 const OBJECTS = 480;
-/**
- * 20 Mpx in Chromium. Firefox takes 40 s to open, PNG-export and PDF-export a
- * 12 Mpx picture (note 29, a known limit), so it gets 6 Mpx to stay measurable.
- */
-const MICROGRAPH = (browser: string) =>
-  browser === 'chromium' ? { w: 5000, h: 4000 } : { w: 2500, h: 2500 };
+/** 20 Mpx in every browser (Firefox had 6.25 Mpx before the working copies of note 30). */
+const MICROGRAPH = { w: 5000, h: 4000 };
 
 /** About 480 shapes, texts, arrows, paths and icons laid over the page; the assets are v2.jfig's. */
 function baseFigure(): string {
@@ -245,7 +238,7 @@ test('a large figure: first render, drag frames, export times', async ({ page },
     buffer: readFileSync(here('../src/io/fixtures/plasmidpop-pbr322.fragment.json')),
   });
   await expect(side(page).getByRole('region', { name: 'Plasmid map options' })).toBeVisible();
-  const size = MICROGRAPH(info.project.name);
+  const size = MICROGRAPH;
   const png = micrograph(size.w, size.h);
   const before = await names.count();
   await page.getByTestId('import-input').setInputFiles({
@@ -269,6 +262,15 @@ test('a large figure: first render, drag frames, export times', async ({ page },
   const t0 = Date.now();
   await page.getByTestId('open-input').setInputFiles(file);
   await expect(names).toHaveCount(objects, { timeout: 60_000 });
+  // The canvas shows the micrograph's working copy (a blob URL), not its 16 MB data URI.
+  await page.waitForFunction(
+    () =>
+      [...document.querySelectorAll('g[data-id] image')].some((i) =>
+        (i.getAttribute('xlink:href') ?? '').startsWith('blob:'),
+      ),
+    null,
+    { timeout: 60_000 },
+  );
   await frameDone(page);
   const openMs = Date.now() - t0;
 
@@ -286,7 +288,9 @@ test('a large figure: first render, drag frames, export times', async ({ page },
     const d = await exportVia(page, format, format === 'PNG' ? { dpi: 150 } : {});
     const path = await d.path();
     exp[format] = Date.now() - t;
-    expect(statSync(path).size).toBeGreaterThan(1000);
+    // SVG and PDF carry every pixel of the micrograph (16 MB), not the working copy (4 Mpx).
+    const least = { SVG: png.length, PDF: png.length / 2, PNG: 1000 }[format];
+    expect(statSync(path).size).toBeGreaterThan(least);
   }
 
   const report = {
@@ -312,7 +316,5 @@ test('a large figure: first render, drag frames, export times', async ({ page },
   expect(all.p95).toBeLessThan(BUDGET.dragP95Ms);
   expect(exp['SVG']).toBeLessThan(BUDGET.svgMs);
   expect(exp['PDF']).toBeLessThan(BUDGET.pdfMs);
-  expect(exp['PNG']).toBeLessThan(
-    info.project.name === 'chromium' ? BUDGET.pngMs : BUDGET.pngMsFirefox,
-  );
+  expect(exp['PNG']).toBeLessThan(BUDGET.pngMs);
 });

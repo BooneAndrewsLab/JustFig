@@ -167,13 +167,19 @@ export function snapshotNode(
   );
 }
 
-export function imageNode(asset: Extract<Asset, { kind: 'image' }>, w: number, h: number): SvgNode {
+/** A picture stretched over w x h; `href` stands in for its data (a working copy, note 30). */
+export function imageNode(
+  asset: Extract<Asset, { kind: 'image' }>,
+  w: number,
+  h: number,
+  href?: string,
+): SvgNode {
   return el('image', {
     x: 0,
     y: 0,
     width: w,
     height: h,
     preserveAspectRatio: 'none',
-    'xlink:href': `data:${asset.mime};base64,${asset.dataBase64}`,
+    'xlink:href': href ?? `data:${asset.mime};base64,${asset.dataBase64}`,
   });
 }

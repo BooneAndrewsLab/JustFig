@@ -11,7 +11,7 @@ import { FAMILY_FALLBACK, FAMILY_NAME } from '@/core/text/fonts';
 import { layoutText } from '@/core/text/layout';
 import type { Box } from '@/core/geometry/matrix';
 import { ptToMm } from '@/core/units';
-import { type TextMode, pageToNode, textNodes } from '@/render/objectToNode';
+import { type ImageHref, type TextMode, pageToNode, textNodes } from '@/render/objectToNode';
 import { type SvgNode, el, nodeToSvgString, num } from '@/render/svgNode';
 
 export interface ExportOptions {
@@ -26,6 +26,8 @@ export interface ExportOptions {
    * viewport, and there is no footer (the credit goes in the metadata).
    */
   readonly crop?: Box;
+  /** Pictures' stand-ins: a raster's copies at output size (note 30). Never for SVG or PDF pixels. */
+  readonly imageHref?: ImageHref | undefined;
 }
 
 export const FOOTER_SIZE = 6;
@@ -74,6 +76,7 @@ export function exportRoot(figure: Figure, page: Page, opts: ExportOptions): Exp
     textMode: opts.textMode,
     screen: false,
     background: opts.background,
+    imageHref: opts.imageHref,
   });
   const credit = pageCredit(figure, page);
   if (opts.crop) {

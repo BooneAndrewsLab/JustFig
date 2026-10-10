@@ -7,6 +7,7 @@ import { frameMatrix, isPlain } from '@/core/geometry/matrix';
 import type { Id } from '@/core/model/ids';
 import type {
   Arrow,
+  AssetHash,
   Assets,
   Obj,
   Page,
@@ -30,6 +31,17 @@ import { type TextMode, textNodes } from './textNodes';
 
 export { type TextMode, textNodes };
 
+/**
+ * A stand-in for a picture's pixels (note 30): the screen's working copy of a
+ * big picture, or a raster export's copy at the output's pixel size. The
+ * asset's own data when it returns undefined; a grey box while it is null
+ * (the copy is not ready yet). Only the href changes: the object is drawn as always.
+ */
+export type ImageHref = (
+  hash: AssetHash,
+  asset: Extract<Assets[string], { kind: 'image' }>,
+) => string | null | undefined;
+
 export interface RenderCtx {
   readonly palette: readonly Swatch[];
   readonly assets: Assets;
@@ -39,6 +51,7 @@ export interface RenderCtx {
   readonly labelStyle: PanelLabelStyle;
   /** Panel labels in effect (auto labels resolved), by panel id. */
   readonly labels: ReadonlyMap<Id, string>;
+  readonly imageHref?: ImageHref | undefined;
 }
 
 type Attrs = Record<string, AttrValue | undefined>;
@@ -187,6 +200,18 @@ function placeholder(w: number, h: number): SvgNode {
   });
 }
 
+function picture(
+  hash: AssetHash,
+  a: Extract<Assets[string], { kind: 'image' }>,
+  w: number,
+  h: number,
+  ctx: RenderCtx,
+): SvgNode {
+  const href = ctx.imageHref?.(hash, a);
+  if (href === null) return el('rect', { x: 0, y: 0, width: w, height: h, fill: '#e4e7eb' });
+  return imageNode(a, w, h, href);
+}
+
 function content(o: Obj, ctx: RenderCtx): SvgNode[] {
   const { w, h } = o.frame;
   switch (o.type) {
@@ -229,11 +254,11 @@ function content(o: Obj, ctx: RenderCtx): SvgNode[] {
     case 'image': {
       // A crop draws its own re-encoded pixels (note 20): the export subset cannot clip.
       const c = o.crop && o.cropped !== undefined ? ctx.assets[o.cropped] : undefined;
-      if (c?.kind === 'image') return [imageNode(c, w, h)];
+      if (c?.kind === 'image' && o.cropped !== undefined) return [picture(o.cropped, c, w, h, ctx)];
       // A see-through picture's backdrop cut with its picture's crop (issue 48).
       if (c?.kind === 'svgImport') return [svgImportNode(c.svg, w, h, ctx.textMode)];
       const a = ctx.assets[o.asset];
-      if (a?.kind === 'image') return [imageNode(a, w, h)];
+      if (a?.kind === 'image') return [picture(o.asset, a, w, h, ctx)];
       if (a?.kind === 'svgImport') return [svgImportNode(a.svg, w, h, ctx.textMode)];
       return [placeholder(w, h)];
     }
@@ -262,6 +287,7 @@ interface Memo {
   /** A panel's resolved label (it depends on the page's other panels). */
   readonly label: string | undefined;
   readonly labelStyle: PanelLabelStyle;
+  readonly imageHref: ImageHref | undefined;
 }
 
 const memos = new Map<string, WeakMap<Obj, Memo>>();
@@ -301,7 +327,8 @@ export function objectToNode(o: Obj, ctx: RenderCtx): SvgNode | null {
     hit?.palette === ctx.palette &&
     hit.assets === ctx.assets &&
     hit.label === label &&
-    hit.labelStyle === ctx.labelStyle
+    hit.labelStyle === ctx.labelStyle &&
+    hit.imageHref === ctx.imageHref
   )
     return hit.node;
   const node = build(o, ctx);
@@ -311,6 +338,7 @@ export function objectToNode(o: Obj, ctx: RenderCtx): SvgNode | null {
     assets: ctx.assets,
     label,
     labelStyle: ctx.labelStyle,
+    imageHref: ctx.imageHref,
   });
   return node;
 }
@@ -320,6 +348,8 @@ export interface PageRenderOptions {
   readonly screen: boolean;
   /** Draw the page background (off for a transparent PNG). */
   readonly background?: boolean;
+  /** Pictures' stand-ins (screen working copies, a raster export's copies), see `ImageHref`. */
+  readonly imageHref?: ImageHref | undefined;
 }
 
 export function renderCtx(
@@ -335,6 +365,7 @@ export function renderCtx(
     screen: opts.screen,
     labelStyle: doc.panelLabelStyle,
     labels: panelLabels(page, doc.panelLabelStyle.format),
+    imageHref: opts.imageHref,
   };
 }
 

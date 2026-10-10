@@ -4,11 +4,13 @@
  * touches objects that changed and the screen draws exactly what exports
  * draw.
  */
-import { memo } from 'react';
+import { memo, useSyncExternalStore } from 'react';
 
 import type { Figure, Page } from '@/core/model/types';
 import { objectToNode, renderCtx } from '@/render/objectToNode';
 import { type SvgNode, nodeToSvgString } from '@/render/svgNode';
+
+import { subscribeWorkingCopies, workingCopies } from './workingCopies';
 
 // Keyed on the children array: a moved procedural object keeps its content
 // array (only the transform changes), so it is not serialised again.
@@ -41,7 +43,13 @@ const ObjView = memo(function ObjView({ node }: { node: SvgNode }) {
 });
 
 export const PageView = memo(function PageView({ page, figure }: { page: Page; figure: Figure }) {
-  const ctx = renderCtx(page, figure.doc, figure.assets, { textMode: 'outline', screen: true });
+  // Big pictures show their working copies (note 30); exports never do.
+  const imageHref = useSyncExternalStore(subscribeWorkingCopies, workingCopies);
+  const ctx = renderCtx(page, figure.doc, figure.assets, {
+    textMode: 'outline',
+    screen: true,
+    imageHref,
+  });
   return (
     <g>
       {page.background !== null && (

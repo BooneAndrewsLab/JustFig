@@ -9,8 +9,11 @@ import { jsPDF } from 'jspdf';
 import { svg2pdf } from 'svg2pdf.js';
 
 import { BRAND } from '@/brand';
-import type { Figure, Page } from '@/core/model/types';
+import { pageObjects } from '@/core/model/tree';
+import type { AssetHash, Figure, Page } from '@/core/model/types';
 import { ALL_FONT_FILES, FAMILY_NAME, getFontData } from '@/core/text/fonts';
+import { fromBase64 } from '@/io/png';
+import type { ImageHref } from '@/render/objectToNode';
 import { type SvgNode, el, nodeToSvgString } from '@/render/svgNode';
 
 import { type ExportOptions, exportRoot } from './svg';
@@ -62,27 +65,31 @@ function svgElement(text: string): Element {
 }
 
 /** svg2pdf matches each image's data URI with a backtracking regex that overflows the stack at about 12 MB (20 Mpx pictures). */
-const BIG_DATA_URI = 4_000_000;
+export const BIG_DATA_URI = 4_000_000;
 
 /**
- * Points every large embedded picture at a blob URL instead (svg2pdf fetches
- * it as bytes, no regex; the `#.ext` tells it the format). Returns the URLs
- * to revoke once the page is drawn (note 29).
+ * Blob URLs for the page's big pictures, as an `ImageHref` (svg2pdf fetches
+ * them as bytes, no regex; the `#.ext` tells it the format). The same bytes,
+ * every pixel: the long data URI just never goes through the SVG text, which
+ * Firefox parses slowly (note 30). Revoke `urls` once the page is drawn.
  */
-export function externaliseBigImages(svg: Element): string[] {
-  const urls: string[] = [];
-  for (const img of Array.from(svg.getElementsByTagName('image'))) {
-    const href = img.getAttribute('xlink:href') ?? img.getAttribute('href') ?? '';
-    const m = /^data:image\/([a-z0-9.+-]+);base64,/i.exec(href.slice(0, 64));
-    if (href.length < BIG_DATA_URI || !m?.[1]) continue;
-    const bin = atob(href.slice(m[0].length));
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i);
-    const url = URL.createObjectURL(new Blob([bytes], { type: `image/${m[1]}` }));
-    urls.push(url);
-    img.setAttribute('xlink:href', `${url}#.${m[1]}`);
+export function bigPictureUrls(
+  figure: Figure,
+  page: Page,
+): { href: ImageHref | undefined; urls: string[] } {
+  const byHash = new Map<AssetHash, string>();
+  for (const o of pageObjects(page)) {
+    if (o.type !== 'image') continue;
+    for (const hash of [o.asset, o.cropped]) {
+      const a = hash === undefined ? undefined : figure.assets[hash];
+      if (hash === undefined || byHash.has(hash) || a?.kind !== 'image') continue;
+      if (a.dataBase64.length < BIG_DATA_URI) continue;
+      const blob = new Blob([new Uint8Array(fromBase64(a.dataBase64))], { type: a.mime });
+      byHash.set(hash, `${URL.createObjectURL(blob)}#.${a.mime.replace(/^image\//, '')}`);
+    }
   }
-  return urls;
+  const urls = [...byHash.values()].map((u) => u.slice(0, u.lastIndexOf('#')));
+  return { href: byHash.size > 0 ? (hash) => byHash.get(hash) : undefined, urls };
 }
 
 export async function exportPdf(
@@ -93,27 +100,26 @@ export async function exportPdf(
 ): Promise<Uint8Array> {
   let pdf: jsPDF | null = null;
   for (const page of pages) {
-    const root = exportRoot(figure, page, opts);
-    const { width: w, height: h } = root;
-    const orientation = w > h ? 'landscape' : 'portrait';
-    if (pdf === null) {
-      pdf = new jsPDF({ unit: 'pt', format: [w, h], orientation, compress: true });
-      if (opts.textMode === 'text') registerFonts(pdf);
-      pdf.setProperties({
-        title: figure.doc.title,
-        creator: `${BRAND.name} ${version}`,
-        ...(root.credit ? { subject: root.credit } : {}),
-      });
-    } else {
-      pdf.addPage([w, h], orientation);
-    }
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="${String(w)}" height="${String(h)}" viewBox="${String(root.x)} ${String(root.y)} ${String(w)} ${String(h)}">${nodeToSvgString(flattenOpacity(root.node), { stripData: true })}</svg>`;
-    const element = svgElement(svg);
-    const blobs = externaliseBigImages(element);
+    const big = bigPictureUrls(figure, page);
     try {
-      await svg2pdf(element, pdf, { x: 0, y: 0, width: w, height: h });
+      const root = exportRoot(figure, page, { ...opts, imageHref: big.href });
+      const { width: w, height: h } = root;
+      const orientation = w > h ? 'landscape' : 'portrait';
+      if (pdf === null) {
+        pdf = new jsPDF({ unit: 'pt', format: [w, h], orientation, compress: true });
+        if (opts.textMode === 'text') registerFonts(pdf);
+        pdf.setProperties({
+          title: figure.doc.title,
+          creator: `${BRAND.name} ${version}`,
+          ...(root.credit ? { subject: root.credit } : {}),
+        });
+      } else {
+        pdf.addPage([w, h], orientation);
+      }
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="${String(w)}" height="${String(h)}" viewBox="${String(root.x)} ${String(root.y)} ${String(w)} ${String(h)}">${nodeToSvgString(flattenOpacity(root.node), { stripData: true })}</svg>`;
+      await svg2pdf(svgElement(svg), pdf, { x: 0, y: 0, width: w, height: h });
     } finally {
-      for (const u of blobs) URL.revokeObjectURL(u);
+      for (const u of big.urls) URL.revokeObjectURL(u);
     }
   }
   if (pdf === null) throw new Error('no pages to export');

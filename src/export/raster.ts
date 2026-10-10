@@ -2,7 +2,8 @@
  * PNG and TIFF export (note 03): the outline-mode export SVG (no fonts to
  * load, images already data URIs, nothing external, so Safari does not
  * taint the canvas) drawn through an <img> onto a canvas at the chosen
- * DPI. Main thread: only a document can decode SVG into an image.
+ * DPI. Main thread: only a document can decode SVG into an image. Big
+ * pictures go in redrawn at the pixels they cover (note 30).
  */
 import { BRAND } from '@/brand';
 import type { Box } from '@/core/geometry/matrix';
@@ -10,6 +11,7 @@ import type { Figure, Page } from '@/core/model/types';
 import { nodeToSvgString } from '@/render/svgNode';
 
 import { pHYs, PngWriter, tEXt, withChunks } from './png';
+import { resampledPictures } from './resample';
 import { exportRoot } from './svg';
 import { TiffWriter } from './tiff';
 import {
@@ -116,12 +118,14 @@ async function drawBand(
   }
 }
 
-function pageRoot(figure: Figure, page: Page, opts: RasterOptions): Root {
+/** The page's export root, big pictures redrawn at the pixels they cover (note 30). */
+async function pageRoot(figure: Figure, page: Page, opts: RasterOptions): Promise<Root> {
   return exportRoot(figure, page, {
     textMode: 'outline',
     footer: opts.footer,
     background: !opts.transparent,
     ...(opts.crop ? { crop: opts.crop } : {}),
+    imageHref: await resampledPictures(figure, page, opts.dpi / 72),
   });
 }
 
@@ -131,7 +135,7 @@ export async function renderCanvas(
   page: Page,
   opts: RasterOptions,
 ): Promise<HTMLCanvasElement> {
-  const root = pageRoot(figure, page, opts);
+  const root = await pageRoot(figure, page, opts);
   const k = opts.dpi / 72;
   const w = Math.max(1, Math.round(root.width * k));
   const h = Math.max(1, Math.round(root.height * k));
@@ -154,12 +158,12 @@ export async function renderBands(
   onBand: (rgba: Uint8ClampedArray) => void | Promise<void>,
   maxPixels: number = MAX_PIXELS,
 ): Promise<{ w: number; h: number }> {
-  const root = pageRoot(figure, page, opts);
+  const limit = rasterLimitMessage(figure, page, opts);
+  if (limit) throw new RasterTooLargeError(limit);
+  const root = await pageRoot(figure, page, opts);
   const k = opts.dpi / 72;
   const w = Math.max(1, Math.round(root.width * k));
   const h = Math.max(1, Math.round(root.height * k));
-  const limit = rasterLimitMessage(figure, page, opts);
-  if (limit) throw new RasterTooLargeError(limit);
   for (const band of planBands(w, h, maxPixels)) {
     const canvas = await drawBand(root, w, h, band.y0, band.rows, opts.transparent);
     const ctx = canvas.getContext('2d');
