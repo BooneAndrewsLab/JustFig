@@ -144,6 +144,8 @@ const TOOL_ACTIONS: Readonly<Record<string, ToolId>> = {
   'tool-note': 'note',
 };
 
+let pasteInPlaceUntil = 0;
+
 export function onKeyDown(e: KeyboardEvent, open: ShortcutTargets): void {
   if (isTyping(e.target) || document.querySelector('.dialog')) return;
   const s = store.getState();
@@ -156,6 +158,19 @@ export function onKeyDown(e: KeyboardEvent, open: ShortcutTargets): void {
   // The fixed keys first (note 09: they cannot be moved).
   if (mod && !e.altKey) {
     const k = e.code;
+    // Paste in place: let the browser paste, and have `onPaste` keep the positions. Where it
+    // fires no paste event for this chord (Firefox), the app's own clipboard is used (note 35).
+    if (k === 'KeyV' && e.shiftKey) {
+      const armed = Date.now() + 1000;
+      pasteInPlaceUntil = armed;
+      setTimeout(() => {
+        if (pasteInPlaceUntil === armed) {
+          pasteInPlaceUntil = 0;
+          pasteText(null, 10, true);
+        }
+      }, 150);
+      return;
+    }
     if (k === 'KeyZ') {
       handled();
       if (e.shiftKey) store.redo();
@@ -287,5 +302,7 @@ export function onPaste(e: ClipboardEvent, importFile: (f: File) => void): void 
     return;
   }
   const text = e.clipboardData?.getData('text/plain') ?? null;
-  if (pasteText(text === '' ? null : text)) e.preventDefault();
+  const inPlace = Date.now() < pasteInPlaceUntil;
+  pasteInPlaceUntil = 0;
+  if (pasteText(text === '' ? null : text, 10, inPlace)) e.preventDefault();
 }

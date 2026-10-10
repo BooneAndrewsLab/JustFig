@@ -48,6 +48,7 @@ Every shortcut in JustFig is in this table. **Ctrl** means **⌘** on a Mac. Sho
 | Undo (with Shift, redo; Ctrl+Y also redoes)                                            | `Ctrl+Z`              | Fixed.                                                                    |
 | Redo                                                                                   | `Ctrl+Y`              | Fixed.                                                                    |
 | Copy, cut (Ctrl+X) and paste (Ctrl+V)                                                  | `Ctrl+C`              | Fixed.                                                                    |
+| Paste in place: at the copied position, on any page or tab                             | `Ctrl+Shift+V`        | Fixed.                                                                    |
 | Delete the selection (or Backspace)                                                    | `Delete`              | Fixed. In point editing, the current point.                               |
 | Back to the Select tool, then select nothing; cancels a pen path, leaves point editing | `Escape`              | Fixed.                                                                    |
 | Nudge the selection by 1 pt (with Shift, 10 pt)                                        | `→`                   | Fixed. All four arrow keys; in point editing they move the current point. |

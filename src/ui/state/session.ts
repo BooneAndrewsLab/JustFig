@@ -4,7 +4,16 @@
  * file (never a kept handle); autosave keeps a copy in IndexedDB.
  */
 import { BRAND } from '@/brand';
-import { addObjects, allIds, deleteObjects, updateDoc } from '@/core/edits/edits';
+import {
+  type Spacing,
+  addObjects,
+  allIds,
+  deleteObjects,
+  spaceObjects,
+  spacingBetween,
+  swapPositions,
+  updateDoc,
+} from '@/core/edits/edits';
 import { placeImport } from '@/core/edits/placeImport';
 import { openOver } from '@/core/edits/version';
 import { boundsOf } from '@/core/geometry/transform';
@@ -30,6 +39,7 @@ import {
   writeFragment,
   writeJfig,
 } from '@/io/jfig';
+import { drawnBoundsIn } from '@/procedural/bounds';
 import { convertObjects, createProcedural } from '@/procedural/edits';
 import { getKind } from '@/procedural/registry';
 import { figureWithSnapshots, withSnapshots } from '@/procedural/snapshot';
@@ -540,8 +550,8 @@ export function copySelection(cut = false): string | null {
   return text;
 }
 
-/** Pastes a fragment (from the system clipboard text, else the internal one). */
-export function pasteText(text: string | null, offset = 10): boolean {
+/** Pastes a fragment (from the system clipboard text, else the internal one). `inPlace` keeps the copied positions, on any page or tab (note 35). */
+export function pasteText(text: string | null, offset = 10, inPlace = false): boolean {
   const source = text ?? internalClipboard;
   if (source === null) return false;
   try {
@@ -550,7 +560,11 @@ export function pasteText(text: string | null, offset = 10): boolean {
     // Copied from this figure: next to the original. From elsewhere: in the middle of the view.
     const here = new Set(allIds(currentPage(store.getState())));
     const local = frag.objects.some((o) => here.has(o.id));
-    const objs = importFragment(frag, local ? { offset } : { at: viewCenter() });
+    const objs = importFragment(
+      frag,
+      inPlace ? { offset: 0 } : local ? { offset } : { at: viewCenter() },
+      inPlace ? 'Paste in place' : 'Paste',
+    );
     internalClipboard = writeFragment({ objects: objs, assets: frag.assets });
     return true;
   } catch (e: unknown) {
@@ -586,6 +600,53 @@ export function importFragment(
   });
   if (objs.some((o) => o.type === 'procedural')) analytics.track('procedural', 'fragment-paste');
   return objs;
+}
+
+// --- arrange extras (note 35) ---------------------------------------------------------
+
+let copiedSpacing: Spacing | null = null;
+
+/** Whether Paste spacing has a gap to apply. */
+export const hasCopiedSpacing = (): boolean => copiedSpacing !== null;
+
+/** Remembers the gaps between exactly two selected objects, in every tab. */
+export function copySpacing(): boolean {
+  const s = store.getState();
+  const objs = selectedObjects(s);
+  const [a, b] = objs;
+  if (!a || !b || objs.length !== 2) return false;
+  copiedSpacing = spacingBetween(a, b, drawnBoundsIn(figure(s).doc.palette));
+  return true;
+}
+
+/** Spaces the selection (two or more objects) by the copied gap along an axis. */
+export function pasteSpacing(axis: 'x' | 'y'): boolean {
+  const s = store.getState();
+  const objs = selectedObjects(s);
+  if (copiedSpacing === null || objs.length < 2) return false;
+  return store.edit(
+    spaceObjects(
+      currentPage(s).id,
+      objs,
+      axis,
+      copiedSpacing[axis],
+      drawnBoundsIn(figure(s).doc.palette),
+    ),
+  );
+}
+
+/** Paste spacing, saying so when nothing has been copied yet. */
+export function pasteSpacingOrExplain(axis: 'x' | 'y'): void {
+  if (!hasCopiedSpacing()) store.notify('Copy spacing from two objects first.', 'error');
+  else pasteSpacing(axis);
+}
+
+/** Swaps the positions of exactly two selected objects. */
+export function swapSelection(): boolean {
+  const s = store.getState();
+  const objs = selectedObjects(s);
+  if (objs.length !== 2) return false;
+  return store.edit(swapPositions(currentPage(s).id, objs, drawnBoundsIn(figure(s).doc.palette)));
 }
 
 export function duplicateSelection(): void {

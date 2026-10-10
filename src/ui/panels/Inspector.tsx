@@ -62,7 +62,13 @@ import { formatLength, fromUnit, toUnit } from '@/core/units';
 
 import { analytics } from '../analytics';
 import { type AppState, currentPage, figure, selectedObjects, store } from '../state/store';
-import { download, safeName } from '../state/session';
+import {
+  copySpacing,
+  download,
+  pasteSpacingOrExplain,
+  safeName,
+  swapSelection,
+} from '../state/session';
 import { useAppState } from '../state/useAppState';
 import { resolveBindings, withKey } from '../keyBindings';
 import { ColorInput } from './ColorInput';
@@ -601,6 +607,48 @@ function SelectionInspector({
             </>
           )}
         </div>
+        {sel.length > 1 && (
+          <div className="row" style={{ flexWrap: 'wrap' }} aria-label="Spacing and swap">
+            {sel.length === 2 && (
+              <>
+                <button
+                  type="button"
+                  title="Remember the gaps between these two objects"
+                  onClick={() => {
+                    if (copySpacing()) store.notify('Spacing copied.');
+                  }}
+                >
+                  Copy spacing
+                </button>
+                <button
+                  type="button"
+                  title="Swap the positions of these two objects"
+                  onClick={swapSelection}
+                >
+                  Swap positions
+                </button>
+              </>
+            )}
+            <button
+              type="button"
+              title="Space the selection horizontally by the copied gap"
+              onClick={() => {
+                pasteSpacingOrExplain('x');
+              }}
+            >
+              Paste spacing ↔
+            </button>
+            <button
+              type="button"
+              title="Space the selection vertically by the copied gap"
+              onClick={() => {
+                pasteSpacingOrExplain('y');
+              }}
+            >
+              Paste spacing ↕
+            </button>
+          </div>
+        )}
         <div className="row">
           {sel.length > 1 && (
             <button type="button" onClick={() => store.edit(groupObjects(page.id, ids))}>

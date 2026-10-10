@@ -220,3 +220,42 @@ test('copy, paste and duplicate', async ({ page }) => {
   await page.keyboard.press('Delete');
   await expect(page.locator('.layers .item .name', { hasText: 'Rect' })).toHaveCount(2);
 });
+
+test('paste in place keeps the position', async ({ page }) => {
+  await rect(page, 30, 30, 40, 40);
+  const x = field(page, 'X');
+  const x0 = await x.inputValue();
+  await page.keyboard.press('Control+c');
+  await page.keyboard.press('Control+Shift+v');
+  await expect(page.locator('.layers .item .name', { hasText: 'Rect' })).toHaveCount(2);
+  await expect(x).toHaveValue(x0);
+  await page.keyboard.press('Control+v');
+  await expect(page.locator('.layers .item .name', { hasText: 'Rect' })).toHaveCount(3);
+  await expect(x).not.toHaveValue(x0);
+});
+
+test('swap positions and paste spacing are reachable from the keyboard', async ({ page }) => {
+  await rect(page, 30, 30, 40, 40);
+  await rect(page, 100, 60, 20, 20);
+  const x = field(page, 'X');
+  const xb = await x.inputValue();
+  await page.keyboard.press('Control+a');
+  await page.getByRole('button', { name: 'Paste spacing ↔' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByText('Copy spacing from two objects first.')).toBeVisible();
+  await page.getByRole('button', { name: 'Swap positions' }).focus();
+  await page.keyboard.press('Enter');
+  // The second rectangle was selected last; after the swap it sits where the first was.
+  await page.keyboard.press('Escape');
+  const p = await at(page, 40, 40);
+  await page.mouse.click(p.x, p.y);
+  await expect(x).not.toHaveValue(xb);
+  await page.keyboard.press('Control+a');
+  await page.getByRole('button', { name: 'Copy spacing' }).focus();
+  await page.keyboard.press('Enter');
+  await page.getByRole('button', { name: 'Paste spacing ↕' }).focus();
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Control+z');
+  await page.keyboard.press('Control+z');
+  await expect(page.locator('.layers .item .name', { hasText: 'Rect' })).toHaveCount(2);
+});

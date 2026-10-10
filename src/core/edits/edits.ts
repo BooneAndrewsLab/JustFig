@@ -389,6 +389,72 @@ export function distributeObjects(
   };
 }
 
+/** The gaps between two objects, edge to edge: `x` from the left one's right edge, `y` from the upper one's bottom edge. Negative when they overlap. */
+export interface Spacing {
+  readonly x: number;
+  readonly y: number;
+}
+
+/** What "Copy spacing" remembers (note 35): both axes, so Paste spacing only has to be told which one to apply. */
+export function spacingBetween(a: Obj, b: Obj, boxOf: BoxOf = objBounds): Spacing {
+  const [p, q] = [boxOf(a), boxOf(b)];
+  const [l, r] = p.x <= q.x ? [p, q] : [q, p];
+  const [u, d] = p.y <= q.y ? [p, q] : [q, p];
+  return { x: r.x - (l.x + l.w), y: d.y - (u.y + u.h) };
+}
+
+/**
+ * Spaces the objects along an axis by exactly `gap` (edge to edge), in their
+ * current order, the first one staying put. Locked objects stay where they are.
+ */
+export function spaceObjects(
+  pageId: Id,
+  objs: readonly Obj[],
+  axis: 'x' | 'y',
+  gap: number,
+  boxOf: BoxOf = objBounds,
+): Edit {
+  const start = (b: Box) => (axis === 'x' ? b.x : b.y);
+  const size = (b: Box) => (axis === 'x' ? b.w : b.h);
+  const sorted = [...objs].sort((a, b) => start(boxOf(a)) - start(boxOf(b)));
+  const shifts = new Map<Id, number>();
+  const first = sorted[0];
+  if (first && sorted.length > 1) {
+    const fb = boxOf(first);
+    let at = start(fb) + size(fb) + gap;
+    for (const o of sorted.slice(1)) {
+      const b = boxOf(o);
+      if (o.locked !== true) shifts.set(o.id, at - start(b));
+      at += size(b) + gap;
+    }
+  }
+  return {
+    ...transformEach(pageId, [...shifts.keys()], 'Paste spacing', (o) => {
+      const d = shifts.get(o.id) ?? 0;
+      return axis === 'x' ? translateObj(o, d, 0) : translateObj(o, 0, d);
+    }),
+    label: axis === 'x' ? 'Paste horizontal spacing' : 'Paste vertical spacing',
+  };
+}
+
+/** Swaps the top-left corners of two objects' bounds; each keeps its size. Does nothing unless exactly two are given and neither is locked. */
+export function swapPositions(pageId: Id, objs: readonly Obj[], boxOf: BoxOf = objBounds): Edit {
+  const shifts = new Map<Id, { dx: number; dy: number }>();
+  const [a, b] = objs;
+  if (a && b && objs.length === 2 && a.locked !== true && b.locked !== true) {
+    const [p, q] = [boxOf(a), boxOf(b)];
+    shifts.set(a.id, { dx: q.x - p.x, dy: q.y - p.y });
+    shifts.set(b.id, { dx: p.x - q.x, dy: p.y - q.y });
+  }
+  return {
+    ...transformEach(pageId, [...shifts.keys()], 'Swap positions of', (o) => {
+      const s = shifts.get(o.id);
+      return s ? translateObj(o, s.dx, s.dy) : o;
+    }),
+    label: 'Swap positions',
+  };
+}
+
 /** Wraps sibling objects in a group, at the topmost one's place. */
 export function groupObjects(pageId: Id, ids: readonly Id[], groupId: Id = newId('o')): Edit {
   const set = new Set(ids);

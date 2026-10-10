@@ -16,6 +16,8 @@ Ctrl+C, Ctrl+X and Ctrl+V copy, cut and paste. Ctrl+D duplicates the selection, 
 
 A paste of something copied from this figure lands next to the original. Something copied from another figure, or from PlasmidPop, lands in the middle of what you can see.
 
+**Ctrl+Shift+V** pastes in place instead: the objects land exactly where they were copied from, with no offset. This works on another page of the figure and in another tab, which is how to repeat a panel layout on every page.
+
 ## Align and distribute
 
 With a selection, the Inspector's first section (named after the object, or "3 objects") has a row of alignment buttons: align left, centres, right, top, middles and bottom.
@@ -23,6 +25,14 @@ With a selection, the Inspector's first section (named after the object, or "3 o
 - With **two or more** objects they line up to the edges of the selection as a whole.
 - With **one** object they align it to the page, which is a quick way to centre something.
 - With **three or more**, two more buttons appear: **Distribute horizontally** and **Distribute vertically** space the objects evenly.
+
+Below the alignment row, a selection of two or more objects also has these buttons:
+
+- **Copy spacing** (exactly two objects selected) remembers the gap between them, edge to edge, both horizontally and vertically. A negative gap means they overlap.
+- **Paste spacing ↔** and **Paste spacing ↕** space the selected objects by the copied horizontal or vertical gap, in their current left-to-right or top-to-bottom order. The first object stays put and the others follow; locked objects stay where they are. You choose the axis when you paste, so one copy serves both. The gap is remembered across pages and tabs until you copy another.
+- **Swap positions** (exactly two objects selected) exchanges their places: each takes the other's top-left corner and keeps its own size.
+
+Each of these is one undo step. Arrows attached to the objects follow them.
 
 Aligning, distributing and **Arrange in grid** go by what an object draws, so lane labels above a gel photo or a scale bar's label count as part of it: a labelled gel aligned to the top puts the tops of its labels on the line, not the top of the photo.
 

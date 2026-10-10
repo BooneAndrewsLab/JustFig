@@ -128,6 +128,13 @@ export const KEY_ACTIONS: readonly KeyAction[] = [
     fixed: true,
   },
   {
+    id: 'paste-in-place',
+    label: 'Paste in place: at the copied position, on any page or tab',
+    group: 'Fixed',
+    defaultBinding: 'ctrl+shift+KeyV',
+    fixed: true,
+  },
+  {
     id: 'delete',
     label: 'Delete the selection (or Backspace)',
     group: 'Fixed',
