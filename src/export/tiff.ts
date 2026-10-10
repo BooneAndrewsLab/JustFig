@@ -53,13 +53,24 @@ class BitWriter {
   }
 }
 
+const TABLE = new Int32Array(1 << 20);
+const EPOCH_MAX = (1 << 19) - 1;
+let epoch = 0;
+
 /** TIFF-flavoured LZW of one strip. */
 export function lzwEncode(data: Uint8Array): Uint8Array {
   const out = new BitWriter();
   let width = 9;
   let maxcode = 511;
   let free = FIRST;
-  const table = new Map<number, number>();
+  // (prefix code, next byte) -> code, in a flat table; a Clear starts a new epoch
+  // instead of emptying it (a Map was most of the encoding time, issue 63).
+  const table = TABLE;
+  if (epoch >= EPOCH_MAX) {
+    table.fill(0);
+    epoch = 0;
+  }
+  epoch += 1;
   out.write(CLEAR, width);
   if (data.length === 0) {
     out.write(EOI, width);
@@ -68,7 +79,11 @@ export function lzwEncode(data: Uint8Array): Uint8Array {
   const grow = (): void => {
     if (free === MAX_CODE - 1) {
       out.write(CLEAR, width);
-      table.clear();
+      if (epoch >= EPOCH_MAX) {
+        table.fill(0);
+        epoch = 0;
+      }
+      epoch += 1;
       width = 9;
       maxcode = 511;
       free = FIRST;
@@ -81,14 +96,14 @@ export function lzwEncode(data: Uint8Array): Uint8Array {
   for (let i = 1; i < data.length; i += 1) {
     const c = data[i] ?? 0;
     const key = (ent << 8) | c;
-    const hit = table.get(key);
-    if (hit !== undefined) {
-      ent = hit;
+    const hit = table[key] ?? 0;
+    if (hit >>> 12 === epoch) {
+      ent = hit & 0xfff;
       continue;
     }
     out.write(ent, width);
     ent = c;
-    table.set(key, free);
+    table[key] = (epoch << 12) | free;
     free += 1;
     grow();
   }
@@ -142,14 +157,15 @@ export class TiffWriter {
     for (let r = 0; r < rows; r += 1) {
       const raw = new Uint8Array(this.rowBytes);
       const src = r * w * 4;
-      for (let x = 0; x < w; x += 1)
-        for (let s = 0; s < spp; s += 1) raw[x * spp + s] = rgba[src + x * 4 + s] ?? 0;
       // Predictor 2: each sample minus the same sample of the pixel to its left.
-      for (let x = w - 1; x > 0; x -= 1)
-        for (let s = 0; s < spp; s += 1) {
-          const i = x * spp + s;
-          raw[i] = ((raw[i] ?? 0) - (raw[i - spp] ?? 0)) & 0xff;
+      for (let s = 0; s < spp; s += 1) {
+        let left = 0;
+        for (let x = 0, i = s, j = src + s; x < w; x += 1, i += spp, j += 4) {
+          const v = rgba[j] ?? 0;
+          raw[i] = (v - left) & 0xff;
+          left = v;
         }
+      }
       this.pending.push(raw);
       this.pendingRows += 1;
       this.rowsIn += 1;

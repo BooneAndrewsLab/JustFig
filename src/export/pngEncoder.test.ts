@@ -4,7 +4,14 @@ import { describe, expect, it } from 'vitest';
 import { decodePng } from '@/io/png';
 
 import { PngWriter } from './png';
-import { type PngPort, PortPngEncoder, pngEncoder, servePngWriter } from './pngEncoder';
+import {
+  type PngPort,
+  PortPngEncoder,
+  pngEncoder,
+  servePngWriter,
+  tiffEncoder,
+} from './pngEncoder';
+import { encodeTiff } from './tiff';
 
 const opts = { width: 7, height: 10, dpi: 300, alpha: true, software: 'T 1' };
 
@@ -64,5 +71,22 @@ describe('the worker PNG encoder', () => {
 
   it('runs on this thread where there are no workers', () => {
     expect(pngEncoder(opts)).toBeInstanceOf(PngWriter);
+  });
+
+  it('writes a TIFF byte for byte as encodeTiff does (issue 63)', async () => {
+    const px = pixels();
+    const ch = channel();
+    const enc = new PortPngEncoder(ch.main, opts, ch.close, 'tiff');
+    await enc.push(px.slice(0, 7 * 4 * 4));
+    await enc.push(px.slice(7 * 4 * 4));
+    expect(await enc.finish()).toEqual(encodeTiff(px, opts));
+    expect(ch.isClosed()).toBe(true);
+  });
+
+  it('runs the TIFF writer on this thread where there are no workers', async () => {
+    const px = pixels();
+    const enc = tiffEncoder(opts);
+    await enc.push(px);
+    expect(await enc.finish()).toEqual(encodeTiff(px, opts));
   });
 });

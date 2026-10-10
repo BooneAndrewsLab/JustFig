@@ -3,8 +3,22 @@
  * `PngWriter` (row filters and deflate) on one band while the main thread
  * draws the next, so the two overlap and the page stays responsive. Without
  * workers (unit tests, or one that cannot start) the writer runs here.
+ * The same worker also runs a `TiffWriter` (issue 63): the protocol only
+ * names the format in its `start` request.
  */
 import { PngWriter, type PngStreamOptions } from './png';
+import { TiffWriter, type TiffOptions } from './tiff';
+
+export type RasterFormat = 'png' | 'tiff';
+
+/** Either writer's options (they are the same fields). */
+export type RasterStreamOptions = PngStreamOptions & TiffOptions;
+
+/** The writers a worker can run: bands in, a finished file out. */
+interface RasterWriter {
+  push(rgba: Uint8Array | Uint8ClampedArray): void | Promise<void>;
+  finish(): Uint8Array | Promise<Uint8Array>;
+}
 
 /** What exportPng feeds bands to: a `PngWriter` here or in a worker. */
 export interface PngEncoder {
@@ -16,13 +30,18 @@ export interface PngEncoder {
 }
 
 export type PngWorkerRequest =
-  | { readonly type: 'start'; readonly opts: PngStreamOptions }
+  | {
+      readonly type: 'start';
+      readonly opts: RasterStreamOptions;
+      /** Absent means a PNG (the first protocol). */
+      readonly format?: RasterFormat;
+    }
   | { readonly type: 'push'; readonly rgba: Uint8Array | Uint8ClampedArray }
   | { readonly type: 'finish' };
 
 export type PngWorkerReply =
   | { readonly type: 'ok' }
-  | { readonly type: 'done'; readonly png: Uint8Array }
+  | { readonly type: 'done'; readonly png: Uint8Array } // the finished file, whichever format
   | { readonly type: 'error'; readonly message: string };
 
 /** The side of a worker (or a MessagePort, in tests) the writer talks through. */
@@ -33,18 +52,18 @@ export interface PngPort {
 
 /** The worker's side: one writer per worker, requests answered in order. */
 export function servePngWriter(port: PngPort): void {
-  let writer: PngWriter | null = null;
+  let writer: RasterWriter | null = null;
   let queue = Promise.resolve();
   const reply = (r: PngWorkerReply, transfer: Transferable[] = []) => {
     port.postMessage(r, transfer);
   };
   const handle = async (req: PngWorkerRequest): Promise<void> => {
     if (req.type === 'start') {
-      writer = new PngWriter(req.opts);
+      writer = req.format === 'tiff' ? new TiffWriter(req.opts) : new PngWriter(req.opts);
       reply({ type: 'ok' });
       return;
     }
-    if (!writer) throw new Error('PNG writer not started');
+    if (!writer) throw new Error('Image writer not started');
     if (req.type === 'push') {
       await writer.push(req.rgba);
       reply({ type: 'ok' });
@@ -89,13 +108,14 @@ export class PortPngEncoder implements PngEncoder {
 
   constructor(
     private readonly port: PngPort,
-    opts: PngStreamOptions,
+    opts: RasterStreamOptions,
     private readonly close?: () => void,
+    format: RasterFormat = 'png',
   ) {
     port.onmessage = (e: MessageEvent) => {
       this.waiting.shift()?.resolve(e.data as PngWorkerReply);
     };
-    this.last = this.send({ type: 'start', opts });
+    this.last = this.send({ type: 'start', opts, format });
     this.last.catch(ignore); // awaited by the next push or finish, or dropped by abort
   }
 
@@ -144,22 +164,63 @@ export class PortPngEncoder implements PngEncoder {
   }
 }
 
-/** A PNG encoder in a worker where the browser has them, else on this thread. */
-export function pngEncoder(opts: PngStreamOptions): PngEncoder {
-  if (typeof Worker === 'undefined') return new PngWriter(opts);
+/** A TiffWriter behind the encoder interface, for use on this thread. */
+class LocalTiffEncoder implements PngEncoder {
+  private readonly writer: TiffWriter;
+  constructor(opts: TiffOptions) {
+    this.writer = new TiffWriter(opts);
+  }
+  push(rgba: Uint8Array | Uint8ClampedArray): Promise<void> {
+    try {
+      this.writer.push(rgba);
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e instanceof Error ? e : new Error(String(e)));
+    }
+  }
+  finish(): Promise<Uint8Array> {
+    try {
+      return Promise.resolve(this.writer.finish());
+    } catch (e) {
+      return Promise.reject(e instanceof Error ? e : new Error(String(e)));
+    }
+  }
+}
+
+function workerEncoder(
+  format: RasterFormat,
+  opts: RasterStreamOptions,
+  local: () => PngEncoder,
+): PngEncoder {
+  if (typeof Worker === 'undefined') return local();
   let worker: Worker;
   try {
     worker = new Worker(new URL('./pngWorker.ts', import.meta.url), { type: 'module' });
   } catch {
-    return new PngWriter(opts);
+    return local();
   }
-  const encoder = new PortPngEncoder(worker, opts, () => {
-    worker.terminate();
-  });
+  const encoder = new PortPngEncoder(
+    worker,
+    opts,
+    () => {
+      worker.terminate();
+    },
+    format,
+  );
   const died = (what: string) => () => {
-    encoder.fail(new Error(`PNG encoding failed (${what}).`));
+    encoder.fail(new Error(`Image encoding failed (${what}).`));
   };
   worker.onerror = died('the encoder stopped');
   worker.onmessageerror = died('a band could not be sent');
   return encoder;
+}
+
+/** A PNG encoder in a worker where the browser has them, else on this thread. */
+export function pngEncoder(opts: PngStreamOptions): PngEncoder {
+  return workerEncoder('png', opts, () => new PngWriter(opts));
+}
+
+/** A TIFF encoder in a worker where the browser has them, else on this thread. */
+export function tiffEncoder(opts: TiffOptions): PngEncoder {
+  return workerEncoder('tiff', opts, () => new LocalTiffEncoder(opts));
 }

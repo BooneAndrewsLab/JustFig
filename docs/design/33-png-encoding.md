@@ -58,6 +58,32 @@ Runs vary by a second or two; other numbers of the spec did not move. The
 main thread is also free during each band's encode, so the page answers
 while a big PNG is written.
 
+## TIFF in the same worker (issue 63)
+
+`exportTiff` ran `TiffWriter` (LZW) on the main thread for every band. Measured
+first, with the encode timed inside `exportTiff`: of a 600 dpi TIFF of 10.5 s
+(Chromium) and 13.0 s (Firefox), the encode was 5.1 s and 6.4 s, about half,
+and blocked the page. So the worker protocol now takes a `format` in `start`
+(`'png'` when absent, `'tiff'`); `servePngWriter` builds a `PngWriter` or a
+`TiffWriter`, `PortPngEncoder` takes the format, and `tiffEncoder(opts)` mirrors
+`pngEncoder` (worker, else `TiffWriter` on the thread). The same worker file
+serves both; the names stay PNG-first.
+
+The LZW loop was profiled by reading it and timing: a `Map<number, number>`
+keyed on (prefix, byte) dominated, plus a per-pixel `?? 0` copy and a second
+predictor pass. The table is now one `Int32Array(1 << 20)` holding
+`epoch << 12 | code`, a Clear bumping the epoch rather than emptying it, and
+the row pack and predictor are one pass per sample. The output is unchanged
+byte for byte (checked against the old encoder on random, ramp, flat and
+noisy strips, both depths, with table-full Clears).
+
+| 600 dpi TIFF (perf spec) | Chromium | Firefox |
+| ------------------------ | -------- | ------- |
+| before (main thread)     | 10.5 s   | 13.0 s  |
+| LZW + worker             | 6.3 s    | 8.9 s   |
+
+Runs vary by a second or two. The perf spec has a TIFF600 case beside PNG600.
+
 ## Tests
 
 - `src/io/png.test.ts`: `filterRows` equals the old chooser on random rows
@@ -66,6 +92,8 @@ while a big PNG is written.
   `MessageChannel`: the same bytes as `PngWriter` on the thread, decoding to
   the input, a band moved (detached) when it owns its buffer; a writer error
   from the worker, a dead worker and abort.
+- `src/export/pngEncoder.test.ts` also: a TIFF through the worker equals
+  `encodeTiff`, and `tiffEncoder` without workers does too.
 - `src/export/tiles.test.ts` (unchanged): banded `PngWriter` output equals
   unbanded and decodes to the input.
 - e2e: the torture figure at 600 dpi against the golden, picture strips and

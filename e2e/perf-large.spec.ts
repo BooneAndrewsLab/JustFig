@@ -32,6 +32,7 @@ const BUDGET = {
   pdfMs: 15_000,
   pngMs: 15_000,
   png600Ms: 100_000,
+  tiff600Ms: 100_000,
 };
 
 const OBJECTS = 480;
@@ -315,6 +316,14 @@ test('a large figure: first render, drag frames, export times', async ({ page },
     exp['PNG600'] = Date.now() - t;
     expect(statSync(path).size).toBeGreaterThan(1000);
   }
+  // The same page as a TIFF (issue 63): LZW strips, encoded as the bands arrive.
+  {
+    const t = Date.now();
+    const d = await exportVia(page, 'TIFF', { dpi: 600 });
+    const path = await d.path();
+    exp['TIFF600'] = Date.now() - t;
+    expect(statSync(path).size).toBeGreaterThan(1000);
+  }
 
   const report = {
     browser: info.project.name,
@@ -341,4 +350,5 @@ test('a large figure: first render, drag frames, export times', async ({ page },
   expect(exp['PDF']).toBeLessThan(BUDGET.pdfMs);
   expect(exp['PNG']).toBeLessThan(BUDGET.pngMs);
   expect(exp['PNG600']).toBeLessThan(BUDGET.png600Ms);
+  expect(exp['TIFF600']).toBeLessThan(BUDGET.tiff600Ms);
 });

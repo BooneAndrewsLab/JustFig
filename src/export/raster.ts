@@ -12,10 +12,9 @@ import type { Figure, Page } from '@/core/model/types';
 import { nodeToSvgString } from '@/render/svgNode';
 
 import { pHYs, tEXt, withChunks } from './png';
-import { pngEncoder } from './pngEncoder';
+import { pngEncoder, tiffEncoder } from './pngEncoder';
 import { type RasterPictures, rasterPictures } from './resample';
 import { exportRoot } from './svg';
-import { TiffWriter } from './tiff';
 import {
   MAX_PIXELS,
   MAX_SIDE,
@@ -249,15 +248,18 @@ export async function exportTiff(
   version: string,
 ): Promise<Uint8Array> {
   const { w, h } = rasterSize(figure, page, opts);
-  const writer = new TiffWriter({
+  const encoder = tiffEncoder({
     width: w,
     height: h,
     dpi: opts.dpi,
     alpha: opts.transparent,
     software: `${BRAND.name} ${version}`,
   });
-  await renderBands(figure, page, opts, (rgba) => {
-    writer.push(rgba);
-  });
-  return writer.finish();
+  try {
+    await renderBands(figure, page, opts, (rgba) => encoder.push(rgba));
+  } catch (e) {
+    encoder.abort?.();
+    throw e;
+  }
+  return encoder.finish();
 }
