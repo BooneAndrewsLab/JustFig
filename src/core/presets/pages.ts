@@ -14,13 +14,21 @@
  * so none is set. PNAS 225 ("Recommended max height: 54 picas / 9" / 22.5 cm",
  * www.pnas.org/pb-assets/authors/digitalart-1675347574760.pdf, checked
  * 2026-10-10; 9 in is 228.6 mm, we take the smaller 22.5 cm).
+ *
+ * Graphical abstract presets (note 03, "Graphical abstract sizes") are the
+ * publisher-stated size, checked 2026-10-10; none carries `journal` or `maxHMm`
+ * (they are not figures, so the export checks' column rules do not apply).
+ * Elsevier states pixels at a minimum 300 dpi, converted at 300 dpi
+ * (1328 x 531 px = 112.44 x 44.96 mm); MDPI states a pixel minimum with no
+ * dpi, converted at an assumed 300 dpi (1100 x 560 px = 93.13 x 47.41 mm);
+ * ACS and RSC state a size in cm.
  */
 import { mmToPt } from '../units';
 
 export interface PagePreset {
   readonly id: string;
   readonly label: string;
-  readonly group: 'Paper' | 'Journal' | 'Screen';
+  readonly group: 'Paper' | 'Journal' | 'Graphical abstract' | 'Screen';
   readonly wMm: number;
   readonly hMm: number;
   /** The journal a Journal preset's column width belongs to (export checks, note 03). */
@@ -139,6 +147,34 @@ export const PAGE_PRESETS: readonly PagePreset[] = [
     wMm: 178,
     hMm: 130,
     journal: 'eLife',
+  },
+  {
+    id: 'ga-elsevier',
+    label: 'Graphical abstract, Elsevier (1328 × 531 px at 300 dpi)',
+    group: 'Graphical abstract',
+    wMm: 112.44,
+    hMm: 44.96,
+  },
+  {
+    id: 'ga-acs',
+    label: 'Graphical abstract, ACS TOC graphic (82.5 × 44.5 mm)',
+    group: 'Graphical abstract',
+    wMm: 82.5,
+    hMm: 44.5,
+  },
+  {
+    id: 'ga-rsc',
+    label: 'Graphical abstract, RSC (80 × 40 mm)',
+    group: 'Graphical abstract',
+    wMm: 80,
+    hMm: 40,
+  },
+  {
+    id: 'ga-mdpi',
+    label: 'Graphical abstract, MDPI (1100 × 560 px minimum, at 300 dpi)',
+    group: 'Graphical abstract',
+    wMm: 93.13,
+    hMm: 47.41,
   },
   { id: 'slide-16-9', label: 'Slide 16:9 (254 × 142.9 mm)', group: 'Screen', wMm: 254, hMm: 142.9 },
 ];

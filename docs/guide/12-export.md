@@ -44,7 +44,7 @@ Choose a warning (click it, or Tab to it and press Enter) to close the dialog wi
 
 ## Journal page sizes
 
-Set the page size before you draw, with the **Size** list in the Page section of the Inspector. It includes column widths for Nature (1 and 2 columns), Cell (1 column and full width), Science (1, 2 and 3 columns), PNAS (1 and 2 columns), PLOS, and eLife (1 and 2 columns), as well as A4, US Letter and a 16:9 slide. Always check the journal's current guidelines, since they change.
+Set the page size before you draw, with the **Size** list in the Page section of the Inspector. It includes column widths for Nature (1 and 2 columns), Cell (1 column and full width), Science (1, 2 and 3 columns), PNAS (1 and 2 columns), PLOS, and eLife (1 and 2 columns), as well as graphical abstract sizes (Elsevier 1328 × 531 px at 300 dpi, ACS 82.5 × 44.5 mm, RSC 80 × 40 mm, and MDPI's 1100 × 560 px minimum at 300 dpi; the pixel sizes are shown in millimetres, so export a PNG at 300 dpi to get those pixels), A4, US Letter and a 16:9 slide. Always check the journal's current guidelines, since they change.
 
 ## The credit line
 

@@ -198,7 +198,7 @@ function PageInspector({ s }: { s: AppState }) {
             }}
           >
             <option value="">Custom</option>
-            {(['Journal', 'Paper', 'Screen'] as const).map((g) => (
+            {(['Journal', 'Graphical abstract', 'Paper', 'Screen'] as const).map((g) => (
               <optgroup key={g} label={g}>
                 {PAGE_PRESETS.filter((p) => p.group === g).map((p) => (
                   <option key={p.id} value={p.id}>

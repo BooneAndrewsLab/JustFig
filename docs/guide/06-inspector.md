@@ -8,7 +8,7 @@ Click an empty part of the canvas to see these sections.
 
 ### Page
 
-- **Size** is a list of page sizes: Journal (Nature, Cell, Science, PNAS, PLOS and eLife column widths), Paper (A4, US Letter) and Screen (a 16:9 slide), or Custom.
+- **Size** is a list of page sizes: Journal (Nature, Cell, Science, PNAS, PLOS and eLife column widths), Graphical abstract (Elsevier, ACS, RSC and MDPI), Paper (A4, US Letter) and Screen (a 16:9 slide), or Custom.
 - **W** and **H** set a custom size, in the current units.
 - **Background** is the page colour (white by default). Choose "none" for a transparent background.
 - **Units** switches between Millimetres and Inches.

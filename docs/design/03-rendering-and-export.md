@@ -143,6 +143,23 @@ and runs on the current page (every page for an all-pages PDF). Rules:
   column widths), so none is set; eLife publishes none.
   A page whose height, multiplied by `journalScale`, exceeds it is warned about (0.5 pt
   tolerance). The presets' own heights are defaults below those maxima.
+- **Graphical abstract sizes** (`PagePreset.group` 'Graphical abstract', no `journal`, so the Journal
+  list and the checks above ignore them). Sizes are what the publisher's own page states, checked
+  2026-10-10; the model is in mm/points, so pixel sizes are converted and the dpi stated:
+
+  | Preset   | Stated size                                                                         | Model size (mm)                 | Source                                                                                                                                    |
+  | -------- | ----------------------------------------------------------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+  | Elsevier | "minimum of 1328 x 531 pixels (w x h) using a minimum resolution of 300 dpi"        | 112.44 x 44.96 (300 dpi)        | www.elsevier.com/researcher/author/tools-and-resources/graphical-abstract                                                                 |
+  | ACS      | "fitting in an area no larger than 8.25 cm by 4.45 cm (3.25 inches by 1.75 inches)" | 82.5 x 44.5                     | researcher-resources.acs.org/publish/author_guidelines?coden=joceah (same on Inorganic Chemistry, ACS Sensors)                            |
+  | RSC      | "maximum size of 8 cm wide x 4 cm high"                                             | 80 x 40                         | www.rsc.org/publishing/publish-with-us/publish-a-journal-article/rsc-advances (same on ChemComm, OBC, Industrial Chemistry and Materials) |
+  | MDPI     | "minimum ... 560 x 1100 pixels (height x width)", no dpi stated                     | 93.13 x 47.41 (assumed 300 dpi) | www.mdpi.com/journal/cells/instructions (and the MDPI blog)                                                                               |
+
+  RSC and MDPI pages refused direct fetching (HTTP 403); their wording was read from search
+  excerpts of those pages, so re-check them by hand. Left out as not verifiable: Cell Press (its
+  own pages disagree: 1200 x 1200 px at 300 dpi on Cell Reports/Chem/Matter, 5.5 in square on
+  Cell Systems and Chemistry & Biology), Wiley, Springer Nature and Frontiers (set per journal,
+  no publisher-wide size), Science (no graphical abstract).
+
 - **Overlap** is kept to cases that are almost always mistakes, measured on the text layout
   (the SvgNode has no glyph widths): text over text, text (and panel labels) crossing a panel's
   edge, a panel label outside its own panel, and text running off the page. Boxes are per line,
