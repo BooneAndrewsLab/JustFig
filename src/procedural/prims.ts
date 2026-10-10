@@ -43,6 +43,8 @@ export interface TextPrim {
   readonly baseline: 'middle' | 'alphabetic' | 'top';
   readonly bold?: boolean;
   readonly italic?: boolean;
+  /** The bundled monospace face (Cousine) instead of the default sans, for aligned columns. */
+  readonly mono?: boolean;
   /** Degrees about the anchor, clockwise. */
   readonly rotation?: number;
 }

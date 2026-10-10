@@ -30,7 +30,7 @@ import { getKind, proceduralPrims } from './registry';
 const metrics = new Map<string, { base: Text; w: number; h: number; baseline: number }>();
 
 export const textKey = (t: TextPrim): string =>
-  `${t.text}|${String(t.size)}|${t.bold === true ? 'b' : ''}${t.italic === true ? 'i' : ''}|${t.color}|${t.anchor}`;
+  `${t.text}|${String(t.size)}|${t.bold === true ? 'b' : ''}${t.italic === true ? 'i' : ''}${t.mono === true ? 'm' : ''}|${t.color}|${t.anchor}`;
 
 function labelLayout(t: TextPrim) {
   const key = textKey(t);
@@ -45,7 +45,7 @@ function labelLayout(t: TextPrim) {
         [
           {
             text: t.text,
-            font: 'arimo',
+            font: t.mono === true ? 'cousine' : 'arimo',
             size: t.size,
             ...(t.bold === true ? { bold: true } : {}),
             ...(t.italic === true ? { italic: true } : {}),

@@ -72,6 +72,37 @@ export const GOLDEN_CASES: Readonly<Record<string, Readonly<Record<string, Parti
     bar: { plot: 'bar' },
     bare: { plot: 'bar', axes: false, axisLabels: false, errorBars: false, dots: false },
   },
+  sequence: {
+    protein: {
+      sequence: 'MEEPQSDPSVEPPLSQETFSDLWKLLPENNVLSPLPSQAMDDLMLSPDDIEQWFTEDPGP',
+      first: 1,
+      interval: 10,
+      highlights: [{ start: 12, end: 20, color: '#a9d6f5' }],
+      annotations: [],
+      size: 10,
+    },
+    'highlighted-annotated': {
+      sequence: 'ATGGCCATTGTAATGGGCCGCTGAAAGGGTGCCCGATAGAGCTTCA',
+      first: 100,
+      highlights: [
+        { start: 103, end: 108, color: '#ffe08a' },
+        { start: 120, end: 124, color: '#a6e3a1' },
+      ],
+      annotations: [
+        { label: 'p.R175H', start: 113, end: 115, color: '' },
+        { label: 'fwd primer', start: 105, end: 125, color: '#0072b2' },
+        { label: 'stop', start: 142, end: 142, color: '#cc79a7' },
+      ],
+    },
+    wrapped: {
+      sequence:
+        'ATGGCCATTGTAATGGGCCGCTGAAAGGGTGCCCGATAGAGCTTCAGGATCCAAGCTTGGCGCGCCTAGGTTAATTAAACGTACGGATATCCCGGGAATTCGTCGAC',
+      first: 1,
+      interval: 20,
+      highlights: [{ start: 40, end: 70, color: '#f4b6c2' }],
+      annotations: [{ label: 'MCS', start: 40, end: 70, color: '' }],
+    },
+  },
   timeline: {
     below: {
       side: 'below',

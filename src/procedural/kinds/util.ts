@@ -58,6 +58,7 @@ export function text(
     baseline: more.baseline ?? 'middle',
     ...(more.bold === true ? { bold: true } : {}),
     ...(more.italic === true ? { italic: true } : {}),
+    ...(more.mono === true ? { mono: true } : {}),
     ...(more.rotation ? { rotation: more.rotation } : {}),
   };
 }

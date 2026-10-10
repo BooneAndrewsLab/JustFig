@@ -30,6 +30,7 @@ Select an object to see its settings in the Inspector. Resize it with its handle
 | Gel lane labels     | Lane labels and ladder sizes for a photo of a real gel or blot. See below.                                                                                                                                                                                                                                                                                       |
 | Scale bar           | A calibrated scale bar for a micrograph. See below.                                                                                                                                                                                                                                                                                                              |
 | Experiment timeline | A time axis in hours, days or weeks with events (injection, boost, harvest) and treatment periods as bars. See below.                                                                                                                                                                                                                                            |
+| Sequence snippet    | A short DNA, RNA or protein sequence with a numbering ruler, highlighted residues and labelled bars. See below.                                                                                                                                                                                                                                                  |
 | Placeholder plot    | A PCA, UMAP, scatter, bar or flow-cytometry plot of made-up points, for a schematic or graphical abstract before you have real data. See below.                                                                                                                                                                                                                  |
 
 Every object also has a **Colours** section with a control for each of its parts (for example Plate, Empty wells, Outlines and Labels for a plate). **Reset colours** goes back to the defaults.
@@ -73,6 +74,14 @@ Under **Events**, each event has a **Label**, a **Time**, a **Marker** (Triangle
 Under **Periods**, each period has a **Label**, **From**, **To** and **Colour**, and is drawn as a bar on the other side of the axis, below the tick labels: a drug in the water, a diet, serum starvation. Overlapping periods get a row each. A label that fits is written inside its bar, otherwise beside it. Events and periods outside the axis are not drawn.
 
 **Arrow at the end** draws the axis as an arrow, and **Text size** is in points: resizing the timeline stretches the axis but keeps the text the same size.
+
+### Sequence snippet
+
+A short DNA, RNA or protein sequence set in the monospace font, one letter per column, for a figure that would otherwise be a hand-aligned text box. Paste the **Sequence**: letters, `-` (gap) and `*` (stop) are kept, lower case becomes upper case, and spaces, line breaks and numbers are dropped, so a sequence copied from a database entry works as it is. Only the first 200 residues are kept; a snippet is not a chromosome. The sequence wraps into rows of the object's width, so resizing the box changes how many residues fit in a row, while **Text size** (in points) does not change.
+
+**First residue number** is the number of the first letter (for example 100 for a snippet starting at position 100). **Numbering ruler** writes a number above every residue whose number is a multiple of **Number every** (10 by default), and above the first residue of each wrapped row when there is room for it.
+
+Under **Highlights**, each row has **From**, **To** and a **Colour**: the residues in that range, counted with the first residue number, get a coloured block behind them. Ranges outside the sequence are clipped. Under **Annotations**, each row has a **Label**, **From**, **To** and a **Colour** (the Annotations colour unless you choose one): a bracket is drawn over the residues, with the label above it. Give the same number in **From** and **To** to mark one residue, for example a mutation `p.R175H`, or a range for a primer or a tag. Labels that would run into each other are stacked in levels; an annotation that wraps onto the next row continues as a bracket without its label. The complementary strand is not drawn.
 
 ### Placeholder plot
 

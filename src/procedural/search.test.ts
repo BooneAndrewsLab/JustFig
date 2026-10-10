@@ -35,6 +35,8 @@ describe('matchKinds', () => {
     expect(ids('timeline')).toEqual(['timeline']);
     expect(ids('dosing schedule')).toEqual(['timeline']);
     expect(ids('injection')).toEqual(['timeline']);
+    expect(ids('primer')).toEqual(['sequence']);
+    expect(ids('mutation')).toEqual(['sequence']);
   });
 
   it('needs every word of the query to match', () => {
