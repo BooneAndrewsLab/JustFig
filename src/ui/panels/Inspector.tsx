@@ -62,7 +62,7 @@ import {
 import { PAGE_PRESETS, presetSize } from '@/core/presets/pages';
 import { recipeFile } from '@/io/barelysig';
 import { bakeView } from '@/io/cropImage';
-import { bakeLevels } from '@/io/levels';
+import { bakeLevels, needsBake } from '@/io/levels';
 import { bakeSplit } from '@/io/split';
 import { drawnBoundsIn } from '@/procedural/bounds';
 import { addScaleBar, labelGelImage } from '@/procedural/edits';
@@ -1413,7 +1413,9 @@ function SameLevels({ s, sel }: { s: AppState; sel: readonly Obj[] }) {
       for (const o of plan.targets) {
         const base = assets[o.levels?.base ?? o.asset];
         if (base?.kind !== 'image') throw new Error('A picture is missing.');
-        const adjusted = isIdentity(plan.levels) ? undefined : await bakeLevels(base, plan.levels);
+        const adjusted = needsBake(base, plan.levels)
+          ? await bakeLevels(base, plan.levels)
+          : undefined;
         const src = adjusted?.asset ?? base;
         const cropped = o.crop
           ? await bakeView(src, { turn: o.turn ?? 0, crop: o.crop })
@@ -1487,7 +1489,7 @@ function LevelsSection({ s, sel }: { s: AppState; sel: readonly Obj[] }) {
         for (const m of members) {
           const base = fig.assets[m.levels?.base ?? m.asset];
           if (base?.kind !== 'image') throw new Error('The picture is missing.');
-          const adjusted = isIdentity(next) ? undefined : await bakeLevels(base, next);
+          const adjusted = needsBake(base, next) ? await bakeLevels(base, next) : undefined;
           const src = adjusted?.asset ?? base;
           const cropped = m.crop
             ? await bakeView(src, { turn: m.turn ?? 0, crop: m.crop })
@@ -1645,6 +1647,12 @@ function ImageSection({ s, image }: { s: AppState; image: Extract<Obj, { type: '
   return (
     <Section title={asset.kind === 'image' ? 'Image' : 'Imported SVG'}>
       <p className="note">{asset.meta.name}</p>
+      {asset.kind === 'image' && asset.meta.pixelSize !== undefined && (
+        <p className="note">
+          Pixel size {String(Number(asset.meta.pixelSize.toPrecision(4)))} µm/px, from the file. Add
+          scale bar uses it.
+        </p>
+      )}
       <div className="row">
         <label htmlFor="credit">Credit</label>
         <input

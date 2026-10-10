@@ -44,6 +44,7 @@ import {
 } from './state/session';
 import { currentPage, figure, isUnsaved, selectedObjects, store } from './state/store';
 import { useAppState } from './state/useAppState';
+import { onChannelsRequest } from './state/channelsRequest';
 import { usePdfPageRequest } from './state/pdfPagePicker';
 
 type DialogId =
@@ -91,6 +92,15 @@ export function App() {
   useEffect(() => {
     analytics.start(__APP_VERSION__);
   }, []);
+
+  // A TIFF stack was imported (note 43): its channels are selected, merge them.
+  useEffect(
+    () =>
+      onChannelsRequest(() => {
+        setDialog('channels');
+      }),
+    [],
+  );
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -351,7 +361,7 @@ export function App() {
           type="file"
           hidden
           data-testid="import-input"
-          accept=".svg,.pdf,.png,.jpg,.jpeg,image/svg+xml,application/pdf,image/png,image/jpeg"
+          accept=".svg,.pdf,.png,.jpg,.jpeg,.tif,.tiff,image/svg+xml,application/pdf,image/png,image/jpeg,image/tiff"
           onChange={(e) => {
             const f = e.target.files?.[0];
             if (f) void importToCanvas(f);

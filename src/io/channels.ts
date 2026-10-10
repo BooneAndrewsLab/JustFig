@@ -9,7 +9,7 @@ import type { CroppedPicture, ImageAsset } from '@/core/edits/crop';
 import type { Channel } from '@/core/model/types';
 
 import { hashAsset } from './assets';
-import { type Pixels, base64, decodePng, encodePng, fromBase64 } from './png';
+import { type Pixels, base64, decodeGrey16Png, decodePng, encodePng, fromBase64 } from './png';
 
 /** One channel's intensities (0–255), rows top first. */
 export interface Intensities {
@@ -126,6 +126,16 @@ export async function canvasPixels(a: ImageAsset): Promise<Pixels> {
 
 /** A PNG or JPEG channel's intensities: exactly for a PNG `decodePng` reads, else by canvas. */
 export async function channelIntensities(a: ImageAsset): Promise<Intensities> {
+  const peak = a.meta.peak;
+  if (peak !== undefined) {
+    // A 16-bit source (note 43): the whole range, brightest sample = 255.
+    const g = decodeGrey16Png(fromBase64(a.dataBase64));
+    if (!g) throw new Error('A 16-bit channel could not be read.');
+    const values = new Uint8Array(g.values.length);
+    for (let i = 0; i < values.length; i++)
+      values[i] = Math.round((Math.min(g.values[i] ?? 0, peak) * 255) / peak);
+    return { width: g.width, height: g.height, values };
+  }
   const px = a.mime === 'image/png' ? decodePng(fromBase64(a.dataBase64)) : null;
   if (px?.width === a.meta.width && px.height === a.meta.height) return intensities(px);
   return intensities(await canvasPixels(a));
@@ -149,7 +159,7 @@ export const layersOf = (
 export async function bakeMerge(
   channels: readonly Channel[],
   pixels: (asset: string) => Intensities | undefined,
-  meta: { name: string; credit?: string; width: number; height: number },
+  meta: { name: string; credit?: string; width: number; height: number; pixelSize?: number },
 ): Promise<CroppedPicture> {
   const px = blendChannels(meta.width, meta.height, layersOf(channels, pixels));
   const asset: ImageAsset = {

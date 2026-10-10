@@ -26,7 +26,8 @@ export interface BakedLevels {
 
 /**
  * "Levels": shows the picture's unadjusted pixels through `levels`, or, `null`
- * (or an identity), as they were. `baked.adjusted` is needed unless removing.
+ * (or an identity), as they were. `baked.adjusted` is needed unless removing; an identity
+ * that comes with one is kept as the levels (a 16-bit source, note 43).
  */
 export function setLevels(
   pageId: Id,
@@ -34,7 +35,9 @@ export function setLevels(
   levels: LevelsInput | null,
   baked: BakedLevels,
 ): Edit {
-  const remove = levels === null || isIdentity(levels);
+  // An identity with a baked picture is kept: the unadjusted source of a 16-bit picture
+  // (note 43) is never shown, so its "reset" is a bake too.
+  const remove = levels === null || (isIdentity(levels) && !baked.adjusted);
   const update = updateObjects(pageId, [id], remove ? 'Reset levels' : 'Set levels', (o) => {
     if (o.type !== 'image') return o;
     const base = o.levels?.base ?? o.asset;

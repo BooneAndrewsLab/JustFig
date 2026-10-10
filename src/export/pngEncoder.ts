@@ -6,6 +6,8 @@
  * The same worker also runs a `TiffWriter` (issue 63): the protocol only
  * names the format in its `start` request.
  */
+import { type DecodedTiff, readTiffForImport } from '@/io/tiffStack';
+
 import { PngWriter, type PngStreamOptions } from './png';
 import { TiffWriter, type TiffOptions } from './tiff';
 
@@ -37,11 +39,14 @@ export type PngWorkerRequest =
       readonly format?: RasterFormat;
     }
   | { readonly type: 'push'; readonly rgba: Uint8Array | Uint8ClampedArray }
-  | { readonly type: 'finish' };
+  | { readonly type: 'finish' }
+  /** A TIFF to read for import (issue 65, note 43); needs no `start`. */
+  | { readonly type: 'decodeTiff'; readonly bytes: Uint8Array };
 
 export type PngWorkerReply =
   | { readonly type: 'ok' }
   | { readonly type: 'done'; readonly png: Uint8Array } // the finished file, whichever format
+  | { readonly type: 'tiff'; readonly result: DecodedTiff }
   | { readonly type: 'error'; readonly message: string };
 
 /** The side of a worker (or a MessagePort, in tests) the writer talks through. */
@@ -58,6 +63,14 @@ export function servePngWriter(port: PngPort): void {
     port.postMessage(r, transfer);
   };
   const handle = async (req: PngWorkerRequest): Promise<void> => {
+    if (req.type === 'decodeTiff') {
+      const result = readTiffForImport(req.bytes);
+      reply(
+        { type: 'tiff', result },
+        result.images.map((i) => i.data.buffer as ArrayBuffer),
+      );
+      return;
+    }
     if (req.type === 'start') {
       writer = req.format === 'tiff' ? new TiffWriter(req.opts) : new PngWriter(req.opts);
       reply({ type: 'ok' });
@@ -223,4 +236,46 @@ export function pngEncoder(opts: PngStreamOptions): PngEncoder {
 /** A TIFF encoder in a worker where the browser has them, else on this thread. */
 export function tiffEncoder(opts: TiffOptions): PngEncoder {
   return workerEncoder('tiff', opts, () => new LocalTiffEncoder(opts));
+}
+
+/**
+ * A TIFF read for import in a worker where the browser has them, else on this
+ * thread (issue 65, note 43). The bytes are handed over: do not use them after.
+ */
+export function decodeTiffInWorker(bytes: Uint8Array): Promise<DecodedTiff> {
+  const local = (): Promise<DecodedTiff> => {
+    try {
+      return Promise.resolve(readTiffForImport(bytes));
+    } catch (e) {
+      return Promise.reject(e instanceof Error ? e : new Error(String(e)));
+    }
+  };
+  if (typeof Worker === 'undefined') return local();
+  let worker: Worker;
+  try {
+    worker = new Worker(new URL('./pngWorker.ts', import.meta.url), { type: 'module' });
+  } catch {
+    return local();
+  }
+  return new Promise<DecodedTiff>((resolve, reject) => {
+    worker.onmessage = (e: MessageEvent) => {
+      const r = e.data as PngWorkerReply;
+      worker.terminate();
+      if (r.type === 'tiff') resolve(r.result);
+      else reject(new Error(r.type === 'error' ? r.message : 'The TIFF could not be read.'));
+    };
+    worker.onerror = () => {
+      worker.terminate();
+      reject(new Error('The TIFF could not be read (the decoder stopped).'));
+    };
+    const { buffer } = bytes;
+    const owns =
+      buffer instanceof ArrayBuffer &&
+      bytes.byteOffset === 0 &&
+      bytes.byteLength === buffer.byteLength;
+    worker.postMessage(
+      { type: 'decodeTiff', bytes } satisfies PngWorkerRequest,
+      owns ? [buffer] : [],
+    );
+  });
 }

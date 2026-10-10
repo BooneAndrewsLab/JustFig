@@ -80,6 +80,7 @@ import { bakedSwatches } from '@/palette/recolor';
 import { analytics } from '../analytics';
 import { Autosaver } from './autosave';
 import { keptTabs, rememberTabs, rememberedTabs, reopenTabs } from './openTabs';
+import { requestChannelsDialog } from './channelsRequest';
 import { choosePdfPage } from './pdfPagePicker';
 import { currentPage, figure, selectedObjects, store } from './store';
 import { renderThumbnail } from './thumbnail';
@@ -572,7 +573,8 @@ export async function importToCanvas(file: File, at?: { x: number; y: number }):
     if (await importBarelySig(file, c)) return;
     const imp = await importFile(file, { choosePdfPage: choosePdfPage(file.name) });
     if (!imp) return; // a page choice was cancelled
-    store.edit(placeImport(currentPage(store.getState()).id, imp, c));
+    const placed = store.edit(placeImport(currentPage(store.getState()).id, imp, c));
+    if (placed && imp.channelStack) requestChannelsDialog();
     analytics.track(
       'file',
       imp.asset.kind !== 'svgImport'

@@ -379,6 +379,18 @@ export interface UserAssetMeta {
   /** Intrinsic size in pixels (images) or points (SVG). */
   readonly width: number;
   readonly height: number;
+  /**
+   * µm per pixel, when the file stated it (TIFF import, note 43): a scale bar
+   * placed on the picture takes it. Baked pictures (levels, merge) carry it on.
+   */
+  readonly pixelSize?: number;
+  /**
+   * Marks a 16-bit greyscale PNG kept as the unadjusted source of a picture
+   * (note 43): the brightest sample in it (1-65535), which the Levels sliders
+   * span. The browser shows such a PNG as 8-bit, so it is never drawn; the
+   * baked 8-bit picture is.
+   */
+  readonly peak?: number;
 }
 
 export type Asset =

@@ -84,6 +84,10 @@ noisy strips, both depths, with table-full Clears).
 
 Runs vary by a second or two. The perf spec has a TIFF600 case beside PNG600.
 
+## TIFF decoding in the same worker (issue 65)
+
+The worker also reads TIFFs for import (a stateless `decodeTiff` request): see note 43.
+
 ## Tests
 
 - `src/io/png.test.ts`: `filterRows` equals the old chooser on random rows

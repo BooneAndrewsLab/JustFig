@@ -22,8 +22,8 @@ follow-up issues (below).
   Image section (PNG/JPEG only; an imported SVG has no pixels) runs one named edit, `addScaleBar`,
   which fills in `imageWidth` from the asset's intrinsic width (`UserAssetMeta.width`), so the only
   number the user must type is the pixel size. It shares `overImage` with `labelGelImage`.
-  The pixel size is typed, not read from TIFF/OME metadata: imports are PNG/JPEG, which rarely
-  carry it, and a wrong guess would be silently wrong in a paper.
+  The pixel size is typed for PNG and JPEG, which rarely carry it, and a wrong guess would be
+  silently wrong in a paper; a TIFF that states it (OME, ImageJ) brings it, note 43.
 - **Number display follows the field's step.** Generated number inputs showed two decimals; a
   pixel size of 0.0645 µm would have read back as 0.06. They now show as many decimals as the
   field's `step` (generic, no per-kind UI).

@@ -1,5 +1,5 @@
 /**
- * Importing SVG, PDF, PNG and JPEG files (note 02): each becomes an embedded
+ * Importing SVG, PDF, PNG, JPEG and TIFF files (note 02, note 43): each becomes an embedded
  * asset (the file stays self-contained) and an `image` object. SVGs go
  * through the same sanitiser as icons, so they stay vector in every
  * export, and are tidied up as plots (note 12); a PDF page is converted to
@@ -13,6 +13,7 @@ import { el, nodeToSvgString } from '@/render/svgNode';
 import { hashAsset } from './assets';
 import { base64, imageSize } from './png';
 import { fmt } from './svg/matrix';
+import { isTiff } from './tiffDecode';
 import { SvgImportError, sanitizeSvg } from './svg/sanitize';
 import type { PlotImage } from './svg/plotImages';
 
@@ -44,6 +45,16 @@ export interface Imported {
   readonly warnings: readonly string[];
   /** Pictures that were inside the plot, to be drawn under it in drawing order. */
   readonly pictures?: readonly ImportedPicture[];
+  /**
+   * A 16-bit greyscale source (TIFF, note 43): `asset` is its 8-bit view, and the
+   * placed picture gets `levels` over this, so its full range stays editable.
+   */
+  readonly base?: { readonly hash: string; readonly asset: Extract<Asset, { kind: 'image' }> };
+  /**
+   * The channels of a TIFF stack (note 43), each a picture of its own (the first
+   * is also this import): placed side by side and handed to Merge channels.
+   */
+  readonly channelStack?: readonly Imported[];
 }
 
 /** Longest side a newly placed import gets, points (~106 mm). */
@@ -156,7 +167,7 @@ function placedPicture(
 
 export function importRaster(bytes: Uint8Array, name: string): Imported {
   const info = imageSize(bytes);
-  if (!info) throw new SvgImportError('Only SVG, PDF, PNG and JPEG files can be imported.');
+  if (!info) throw new SvgImportError('Only SVG, PDF, PNG, JPEG and TIFF files can be imported.');
   const asset: Asset = {
     kind: 'image',
     mime: info.mime,
@@ -168,6 +179,26 @@ export function importRaster(bytes: Uint8Array, name: string): Imported {
     asset,
     ...fit(info.width * 0.75, info.height * 0.75),
     warnings: [],
+  };
+}
+
+/** A TIFF micrograph (note 43, issue 65): one picture, or the channels of a stack as several. */
+export async function importTiff(bytes: Uint8Array, name: string): Promise<Imported> {
+  const { tiffPictures } = await import('./tiffImport');
+  const t = await tiffPictures(bytes, name);
+  const made = t.pictures.map((p): Imported => ({
+    hash: p.hash,
+    asset: p.asset,
+    ...fit(p.width * 0.75, p.height * 0.75),
+    warnings: [],
+    ...(p.base ? { base: p.base } : {}),
+  }));
+  const [one] = made;
+  if (!one) throw new SvgImportError('This TIFF holds no pictures.');
+  return {
+    ...one,
+    warnings: t.warnings,
+    ...(t.channels && made.length > 1 ? { channelStack: made } : {}),
   };
 }
 
@@ -227,6 +258,8 @@ export async function importFile(
   if (file.type === 'image/svg+xml' || lower.endsWith('.svg'))
     return importSvgText(await file.text(), file.name);
   const bytes = new Uint8Array(await file.arrayBuffer());
+  if (file.type === 'image/tiff' || /\.tiff?$/.test(lower) || isTiff(bytes))
+    return importTiff(bytes, file.name);
   if (file.type === 'application/pdf' || lower.endsWith('.pdf') || isPdf(bytes))
     return importPdf(bytes, file.name, opts.choosePdfPage);
   return importRaster(bytes, file.name);

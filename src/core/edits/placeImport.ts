@@ -13,17 +13,30 @@ import type { Id } from '../model/ids';
 import type { Obj } from '../model/types';
 import { type Edit, addObjects } from './edits';
 
-/** The objects an import becomes, centred on `at` (fresh ids). */
+/** Space between the channels of a TIFF stack placed side by side, points. */
+const STACK_GAP = 8;
+
+/**
+ * The objects an import becomes, centred on `at` (fresh ids). A TIFF stack is its
+ * channels in a row (note 43); a 16-bit picture has its levels over the 16-bit
+ * source.
+ */
 export function importedObjects(imp: Imported, at: { x: number; y: number }): Obj[] {
+  if (imp.channelStack) {
+    const row = imp.channelStack;
+    const total = row.reduce((n, c) => n + c.w, 0) + STACK_GAP * (row.length - 1);
+    let x = at.x - total / 2;
+    return cloneObjects(
+      row.map((c): Obj => {
+        const o = pictureObj(c, { x, y: at.y - c.h / 2 });
+        x += c.w + STACK_GAP;
+        return o;
+      }),
+    );
+  }
   const x = at.x - imp.w / 2;
   const y = at.y - imp.h / 2;
-  const plot: Obj = {
-    id: '' as Id,
-    type: 'image',
-    frame: { x, y, w: imp.w, h: imp.h, rotation: 0 },
-    opacity: 1,
-    asset: imp.hash,
-  };
+  const plot = pictureObj(imp, { x, y });
   const pictures = imp.pictures ?? [];
   if (pictures.length === 0) return cloneObjects([plot]);
   const children: Obj[] = [
@@ -63,9 +76,24 @@ export function importedObjects(imp: Imported, at: { x: number; y: number }): Ob
   ]);
 }
 
+function pictureObj(imp: Imported, at: { x: number; y: number }): Obj {
+  return {
+    id: '' as Id,
+    type: 'image',
+    frame: { x: at.x, y: at.y, w: imp.w, h: imp.h, rotation: 0 },
+    opacity: 1,
+    asset: imp.hash,
+    ...(imp.base ? { levels: { min: 0, max: 255, invert: false, base: imp.base.hash } } : {}),
+  };
+}
+
 /** Adds an import to the page at `at`: its asset and those of its pictures. */
 export function placeImport(pageId: Id, imp: Imported, at: { x: number; y: number }): Edit {
   const assets: Record<string, Imported['asset']> = { [imp.hash]: imp.asset };
+  for (const c of [imp, ...(imp.channelStack ?? [])]) {
+    assets[c.hash] = c.asset;
+    if (c.base) assets[c.base.hash] = c.base.asset;
+  }
   for (const p of imp.pictures ?? []) {
     assets[p.hash] = p.asset;
     if (p.backdrop) assets[p.backdrop.hash] = p.backdrop.asset;

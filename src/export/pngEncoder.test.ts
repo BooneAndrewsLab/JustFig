@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { decodePng } from '@/io/png';
+import { type TiffPageSpec, writeTiff } from '@/test/tiffWriter';
 
 import { PngWriter } from './png';
 import {
@@ -88,5 +89,50 @@ describe('the worker PNG encoder', () => {
     const enc = tiffEncoder(opts);
     await enc.push(px);
     expect(await enc.finish()).toEqual(encodeTiff(px, opts));
+  });
+});
+
+describe('reading a TIFF in the worker (issue 65, note 43)', () => {
+  const spec: TiffPageSpec = {
+    width: 5,
+    height: 4,
+    bits: 16,
+    samples: 1,
+    compression: 5,
+    values: Array.from({ length: 20 }, (_, i) => i * 3000),
+    description: 'ImageJ=1\nunit=micron\n',
+    xResolution: 10,
+  };
+
+  it('answers a decode request with the pixels moved back, and a plain error for a bad file', async () => {
+    const { port1, port2 } = new MessageChannel();
+    servePngWriter(port2);
+    const ask = (bytes: Uint8Array) =>
+      new Promise<{
+        type: string;
+        result?: { images: { data: Uint16Array }[]; pixelSize?: number };
+        message?: string;
+      }>((resolve) => {
+        port1.onmessage = (e: MessageEvent) => {
+          resolve(e.data as never);
+        };
+        port1.postMessage({ type: 'decodeTiff', bytes });
+      });
+    const ok = await ask(writeTiff({ pages: [spec] }));
+    expect(ok.type).toBe('tiff');
+    expect(Array.from(ok.result?.images[0]?.data ?? [])).toEqual(Array.from(spec.values));
+    expect(ok.result?.pixelSize).toBeCloseTo(0.1, 3);
+    const bad = await ask(writeTiff({ pages: [{ ...spec, compression: 7 }] }));
+    expect(bad).toMatchObject({ type: 'error' });
+    expect(bad.message).toMatch(/JPEG/);
+    port1.close();
+    port2.close();
+  });
+
+  it('decodeTiffInWorker reads on this thread where there are no workers', async () => {
+    const { decodeTiffInWorker } = await import('./pngEncoder');
+    const r = await decodeTiffInWorker(writeTiff({ pages: [spec] }));
+    expect(r.images).toHaveLength(1);
+    await expect(decodeTiffInWorker(new Uint8Array(16))).rejects.toThrow(/not a TIFF/);
   });
 });

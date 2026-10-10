@@ -13,7 +13,7 @@ display ranges, note 21). Levels (black and white point) and Invert for one pict
   back as `asset`. The adjusted asset carries no credit (the Credit field edits `base`).
 - **The transform is `levelTable`** (note 21) on each of R, G, B (colour is kept, not collapsed to
   grey); then invert (`255 - v`); alpha untouched. Pure on pixel arrays (`io/levels.ts`), tested
-  exactly. A JPEG is baked as lossless PNG; 16-bit is out of scope (browsers decode to 8 bits).
+  exactly. A JPEG is baked as lossless PNG; a 16-bit source from a TIFF is the exception (note 43).
 - **Order: merge, then levels, then crop.** A merge's levels adjust the merged colours; a crop is of
   the adjusted `asset` (the dialog and `setLevels` re-bake `cropped`). `setChannels` on a picture with
   levels takes the adjusted merge plus the unadjusted one (`BakedMerge.unadjusted`) and re-bases

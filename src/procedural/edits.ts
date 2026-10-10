@@ -217,7 +217,8 @@ export function labelGelImage(pageId: Id, image: Obj): Edit {
 /**
  * "Add scale bar" on a micrograph (note 19): a scale bar on the picture's box
  * that knows the picture's width in pixels, grouped with it so the bar stays
- * calibrated through any resize. Selected, ready for the pixel size.
+ * calibrated through any resize. Selected, ready for the pixel size (already set when the
+ * picture came with one, note 43).
  */
 export function addScaleBar(pageId: Id, image: Obj): Edit {
   if (image.type !== 'image') throw new EditError('Select a micrograph to add a scale bar to.');
@@ -225,6 +226,11 @@ export function addScaleBar(pageId: Id, image: Obj): Edit {
     const a = f.assets[o.asset];
     // A cropped picture shows only the crop's pixels across its box (note 20).
     const w = o.crop?.w ?? (a?.kind === 'image' ? a.meta.width : 0);
-    return a?.kind === 'image' && w > 0 ? { imageWidth: Math.round(w) } : {};
+    if (a?.kind !== 'image' || w <= 0) return {};
+    // A TIFF's stated pixel size (note 43) is taken as it is: nothing to type.
+    return {
+      imageWidth: Math.round(w),
+      ...(a.meta.pixelSize === undefined ? {} : { pixelSize: a.meta.pixelSize }),
+    };
   });
 }

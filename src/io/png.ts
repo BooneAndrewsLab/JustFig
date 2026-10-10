@@ -205,6 +205,76 @@ export function encodePngSync(px: Pixels): Uint8Array {
 }
 
 /**
+ * A greyscale PNG, 8 or 16 bits (TIFF import, note 43): `values` is one sample
+ * per pixel, rows top first (16-bit samples are written big-endian, as PNG
+ * wants). Every row takes the Paeth filter.
+ */
+export async function encodeGreyPng(
+  width: number,
+  height: number,
+  values: Uint8Array | Uint16Array,
+  depth: 8 | 16,
+): Promise<Uint8Array> {
+  const bpp = depth / 8;
+  const stride = width * bpp;
+  const raw = new Uint8Array(height * (stride + 1));
+  const line = new Uint8Array(stride);
+  let prev = new Uint8Array(stride);
+  for (let y = 0; y < height; y++) {
+    if (depth === 8) line.set(values.subarray(y * width, (y + 1) * width));
+    else
+      for (let x = 0; x < width; x++) {
+        const v = values[y * width + x] ?? 0;
+        line[x * 2] = v >> 8;
+        line[x * 2 + 1] = v & 0xff;
+      }
+    const at = y * (stride + 1);
+    raw[at] = 4;
+    for (let i = 0; i < stride; i++) {
+      const a = i >= bpp ? (line[i - bpp] ?? 0) : 0;
+      const c = i >= bpp ? (prev[i - bpp] ?? 0) : 0;
+      raw[at + 1 + i] = ((line[i] ?? 0) - paeth(a, prev[i] ?? 0, c)) & 0xff;
+    }
+    prev = Uint8Array.from(line);
+  }
+  const header = new Uint8Array(13);
+  const v = new DataView(header.buffer);
+  v.setUint32(0, width);
+  v.setUint32(4, height);
+  header[8] = depth;
+  header[9] = 0;
+  const parts = [
+    new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk('IHDR', header),
+    chunk('IDAT', await deflate(raw)),
+    chunk('IEND', new Uint8Array(0)),
+  ];
+  const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
+  let at = 0;
+  for (const p of parts) {
+    out.set(p, at);
+    at += p.length;
+  }
+  return out;
+}
+
+/** The samples of a non-interlaced greyscale PNG of 16 bits (`encodeGreyPng`'s); null for any other. */
+export function decodeGrey16Png(
+  bytes: Uint8Array,
+): { width: number; height: number; values: Uint16Array } | null {
+  const png = readPng(bytes);
+  if (png?.depth !== 16 || png.colourType !== 0 || png.interlaced) return null;
+  const { width, height } = png;
+  const values = new Uint16Array(width * height);
+  const ok = eachRow(png.raw, height, width * 2, 2, (row, y) => {
+    for (let x = 0; x < width; x++)
+      values[y * width + x] = ((row[x * 2] ?? 0) << 8) | (row[x * 2 + 1] ?? 0);
+    return true;
+  });
+  return ok ? { width, height, values } : null;
+}
+
+/**
  * Whether a PNG or JPEG cannot have see-through pixels: a JPEG, or a PNG
  * without an alpha channel or a transparency chunk. False when unsure.
  */

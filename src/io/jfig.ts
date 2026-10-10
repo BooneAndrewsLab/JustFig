@@ -538,6 +538,16 @@ function userMeta(v: unknown, p: Path): UserAssetMeta {
     ...opt(o, 'credit', p, str),
     width: nonNeg(o['width'], p.key('width')),
     height: nonNeg(o['height'], p.key('height')),
+    ...opt(o, 'pixelSize', p, (x, q) => {
+      const n = num(x, q);
+      if (n <= 0) q.fail('expected a number above 0');
+      return n;
+    }),
+    ...opt(o, 'peak', p, (x, q) => {
+      const n = int(x, q);
+      if (n < 1 || n > 65535) q.fail('expected 1-65535');
+      return n;
+    }),
   };
 }
 

@@ -5,7 +5,9 @@ import { describe, expect, it } from 'vitest';
 
 import {
   base64,
+  decodeGrey16Png,
   decodePng,
+  encodeGreyPng,
   encodePng,
   encodePngSync,
   filterRows,
@@ -121,5 +123,32 @@ describe('png', () => {
     }
     expect(decodePng(new Uint8Array(PNG.sync.write(src, { bitDepth: 16 })))).toBeNull();
     expect(decodePng(Uint8Array.from([0xff, 0xd8, 0xff]))).toBeNull();
+  });
+});
+
+describe('greyscale PNG (TIFF import, note 43)', () => {
+  const w = 37;
+  const h = 11;
+  const noisy = (n: number, max: number): number[] =>
+    Array.from({ length: n }, (_, i) => ((i * 2654435761) >>> 7) % (max + 1));
+
+  it('writes 16-bit samples that an independent decoder and ours read back', async () => {
+    const values = Uint16Array.from(noisy(w * h, 65535));
+    const png = await encodeGreyPng(w, h, values, 16);
+    expect(decodeGrey16Png(png)).toEqual({ width: w, height: h, values });
+    const ref = PNG.sync.read(Buffer.from(png), { skipRescale: true });
+    expect(ref.depth).toBe(16);
+    expect(ref.width).toBe(w);
+    for (let i = 0; i < w * h; i++) expect(ref.data[i * 4]).toBe(values[i]);
+  });
+
+  it('writes 8-bit samples both decoders read', async () => {
+    const values = Uint8Array.from(noisy(w * h, 255));
+    const png = await encodeGreyPng(w, h, values, 8);
+    const ours = decodePng(png);
+    expect(Array.from({ length: w * h }, (_, i) => ours?.data[i * 3])).toEqual(Array.from(values));
+    const ref = PNG.sync.read(Buffer.from(png));
+    for (let i = 0; i < w * h; i++) expect(ref.data[i * 4]).toBe(values[i]);
+    expect(decodeGrey16Png(png)).toBeNull();
   });
 });

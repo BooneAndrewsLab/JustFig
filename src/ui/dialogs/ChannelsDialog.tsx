@@ -113,11 +113,15 @@ export function ChannelsDialog({ onClose }: { onClose: () => void }) {
       const was = assets[first.levels?.base ?? first.asset];
       const credit =
         !merging && first.channels && was?.kind === 'image' ? was.meta.credit : undefined;
+      // The merge keeps the calibration of its first channel (note 43).
+      const calib = assets[channels[0]?.asset ?? ''];
+      const pixelSize = calib?.kind === 'image' ? calib.meta.pixelSize : undefined;
       const merge = await bakeMerge(channels, (h) => pixels.get(h), {
         name: channels.map(nameOf).join(' + '),
         ...(credit === undefined ? {} : { credit }),
         width: size.w,
         height: size.h,
+        ...(pixelSize === undefined ? {} : { pixelSize }),
       });
       // A picture with levels (note 27) keeps them: merge, then levels, then crop.
       const shown = !merging && first.levels ? await bakeLevels(merge.asset, first.levels) : merge;
