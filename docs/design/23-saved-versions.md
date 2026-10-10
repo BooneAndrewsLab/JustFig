@@ -59,11 +59,35 @@ never replaces the figure.
 
 ## Compare
 
-Kept minimal: the Compare versions dialog shows the version and the figure now side by side, one
-page at a time (paired by index, starting at the page being edited; "No page N" where one figure
-is shorter), each through `exportSvg` as the gallery's thumbnails are, plus a line with each one's
-page and object counts. Restore is offered from there. An overlay or object-level diff was left
-out: side by side answers "which one did I send?" and costs no new rendering code.
+The Compare versions dialog (`CompareView.tsx`, issue #80) takes two sources, **Older** and **Newer**,
+each a saved version or the open figure (Now; default: the clicked version against Now), and a
+mode: **side by side** or **onion skin** (the older page at 50% opacity, without its background, over
+the newer; screen only, nothing is exported). Both draw pages with `PageView`, the canvas's own
+`objectToNode` → `SvgNode` → React path, so a picture is not drawn by any second renderer.
+
+**Diff.** `diffDocuments(older, newer)` (`src/core/model/diff.ts`) pairs pages and objects by id and
+returns per page the `added` (newer only), `removed` (older only) and `changed` ids. Changed is
+structural inequality of the object's JSON (`jsonEqual`, nothing ignored; an `undefined` field equals
+a missing one). One decision: a group or panel is compared by its own fields and its children's ids,
+not their content, so one edited child is reported once rather than with every container above it
+(a reordered or re-parented child still flags the container). A page only one figure has appears with
+`inA`/`inB` false on the missing side; its objects are all added or all removed.
+
+**On screen.** Changed, added and removed objects are outlined (`objBounds` in page points; orange,
+green, dashed red) on the side(s) that have them, and listed by name under the pictures, so colour is
+not the only cue. Everything is a native control: the two selects, the mode radios, the page buttons,
+the list's buttons (pressing one thickens its outline). Pages are paired by id, not index (this
+replaced the first version's index pairing).
+
+**Restore one object.** `restoreObject(pageId, obj, from, versionName)` (`src/core/edits/restoreObject.ts`)
+is a named edit and one undo step. It keeps the object's **id** (not `cloneObjects`, which would mint a
+new one and orphan arrows bound to it), replaces the object with that id in place, or, when it was
+deleted, adds it back to its old parent if that still exists, else its old layer, else the first
+unlocked layer. Descendants of a restored container are removed from wherever else they now sit, so
+no id appears twice. The assets the object draws (`objectAssets`) are copied from the version into the
+figure (content-addressed hashes, as `addObjects` merges them). `store.edit` then runs
+`reconcileBindings` as for any edit. Offered for an object the saved (not Now) side holds, when the
+open figure still has that page. An object added since cannot be "restored"; delete it as usual.
 
 ## UI, keyboard, analytics
 

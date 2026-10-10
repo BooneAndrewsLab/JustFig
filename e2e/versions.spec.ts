@@ -54,7 +54,7 @@ test('save a version, change the figure, compare, restore, undo; versions surviv
   const compare = page.getByRole('dialog', { name: 'Compare versions' });
   await expect(compare).toContainText('sent to PI: 1 page, 1 object. Now: 1 page, 2 objects.');
   await expect(compare.getByRole('img', { name: 'Page 1 of sent to PI' })).toBeVisible();
-  await expect(compare.getByRole('img', { name: 'Page 1 of the figure now' })).toBeVisible();
+  await expect(compare.getByRole('img', { name: 'Page 1 of Now' })).toBeVisible();
 
   // Restore asks first, in the app.
   await compare.getByRole('button', { name: 'Restore this version' }).click();
@@ -113,4 +113,48 @@ test('versions belong to their figure', async ({ page }) => {
   await expect(rects(page)).toHaveCount(0);
   await page.getByRole('button', { name: 'Versions…' }).click();
   await expect(dialog).toContainText('No saved versions of this figure yet.');
+});
+
+test('compare two versions in both modes and restore one deleted object', async ({ page }) => {
+  await rect(page, 30, 30, 40, 40);
+  await page.getByRole('button', { name: 'Versions…' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Saved versions' });
+  await dialog.getByLabel('Version name').fill('v1');
+  await dialog.getByRole('button', { name: 'Save version' }).click();
+  await expect(dialog.locator('.version-row')).toHaveCount(1);
+  await page.keyboard.press('Escape');
+
+  // Delete the rectangle and draw another elsewhere.
+  await page.keyboard.press('Delete');
+  await expect(rects(page)).toHaveCount(0);
+  await rect(page, 100, 60, 30, 30);
+  await expect(rects(page)).toHaveCount(1);
+
+  await page.getByRole('button', { name: 'Versions…' }).click();
+  await dialog.getByRole('button', { name: 'Compare v1' }).focus();
+  await page.keyboard.press('Enter');
+  const compare = page.getByRole('dialog', { name: 'Compare versions' });
+  await expect(compare.locator('[data-diff="removed"]')).toHaveCount(1);
+  await expect(compare.locator('[data-diff="added"]')).toHaveCount(1);
+  await expect(compare.getByRole('list', { name: 'Changed objects' })).toContainText(
+    'Removed: rect',
+  );
+
+  // Onion skin: one picture with the older page faded over the newer.
+  await compare.getByLabel('Onion skin').check();
+  await expect(compare.locator('[data-onion="older"]')).toHaveCount(1);
+  await compare.getByLabel('Side by side').check();
+  await expect(compare.locator('[data-onion="older"]')).toHaveCount(0);
+
+  // Restore the deleted rectangle from v1: one undo step.
+  await compare.getByRole('button', { name: 'Removed: rect' }).click();
+  await compare.getByRole('button', { name: 'Restore this object from v1' }).click();
+  await expect(page.locator('.status')).toContainText('Restored');
+  await expect(compare.locator('[data-diff="removed"]')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(rects(page)).toHaveCount(2);
+  await page.keyboard.press('Control+z');
+  await expect(rects(page)).toHaveCount(1);
 });

@@ -1442,3 +1442,59 @@ button.link {
   color: var(--ink-2);
   font-size: 11px;
 }
+
+.version-pickers {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.version-mode {
+  display: flex;
+  gap: 16px;
+  border: 0;
+  padding: 0;
+  margin: 8px 0 0;
+}
+
+.version-mode legend {
+  float: left;
+  font-weight: 600;
+  padding: 0;
+  margin-right: 8px;
+}
+
+.version-page {
+  width: 100%;
+  height: auto;
+  max-height: 46vh;
+  background: var(--ground);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+
+.version-onion {
+  grid-template-columns: 1fr;
+}
+
+.version-changes {
+  max-height: 20vh;
+  overflow: auto;
+}
+
+.version-object-actions {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.version-key {
+  margin-right: 12px;
+  white-space: nowrap;
+}
+
+.version-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 10px;
+  margin-right: 4px;
+  border-width: 2px;
+}
