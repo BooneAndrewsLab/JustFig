@@ -6,7 +6,8 @@
  */
 import { defineConfig, devices } from '@playwright/test';
 
-const PORT = 5341;
+/** Override with `E2E_PORT` so worktrees running e2e at once don't reuse each other's server. */
+const PORT = Number(process.env['E2E_PORT'] ?? 5341);
 /** The site's base, as the build is given it (GitHub Pages: `/<repo>/`). */
 const BASE = process.env['BASE_PATH'] ?? '/';
 

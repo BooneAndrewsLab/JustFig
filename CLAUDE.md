@@ -17,7 +17,7 @@ account, figures never leave the computer. Design notes: `docs/design/`.
 
 - **Node** is not on PATH: prefix with `PATH=/home/matej/Programs/miniconda3/envs/node/bin:$PATH`.
 - `npm run check` (typecheck, lint, format, unit tests) gates every commit.
-  `npm run e2e` runs Playwright on chromium, firefox and webkit. WebKit can't launch on this
+  `npm run e2e` runs Playwright on chromium, firefox and webkit (`E2E_PORT=<n>` moves its server off 5341, needed when worktrees run e2e at once). WebKit can't launch on this
   machine (missing libicu 74): run `npx playwright test --project=chromium --project=firefox`
   locally and let CI cover WebKit. `UPDATE_GOLDEN=1` rewrites goldens (Chromium for e2e).
 - The icon library is not in this repo: `npm run icons` puts the release pinned in
