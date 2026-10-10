@@ -2,6 +2,12 @@
 
 **Export…** in the top bar (or Ctrl+E) opens the Export figure dialog. Choose a format, set the options and choose the **Export** button at the bottom, which is named after the format, for example "Export PDF". The file downloads with the figure's title as its name. When a figure has several pages, the page name is added to the file name.
 
+## Copy as image
+
+**Copy as image** in the top bar, next to Export, puts a picture on the clipboard so you can paste it straight into a slide, a document or a chat, without saving a file. It copies the selected objects, or the whole page when nothing is selected, as a PNG at 300 dpi. A page copy includes the credit line when the page needs one; a selection is cropped to its objects (a few points of margin) with the page background behind it, and has no credit line, so see "The credit line" below before you use it. The status line at the bottom says what was copied and its size in pixels.
+
+Where the browser allows it (Chrome and Edge), the figure is also copied as SVG text, which editors such as Inkscape accept when pasted. If the browser refuses that, only the picture is copied. Firefox and Safari versions that cannot write images to the clipboard show a message instead; use **Export…** and choose PNG there. A figure too large for 300 dpi is copied at the highest resolution an export allows.
+
 ## Formats
 
 | Format | Use it for                                                                       |

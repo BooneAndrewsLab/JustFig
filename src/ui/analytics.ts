@@ -59,7 +59,8 @@ export const EVENTS = {
   icon: ['place'],
   /** Kind names are app vocabulary, not figure content. */
   procedural: ['place', 'convert', 'from-path', 'fragment-paste', 'gel-labels', 'scale-bar'],
-  export: ['svg', 'pdf', 'png', 'tiff', 'panels'],
+  /** Copy as image (note 36): with the SVG as text beside the PNG, or the PNG alone. */
+  export: ['svg', 'pdf', 'png', 'tiff', 'panels', 'copy-image', 'copy-image-png'],
   /** A check warning chosen in the Export dialog; the rule id (app vocabulary) as the name. */
   check: ['select'],
   attribution: ['open', 'copy', 'add-text', 'copy-legend'],

@@ -28,6 +28,7 @@ import { NotesPanel } from './panels/NotesPanel';
 import { SaveFailureBanner } from './panels/SaveFailureBanner';
 import { TabStrip } from './panels/TabStrip';
 import { ToolPalette } from './panels/ToolPalette';
+import { copyAsImage } from './copyImage';
 import { resolveBindings, withKey } from './keyBindings';
 import { onCopy, onKeyDown, onPaste } from './shortcuts';
 import { importToCanvas, newFigure, openFile, saveFile } from './state/session';
@@ -278,6 +279,13 @@ export function App() {
           }}
         >
           Attribution
+        </button>
+        <button
+          type="button"
+          title="Copy the selection, or the page, to the clipboard as a 300 dpi image"
+          onClick={() => void copyAsImage()}
+        >
+          Copy as image
         </button>
         <button
           type="button"
