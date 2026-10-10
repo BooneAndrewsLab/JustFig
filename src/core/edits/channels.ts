@@ -12,9 +12,22 @@
  */
 import { boundsOf, refit, translateObj } from '../geometry/transform';
 import { cloneObjects } from '../model/clone';
+import { createText, defaultRun } from '../model/factory';
 import { type Id, newId } from '../model/ids';
 import { locate, pageObjects } from '../model/tree';
-import type { Asset, AssetHash, Channel, Frame, Image, Obj, Page } from '../model/types';
+import type {
+  Asset,
+  AssetHash,
+  Assets,
+  Channel,
+  Frame,
+  Image,
+  Obj,
+  Page,
+  Run,
+  Text,
+} from '../model/types';
+import { fitText } from '../text/layout';
 import type { CroppedPicture } from './crop';
 import { type Edit, EditError, addObjects, updateObjects } from './edits';
 
@@ -243,4 +256,161 @@ export function mergeChannels(
       return addObjects(pageId, [unit], assetsOf(baked), layerId).apply(moved);
     },
   };
+}
+
+/** A channel's name for a label or the legend: its picture's name without the extension. */
+export function channelName(assets: Assets, c: Channel): string {
+  const a = assets[c.asset];
+  return a?.kind === 'image' ? a.meta.name.replace(/\.[A-Za-z0-9]{1,5}$/, '').trim() : '';
+}
+
+/** The channels a split makes a picture of: those turned on, with their label names. */
+export function splitChannelsOf(pic: Image, assets: Assets): { channel: Channel; name: string }[] {
+  return (pic.channels ?? [])
+    .filter((c) => c.on)
+    .map((channel, i) => ({
+      channel,
+      name: channelName(assets, channel) || `Channel ${String(i + 1)}`,
+    }));
+}
+
+/** One panel of a split: a channel and its baked pixels (`merge`: after levels, as `BakedMerge`). */
+export interface SplitPart {
+  readonly channel: Channel;
+  readonly name: string;
+  readonly baked: BakedMerge;
+}
+
+/** Label size and its inset from the panel's top-left corner, points (note 45). */
+export const SPLIT_LABEL = { size: 9, inset: 3 } as const;
+
+const labelText = (x: number, y: number, runs: readonly Run[]): Text =>
+  fitText({ ...createText(x, y, [runs]), autoWidth: true });
+
+/**
+ * "Split channels" (note 45, issue 67): one picture per channel turned on, each the merge's
+ * size, crop and levels (`parts[i].baked`, from the channel's own pixels, grey or tinted),
+ * laid out left to right from the merge's place with the merge last, each with a label of
+ * the channel's name in its colour, the merge's label all the names in theirs, and the whole
+ * row one group. The pictures record each other in `splitSet`. A scale bar over the merge is
+ * copied over every panel. One undo step.
+ */
+export function splitChannels(pageId: Id, id: Id, parts: readonly SplitPart[]): Edit {
+  if (parts.length === 0) throw new EditError('Turn on a channel to split.');
+  const rowId = newId('o');
+  const ids = parts.map(() => newId('o'));
+  const label = 'Split channels';
+  return {
+    label,
+    select: [rowId],
+    apply: (f) => {
+      const page = f.doc.pages.find((p) => p.id === pageId);
+      if (!page) throw new EditError('That page no longer exists.');
+      const merge = locate(page, id)?.obj;
+      if (merge?.type !== 'image' || !merge.channels)
+        throw new EditError('Select a merged picture.');
+      const head = unitOf(page, merge);
+      const box = boundsOf([head.unit]);
+      const set: Id[] = [...ids, merge.id];
+
+      const { channels: _ch, cropped: _c, levels: _l, name: _n, splitSet: _s, ...base } = merge;
+      const units: Obj[] = [];
+      const labels: Text[] = [];
+      const assets: Record<AssetHash, Asset> = {};
+      let x = box.x;
+      const place = (unit: Obj, runs: readonly Run[]) => {
+        const b = boundsOf([unit]);
+        const moved = translateObj(unit, x - b.x, box.y - b.y);
+        units.push(moved);
+        labels.push(labelText(x + SPLIT_LABEL.inset, box.y + SPLIT_LABEL.inset, runs));
+        x += b.w + ROW_GAP;
+      };
+      const style = (text: string, hex: string): Run =>
+        defaultRun(text, { size: SPLIT_LABEL.size, bold: true, color: { hex } });
+
+      parts.forEach((part, i) => {
+        const b = part.baked;
+        if (merge.levels && !b.unadjusted)
+          throw new EditError('The unadjusted picture is missing.');
+        if (merge.crop && !b.cropped) throw new EditError('The cropped picture is missing.');
+        Object.assign(assets, assetsOf(b));
+        const pic: Image = {
+          ...base,
+          id: ids[i] ?? newId('o'),
+          name: part.name,
+          asset: b.merge.hash,
+          ...(merge.levels && b.unadjusted
+            ? { levels: { ...merge.levels, base: b.unadjusted.hash } }
+            : {}),
+          ...(merge.crop && b.cropped ? { cropped: b.cropped.hash } : {}),
+          splitSet: set,
+        };
+        const unit: Obj =
+          head.over.length === 0
+            ? pic
+            : refit({
+                id: newId('o'),
+                type: 'group',
+                frame: { x: 0, y: 0, w: 0, h: 0, rotation: 0 },
+                opacity: 1,
+                children: [pic, ...cloneObjects(head.over)],
+              });
+        place(unit, [style(part.name, part.channel.color)]);
+      });
+
+      // The merge last: its own picture (and what lies over it), tagged with the set.
+      const tagged = (o: Obj): Obj =>
+        o.id === merge.id && o.type === 'image'
+          ? { ...o, name: o.name ?? 'Merge', splitSet: set }
+          : o;
+      const mergeUnit: Obj =
+        head.unit.type === 'group'
+          ? { ...head.unit, children: head.unit.children.map(tagged) }
+          : tagged(head.unit);
+      const runs: Run[] = [];
+      parts.forEach((part, i) => {
+        if (i > 0) runs.push(style(' + ', '#ffffff'));
+        runs.push(style(part.name, part.channel.color));
+      });
+      place(mergeUnit, runs);
+
+      const row = refit({
+        id: rowId,
+        type: 'group',
+        name: 'Split channels',
+        frame: { x: 0, y: 0, w: 0, h: 0, rotation: 0 },
+        opacity: 1,
+        children: [...units, ...labels],
+      });
+      const replaced = updateObjects(pageId, [head.unit.id], label, () => row).apply(f);
+      return { ...replaced, assets: { ...replaced.assets, ...assets } };
+    },
+  };
+}
+
+/**
+ * The pictures of the split row `pic` belongs to that are still on the page (itself first, then
+ * the rest in the order recorded), unlocked; just `pic` when it has no set or the rest are gone.
+ */
+export function splitSetOf(page: Page, pic: Image): Image[] {
+  const out: Image[] = [pic];
+  for (const id of pic.splitSet ?? []) {
+    if (id === pic.id) continue;
+    const o = locate(page, id)?.obj;
+    if (o?.type === 'image' && o.locked !== true) out.push(o);
+  }
+  return out;
+}
+
+/** `pics` and the rest of each one's split row (note 45), each picture once, in order. */
+export function withSplitSets(page: Page, pics: readonly Image[]): Image[] {
+  const out: Image[] = [];
+  const seen = new Set<Id>();
+  for (const p of pics)
+    for (const o of splitSetOf(page, p))
+      if (!seen.has(o.id)) {
+        seen.add(o.id);
+        out.push(o);
+      }
+  return out;
 }

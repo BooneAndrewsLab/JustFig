@@ -347,6 +347,7 @@ export function object(v: unknown, p: Path): Obj {
         ...opt(o, 'turn', p, num),
         ...opt(o, 'channels', p, (x, q) => list(x, q, channel)),
         ...opt(o, 'levels', p, levels),
+        ...opt(o, 'splitSet', p, (x, q) => list(x, q, (y, r) => asId(str(y, r)))),
       };
     case 'procedural':
       return {

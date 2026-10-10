@@ -98,7 +98,7 @@ export const EVENTS = {
   guide: ['open'],
   embedded: ['import'],
   arrange: ['grid'],
-  image: ['crop', 'crop-level', 'merge', 'channels'],
+  image: ['crop', 'crop-level', 'merge', 'channels', 'split'],
   /** An error caught (note 26): the error class name only, never its message or any figure content. */
   crash: ['render', 'error', 'rejection'],
 } as const satisfies Readonly<Record<string, readonly string[]>>;

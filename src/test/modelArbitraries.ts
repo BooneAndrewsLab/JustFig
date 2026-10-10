@@ -171,8 +171,14 @@ const leafArb: fc.Arbitrary<Obj> = fc.oneof(
           .filter((l) => l.min < l.max),
         { nil: undefined },
       ),
+      fc.option(
+        fc.array(fc.stringMatching(/^o_[0-9a-f]{16}$/).map(asId), { minLength: 1, maxLength: 3 }),
+        {
+          nil: undefined,
+        },
+      ),
     )
-    .map(([b, a, c, channels, levels]): Obj => ({
+    .map(([b, a, c, channels, levels, splitSet]): Obj => ({
       ...b,
       type: 'image',
       asset: a,
@@ -180,6 +186,7 @@ const leafArb: fc.Arbitrary<Obj> = fc.oneof(
       ...(c?.[5] === undefined ? {} : { turn: c[5] }),
       ...(channels ? { channels } : {}),
       ...(levels ? { levels } : {}),
+      ...(splitSet ? { splitSet } : {}),
     })),
   fc
     .tuple(baseArb, fc.string(), fc.nat(5), json, asset)

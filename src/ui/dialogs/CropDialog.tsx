@@ -8,6 +8,7 @@
  */
 import { type PointerEvent, useRef, useState } from 'react';
 
+import { withSplitSets } from '@/core/edits/channels';
 import {
   type CropOptions,
   type CroppedPicture,
@@ -43,7 +44,12 @@ const fieldsOf = (c: Rect4, rotation: number): Fields => ({
 export function CropDialog({ onClose }: { onClose: () => void }) {
   const s = useAppState();
   const fig = figure(s);
-  const pics = cropTargets(selectedObjects(s), fig.assets);
+  const picked = cropTargets(selectedObjects(s), fig.assets);
+  // The rest of a split row (note 45) is cropped with it unless "Apply to set" is off.
+  const [applyToSet, setApplyToSet] = useState(true);
+  const page = currentPage(s);
+  const inSet = withSplitSets(page, picked).length > picked.length;
+  const pics = applyToSet ? withSplitSets(page, picked) : picked;
   const same = sharedSize(pics, fig.assets);
   const first = pics[0];
   const firstAsset = first ? fig.assets[first.asset] : undefined;
@@ -292,6 +298,19 @@ export function CropDialog({ onClose }: { onClose: () => void }) {
             <label htmlFor="crop-level">Crop level on the page (resample the turned picture)</label>
           </div>
         </fieldset>
+        {inSet && (
+          <div className="row">
+            <input
+              id="crop-set"
+              type="checkbox"
+              checked={applyToSet}
+              onChange={(e) => {
+                setApplyToSet(e.target.checked);
+              }}
+            />
+            <label htmlFor="crop-set">Apply to set (the other pictures of the split row)</label>
+          </div>
+        )}
         <p className="note" role="status">
           {n === 0
             ? 'Select PNG or JPEG pictures to crop.'

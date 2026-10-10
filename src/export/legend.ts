@@ -4,6 +4,7 @@
  * lengths, the channel names of merges and the credits typed for pictures. A
  * pure function of the figure, like `creditLine`.
  */
+import { channelName } from '@/core/edits/channels';
 import { docCreditItems } from '@/core/attribution/attribution';
 import { ownObjects, panelLabels, readingOrder } from '@/core/model/panels';
 import { walk } from '@/core/model/tree';
@@ -57,9 +58,7 @@ export function legendText(fig: Figure): string {
     } else if (o.type === 'image' && o.channels) {
       for (const c of o.channels) {
         if (!c.on) continue;
-        const a = assets[c.asset];
-        if (a?.kind !== 'image') continue;
-        const name = a.meta.name.replace(/\.[A-Za-z0-9]{1,5}$/, '').trim();
+        const name = channelName(assets, c);
         if (name !== '' && !channels.includes(name)) channels.push(name);
       }
     }

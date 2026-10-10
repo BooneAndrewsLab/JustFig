@@ -12,9 +12,19 @@ function reIdInto(o: Obj, ids: Map<Id, Id>): Obj {
   return { ...o, id };
 }
 
+/** A split set (note 45) follows the copies made together; a copy of a lone member leaves it. */
+function remapSet(o: Obj, ids: Map<Id, Id>): Obj {
+  if (o.type === 'group' || o.type === 'panel')
+    return { ...o, children: o.children.map((c) => remapSet(c, ids)) };
+  if (o.type !== 'image' || !o.splitSet) return o;
+  const { splitSet, ...rest } = o;
+  const kept = splitSet.flatMap((id) => ids.get(id) ?? []);
+  return kept.length > 1 ? { ...rest, splitSet: kept } : rest;
+}
+
 /** Fresh ids throughout; an arrow binding follows its target's copy, or is dropped (note 06). */
 export function cloneObjects(objs: readonly Obj[], dx = 0, dy = 0): Obj[] {
   const ids = new Map<Id, Id>();
   const copies = objs.map((o) => reIdInto(o, ids));
-  return remapBindings(copies, ids).map((o) => translateObj(o, dx, dy));
+  return remapBindings(copies, ids).map((o) => translateObj(remapSet(o, ids), dx, dy));
 }

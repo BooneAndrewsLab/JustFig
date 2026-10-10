@@ -684,6 +684,13 @@
         "levels": {
           "$ref": "#/$defs/Levels",
           "description": "Levels and invert over the whole picture (note 27): `asset` is `levels.base` adjusted, baked. Applied after a merge and before a crop."
+        },
+        "splitSet": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          },
+          "description": "The pictures of one \"Split channels\" row (note 45), this one included: a crop or levels change on one is offered to the rest. Ids that no longer exist are ignored."
         }
       },
       "required": [

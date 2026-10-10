@@ -60,3 +60,4 @@ show the channels as a row beside it.
 - A row panel pseudocoloured by **Channels…** is its own recipe: recolouring the merge does not
   recolour it.
 - The display range is in 8-bit levels; there is no gamma or auto-contrast.
+- **Split channels** (the merge back out as a row of single-channel panels, labelled) is note 45.

@@ -34,6 +34,7 @@ import {
   styleTargets,
 } from '@/core/edits/style';
 import { needsModifiedNote } from '@/core/attribution/attribution';
+import { splitChannels, splitChannelsOf, splitSetOf } from '@/core/edits/channels';
 import { cropTargets, sharedSize } from '@/core/edits/crop';
 import {
   type LevelsInput,
@@ -41,7 +42,6 @@ import {
   isIdentity,
   levelsToMatch,
   matchLevels,
-  setLevels,
 } from '@/core/edits/levels';
 import { editableNodes } from '@/core/edits/nodes';
 import { center } from '@/core/geometry/matrix';
@@ -63,6 +63,7 @@ import { PAGE_PRESETS, presetSize } from '@/core/presets/pages';
 import { recipeFile } from '@/io/barelysig';
 import { bakeView } from '@/io/cropImage';
 import { bakeLevels } from '@/io/levels';
+import { bakeSplit } from '@/io/split';
 import { drawnBoundsIn } from '@/procedural/bounds';
 import { addScaleBar, labelGelImage } from '@/procedural/edits';
 import { formatLength, fromUnit, toUnit } from '@/core/units';
@@ -1314,9 +1315,31 @@ function ChannelsSection({
   const assets = figure(s).assets;
   const pics = cropTargets(sel, assets);
   const one = pics.length === 1 ? pics[0] : undefined;
+  const [tinted, setTinted] = useState(false);
+  const [busy, setBusy] = useState(false);
   if (pics.length === 0) return null;
   const size = sharedSize(pics, assets);
   const n = one?.channels?.length ?? 0;
+  const shown = one ? splitChannelsOf(one, assets) : [];
+  const split = async () => {
+    if (!one) return;
+    setBusy(true);
+    try {
+      const st = store.getState();
+      const parts = await bakeSplit(
+        one,
+        splitChannelsOf(one, figure(st).assets),
+        figure(st).assets,
+        tinted,
+      );
+      if (store.edit(splitChannels(currentPage(store.getState()).id, one.id, parts)))
+        analytics.track('image', 'split');
+    } catch (e: unknown) {
+      store.notify(e instanceof Error ? e.message : String(e), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <Section title="Channels">
       <p className="note">
@@ -1342,6 +1365,30 @@ function ChannelsSection({
           {one ? 'Channels…' : 'Merge channels…'}
         </button>
       </div>
+      {one && shown.length > 0 && (
+        <div className="row">
+          <button
+            type="button"
+            disabled={busy}
+            title="One picture per shown channel, each with a label in its colour, in a row with the merge last"
+            onClick={() => {
+              void split();
+            }}
+          >
+            Split channels
+          </button>
+          <label title="Show each channel in its merge colour on black instead of grey">
+            <input
+              type="checkbox"
+              checked={tinted}
+              onChange={(e) => {
+                setTinted(e.target.checked);
+              }}
+            />{' '}
+            Tinted
+          </label>
+        </div>
+      )}
     </Section>
   );
 }
@@ -1410,8 +1457,11 @@ function LevelsSection({ s, sel }: { s: AppState; sel: readonly Obj[] }) {
   const pic = pics.length === 1 ? pics[0] : undefined;
   const [draft, setDraft] = useState<LevelsInput | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [applyToSet, setApplyToSet] = useState(true);
   const latest = useRef(0);
   if (!pic) return null;
+  const inSet = splitSetOf(currentPage(s), pic).length > 1;
+  const applySet = applyToSet && inSet;
   const now: LevelsInput = pic.levels ?? { min: 0, max: 255, invert: false };
   const shown = draft ?? now;
 
@@ -1428,21 +1478,28 @@ function LevelsSection({ s, sel }: { s: AppState; sel: readonly Obj[] }) {
     const slider = keys.length === 1 && (keys[0] === 'min' || keys[0] === 'max') ? keys[0] : null;
     void (async () => {
       try {
-        const page = currentPage(store.getState()).id;
+        const pageObj = currentPage(store.getState());
+        const page = pageObj.id;
         const fig = figure(store.getState());
-        const base = fig.assets[pic.levels?.base ?? pic.asset];
-        if (base?.kind !== 'image') throw new Error('The picture is missing.');
-        const adjusted = isIdentity(next) ? undefined : await bakeLevels(base, next);
-        const src = adjusted?.asset ?? base;
-        const cropped = pic.crop
-          ? await bakeView(src, { turn: pic.turn ?? 0, crop: pic.crop })
-          : undefined;
+        // The rest of a split row (note 45) takes the same levels, each from its own pixels.
+        const members = applySet ? splitSetOf(pageObj, pic) : [pic];
+        const targets: LevelsTarget[] = [];
+        for (const m of members) {
+          const base = fig.assets[m.levels?.base ?? m.asset];
+          if (base?.kind !== 'image') throw new Error('The picture is missing.');
+          const adjusted = isIdentity(next) ? undefined : await bakeLevels(base, next);
+          const src = adjusted?.asset ?? base;
+          const cropped = m.crop
+            ? await bakeView(src, { turn: m.turn ?? 0, crop: m.crop })
+            : undefined;
+          targets.push({
+            id: m.id,
+            baked: { ...(adjusted ? { adjusted } : {}), ...(cropped ? { cropped } : {}) },
+          });
+        }
         if (run !== latest.current) return;
         store.edit(
-          setLevels(page, pic.id, next, {
-            ...(adjusted ? { adjusted } : {}),
-            ...(cropped ? { cropped } : {}),
-          }),
+          matchLevels(page, next, targets, isIdentity(next) ? 'Reset levels' : 'Set levels'),
           { ...(slider ? { coalesce: `levels-${slider}:${pic.id}` } : {}), keepSelection: true },
         );
         setDraft(null);
@@ -1517,12 +1574,39 @@ function LevelsSection({ s, sel }: { s: AppState; sel: readonly Obj[] }) {
           Reset levels
         </button>
       </div>
+      {inSet && <ApplyToSet on={applyToSet} onChange={setApplyToSet} what="levels" />}
       {error !== null && (
         <p className="note" role="alert">
           {error}
         </p>
       )}
     </Section>
+  );
+}
+
+/** "Apply to set" (note 45): a change to one panel of a split row goes to the whole row. */
+function ApplyToSet({
+  on,
+  onChange,
+  what,
+}: {
+  on: boolean;
+  onChange: (on: boolean) => void;
+  what: string;
+}) {
+  return (
+    <div className="row">
+      <label title={`Give every picture of the split row the same ${what}`}>
+        <input
+          type="checkbox"
+          checked={on}
+          onChange={(e) => {
+            onChange(e.target.checked);
+          }}
+        />{' '}
+        Apply to set
+      </label>
+    </div>
   );
 }
 

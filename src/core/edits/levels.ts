@@ -112,10 +112,11 @@ export function matchLevels(
   pageId: Id,
   levels: LevelsInput,
   targets: readonly LevelsTarget[],
+  label = 'Same levels',
 ): Edit {
   const edits = targets.map((t) => setLevels(pageId, t.id, levels, t.baked));
   return {
-    label: 'Same levels',
+    label,
     apply: (f) => edits.reduce((acc, e) => e.apply(acc), f),
   };
 }

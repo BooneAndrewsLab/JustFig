@@ -218,6 +218,11 @@ export interface Image extends Base {
    * adjusted, baked. Applied after a merge and before a crop.
    */
   readonly levels?: Levels;
+  /**
+   * The pictures of one "Split channels" row (note 45), this one included: a crop or levels
+   * change on one is offered to the rest. Ids that no longer exist are ignored.
+   */
+  readonly splitSet?: readonly Id[];
 }
 
 export interface Procedural extends Base {

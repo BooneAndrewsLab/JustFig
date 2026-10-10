@@ -142,3 +142,42 @@ test('merges two channels into a re-editable pseudocoloured composite (#45)', as
   await page.keyboard.press('Control+z');
   await expect(section).toContainText('(2 shown)');
 });
+
+test('splits a merge into a labelled row of channels (#67)', async ({ page }) => {
+  const input = page.getByTestId('import-input');
+  await input.setInputFiles({
+    name: 'dapi.png',
+    mimeType: 'image/png',
+    buffer: await channel(page, 'tl'),
+  });
+  await input.setInputFiles({
+    name: 'gfp.png',
+    mimeType: 'image/png',
+    buffer: await channel(page, 'br'),
+  });
+  await page.locator('.canvas').click({ position: { x: 5, y: 5 } });
+  await page.keyboard.press('Control+a');
+  const section = side(page).getByRole('region', { name: 'Channels' });
+  await section.getByRole('button', { name: 'Merge channels…' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Merge channels' });
+  await dialog.getByRole('button', { name: 'Merge', exact: true }).click();
+  await expect(section).toContainText('A merge of 2 channels (2 shown)');
+
+  // From the keyboard: focus the button and press Enter.
+  await section.getByRole('button', { name: 'Split channels' }).focus();
+  await page.keyboard.press('Enter');
+
+  // The two old channels and the merge, plus two channel panels: five pictures; three labels.
+  await expect(page.locator('.layers .item .name', { hasText: 'Split channels' })).toHaveCount(1);
+  const svg = readFileSync(await (await exportVia(page, 'SVG')).path(), 'utf8');
+  expect(images(svg)).toHaveLength(5);
+  // Three pictures and three labels in the row group.
+  await page.getByRole('button', { name: 'Expand' }).first().click();
+  const names = await page.locator('.layers .item .name').allTextContents();
+  expect(names.filter((n) => ['dapi', 'gfp', 'Merge'].includes(n))).toHaveLength(3);
+  expect(names.filter((n) => ['“dapi”', '“gfp”', '“dapi + gfp”'].includes(n))).toHaveLength(3);
+
+  // One undo step takes the whole row back.
+  await page.keyboard.press('Control+z');
+  await expect(page.locator('.layers .item .name', { hasText: 'Split channels' })).toHaveCount(0);
+});
