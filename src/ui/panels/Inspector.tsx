@@ -45,13 +45,16 @@ import {
   matchLevels,
 } from '@/core/edits/levels';
 import { editableNodes } from '@/core/edits/nodes';
+import { numberSteps, setStepAnchor, setStepPaint, setStepVariant } from '@/core/edits/steps';
 import { center } from '@/core/geometry/matrix';
 import { boundsOf, normAngle, objBounds, rebase, rotateObj } from '@/core/geometry/transform';
 import type { Id } from '@/core/model/ids';
+import { type StepBadge, isStep, stepNumbers } from '@/core/model/steps';
 import { findObj } from '@/core/model/tree';
 import {
   HEAD_KINDS,
   FONT_IDS,
+  STEP_ANCHORS,
   type FontId,
   type HeadKind,
   type Obj,
@@ -574,6 +577,25 @@ function SelectionInspector({
             </button>
           </div>
         )}
+        {sel.some((o) => !isStep(o)) && (
+          <div className="row">
+            <button
+              type="button"
+              title={withKey(
+                sel.length === 1
+                  ? 'Put a numbered step badge on this object; steps renumber in reading order'
+                  : 'Put a numbered step badge on each selected object, numbered in reading order',
+                'steps',
+                resolveBindings(s.keyBindings),
+              )}
+              onClick={() => {
+                store.edit(numberSteps(page.id, ids));
+              }}
+            >
+              {sel.length === 1 ? 'Add step' : 'Number steps'}
+            </button>
+          </div>
+        )}
         <div className="row" style={{ flexWrap: 'wrap' }} aria-label="Align">
           {(
             [
@@ -792,6 +814,7 @@ function SelectionInspector({
       <TextAndLinesSection s={s} sel={sel} />
 
       {one?.type === 'arrow' && <ArrowSection s={s} arrow={one} />}
+      {one && isStep(one) && <StepSection s={s} badge={one} />}
       {one?.type === 'text' && <TextSection s={s} text={one} />}
       {one?.type === 'icon' && <IconSection s={s} icon={one} />}
       {one?.type === 'panel' && <PanelSection s={s} panel={one} />}
@@ -1088,6 +1111,66 @@ function ArrowSection({ s, arrow }: { s: AppState; arrow: Extract<Obj, { type: '
           />
         )}
       </div>
+    </Section>
+  );
+}
+
+/** A step badge (note 48): its derived number, look, corner and colour. */
+function StepSection({ s, badge }: { s: AppState; badge: StepBadge }) {
+  const page = currentPage(s);
+  const n = stepNumbers(page).get(badge.id);
+  const target = findObj(page, badge.step.target);
+  return (
+    <Section title="Step">
+      <p className="note" style={{ margin: '4px 0' }}>
+        Step {n ?? '?'} on {target ? (target.name ?? target.type) : 'a missing object'}. Numbers
+        follow the reading order of the steps' objects.
+      </p>
+      <div className="row">
+        <label htmlFor="step-variant">Look</label>
+        <select
+          id="step-variant"
+          value={badge.step.variant}
+          onChange={(e) => {
+            store.edit(
+              setStepVariant(page.id, [badge.id], e.target.value === 'plain' ? 'plain' : 'circle'),
+              { keepSelection: true },
+            );
+          }}
+        >
+          <option value="circle">Circle</option>
+          <option value="plain">Plain number</option>
+        </select>
+      </div>
+      <div className="row">
+        <label htmlFor="step-anchor">Corner</label>
+        <select
+          id="step-anchor"
+          value={badge.step.anchor}
+          onChange={(e) => {
+            const a = STEP_ANCHORS.find((x) => x === e.target.value);
+            if (a) store.edit(setStepAnchor(page.id, [badge.id], a), { keepSelection: true });
+          }}
+        >
+          {STEP_ANCHORS.map((a) => (
+            <option key={a} value={a}>
+              {cap(a.replace('-', ' '))}
+            </option>
+          ))}
+        </select>
+      </div>
+      <ColorInput
+        label="Colour"
+        value={badge.step.paint}
+        palette={figure(s).doc.palette}
+        onChange={(p) => {
+          if (p)
+            store.edit(setStepPaint(page.id, [badge.id], p), {
+              coalesce: `step-colour:${badge.id}`,
+              keepSelection: true,
+            });
+        }}
+      />
     </Section>
   );
 }

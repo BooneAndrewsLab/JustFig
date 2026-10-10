@@ -67,6 +67,11 @@ function mapDocPaints(doc: Doc, fn: PaintFn, slotDefaults = false): Doc {
           }),
         );
         const changed = runs.some((para, i) => para.some((r, j) => r !== o.runs[i]?.[j]));
+        // A step badge's colour (note 48); its plain number's run follows on reconcile.
+        if (o.step) {
+          const paint = fn(o.step.paint);
+          if (paint !== o.step.paint) return { ...o, runs, step: { ...o.step, paint } };
+        }
         return changed ? { ...o, runs } : o;
       }
       case 'icon': {

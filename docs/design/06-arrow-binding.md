@@ -79,6 +79,9 @@ direction anyway; if aim and centre coincide, the end is left where it is.
   the target is copied too, and drops it otherwise, so a duplicated arrow never jumps back onto
   the original.
 
+Numbered step badges (note 48) are the second binding solved here: `reconcileSteps` runs first
+inside `reconcileBindings`, so arrows bound to a badge follow it.
+
 ## Tests
 
 `binding.test.ts`: each row of the table; ends on rect, rotated rect, ellipse and closed path

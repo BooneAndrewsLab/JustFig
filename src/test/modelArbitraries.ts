@@ -7,6 +7,8 @@ import fc from 'fast-check';
 import { asId } from '@/core/model/ids';
 import {
   FONT_IDS,
+  STEP_ANCHORS,
+  STEP_VARIANTS,
   HEAD_KINDS,
   type Asset,
   type Doc,
@@ -120,14 +122,25 @@ const leafArb: fc.Arbitrary<Obj> = fc.oneof(
       fc.constantFrom('left', 'center', 'right'),
       pos(3),
       fc.boolean(),
+      fc.option(
+        fc.record({
+          target: id,
+          anchor: fc.constantFrom(...STEP_ANCHORS),
+          offset: vec,
+          variant: fc.constantFrom(...STEP_VARIANTS),
+          paint: paintArb,
+        }),
+        { nil: undefined },
+      ),
     )
-    .map(([b, runs, align, lineHeight, autoWidth]): Obj => ({
+    .map(([b, runs, align, lineHeight, autoWidth, step]): Obj => ({
       ...b,
       type: 'text',
       runs,
       align,
       lineHeight,
       autoWidth,
+      ...(step ? { step } : {}),
     })),
   fc
     .tuple(baseArb, asset, fc.dictionary(fc.constantFrom('s1', 's2', 'outline'), paintArb))

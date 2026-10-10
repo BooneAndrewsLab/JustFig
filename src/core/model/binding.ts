@@ -11,6 +11,7 @@ import { objBounds } from '../geometry/transform';
 import { localise } from './factory';
 import { remapInset, reconcileInsets } from './inset';
 import type { Id } from './ids';
+import { remapStep, reconcileSteps } from './steps';
 import { hasChildren, mapPageObjs, pageObjects } from './tree';
 import type { Arrow, Figure, Obj, Page, PathNode, Vec2 } from './types';
 
@@ -258,11 +259,11 @@ function reconcilePage(before: Page | undefined, page: Page): Page {
 
 /**
  * Re-solves bound objects after an edit turned `before` into `after`: first
- * magnified insets' boxes and lines (note 44), then bound arrows (note 06),
- * so an arrow bound to an inset or its box follows them too.
+ * magnified insets' boxes and lines (note 44), then step badges (note 48), then
+ * bound arrows (note 06), so an arrow bound to an inset, its box or a badge follows them too.
  */
 export function reconcileBindings(before: Figure, edited: Figure): Figure {
-  const after = reconcileInsets(before, edited);
+  const after = reconcileSteps(before, reconcileInsets(before, edited));
   const pages = after.doc.pages.map((p) =>
     reconcilePage(
       before.doc.pages.find((q) => q.id === p.id),
@@ -275,12 +276,14 @@ export function reconcileBindings(before: Figure, edited: Figure): Figure {
 
 /**
  * Bindings remapped to copies (paste, duplicate); a binding to an object not
- * copied is dropped, and an inset link whose source or box was not copied (note 44).
+ * copied is dropped, as is an inset link whose source or box was not copied (note 44)
+ * and a step badge's link to a target not copied (note 48).
  */
 export function remapBindings(objs: readonly Obj[], ids: ReadonlyMap<Id, Id>): Obj[] {
   const fix = (o: Obj): Obj => {
     if (hasChildren(o)) return { ...o, children: o.children.map(fix) };
     if (o.type === 'image') return remapInset(o, ids);
+    if (o.type === 'text') return remapStep(o, ids);
     if (o.type !== 'arrow' || !o.bind) return o;
     const bind: { start?: Id; end?: Id } = {};
     for (const end of ['start', 'end'] as const) {

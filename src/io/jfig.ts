@@ -9,6 +9,8 @@ import { NOTE_LIMITS } from '@/core/model/notes';
 import {
   FONT_IDS,
   HEAD_KINDS,
+  STEP_ANCHORS,
+  STEP_VARIANTS,
   type Asset,
   type Assets,
   type Channel,
@@ -30,6 +32,7 @@ import {
   type Run,
   type ShapeStyle,
   type SlotDef,
+  type StepLink,
   type Swatch,
   type TextStyle,
   type UserAssetMeta,
@@ -239,6 +242,17 @@ function insetLink(v: unknown, p: Path): InsetLink {
   };
 }
 
+function stepLink(v: unknown, p: Path): StepLink {
+  const o = obj(v, p);
+  return {
+    target: asId(str(o['target'], p.key('target'))),
+    anchor: oneOf(o['anchor'], p.key('anchor'), STEP_ANCHORS),
+    offset: vec(o['offset'], p.key('offset')),
+    variant: oneOf(o['variant'], p.key('variant'), STEP_VARIANTS),
+    paint: paint(o['paint'], p.key('paint')),
+  };
+}
+
 function channel(v: unknown, p: Path): Channel {
   const o = obj(v, p);
   const level = (k: 'min' | 'max') => {
@@ -331,6 +345,7 @@ export function object(v: unknown, p: Path): Obj {
         lineHeight: nonNeg(o['lineHeight'], p.key('lineHeight')),
         autoWidth: bool(o['autoWidth'], p.key('autoWidth')),
         ...opt(o, 'styleRef', p, (x, q) => asId(str(x, q))),
+        ...opt(o, 'step', p, stepLink),
       };
     case 'icon':
       return {

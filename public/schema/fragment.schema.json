@@ -511,6 +511,10 @@
         },
         "styleRef": {
           "$ref": "#/$defs/Id"
+        },
+        "step": {
+          "$ref": "#/$defs/StepLink",
+          "description": "This text is a numbered step badge on another object (note 48)."
         }
       },
       "required": [
@@ -577,6 +581,56 @@
         "left",
         "center",
         "right"
+      ]
+    },
+    "StepLink": {
+      "type": "object",
+      "properties": {
+        "target": {
+          "$ref": "#/$defs/Id",
+          "description": "The object the badge is attached to; deleting it deletes the badge."
+        },
+        "anchor": {
+          "$ref": "#/$defs/StepAnchor"
+        },
+        "offset": {
+          "$ref": "#/$defs/Vec2",
+          "description": "From the anchor corner to the badge's centre, points."
+        },
+        "variant": {
+          "$ref": "#/$defs/StepVariant",
+          "description": "A filled circle with a white number, or the number alone."
+        },
+        "paint": {
+          "$ref": "#/$defs/Paint",
+          "description": "The circle's fill, or the plain number's colour."
+        }
+      },
+      "required": [
+        "target",
+        "anchor",
+        "offset",
+        "variant",
+        "paint"
+      ],
+      "additionalProperties": false,
+      "description": "What makes a text a step badge (note 48). The number is derived (reading order of the targets in the badge's group or page) and, with the badge's position and size, written into the text only by `reconcileBindings`."
+    },
+    "StepAnchor": {
+      "type": "string",
+      "enum": [
+        "top-left",
+        "top-right",
+        "bottom-left",
+        "bottom-right"
+      ],
+      "description": "The corner of the target's bounds a step badge's centre sits at (plus its offset)."
+    },
+    "StepVariant": {
+      "type": "string",
+      "enum": [
+        "circle",
+        "plain"
       ]
     },
     "Icon": {

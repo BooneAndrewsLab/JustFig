@@ -20,6 +20,8 @@ import {
   nodeRefs,
   setSmooth,
 } from '@/core/edits/nodes';
+import { numberSteps } from '@/core/edits/steps';
+import { isStep } from '@/core/model/steps';
 import { findObj } from '@/core/model/tree';
 
 import { canvasSize, fitPage, zoomAt } from './canvas/view';
@@ -258,6 +260,16 @@ export function onKeyDown(e: KeyboardEvent, open: ShortcutTargets): void {
     guide: open.guide,
     grid: () => {
       if (ids.length > 0) open.grid();
+    },
+    steps: () => {
+      const targets = selectedObjects(s).filter((o) => !isStep(o));
+      if (targets.length > 0)
+        store.edit(
+          numberSteps(
+            page.id,
+            targets.map((o) => o.id),
+          ),
+        );
     },
     fit: () => {
       fitPage(page, canvasSize());

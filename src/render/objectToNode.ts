@@ -259,6 +259,17 @@ function content(o: Obj, ctx: RenderCtx): SvgNode[] {
       return arrowNodes(o, ctx);
     case 'text': {
       const nodes = textNodes(layoutText(o), ctx.textMode, ctx);
+      // A circle step badge (note 48): a plain ellipse under its number.
+      if (o.step?.variant === 'circle')
+        nodes.unshift(
+          el('ellipse', {
+            cx: w / 2,
+            cy: h / 2,
+            rx: w / 2,
+            ry: h / 2,
+            fill: paintHex(o.step.paint, ctx),
+          }),
+        );
       return ctx.screen
         ? [
             el('rect', { x: 0, y: 0, width: w, height: h, fill: 'transparent', 'data-hit': 1 }),

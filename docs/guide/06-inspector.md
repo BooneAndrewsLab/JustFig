@@ -37,6 +37,7 @@ The first section is named after the object (for example "Rectangle", or "3 obje
 - With two or more objects: **Same width**, **Same height** and **Same size**. They give each selected object the width and/or height of the first object you selected (W and H above still resize the selection as one box). Same width and Same height keep each object's proportions; Same size stretches each to exactly the first object's size. Each object keeps its top-left corner, locked objects are skipped, and it is one undo step. To make five micrographs 40 mm wide, set the first to 40 mm and press Same width.
 - With two or more pictures (PNG or JPEG) selected: **Same levels** gives every other selected picture the levels and inversion of the first one you selected, each made from its own original pixels, so compared panels share one display range. If the first picture has no levels, the others go back to their originals. Other objects in the selection are ignored, and it is one undo step.
 - With two or more objects: **Arrange in grid…** (Shift+G) lays them out in rows and columns, each in its own lettered panel. See [Arranging](05-arranging.md).
+- **Number steps** (Shift+N), or **Add step** with one object: a numbered step badge on each selected object. See [Arranging](05-arranging.md).
 - The align and distribute buttons, and **Group** and **Ungroup**. See [Arranging](05-arranging.md).
 - **Save as preset…** keeps the selection in this browser under a name, to place again in any figure from the gallery's My presets tab. See [Templates and examples](10-templates.md).
 
@@ -62,6 +63,10 @@ Sizes are in points on the page, so "7 pt" means 7 pt whatever size the plot is 
 ### Text
 
 **Edit text**, **Font**, **Size (pt)**, **Align**, **Auto width**, **Line height** and **Colour**. See [Text](04-text.md).
+
+### Step
+
+For a numbered step badge: which step it is (read only, from the reading order of the steps' objects), **Look** (Circle or Plain number), **Corner** of its object it sits at, and **Colour**. See [Arranging](05-arranging.md).
 
 ### Icon colours
 

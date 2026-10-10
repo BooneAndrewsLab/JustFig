@@ -78,6 +78,17 @@ A panel is a framed area for one part of a multi-panel figure, with a letter in 
 - Labels are lettered **automatically** in reading order: rows from top to bottom, then left to right within a row. Rearrange the panels and the letters follow.
 - To use your own label, select the panel, switch off **Automatic label** in the Panel section and type into **Label**. You can also turn off **Show label** or **Show border**.
 
+## Numbered steps
+
+For a workflow figure, number its steps with badges that renumber themselves. Select the objects that are the steps (shapes, icons, pictures, groups) and press **Number steps** in the Inspector's object section (Shift+N): each gets a small badge on its top-left corner, numbered 1, 2, 3 in reading order, rows from top to bottom, then left to right. With one object selected the button is **Add step**, to add one more step later.
+
+- The numbers are never typed: move a step's object past another and the badges renumber; delete an object and its badge goes with it, and the rest close up.
+- A badge follows its object when the object moves or is resized. Drag the badge by itself to put it elsewhere on the object: it keeps that place from then on.
+- Badges are numbered per page, or per group or panel when the badges are inside one, so two workflows grouped separately each count from 1.
+- The badges use the panel-letter format, font and size of the Figure section: format A or a gives 1, (A) or (a) gives (1), a) gives 1).
+- Select a badge to choose a **Circle** or **Plain number** look, the corner it sits at, and its colour in the Inspector's **Step** section. Badges get a "Steps" palette swatch, so applying a palette recolours them.
+- Copying objects together with their badges copies the badges onto the copies; a badge copied without its object becomes ordinary text.
+
 ## Arrange in grid
 
 To turn plots, micrographs and drawings already on the page into a multi-panel figure, select them and press **Arrange in grid…** in the Inspector (or Shift+G). The **Arrange in grid** dialog asks:

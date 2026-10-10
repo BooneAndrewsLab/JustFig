@@ -79,6 +79,12 @@ export const KEY_ACTIONS: readonly KeyAction[] = [
     group: 'Arrange',
     defaultBinding: 'shift+KeyG',
   },
+  {
+    id: 'steps',
+    label: 'Number the selection as steps',
+    group: 'Arrange',
+    defaultBinding: 'shift+KeyN',
+  },
   { id: 'open', label: 'Open a figure file', group: 'File', defaultBinding: 'ctrl+KeyO' },
   { id: 'recent', label: 'Recent figures', group: 'File', defaultBinding: 'shift+KeyO' },
   { id: 'export', label: 'Export', group: 'File', defaultBinding: 'ctrl+KeyE' },

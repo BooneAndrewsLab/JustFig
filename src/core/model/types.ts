@@ -132,6 +132,32 @@ export interface Text extends Base {
   readonly lineHeight: number;
   readonly autoWidth: boolean;
   readonly styleRef?: Id;
+  /** This text is a numbered step badge on another object (note 48). */
+  readonly step?: StepLink;
+}
+
+export const STEP_ANCHORS = ['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const;
+/** The corner of the target's bounds a step badge's centre sits at (plus its offset). */
+export type StepAnchor = (typeof STEP_ANCHORS)[number];
+
+export const STEP_VARIANTS = ['circle', 'plain'] as const;
+export type StepVariant = (typeof STEP_VARIANTS)[number];
+
+/**
+ * What makes a text a step badge (note 48). The number is derived (reading
+ * order of the targets in the badge's group or page) and, with the badge's
+ * position and size, written into the text only by `reconcileBindings`.
+ */
+export interface StepLink {
+  /** The object the badge is attached to; deleting it deletes the badge. */
+  readonly target: Id;
+  readonly anchor: StepAnchor;
+  /** From the anchor corner to the badge's centre, points. */
+  readonly offset: Vec2;
+  /** A filled circle with a white number, or the number alone. */
+  readonly variant: StepVariant;
+  /** The circle's fill, or the plain number's colour. */
+  readonly paint: Paint;
 }
 
 export interface Icon extends Base {
