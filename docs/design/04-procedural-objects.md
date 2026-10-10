@@ -81,7 +81,7 @@ one `<path>`; a full 1536-well plate is about ten DOM nodes, a 2,000-lipid bilay
 | `petriDish`       | Petri dish          | Scattered, streak (three zones), spot dilutions, pinned grid, lawn or empty; seeded                                                                                                                                                                                                    |
 | `gel`             | Agarose gel         | 1 kb or 100 bp ladder, lanes of bands typed as `3000, 1500:0.4` (size:intensity), log-scale migration, stained or inverted look; intensities are colour blends, not opacity                                                                                                            |
 | `timeline`        | Experiment timeline | Axis start/end in hours, days or weeks; events (tick, triangle or bracket, stacked in rows when labels collide) on one side, periods as bars in lanes on the other; text in points (see below)                                                                                         |
-| `placeholderPlot` | Placeholder plot    | PCA, UMAP, scatter or bar of invented points for schematics; 1–8 groups (name, colour), points per group, spread, point size, axes, automatic or typed axis labels, legend or bar names, error bars and dots on bars; seeded (see below)                                               |
+| `placeholderPlot` | Placeholder plot    | PCA, UMAP, scatter, bar or flow cytometry (log axes, gates) of invented points for schematics; 1–8 groups (name, colour), points per group, spread, point size, axes, automatic or typed axis labels, legend or bar names, error bars and dots on bars; seeded (see below)             |
 
 **Placeholder plots are seeded and say nothing.** `placeholderPlot` exists for schematics
 and graphical abstracts that need a plot shape before there is data (issue #8). Every point comes
@@ -94,6 +94,19 @@ the point radius, so nothing leaves the frame. There are no tick numbers on purp
 placeholder must not look like a measured result. PCA's axis labels carry a plausible
 variance share from the seed. Group colours are free `color` fields defaulting to Okabe–Ito, so
 palettes never recolour them (the rule for procedural colour params); the axes and text are slots.
+
+**The flow style** (issue #78, `kinds/flow.ts`) is one more value of `plot`, so the Inspector and
+the property tests still come from `fields`. Events are drawn from four seeded Gaussian
+populations (negative, x-positive, y-positive, double-positive) in log10 units, each with a tight
+and a wide scale for a denser core, on axes spanning 10^0.5 to 10^5.5 with decade labels
+10^1 … 10^5 (a "10" and a smaller raised exponent, each with explicit x/y: no `baseline-shift`).
+The `gate` field (`none | quadrant | polygon`) draws two crossing lines or a seven-vertex outline
+round the x-positive population. The percentages are derived, never typed: the share of the
+generated events in each quadrant, or inside the polygon (ray casting), to one decimal, so a
+label never contradicts its dots. Events inside the polygon take the second group's colour.
+New fields (`events`, `gate`) have defaults the decoder fills, so existing params decode
+unchanged and `version` stays 1. Events are one path per colour; the dot radius is a quarter of
+the point size, since flow plots are dense.
 
 **Timelines are laid out in points, not in the frame.** `timeline` (issue #52) is the
 "day 0 injection, day 7 boost, day 14 harvest" drawing. Only the axis length follows the

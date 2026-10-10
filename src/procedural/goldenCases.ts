@@ -67,6 +67,8 @@ export const GOLDEN_CASES: Readonly<Record<string, Readonly<Record<string, Parti
   placeholderPlot: {
     umap: { plot: 'umap', points: 120, seed: 12 },
     scatter: { plot: 'scatter', legend: false, xLabel: 'Dose (µM)', yLabel: 'Response' },
+    'flow-quadrant': { plot: 'flow', gate: 'quadrant', events: 1200, pointSize: 2, seed: 7 },
+    'flow-polygon': { plot: 'flow', gate: 'polygon', events: 1200, pointSize: 2, seed: 7 },
     bar: { plot: 'bar' },
     bare: { plot: 'bar', axes: false, axisLabels: false, errorBars: false, dots: false },
   },

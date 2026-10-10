@@ -6,6 +6,7 @@
  */
 import { type Prim, type Sub, circle, line, pathPrim, poly, rect } from '../prims';
 import { type Item, defineKind } from '../types';
+import { type GateType, renderFlow } from './flow';
 import { byColour, clamp, mix, rng, text } from './util';
 
 /** Okabe–Ito, colourblind-safe: the colour each new group gets, in order. */
@@ -20,7 +21,7 @@ export const GROUP_COLOURS = [
   '#999999',
 ] as const;
 
-export type PlotType = 'pca' | 'umap' | 'scatter' | 'bar';
+export type PlotType = 'pca' | 'umap' | 'scatter' | 'bar' | 'flow';
 
 export interface Group {
   readonly name: string;
@@ -40,6 +41,8 @@ export interface PlotParams {
   readonly legend: boolean;
   readonly errorBars: boolean;
   readonly dots: boolean;
+  readonly events: number;
+  readonly gate: GateType;
   readonly seed: number;
 }
 
@@ -62,6 +65,8 @@ export function autoLabels(plot: PlotType, seed: number): { x: string; y: string
       return { x: 'x', y: 'y' };
     case 'bar':
       return { x: '', y: 'Value' };
+    case 'flow':
+      return { x: 'CD4-FITC', y: 'CD8-PE' };
   }
 }
 
@@ -150,7 +155,8 @@ export const placeholderPlot = defineKind<PlotParams>({
   version: 1,
   title: 'Placeholder plot',
   category: 'Data',
-  description: 'A plot-shaped placeholder (PCA, UMAP, scatter or bar) drawn from a seed.',
+  description:
+    'A plot-shaped placeholder (PCA, UMAP, scatter, bar or flow cytometry) drawn from a seed.',
   keywords: [
     'pca',
     'umap',
@@ -161,6 +167,10 @@ export const placeholderPlot = defineKind<PlotParams>({
     'graph',
     'cluster',
     'embedding',
+    'flow',
+    'cytometry',
+    'facs',
+    'gate',
     'data',
     'mockup',
   ],
@@ -175,6 +185,7 @@ export const placeholderPlot = defineKind<PlotParams>({
         { value: 'umap', label: 'UMAP' },
         { value: 'scatter', label: 'Scatter' },
         { value: 'bar', label: 'Bar chart' },
+        { value: 'flow', label: 'Flow cytometry' },
       ],
       default: 'pca',
     },
@@ -184,7 +195,7 @@ export const placeholderPlot = defineKind<PlotParams>({
       type: 'list',
       min: 1,
       max: 8,
-      help: 'Clusters, or bars of a bar chart.',
+      help: 'Clusters, or bars of a bar chart. Flow cytometry uses the first colour for events and the second for events inside the polygon gate.',
       item: [
         { key: 'name', label: 'Name', type: 'text', maxLength: 30, default: '' },
         { key: 'color', label: 'Colour', type: 'color', default: GROUP_COLOURS[0] },
@@ -208,7 +219,30 @@ export const placeholderPlot = defineKind<PlotParams>({
       min: 1,
       max: 1000,
       default: 60,
-      showIf: (p) => p['plot'] !== 'bar',
+      showIf: (p) => p['plot'] !== 'bar' && p['plot'] !== 'flow',
+    },
+    {
+      key: 'events',
+      label: 'Events',
+      type: 'int',
+      min: 50,
+      max: 5000,
+      default: 1500,
+      help: 'How many cells the flow plot draws.',
+      showIf: (p) => p['plot'] === 'flow',
+    },
+    {
+      key: 'gate',
+      label: 'Gate',
+      type: 'enum',
+      options: [
+        { value: 'none', label: 'None' },
+        { value: 'quadrant', label: 'Quadrant' },
+        { value: 'polygon', label: 'Polygon' },
+      ],
+      default: 'quadrant',
+      help: 'The percentages are the share of the drawn events in each region.',
+      showIf: (p) => p['plot'] === 'flow',
     },
     {
       key: 'spread',
@@ -257,6 +291,7 @@ export const placeholderPlot = defineKind<PlotParams>({
       label: 'Group names',
       type: 'bool',
       default: true,
+      showIf: (p) => p['plot'] !== 'flow',
       help: 'A legend beside the plot; under the bars of a bar chart.',
     },
     {
@@ -300,12 +335,20 @@ export const placeholderPlot = defineKind<PlotParams>({
     const auto = autoLabels(p.plot, p.seed);
     const xl = p.axisLabels ? p.xLabel.trim() || auto.x : '';
     const yl = p.axisLabels ? p.yLabel.trim() || auto.y : '';
-    const legend = p.legend && !bar && p.groups.some((g) => g.name.trim() !== '');
+    const flow = p.plot === 'flow';
+    const legend = p.legend && !bar && !flow && p.groups.some((g) => g.name.trim() !== '');
     const chars = Math.max(0, ...p.groups.map((g) => g.name.trim().length));
     const legendW = legend ? Math.min(w * 0.35, ts * (1.6 + 0.55 * chars)) : 0;
     const names = p.legend && bar;
-    const left = Math.min(w * 0.3, yl ? ts * 1.9 : ts * 0.5);
-    const bottom = Math.min(h * 0.3, (xl ? ts * 1.9 : ts * 0.5) + (names ? ts * 1.3 : 0));
+    // The flow style adds room for the 10^k tick labels.
+    const left = Math.min(
+      w * (flow ? 0.4 : 0.3),
+      (yl ? ts * 1.9 : ts * 0.5) + (flow ? ts * 1.8 : 0),
+    );
+    const bottom = Math.min(
+      h * (flow ? 0.4 : 0.3),
+      (xl ? ts * 1.9 : ts * 0.5) + (names ? ts * 1.3 : 0) + (flow ? ts * 1.2 : 0),
+    );
     const top = Math.min(h * 0.1, ts * 0.6);
     const px0 = left;
     const px1 = Math.max(px0, w - legendW - ts * 0.5);
@@ -315,8 +358,12 @@ export const placeholderPlot = defineKind<PlotParams>({
     const ph = py1 - py0;
     const tick = ts * 0.3;
 
+    if (flow) {
+      out.push(...renderFlow(p, { w, h, px0, px1, py0, py1, ts, sw, tick, axisC, ink }));
+    }
+
     // Axes: an L with a few unlabelled ticks, or UMAP's two short corner arrows.
-    if (p.axes) {
+    if (p.axes && !flow) {
       const ax: Sub[] = [];
       if (umap) {
         const L = Math.min(pw, ph) * 0.25;
@@ -413,7 +460,7 @@ export const placeholderPlot = defineKind<PlotParams>({
             { fill: c },
           ),
         );
-    } else {
+    } else if (!flow) {
       const pad = p.axes && !umap ? 0.03 : 0;
       const r = Math.min(p.pointSize / 2, pw / 2, ph / 2);
       const groups = plotPoints(p);
