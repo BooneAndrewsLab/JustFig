@@ -81,29 +81,45 @@ describe.each(allKinds().map((k) => [k.kind, k] as const))('%s', (_name, k) => {
         path: k.usesPath ? pathArb(w, h) : fc.constant(undefined),
       }),
     );
-    fc.assert(
-      fc.property(arb, ({ w, h, raw, path }) => {
-        const p = fixed(k, decodeParams(k.fields, raw));
-        // Valid params decode to themselves (the decoder only repairs).
-        expect(fixed(k, decodeParams(k.fields, p))).toEqual(p);
-        const prims = k.render(p, { w, h, ...(path ? { path } : {}), slots: slotHexes(k, {}, []) });
-        expect(primsFinite(prims)).toBe(true);
-        expect(units(prims)).toBeLessThanOrEqual(50_000);
-        const pad = (k.overhang ? k.overhang(p) : 0) + 1e-4 * Math.max(w, h) + 1e-6;
-        for (const pr of prims)
-          for (const q of primPoints(pr)) {
-            expect(q.x).toBeGreaterThanOrEqual(-pad);
-            expect(q.y).toBeGreaterThanOrEqual(-pad);
-            expect(q.x).toBeLessThanOrEqual(w + pad);
-            expect(q.y).toBeLessThanOrEqual(h + pad);
-          }
-        const svg = primNodes(prims, 'text', [])
-          .map((n) => nodeToSvgString(n))
-          .join('');
-        expect(svg).not.toMatch(/NaN|Infinity/);
-      }),
-      { numRuns: Number(process.env['PROC_RUNS'] ?? 40) },
-    );
+    // A failure names the kind; fast-check adds seed, path and counterexample (issue #62).
+    const run = (): void => {
+      fc.assert(
+        fc.property(arb, ({ w, h, raw, path }) => {
+          const p = fixed(k, decodeParams(k.fields, raw));
+          // Valid params decode to themselves (the decoder only repairs).
+          expect(fixed(k, decodeParams(k.fields, p))).toEqual(p);
+          const prims = k.render(p, {
+            w,
+            h,
+            ...(path ? { path } : {}),
+            slots: slotHexes(k, {}, []),
+          });
+          expect(primsFinite(prims)).toBe(true);
+          expect(units(prims)).toBeLessThanOrEqual(50_000);
+          const pad = (k.overhang ? k.overhang(p) : 0) + 1e-4 * Math.max(w, h) + 1e-6;
+          for (const pr of prims)
+            for (const q of primPoints(pr)) {
+              expect(q.x).toBeGreaterThanOrEqual(-pad);
+              expect(q.y).toBeGreaterThanOrEqual(-pad);
+              expect(q.x).toBeLessThanOrEqual(w + pad);
+              expect(q.y).toBeLessThanOrEqual(h + pad);
+            }
+          const svg = primNodes(prims, 'text', [])
+            .map((n) => nodeToSvgString(n))
+            .join('');
+          expect(svg).not.toMatch(/NaN|Infinity/);
+        }),
+        { numRuns: Number(process.env['PROC_RUNS'] ?? 40) },
+      );
+    };
+    try {
+      run();
+    } catch (e) {
+      throw new Error(
+        `kind "${k.kind}" failed the bounded-render property:\n${String(e instanceof Error ? e.message : e)}`,
+        { cause: e },
+      );
+    }
   });
 
   it('converts to shapes with the same colours', () => {
