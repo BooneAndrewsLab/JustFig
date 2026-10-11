@@ -10,6 +10,7 @@ import type { Unit } from '@/core/units';
 
 import { formatBinding } from '../keyBindings';
 import type { NodeEdit, View } from '../state/store';
+import { OVERLAY } from './overlayPaint';
 
 const NODE = 8;
 
@@ -71,7 +72,7 @@ export function NodeOverlay({ obj, view, edit }: { obj: Obj; view: View; edit: N
                 y1={a.y}
                 x2={b.x}
                 y2={b.y}
-                stroke="#0072b2"
+                style={{ stroke: OVERLAY.select }}
                 strokeOpacity={0.7}
                 pointerEvents="none"
               />
@@ -82,9 +83,11 @@ export function NodeOverlay({ obj, view, edit }: { obj: Obj; view: View; edit: N
                 cx={b.x}
                 cy={b.y}
                 r={on ? 5 : 4}
-                fill={on ? '#0072b2' : '#fff'}
-                stroke="#0072b2"
-                style={{ cursor: 'move' }}
+                style={{
+                  fill: on ? OVERLAY.select : OVERLAY.handle,
+                  stroke: OVERLAY.select,
+                  cursor: 'move',
+                }}
               />
             </g>
           );
@@ -105,9 +108,11 @@ export function NodeOverlay({ obj, view, edit }: { obj: Obj; view: View; edit: N
             width={size}
             height={size}
             rx={isSmooth(n) ? size / 2 : 0}
-            fill={on ? '#0072b2' : '#fff'}
-            stroke="#0072b2"
-            style={{ cursor: 'move' }}
+            style={{
+              fill: on ? OVERLAY.select : OVERLAY.handle,
+              stroke: OVERLAY.select,
+              cursor: 'move',
+            }}
           />
         );
       })}

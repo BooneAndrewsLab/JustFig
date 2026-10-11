@@ -112,6 +112,9 @@ hard-coded hex values in `src/ui/canvas/Canvas.tsx`, `NodeOverlay.tsx`,
 
 ### Open (decide before step 2)
 
+Decided 2026-10-10: Archivo UI as BarelySig ships it (note 51); dark mode
+yes, following the system setting, no toggle (step 5).
+
 - **UI font.** Recommended: Archivo UI, as BarelySig ships it (subset
   `public/fonts/archivo-ui.woff2`, `font-weight: 380 720`, `font-display:
 swap`) and the wordmark is Archivo already; PlasmidPop would follow later.
@@ -170,3 +173,6 @@ changes (the guide test enforces it), and a design note in `docs/design/`
 - 2026-10-10: step 1 (logo, favicon, PWA icons, loading screen, brand colours) and the
   tool-icon part of step 4 landed; note 50. The chrome glyphs for undo, redo, zoom, close
   and add are in too, pending step 3's text Undo/Redo.
+- 2026-10-10: step 2 (tokens: family palette, teal accent, 14px base, radii, dialog metrics,
+  shadows, focus ring, sentence-case section headers, canvas overlay colours as tokens) and the
+  Archivo UI font landed; note 51.

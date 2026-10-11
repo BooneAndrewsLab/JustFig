@@ -1,27 +1,66 @@
 /*
  * App styles (note 01): one global sheet with custom-property tokens, as
- * the siblings. The canvas text is drawn as glyph outlines from the
- * figure fonts, so the UI itself needs no web font.
+ * the siblings (tokens: note 51). Every colour in a rule goes through a
+ * token, so a later dark scheme only redeclares this block. Brand red is a
+ * logo colour, never a control colour; the UI accent is PlasmidPop's teal.
+ * The canvas text is drawn as glyph outlines from the figure fonts
+ * (public/fonts/*.ttf); the UI font below is for the chrome only.
  */
 
+/* UI font, as BarelySig ships it: self-hosted Archivo subset, one variable-
+ * weight file, system font while it loads (public/fonts/README.md). */
+@font-face {
+  font-family: 'Archivo UI';
+  src: url('/fonts/archivo-ui.woff2') format('woff2');
+  font-weight: 380 720;
+  font-display: swap;
+}
+
 :root {
-  --ink: #1f2933;
-  --ink-2: #52606d;
-  --ink-3: #9aa5b1;
-  --ground: #f4f5f7;
+  /* Family palette (design/logo/README.md). */
+  --ink: #201e1d;
+  --ground: #f3f2f2;
+  --brand-red: #ec3013;
+  /* Text tiers: --ink-2 7.7:1 on panel, 6.9:1 on ground; --ink-3 5.4:1 and 4.8:1 (AA). */
+  --ink-2: #57524f;
+  --ink-3: #6f6966;
   --panel: #ffffff;
-  --rule: #e1e4e8;
-  --rule-strong: #cbd2d9;
-  --pasteboard: #e4e7eb;
-  --accent: #0072b2;
-  --accent-soft: rgb(0 114 178 / 12%);
+  --rule: #dcd9d7;
+  --rule-strong: #c4c0bd;
+  --pasteboard: #e6e4e3;
+  --accent: #1b6e8c;
+  --accent-ink: #ffffff;
+  --accent-soft: rgb(27 110 140 / 12%);
+  --backdrop: rgb(32 30 29 / 35%);
   --warning: #8a5a00;
   --error: #b3200a;
-  --radius: 5px;
-  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* Surfaces that show figure or image content stay white or black in any scheme. */
+  --paper: #ffffff;
+  --ink-black: #000000;
+  /* Canvas overlay (figure space): Okabe-Ito, distinct from the chrome accent. */
+  --select: #0072b2;
+  --select-wash: rgb(0 114 178 / 8%);
+  --handle: #ffffff;
+  --snap-guide: #d55e00;
+  --bind-target: #009e73;
+  --page-edge: #9c9693;
+  --note: #e69f00;
+  --note-edge: #5c3d00;
+  --note-ink: #201e1d;
+  --note-resolved: #ffffff;
+  --note-draft: #fff3d6;
+  /* Metrics. */
+  --radius: 6px;
+  --radius-dialog: 10px;
+  --shadow-menu: 0 6px 24px rgb(0 0 0 / 18%);
+  --shadow-dialog: 0 12px 40px rgb(0 0 0 / 30%);
+  --font-ui: 'Archivo UI', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   color: var(--ink);
   background: var(--ground);
-  font: 13px/1.4 var(--font-ui);
+}
+
+body {
+  font: 14px/1.45 var(--font-ui);
 }
 
 * {
@@ -63,7 +102,7 @@ button:disabled {
 button.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--accent-ink);
 }
 
 button.icon {
@@ -79,7 +118,7 @@ button[aria-pressed='true'] {
 
 :focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 1px;
+  outline-offset: 2px;
 }
 
 input[type='number'],
@@ -114,6 +153,12 @@ select {
   padding: 5px 10px;
   background: var(--panel);
   border-bottom: 1px solid var(--rule);
+}
+
+/* One row at 1280 px at the 14 px base (note 51): labels never wrap. */
+.topbar button:not(.icon) {
+  white-space: nowrap;
+  padding: 3px 7px;
 }
 
 /* The open figures (note 25). */
@@ -234,7 +279,7 @@ select {
 .toolbar-group {
   display: flex;
   gap: 3px;
-  padding: 0 6px;
+  padding: 0 5px;
   border-left: 1px solid var(--rule);
 }
 
@@ -311,9 +356,8 @@ button.link {
 }
 
 .icons-scroll h3 {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--ink-2);
   margin: 10px 0 4px;
 }
@@ -468,9 +512,8 @@ button.link {
 }
 
 .section > h2 {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--ink-2);
   margin: 0 0 6px;
 }
@@ -564,7 +607,8 @@ button.link {
 }
 
 .swatch.none {
-  background: linear-gradient(45deg, transparent 45%, var(--error) 45% 55%, transparent 55%), #fff;
+  background:
+    linear-gradient(45deg, transparent 45%, var(--error) 45% 55%, transparent 55%), var(--paper);
 }
 
 .color-pop {
@@ -574,7 +618,7 @@ button.link {
   border: 1px solid var(--rule-strong);
   border-radius: var(--radius);
   padding: 8px;
-  box-shadow: 0 6px 20px rgb(0 0 0 / 15%);
+  box-shadow: var(--shadow-menu);
   display: grid;
   grid-template-columns: repeat(6, 22px);
   gap: 4px;
@@ -650,7 +694,7 @@ button.link {
   background: var(--panel);
   border: 1px solid var(--accent);
   border-radius: var(--radius);
-  box-shadow: 0 6px 20px rgb(0 0 0 / 15%);
+  box-shadow: var(--shadow-menu);
   padding: 4px;
   width: 300px;
 }
@@ -685,7 +729,7 @@ button.link {
 .dialog-backdrop {
   position: fixed;
   inset: 0;
-  background: rgb(31 41 51 / 35%);
+  background: var(--backdrop);
   display: grid;
   place-items: center;
   z-index: 50;
@@ -693,16 +737,21 @@ button.link {
 
 .dialog {
   background: var(--panel);
-  border-radius: 8px;
-  box-shadow: 0 12px 40px rgb(0 0 0 / 25%);
+  border-radius: var(--radius-dialog);
+  box-shadow: var(--shadow-dialog);
   width: min(560px, calc(100vw - 32px));
   max-height: calc(100vh - 48px);
   overflow: auto;
-  padding: 16px 18px;
+  padding: 20px 22px;
+}
+
+.dialog--wide {
+  width: min(52rem, calc(100vw - 32px));
 }
 
 .dialog h1 {
   font-size: 16px;
+  font-weight: 600;
   margin: 0 0 10px;
 }
 
@@ -718,7 +767,7 @@ button.link {
   width: 100%;
   max-height: 280px;
   margin: 0 0 10px;
-  background: #fff;
+  background: var(--paper);
   cursor: crosshair;
   touch-action: none;
 }
@@ -728,7 +777,7 @@ button.link {
   max-width: 100%;
   max-height: 280px;
   margin: 0 auto 10px;
-  background: #000;
+  background: var(--ink-black);
   image-rendering: pixelated;
 }
 
@@ -821,9 +870,8 @@ button.link {
 
 .objects-shelf summary {
   cursor: pointer;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--ink-2);
 }
 
@@ -887,7 +935,7 @@ button.link {
   padding: 0 3px;
   border-radius: 3px;
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-ink);
   font-size: 9px;
   font-weight: 600;
   line-height: 12px;
@@ -895,8 +943,7 @@ button.link {
 }
 
 .icons-scroll h3 .kind-hint {
-  text-transform: none;
-  letter-spacing: 0;
+  font-weight: 400;
 }
 
 .param-list ul {
@@ -942,7 +989,7 @@ button.link {
 }
 
 .wellmap-drop {
-  outline: 2px dashed var(--accent, #0072b2);
+  outline: 2px dashed var(--accent);
   outline-offset: 2px;
 }
 
@@ -1030,9 +1077,8 @@ button.link {
 }
 
 .keybindings h2 {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--ink-2);
   margin: 10px 0 4px;
 }
@@ -1063,10 +1109,6 @@ button.link {
 
 .keybindings-fixed {
   color: var(--ink-2);
-}
-
-.dialog:has(.guide) {
-  width: min(900px, calc(100vw - 32px));
 }
 
 .guide {
@@ -1254,7 +1296,7 @@ button.link {
   min-height: 160px;
   border: 1px solid var(--rule);
   border-radius: var(--radius);
-  background: #fff;
+  background: var(--paper);
   padding: 8px;
 }
 
@@ -1332,8 +1374,8 @@ button.link {
   min-width: 18px;
   height: 18px;
   border-radius: 9px;
-  background: #e69f00;
-  color: #1f2328;
+  background: var(--note);
+  color: var(--note-ink);
   font-size: 11px;
   text-align: center;
   line-height: 18px;
@@ -1450,7 +1492,7 @@ button.link {
   background: var(--panel);
   border: 1px solid var(--rule-strong);
   border-radius: var(--radius);
-  box-shadow: 0 6px 20px rgb(0 0 0 / 15%);
+  box-shadow: var(--shadow-menu);
   font-size: 12px;
   text-align: center;
 }
@@ -1459,7 +1501,7 @@ button.link {
   width: 176px;
   height: 176px;
   object-fit: contain;
-  background: #fff;
+  background: var(--paper);
   border-radius: var(--radius);
 }
 

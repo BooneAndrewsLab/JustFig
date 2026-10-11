@@ -11,10 +11,13 @@ export function Dialog({
   title,
   onClose,
   children,
+  wide = false,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  /** PlasmidPop's `.dialog--wide` (52rem), for the guide. */
+  wide?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const close = useRef(onClose);
@@ -64,7 +67,13 @@ export function Dialog({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div ref={ref} className="dialog" role="dialog" aria-modal="true" aria-label={title}>
+      <div
+        ref={ref}
+        className={wide ? 'dialog dialog--wide' : 'dialog'}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
         <h1>{title}</h1>
         {children}
       </div>

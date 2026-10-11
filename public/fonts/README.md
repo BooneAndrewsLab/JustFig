@@ -11,3 +11,13 @@ math operators and geometric shapes, no layout features, no hinting:
 
 The TTFs are read by opentype.js (text layout and outlining) and embedded by
 jsPDF in PDF exports, and served as web fonts for the on-screen canvas.
+
+## UI font: Archivo
+
+`archivo-ui.woff2` sets the editor's chrome only (`src/ui/theme.css`, note 51); figure text
+never uses it. Archivo, by the Archivo Project Authors, SIL Open Font License 1.1
+(`LICENSE-OFL-1.1-Archivo.txt`), from https://github.com/Omnibus-Type/Archivo. The file is
+copied unchanged from BarelySig (`public/fonts/archivo-ui.woff2`, built there by
+`scripts/make-ui-font.py`): one variable font, weight axis trimmed to 380–720, width pinned
+at 100, subset to Latin, Latin-1, Latin Extended-A and the interface's punctuation. Glyphs
+outside the subset fall back to the system font.

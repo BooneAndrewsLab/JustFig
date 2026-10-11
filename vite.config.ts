@@ -2,7 +2,7 @@
 import { readdirSync } from 'node:fs';
 import { fileURLToPath, URL } from 'node:url';
 import react from '@vitejs/plugin-react';
-import type { Plugin } from 'vite';
+import type { HtmlTagDescriptor, Plugin } from 'vite';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
@@ -27,7 +27,9 @@ function brandHtml(): Plugin {
  * Preloads every font file in `public/fonts/` so they download while the app
  * script is still being evaluated, instead of after it (main.tsx fetches them
  * before the first render). `crossorigin` makes the preload match a
- * same-origin `fetch()`.
+ * same-origin `fetch()`. The UI font (`archivo-ui.woff2`, note 51) is
+ * preloaded as a font, so the editor's first paint is already set in it
+ * rather than swapping from the system font a moment later.
  */
 function fontPreloads(): Plugin {
   const dir = fileURLToPath(new URL('./public/fonts', import.meta.url));
@@ -36,12 +38,24 @@ function fontPreloads(): Plugin {
     .sort();
   return {
     name: 'font-preloads',
-    transformIndexHtml: () =>
-      files.map((file) => ({
+    transformIndexHtml: (): HtmlTagDescriptor[] => [
+      ...files.map((file) => ({
         tag: 'link',
         attrs: { rel: 'preload', href: `${base}fonts/${file}`, as: 'fetch', crossorigin: true },
-        injectTo: 'head',
+        injectTo: 'head' as const,
       })),
+      {
+        tag: 'link',
+        attrs: {
+          rel: 'preload',
+          href: `${base}fonts/archivo-ui.woff2`,
+          as: 'font',
+          type: 'font/woff2',
+          crossorigin: true,
+        },
+        injectTo: 'head',
+      },
+    ],
   };
 }
 
@@ -83,11 +97,11 @@ export default defineConfig({
       },
       workbox: {
         // The app shell, the fonts (ttf: text layout and PDF embedding read
-        // the files themselves) and the icon library's index: manifest,
-        // shards and search index (~3 MB), so browsing and search work
-        // offline. The library's SVGs and sprite sheets (~80 MB) are cached
+        // the files themselves; woff2: the UI font) and the icon library's
+        // index: manifest, shards and search index (~3 MB), so browsing and
+        // search work offline. The library's SVGs and sprite sheets (~80 MB) are cached
         // as they are first used instead (below).
-        globPatterns: ['**/*.{js,mjs,css,html,svg,png,webmanifest,ttf,json}'],
+        globPatterns: ['**/*.{js,mjs,css,html,svg,png,webmanifest,ttf,woff2,json}'],
         globIgnores: ['lib/*/svg/**', 'lib/*/thumbs/**', 'lib/*/LICENSES/**'],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         navigateFallback: `${base}index.html`,

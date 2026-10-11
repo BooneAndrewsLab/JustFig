@@ -56,6 +56,7 @@ import { NoteMarkers } from './NoteMarkers';
 import { PageView } from './PageView';
 import { Ruler } from './Rulers';
 import { TextEditor } from './TextEditor';
+import { OVERLAY } from './overlayPaint';
 
 /** Snap distance, screen pixels. */
 const SNAP_PX = 6;
@@ -816,7 +817,7 @@ export function Canvas() {
               width={page.size.w}
               height={page.size.h}
               fill="none"
-              stroke="#9aa5b1"
+              style={{ stroke: OVERLAY.pageEdge }}
               strokeWidth={0.5 / v.zoom}
               pointerEvents="none"
             />
@@ -833,7 +834,7 @@ export function Canvas() {
                   width={b.w * v.zoom}
                   height={b.h * v.zoom}
                   fill="none"
-                  stroke="#0072b2"
+                  style={{ stroke: OVERLAY.select }}
                   strokeOpacity={0.5}
                 />
               );
@@ -842,21 +843,23 @@ export function Canvas() {
               gd.axis === 'x' ? (
                 <line
                   key={i}
+                  data-snap-guide=""
                   x1={scr({ x: gd.at, y: 0 }).x}
                   x2={scr({ x: gd.at, y: 0 }).x}
                   y1={scr({ x: 0, y: gd.from }).y}
                   y2={scr({ x: 0, y: gd.to }).y}
-                  stroke="#d55e00"
+                  style={{ stroke: OVERLAY.snapGuide }}
                   strokeDasharray="3 2"
                 />
               ) : (
                 <line
                   key={i}
+                  data-snap-guide=""
                   y1={scr({ x: 0, y: gd.at }).y}
                   y2={scr({ x: 0, y: gd.at }).y}
                   x1={scr({ x: gd.from, y: 0 }).x}
                   x2={scr({ x: gd.to, y: 0 }).x}
-                  stroke="#d55e00"
+                  style={{ stroke: OVERLAY.snapGuide }}
                   strokeDasharray="3 2"
                 />
               ),
@@ -870,7 +873,7 @@ export function Canvas() {
                 height={overlay.bindBox.h * v.zoom + 6}
                 rx={3}
                 fill="none"
-                stroke="#009e73"
+                style={{ stroke: OVERLAY.bindTarget }}
                 strokeWidth={2}
               />
             )}
@@ -880,8 +883,7 @@ export function Canvas() {
                 y={scr(overlay.marquee).y}
                 width={overlay.marquee.w * v.zoom}
                 height={overlay.marquee.h * v.zoom}
-                fill="rgb(0 114 178 / 8%)"
-                stroke="#0072b2"
+                style={{ fill: OVERLAY.selectWash, stroke: OVERLAY.select }}
                 strokeDasharray="4 2"
               />
             )}
@@ -890,7 +892,7 @@ export function Canvas() {
                 d={overlay.preview.d}
                 transform={`translate(${String(v.x)} ${String(v.y)}) scale(${String(v.zoom)})`}
                 fill="none"
-                stroke="#0072b2"
+                style={{ stroke: OVERLAY.select }}
                 strokeWidth={1.5 / v.zoom}
               />
             )}
@@ -903,7 +905,7 @@ export function Canvas() {
                   rx={(overlay.preview.box.w * v.zoom) / 2}
                   ry={(overlay.preview.box.h * v.zoom) / 2}
                   fill="none"
-                  stroke="#0072b2"
+                  style={{ stroke: OVERLAY.select }}
                 />
               ) : (
                 <rect
@@ -912,7 +914,7 @@ export function Canvas() {
                   width={overlay.preview.box.w * v.zoom}
                   height={overlay.preview.box.h * v.zoom}
                   fill="none"
-                  stroke="#0072b2"
+                  style={{ stroke: OVERLAY.select }}
                 />
               ))}
             {pen.map((n, i) => {
@@ -924,8 +926,7 @@ export function Canvas() {
                   y={a.y - 3}
                   width={6}
                   height={6}
-                  fill="#fff"
-                  stroke="#0072b2"
+                  style={{ fill: OVERLAY.handle, stroke: OVERLAY.select }}
                 />
               );
             })}
@@ -950,7 +951,7 @@ export function Canvas() {
                   width={drawnBox.w * v.zoom}
                   height={drawnBox.h * v.zoom}
                   fill="none"
-                  stroke="#0072b2"
+                  style={{ stroke: OVERLAY.select }}
                   strokeDasharray="3 3"
                   pointerEvents="none"
                 />
@@ -961,7 +962,7 @@ export function Canvas() {
                 width={selBox.w * v.zoom}
                 height={selBox.h * v.zoom}
                 fill="none"
-                stroke="#0072b2"
+                style={{ stroke: OVERLAY.select }}
                 pointerEvents="none"
               />
               {HANDLES.map((h) => {
@@ -974,9 +975,7 @@ export function Canvas() {
                     y={a.y - HANDLE / 2}
                     width={HANDLE}
                     height={HANDLE}
-                    fill="#fff"
-                    stroke="#0072b2"
-                    style={{ cursor: `${h}-resize` }}
+                    style={{ fill: OVERLAY.handle, stroke: OVERLAY.select, cursor: `${h}-resize` }}
                   />
                 );
               })}
@@ -987,7 +986,7 @@ export function Canvas() {
                     x2={scr(handlePoint(selBox, 'n')).x}
                     y1={scr(handlePoint(selBox, 'n')).y}
                     y2={scr(handlePoint(selBox, 'n')).y - 18}
-                    stroke="#0072b2"
+                    style={{ stroke: OVERLAY.select }}
                     pointerEvents="none"
                   />
                   <circle
@@ -995,9 +994,7 @@ export function Canvas() {
                     cx={scr(handlePoint(selBox, 'n')).x}
                     cy={scr(handlePoint(selBox, 'n')).y - 22}
                     r={5}
-                    fill="#fff"
-                    stroke="#0072b2"
-                    style={{ cursor: 'grab' }}
+                    style={{ fill: OVERLAY.handle, stroke: OVERLAY.select, cursor: 'grab' }}
                   >
                     <title>Rotate (Shift: 15° steps)</title>
                   </circle>

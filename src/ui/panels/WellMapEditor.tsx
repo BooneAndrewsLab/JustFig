@@ -14,6 +14,7 @@ import { rowLabel } from '@/procedural/kinds/util';
 import { type PastedWells, wellId, wellsFromTable } from '@/procedural/kinds/wellPlate';
 import { readTableFile } from '@/procedural/tableFile';
 import type { Params, WellMap, WellMapField } from '@/procedural/types';
+import { OVERLAY } from '../canvas/overlayPaint';
 
 interface Props {
   readonly field: WellMapField;
@@ -38,7 +39,7 @@ const WellGrid = memo(function WellGrid({
 }) {
   return (
     <>
-      <rect width={cols * cell} height={rows * cell} fill="#eef2f6" />
+      <rect width={cols * cell} height={rows * cell} style={{ fill: OVERLAY.wellGround }} />
       {Array.from({ length: rows }, (_, r) =>
         Array.from({ length: cols }, (_, c) => {
           const id = wellId(r, c);
@@ -52,7 +53,7 @@ const WellGrid = memo(function WellGrid({
               height={cell - 1}
               rx={cell / 2}
               fill={value[id] ?? '#ffffff'}
-              stroke="#9aa5b1"
+              style={{ stroke: OVERLAY.wellEdge }}
               strokeWidth={cell > 6 ? 0.5 : 0}
             >
               <title>{id}</title>
@@ -273,7 +274,7 @@ export function WellMapEditor({ field, params, value, palette = [], onChange }: 
             width={cell}
             height={cell}
             fill="none"
-            stroke="#d55e00"
+            style={{ stroke: OVERLAY.snapGuide }}
             strokeWidth={1.5}
             pointerEvents="none"
           />

@@ -134,7 +134,7 @@ test('moving snaps to another object and shows a guide; group and ungroup', asyn
   await page.mouse.down();
   await page.mouse.move(to.x, to.y, { steps: 8 });
   // A guide line (zero-width when vertical, so counted rather than 'visible').
-  await expect(page.locator('line[stroke="#d55e00"]')).not.toHaveCount(0);
+  await expect(page.locator('line[data-snap-guide]')).not.toHaveCount(0);
   await page.mouse.up();
   const xMoved = await field(page, 'X').inputValue();
   // Snapped: the moved rect's X equals the first rect's X (the bottom one in the layer list).

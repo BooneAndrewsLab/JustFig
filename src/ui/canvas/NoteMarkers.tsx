@@ -10,6 +10,7 @@ import { findObj } from '@/core/model/tree';
 import type { Doc, Page, Vec2 } from '@/core/model/types';
 
 import { type NoteDraft, type View, store } from '../state/store';
+import { OVERLAY } from './overlayPaint';
 
 const R = 9;
 
@@ -55,16 +56,20 @@ export function NoteMarkers({
             <title>{`Note ${String(i + 1)}${n.resolved === true ? ' (resolved)' : ''}`}</title>
             <path
               d={`M0 0 L${String(R * 0.3)} ${String(-R)} L${String(R)} ${String(-R * 0.3)} Z`}
-              fill={n.resolved === true ? '#ffffff' : '#e69f00'}
-              stroke={on ? '#0072b2' : '#5c3d00'}
+              style={{
+                fill: n.resolved === true ? OVERLAY.noteResolved : OVERLAY.note,
+                stroke: on ? OVERLAY.select : OVERLAY.noteEdge,
+              }}
               strokeWidth={on ? 2 : 1}
             />
             <circle
               cx={R}
               cy={-R}
               r={R}
-              fill={n.resolved === true ? '#ffffff' : '#e69f00'}
-              stroke={on ? '#0072b2' : '#5c3d00'}
+              style={{
+                fill: n.resolved === true ? OVERLAY.noteResolved : OVERLAY.note,
+                stroke: on ? OVERLAY.select : OVERLAY.noteEdge,
+              }}
               strokeWidth={on ? 2.5 : 1}
             />
             <text
@@ -73,7 +78,7 @@ export function NoteMarkers({
               textAnchor="middle"
               fontSize={10}
               fontFamily="sans-serif"
-              fill="#1f2328"
+              style={{ fill: OVERLAY.noteInk }}
               pointerEvents="none"
             >
               {i + 1}
@@ -87,8 +92,7 @@ export function NoteMarkers({
           cx={scr(draft.at).x + R}
           cy={scr(draft.at).y - R}
           r={R}
-          fill="#fff3d6"
-          stroke="#e69f00"
+          style={{ fill: OVERLAY.noteDraft, stroke: OVERLAY.note }}
           strokeDasharray="3 2"
           pointerEvents="none"
         />

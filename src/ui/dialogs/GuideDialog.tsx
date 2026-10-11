@@ -17,7 +17,7 @@ export function GuideDialog({ onClose }: { onClose: () => void }) {
     document.querySelector('.guide-page')?.scrollTo({ top: 0 });
   };
   return (
-    <Dialog title="User guide" onClose={onClose}>
+    <Dialog title="User guide" onClose={onClose} wide>
       <div className="guide">
         <nav aria-label="Guide pages">
           <ol>

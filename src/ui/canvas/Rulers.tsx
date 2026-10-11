@@ -3,6 +3,7 @@ import type { Unit } from '@/core/units';
 import { MM_PER_IN, PT_PER_IN } from '@/core/units';
 
 import type { View } from '../state/store';
+import { OVERLAY } from './overlayPaint';
 
 interface Props {
   readonly axis: 'x' | 'y';
@@ -51,16 +52,36 @@ export function Ruler({ axis, view, length, units }: Props) {
     const size = major ? 10 : 4;
     ticks.push(
       axis === 'x' ? (
-        <line key={i} x1={pos} x2={pos} y1={20 - size} y2={20} stroke="#9aa5b1" />
+        <line
+          key={i}
+          x1={pos}
+          x2={pos}
+          y1={20 - size}
+          y2={20}
+          style={{ stroke: OVERLAY.rulerTick }}
+        />
       ) : (
-        <line key={i} y1={pos} y2={pos} x1={20 - size} x2={20} stroke="#9aa5b1" />
+        <line
+          key={i}
+          y1={pos}
+          y2={pos}
+          x1={20 - size}
+          x2={20}
+          style={{ stroke: OVERLAY.rulerTick }}
+        />
       ),
     );
     if (major) {
       const label = String(Math.round(i * minor * 100) / 100);
       ticks.push(
         axis === 'x' ? (
-          <text key={`t${String(i)}`} x={pos + 2} y={9} fontSize={9} fill="#52606d">
+          <text
+            key={`t${String(i)}`}
+            x={pos + 2}
+            y={9}
+            fontSize={9}
+            style={{ fill: OVERLAY.rulerText }}
+          >
             {label}
           </text>
         ) : (
@@ -69,7 +90,7 @@ export function Ruler({ axis, view, length, units }: Props) {
             x={9}
             y={pos + 2}
             fontSize={9}
-            fill="#52606d"
+            style={{ fill: OVERLAY.rulerText }}
             transform={`rotate(-90 9 ${String(pos + 2)})`}
           >
             {label}
