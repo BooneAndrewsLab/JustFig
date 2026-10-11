@@ -76,7 +76,21 @@ test('the dialogs and the Inspector of each kind of selection have none either',
   await expect(wizard.getByText('Only 24 of 40 conditions fit')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  // Arrange in grid needs a selection: the well plate just added is one.
+  // The agar plate's tetrad wizard, every step.
+  await page.getByRole('button', { name: 'Add Petri dish' }).click();
+  await page.locator('.side').getByRole('button', { name: 'Tetrad plate wizard…' }).click();
+  const tetrad = page.getByRole('dialog', { name: 'Tetrad plate wizard' });
+  await expect(tetrad).toBeVisible();
+  for (const q of ['How many tetrads?', 'How do the spores segregate?', 'Which spores fail?']) {
+    await expect(tetrad.getByRole('group', { name: q })).toBeVisible();
+    if (q === 'Which spores fail?') await tetrad.getByLabel('Dead spores').fill('60');
+    problems.push(...(await audit(page, '.dialog')).map((p) => `Tetrad wizard, ${q} ${p}`));
+    if (q !== 'Which spores fail?') await tetrad.getByRole('button', { name: 'Next' }).click();
+  }
+  await expect(tetrad.getByText('More than half of the spores')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  // Arrange in grid needs a selection: the dish just added is one.
   await page.keyboard.press('Shift+G');
   await expect(page.getByRole('dialog', { name: 'Arrange in grid' })).toBeVisible();
   problems.push(...(await audit(page, '.dialog')).map((p) => `Arrange in grid: ${p}`));

@@ -43,8 +43,8 @@ function kind(id: string): ProceduralKind {
 const { negative: NEG, positive: POS, blank: BLANK } = PLATE_MAP_COLOURS;
 
 describe('kind wizards', () => {
-  it('are on the well plate', () => {
-    expect(withWizard.map((k) => k.kind)).toEqual(['wellPlate']);
+  it('are on the well plate and the agar plate', () => {
+    expect(withWizard.map((k) => k.kind).sort()).toEqual(['petriDish', 'wellPlate']);
   });
 
   describe.each(withWizard.map((k) => [k.kind, k] as const))('%s', (_name, k) => {
@@ -225,6 +225,69 @@ describe('the plate map wizard', () => {
     // Only the keys the wizard builds change.
     expect(after.params).toMatchObject({ format: '384', shape: 'square', showLabels: false });
     expect((after.params as Params)['wells']).toEqual(plateMap(answers).wells);
+  });
+});
+
+describe('the tetrad plate wizard', () => {
+  const k = kind('petriDish');
+  const w = k.wizard ?? never();
+
+  it('asks about tetrads, segregation and failing spores, and builds the tetrad pattern', () => {
+    expect(w.steps.map((s) => s.question)).toEqual([
+      'How many tetrads?',
+      'How do the spores segregate?',
+      'Which spores fail?',
+    ]);
+    expect(wizardParams(w, {})).toEqual({
+      pattern: 'tetrads',
+      tetrads: 8,
+      tetradLabels: true,
+      segregation: '2:2',
+      dead: 0,
+      missing: 0,
+    });
+    expect(
+      wizardParams(w, {
+        tetrads: 99,
+        segregation: '3:1',
+        dead: 20,
+        missing: 5,
+        tetradLabels: false,
+      }),
+    ).toEqual({
+      pattern: 'tetrads',
+      tetrads: 24,
+      tetradLabels: false,
+      segregation: '3:1',
+      dead: 20,
+      missing: 5,
+    });
+  });
+
+  it('warns when most spores fail', () => {
+    expect(wizardProblems(w, {})).toEqual([]);
+    expect(wizardProblems(w, { dead: 30, missing: 30 })).toEqual([
+      'More than half of the spores will be dead or missing.',
+    ]);
+    expect(wizardProblems(w, { dead: 50, missing: 50 })).toEqual([
+      'No spore will grow into a colony.',
+    ]);
+  });
+
+  it('places a new plate from the answers and applies them as one named edit', () => {
+    const answers = { tetrads: 12, segregation: '4:0', dead: 10 };
+    const placed = createFromWizard(k, answers, { x: 100, y: 100 });
+    expect(placed.params).toMatchObject({ pattern: 'tetrads', tetrads: 12, segregation: '4:0' });
+
+    const o = createProcedural(k, { x: 100, y: 100 }, { lid: true, seed: 7 });
+    const doc = createDoc();
+    const page = doc.pages[0];
+    if (!page) throw new Error('no page');
+    const fig: Figure = addObjects(page.id, [o]).apply({ doc, assets: {} });
+    const e = applyWizard(page.id, o.id, k, answers);
+    expect(e.label).toBe('Tetrad plate wizard');
+    const after = [...docObjects(e.apply(fig).doc)][0] as Procedural;
+    expect(after.params).toMatchObject({ lid: true, seed: 7, pattern: 'tetrads', tetrads: 12 });
   });
 });
 

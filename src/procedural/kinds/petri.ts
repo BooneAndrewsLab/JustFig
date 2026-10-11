@@ -4,6 +4,7 @@ import type { Vec2 } from '@/core/model/types';
 
 import { type Prim, type Sub, circle, pathPrim, poly } from '../prims';
 import { defineKind } from '../types';
+import { tetradWizard } from './petriTetradWizard';
 import { mix, rng, text } from './util';
 
 export interface PetriParams {
@@ -38,6 +39,7 @@ const rowName = (r: number) => String.fromCharCode(65 + (r % 26));
 
 export const petriDish = defineKind<PetriParams>({
   kind: 'petriDish',
+  wizard: tetradWizard,
   version: 4,
   title: 'Petri dish',
   category: 'Lab',
