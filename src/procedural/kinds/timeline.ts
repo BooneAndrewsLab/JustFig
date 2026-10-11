@@ -303,6 +303,51 @@ export const timeline = defineKind<TimelineParams>({
       default: 8,
     },
   ],
+  presets: [
+    {
+      id: 'time-course',
+      label: 'Time course',
+      params: {
+        start: 0,
+        end: 48,
+        unit: 'hours',
+        tickLabels: 'prefix',
+        step: 0,
+        events: [
+          { label: 'Stimulus', time: 0, marker: 'triangle', end: 0, color: '' },
+          { label: '1 h', time: 1, marker: 'tick', end: 1, color: '' },
+          { label: '4 h', time: 4, marker: 'tick', end: 4, color: '' },
+          { label: '12 h', time: 12, marker: 'tick', end: 12, color: '' },
+          { label: '24 h', time: 24, marker: 'tick', end: 24, color: '' },
+          { label: 'Harvest', time: 48, marker: 'triangle', end: 48, color: '' },
+        ],
+        ranges: [{ label: 'Stimulated', start: 0, end: 48, color: '#56b4e9' }],
+      },
+    },
+    {
+      id: 'pooled-crispr-screen',
+      label: 'Pooled CRISPR screen',
+      params: {
+        start: 0,
+        end: 28,
+        unit: 'days',
+        tickLabels: 'prefix',
+        step: 7,
+        events: [
+          { label: 'Transduce library', time: 0, marker: 'triangle', end: 0, color: '' },
+          { label: 'Start selection', time: 2, marker: 'triangle', end: 2, color: '' },
+          { label: 'Reference sample (T0)', time: 7, marker: 'tick', end: 7, color: '' },
+          { label: 'Sort or treat', time: 14, marker: 'triangle', end: 14, color: '' },
+          { label: 'Harvest, sequence', time: 28, marker: 'triangle', end: 28, color: '' },
+        ],
+        ranges: [
+          { label: 'Puromycin selection', start: 2, end: 7, color: '#e69f00' },
+          { label: 'Expansion', start: 7, end: 14, color: '#009e73' },
+          { label: 'Screen', start: 14, end: 28, color: '#56b4e9' },
+        ],
+      },
+    },
+  ],
   slots: [
     { id: 'axis', label: 'Axis', default: '#1f2933' },
     { id: 'marker', label: 'Markers', default: '#d55e00' },

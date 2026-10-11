@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 90">
+<path d="M12.2 32.4H343.16V33.2H12.2ZM343.16 30.24L350.36 32.8L343.16 35.36ZM23.66 32.8H24.38V34.78H23.66ZM35.48 32.8H36.2V34.78H35.48ZM47.3 32.8H48.02V34.78H47.3ZM59.12 32.8H59.84V34.78H59.12ZM70.94 32.8H71.66V34.78H70.94ZM82.76 32.8H83.48V34.78H82.76ZM106.4 32.8H107.12V34.78H106.4ZM118.22 32.8H118.94V34.78H118.22ZM130.04 32.8H130.76V34.78H130.04ZM141.86 32.8H142.58V34.78H141.86ZM153.68 32.8H154.4V34.78H153.68ZM165.5 32.8H166.22V34.78H165.5ZM189.14 32.8H189.86V34.78H189.14ZM200.96 32.8H201.68V34.78H200.96ZM212.78 32.8H213.5V34.78H212.78ZM224.6 32.8H225.32V34.78H224.6ZM236.42 32.8H237.14V34.78H236.42ZM248.24 32.8H248.96V34.78H248.24ZM271.88 32.8H272.6V34.78H271.88ZM283.7 32.8H284.42V34.78H283.7ZM295.52 32.8H296.24V34.78H295.52ZM307.34 32.8H308.06V34.78H307.34ZM319.16 32.8H319.88V34.78H319.16ZM330.98 32.8H331.7V34.78H330.98ZM11.84 32.8H12.56V36.4H11.84ZM94.58 32.8H95.3V36.4H94.58ZM177.32 32.8H178.04V36.4H177.32ZM260.06 32.8H260.78V36.4H260.06ZM342.8 32.8H343.52V36.4H342.8Z" fill="#1f2933"/>
+<path d="M35.84 32.4L32.48 25.2L39.2 25.2ZM12.2 32.4L8.84 25.2L15.56 25.2ZM12 13.6H12.4V25.2H12ZM94.06 25.2H95.82V36.4H94.06ZM94.74 3.2H95.14V25.2H94.74ZM177.68 32.4L174.32 25.2L181.04 25.2ZM343.16 32.4L339.8 25.2L346.52 25.2Z" fill="#d55e00"/>
+<path d="M39.04 51.6H91.74A3.2 3.2 0 0 1 94.94 54.8V61.2A3.2 3.2 0 0 1 91.74 64.4H39.04A3.2 3.2 0 0 1 35.84 61.2V54.8A3.2 3.2 0 0 1 39.04 51.6Z" fill="#e69f00"/>
+<path d="M98.14 67.6H174.48A3.2 3.2 0 0 1 177.68 70.8V77.2A3.2 3.2 0 0 1 174.48 80.4H98.14A3.2 3.2 0 0 1 94.94 77.2V70.8A3.2 3.2 0 0 1 98.14 67.6Z" fill="#009e73"/>
+<path d="M180.88 83.6H339.96A3.2 3.2 0 0 1 343.16 86.8V93.2A3.2 3.2 0 0 1 339.96 96.4H180.88A3.2 3.2 0 0 1 177.68 93.2V86.8A3.2 3.2 0 0 1 180.88 83.6Z" fill="#56b4e9"/>
+<g transform="translate(1.75 38.8)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Day 0</tspan></text></g>
+<g transform="translate(84.49 38.8)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Day 7</tspan></text></g>
+<g transform="translate(165.01 38.8)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Day 14</tspan></text></g>
+<g transform="translate(247.75 38.8)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Day 21</tspan></text></g>
+<g transform="translate(330.49 38.8)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Day 28</tspan></text></g>
+<g transform="translate(10.49 13.87)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Start selection</tspan></text></g>
+<g transform="translate(7.18 3.47)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Transduce library</tspan></text></g>
+<g transform="translate(54.04 -6.93)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Reference sample (T0)</tspan></text></g>
+<g transform="translate(156.56 13.87)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Sort or treat</tspan></text></g>
+<g transform="translate(288.57 13.87)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Harvest, sequence</tspan></text></g>
+<g transform="translate(98.14 54)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Puromycin selection</tspan></text></g>
+<g transform="translate(117.63 70)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#ffffff">Expansion</tspan></text></g>
+<g transform="translate(247.75 86)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Screen</tspan></text></g>
+</svg>

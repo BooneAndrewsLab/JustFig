@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 90">
+<path d="M7.72 43.2H347.64V44H7.72ZM347.64 41.04L354.84 43.6L347.64 46.16ZM7.36 43.6H8.08V47.2H7.36ZM177.32 43.6H178.04V47.2H177.32ZM347.28 43.6H348V47.2H347.28Z" fill="#1f2933"/>
+<path d="M13.92 36H15.68V47.2H13.92ZM7.72 43.2L4.36 36L11.08 36ZM7.52 24.4H7.92V36H7.52ZM35.17 36H36.93V47.2H35.17ZM91.82 36H93.58V47.2H91.82ZM176.8 36H178.56V47.2H176.8ZM347.64 43.2L344.28 36L351 36Z" fill="#d55e00"/>
+<path d="M10.92 62.4H344.44A3.2 3.2 0 0 1 347.64 65.6V72A3.2 3.2 0 0 1 344.44 75.2H10.92A3.2 3.2 0 0 1 7.72 72V65.6A3.2 3.2 0 0 1 10.92 62.4Z" fill="#56b4e9"/>
+<g transform="translate(2.16 49.6)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">0 h</tspan></text></g>
+<g transform="translate(169.89 49.6)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">24 h</tspan></text></g>
+<g transform="translate(339.85 49.6)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">48 h</tspan></text></g>
+<g transform="translate(9.24 24.67)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">1 h</tspan></text></g>
+<g transform="translate(2.58 14.27)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Stimulus</tspan></text></g>
+<g transform="translate(30.49 24.67)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">4 h</tspan></text></g>
+<g transform="translate(84.91 24.67)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">12 h</tspan></text></g>
+<g transform="translate(169.89 24.67)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">24 h</tspan></text></g>
+<g transform="translate(330.54 24.67)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Harvest</tspan></text></g>
+<g transform="translate(158.78 64.8)"><text xml:space="preserve"><tspan x="0" y="6.77" font-family="Arimo" font-size="8" fill="#1f2933">Stimulated</tspan></text></g>
+</svg>
