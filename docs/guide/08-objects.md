@@ -20,7 +20,7 @@ Some objects come with ready-made **starting points**: a Petri dish already stre
 
 On an object already in the figure, **Start from…** at the top of its Inspector section offers the same list. Choosing one changes only what that starting point is about and keeps the rest, in one step you can undo: a Patterns choice on a Petri dish keeps its medium, and a Media choice keeps its colonies. A starting point is only a start: every setting stays yours to change, and the figure does not remember which one you began from.
 
-- **Petri dish** — Patterns: Single-colony streak, Spot dilutions, Pinned grid, Lawn, Empty plate. Media (the agar and colony colours): LB, YPD, SC/dropout, Blood agar, MacConkey, X-gal (blue colonies), Chocolate agar.
+- **Petri dish** — Patterns: Single-colony streak, Spot dilutions, Pinned grid, Lawn, Tetrad dissection, Empty plate. Media (the agar and colony colours): LB, YPD, SC/dropout, Blood agar, MacConkey, X-gal (blue colonies), Chocolate agar.
 - **Agarose gel** — Colony PCR check (a 1 kb ladder, six colonies screened for a 1.5 kb insert, with + and – controls) and Restriction digest (uncut plasmid, two single digests and the double digest).
 - **Well plate** — 96-well layouts: Controls in fixed columns (negative in column 1, positive in column 12), Blank edge wells (the outer ring left blank against edge effects), Dilution gradient (across the columns), Standard curve and triplicates (standards down columns 1 and 2, samples in triplicate, blanks in column 12) and Drug-combination checkerboard (one drug rising down the rows, the other across the columns).
 
@@ -59,7 +59,9 @@ Set the protein **Length** in aa. Each domain in the **Domains** list has a Name
 
 ### Petri dish
 
-**Colonies** chooses the pattern: Scattered, Streak (three zones), Spot dilutions, Pinned grid, Lawn or None (empty plate). **Number** sets how many colonies (not for Lawn or None), **Colony size** and **Size variation** the look, and **Lid rim** adds the dish rim. **Arrangement** works as on the cell.
+**Colonies** chooses the pattern: Scattered, Streak (three zones), Spot dilutions, Pinned grid, Lawn, Tetrad dissection or None (empty plate). **Number** sets how many colonies (not for Lawn or None), **Colony size** and **Size variation** the look, and **Lid rim** adds the dish rim. **Arrangement** works as on the cell.
+
+Tetrad dissection draws one column of four spores (a to d) per tetrad. Set the number of **Tetrads**, the **Segregation** (2:2, 4:0, 3:1, 1:3, 0:4, or mostly 2:2 with a few others), the share of **Dead spores** (a tiny microcolony) and **Missing spores** (an empty spot), and whether to number the tetrads. Spores carrying the marker are drawn in the **Marker colonies** colour, for example red _ade2_ against white.
 
 ### Agarose gel
 

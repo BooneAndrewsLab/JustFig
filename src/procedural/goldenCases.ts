@@ -43,6 +43,19 @@ export const GOLDEN_CASES: Readonly<Record<string, Readonly<Record<string, Parti
     spots: { pattern: 'spots', count: 40 },
     grid: { pattern: 'grid', count: 96, variation: 0 },
     lawn: { pattern: 'lawn', lid: false },
+    'tetrads-mixed': {
+      pattern: 'tetrads',
+      tetrads: 12,
+      segregation: 'mixed',
+      dead: 10,
+      missing: 5,
+    },
+    'tetrads-3-1': {
+      pattern: 'tetrads',
+      tetrads: 20,
+      segregation: '3:1',
+      tetradLabels: false,
+    },
   },
   gel: {
     inverted: { look: 'inverted', ladder: '100bp' },

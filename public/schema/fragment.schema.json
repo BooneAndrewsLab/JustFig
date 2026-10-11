@@ -1106,7 +1106,7 @@
                 "const": "petriDish"
               },
               "kindVersion": {
-                "const": 1
+                "const": 2
               }
             },
             "required": [
@@ -2168,7 +2168,7 @@
     "Params_petriDish": {
       "type": "object",
       "title": "petriDish params",
-      "description": "An agar plate with colonies: random, streaked, spotted dilutions, a pinned grid or a lawn.",
+      "description": "An agar plate with colonies: random, streaked, spotted dilutions, a pinned grid, a lawn or a tetrad dissection.",
       "properties": {
         "pattern": {
           "enum": [
@@ -2177,6 +2177,7 @@
             "spots",
             "grid",
             "lawn",
+            "tetrads",
             "none"
           ],
           "default": "random",
@@ -2188,6 +2189,46 @@
           "maximum": 1536,
           "default": 60,
           "description": "Number"
+        },
+        "tetrads": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 24,
+          "default": 8,
+          "description": "Tetrads. One column of four spores (a to d) per tetrad."
+        },
+        "segregation": {
+          "enum": [
+            "mixed",
+            "2:2",
+            "4:0",
+            "3:1",
+            "1:3",
+            "0:4"
+          ],
+          "default": "2:2",
+          "description": "Segregation. Spores of the usual colour : spores of the marker colour in each tetrad."
+        },
+        "dead": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 0,
+          "description": "Dead spores. Spores that germinated but stopped as a tiny microcolony.",
+          "x-unit": "%"
+        },
+        "missing": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 0,
+          "description": "Missing spores. Spores that did not grow at all: an empty spot.",
+          "x-unit": "%"
+        },
+        "tetradLabels": {
+          "type": "boolean",
+          "default": true,
+          "description": "Tetrad numbers"
         },
         "size": {
           "type": "number",

@@ -187,14 +187,19 @@ A `procedural` object is drawn by JustFig from a short list of parameters, so a 
 
 ### `petriDish`: Petri dish
 
-`kindVersion` 1. An agar plate with colonies: random, streaked, spotted dilutions, a pinned grid or a lawn. Default size 150 x 150 pt.
+`kindVersion` 2. An agar plate with colonies: random, streaked, spotted dilutions, a pinned grid, a lawn or a tetrad dissection. Default size 150 x 150 pt.
 
-- `pattern`: one of `random`, `streak`, `spots`, `grid`, `lawn`, `none`, default `random`
+- `pattern`: one of `random`, `streak`, `spots`, `grid`, `lawn`, `tetrads`, `none`, default `random`
 - `count`: whole number 0 to 1536, default 60
 - `size`: number 0.5 to 30 pt, default 3.5
 - `variation`: number 0 to 1, default 0.5
 - `seed`: whole number 0 to 99999, default 7
 - `lid`: true or false, default true
+- `tetrads`: whole number 1 to 24, default 8
+- `segregation`: one of `mixed`, `2:2`, `4:0`, `3:1`, `1:3`, `0:4`, default `2:2`
+- `dead`: number 0 to 100 %, default 0
+- `missing`: number 0 to 100 %, default 0
+- `tetradLabels`: true or false, default true
 
 ### `gel`: Agarose gel
 
