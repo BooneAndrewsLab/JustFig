@@ -10,7 +10,6 @@ import { panelLabels, readingOrder } from '@/core/model/panels';
 import { pageObjects } from '@/core/model/tree';
 import type { Figure, Page, Panel } from '@/core/model/types';
 
-import { exportPdf } from './pdf';
 import { type RasterOptions, exportPng, exportTiff } from './raster';
 import { type ExportOptions, pageCredit, exportSvg } from './svg';
 
@@ -96,9 +95,11 @@ export async function exportPanelsZip(
       case 'svg':
         files[name] = enc.encode(exportSvg(figure, page, o, version));
         break;
-      case 'pdf':
+      case 'pdf': {
+        const { exportPdf } = await import('./pdf');
         files[name] = await exportPdf(figure, [page], o, version);
         break;
+      }
       case 'png':
         files[name] = await exportPng(figure, page, r, version);
         break;

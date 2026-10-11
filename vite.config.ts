@@ -1,4 +1,5 @@
 /// <reference types="vitest/config" />
+import { readdirSync } from 'node:fs';
 import { fileURLToPath, URL } from 'node:url';
 import react from '@vitejs/plugin-react';
 import type { Plugin } from 'vite';
@@ -22,6 +23,28 @@ function brandHtml(): Plugin {
   };
 }
 
+/**
+ * Preloads every font file in `public/fonts/` so they download while the app
+ * script is still being evaluated, instead of after it (main.tsx fetches them
+ * before the first render). `crossorigin` makes the preload match a
+ * same-origin `fetch()`.
+ */
+function fontPreloads(): Plugin {
+  const dir = fileURLToPath(new URL('./public/fonts', import.meta.url));
+  const files = readdirSync(dir)
+    .filter((f) => f.endsWith('.ttf'))
+    .sort();
+  return {
+    name: 'font-preloads',
+    transformIndexHtml: () =>
+      files.map((file) => ({
+        tag: 'link',
+        attrs: { rel: 'preload', href: `${base}fonts/${file}`, as: 'fetch', crossorigin: true },
+        injectTo: 'head',
+      })),
+  };
+}
+
 export default defineConfig({
   base,
   define: {
@@ -31,6 +54,7 @@ export default defineConfig({
   plugins: [
     react(),
     brandHtml(),
+    fontPreloads(),
     VitePWA({
       // Registered by hand in main.tsx, production only.
       injectRegister: null,

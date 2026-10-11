@@ -4,7 +4,7 @@
  * drops it where it lands. An icon search also lists the kinds it matches
  * (`matchKinds`), with the same tile tagged "Adjustable".
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { createProcedural } from '@/procedural/edits';
 import { allKinds } from '@/procedural/registry';
@@ -91,6 +91,17 @@ function storedOpen(): boolean {
 
 export function ObjectsShelf() {
   const [open, setOpen] = useState(storedOpen);
+  // Drawing every kind (text layout included) took ~130 ms on the first
+  // render: the tiles fill in on the next tick, after the page has painted.
+  const [drawn, setDrawn] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDrawn(true);
+    }, 0);
+    return () => {
+      clearTimeout(t);
+    };
+  }, []);
   return (
     <details
       className="objects-shelf"
@@ -111,7 +122,7 @@ export function ObjectsShelf() {
       </p>
       <div className="objects-grid">
         {allKinds().map((k) => (
-          <ObjectTile key={k.kind} kind={k} thumbnail={open} />
+          <ObjectTile key={k.kind} kind={k} thumbnail={open && drawn} />
         ))}
       </div>
     </details>

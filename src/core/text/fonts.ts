@@ -54,19 +54,31 @@ export const ALL_FONT_FILES: readonly { id: FontId; style: FontStyle; file: stri
   ['arimo', 'tinos', 'cousine'] as const
 ).flatMap((id) => ALL_STYLES.map((style) => ({ id, style, file: fontFile(id, style) })));
 
+/** Parsed on first use: parsing all twelve at start cost ~40 ms before the first paint. */
 const fonts = new Map<string, Font>();
 const raw = new Map<string, ArrayBuffer>();
 
 export function registerFont(file: string, data: ArrayBuffer): void {
   raw.set(file, data);
-  fonts.set(file, parse(data));
+  fonts.delete(file);
 }
 
-export const fontsLoaded = (): boolean => fonts.size === ALL_FONT_FILES.length;
+export const fontsLoaded = (): boolean => raw.size === ALL_FONT_FILES.length;
+
+function parsed(file: string): Font | undefined {
+  let f = fonts.get(file);
+  if (f === undefined) {
+    const data = raw.get(file);
+    if (data === undefined) return undefined;
+    f = parse(data);
+    fonts.set(file, f);
+  }
+  return f;
+}
 
 /** The parsed font; throws when fonts were not loaded (a startup bug). */
 export function getFont(id: FontId, s: FontStyle): Font {
-  const f = fonts.get(fontFile(id, s)) ?? fonts.get(fontFile(id, { bold: false, italic: false }));
+  const f = parsed(fontFile(id, s)) ?? parsed(fontFile(id, { bold: false, italic: false }));
   if (!f) throw new Error(`Font ${fontFile(id, s)} is not loaded`);
   return f;
 }
@@ -79,7 +91,7 @@ export function getFontData(file: string): ArrayBuffer | undefined {
 /** Loads every font with `fetchFile` (the browser passes a fetch under BASE_URL). */
 export async function loadFonts(fetchFile: (file: string) => Promise<ArrayBuffer>): Promise<void> {
   await Promise.all(
-    ALL_FONT_FILES.filter(({ file }) => !fonts.has(file)).map(async ({ file }) => {
+    ALL_FONT_FILES.filter(({ file }) => !raw.has(file)).map(async ({ file }) => {
       registerFont(file, await fetchFile(file));
     }),
   );

@@ -25,7 +25,6 @@ import { objectAssets } from '@/core/model/tree';
 import type { Assets, Figure, Obj, Swatch } from '@/core/model/types';
 import { fitText } from '@/core/text/layout';
 import { exportPanelsZip } from '@/export/panels';
-import { exportPdf } from '@/export/pdf';
 import { exportPng, exportTiff } from '@/export/raster';
 import { exportSvg } from '@/export/svg';
 import type { IconEntry } from '@/icons/manifest';
@@ -849,6 +848,8 @@ export async function runExport(req: ExportRequest): Promise<void> {
       break;
     case 'pdf': {
       const pages = req.allPages ? fig.doc.pages : [page];
+      // jsPDF and svg2pdf are a quarter of the app: loaded on the first PDF export.
+      const { exportPdf } = await import('@/export/pdf');
       download(
         await exportPdf(fig, pages, opts, APP.version),
         `${base}${req.allPages ? '' : pageSuffix}.pdf`,
