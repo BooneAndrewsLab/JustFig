@@ -124,7 +124,11 @@ describe('kind presets', () => {
   });
 
   it('groups presets in order', () => {
-    expect(groupedPresets(kind('petriDish')).map((g) => g.group)).toEqual(['Patterns', 'Media']);
+    expect(groupedPresets(kind('petriDish')).map((g) => g.group)).toEqual([
+      'Patterns',
+      'Plates',
+      'Media',
+    ]);
     expect(groupedPresets(kind('gel')).map((g) => g.group)).toEqual(['']);
   });
 });

@@ -51,6 +51,10 @@ export const GOLDEN_CASES: Readonly<Record<string, Readonly<Record<string, Parti
     'morph-filamentous': { pattern: 'random', count: 12, size: 9, morphology: 'filamentous' },
     'morph-petite': { pattern: 'random', count: 60, morphology: 'petite' },
     'morph-sectored': { pattern: 'grid', count: 36, size: 5, morphology: 'sectored' },
+    'rect-grid-96': { plate: 'rect', pattern: 'grid', count: 96, variation: 0 },
+    'rect-random': { plate: 'rect', pattern: 'random', count: 80 },
+    'rect-lawn': { plate: 'rect', pattern: 'lawn', plaques: 30, lid: false },
+    'rect-streak': { plate: 'rect', pattern: 'streak' },
     'spots-wide': { pattern: 'spots', count: 400, spotRows: 8, spotCols: 8, rowLabels: true },
     'tetrads-mixed': {
       pattern: 'tetrads',
