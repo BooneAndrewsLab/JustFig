@@ -9,15 +9,15 @@
 <path d="M82.89 236.53L70.76 233.35C52.89 216.35 40.95 194.07 36.71 169.77C32.47 145.48 36.15 120.47 47.21 98.42C58.27 76.38 76.13 58.48 98.14 47.36L103.1 57.18C83.19 67.23 67.05 83.42 57.05 103.36C47.04 123.29 43.71 145.91 47.55 167.88C51.38 189.85 62.18 210.01 78.34 225.37Z" fill="#0072b2" stroke="#004682" stroke-width="0.4" stroke-linejoin="round"/>
 <path d="M248.36 198.12L247.71 210.64C234.69 231.62 215.26 247.85 192.3 256.94C169.34 266.02 144.06 267.47 120.21 261.08L123.06 250.45C144.63 256.23 167.49 254.92 188.26 246.71C209.02 238.49 226.59 223.81 238.37 204.84Z" fill="#e69f00" stroke="#b47000" stroke-width="0.4" stroke-linejoin="round"/>
 <path d="M186.43 46.74L198.95 45.94C221.96 56.76 240.74 74.91 252.34 97.54L242.55 102.56C232.06 82.09 215.08 65.68 194.26 55.89Z" fill="#56b4e9" stroke="#1d85b8" stroke-width="0.4" stroke-linejoin="round"/>
-<path d="M252.06 110.32L258.63 112.24C259.08 113.56 259.51 114.88 259.92 116.21L249.41 119.44C249.04 118.24 248.65 117.04 248.24 115.86ZM100.62 52.27L108.69 42.67C113.89 40.67 119.22 39.05 124.65 37.83L127.08 48.56C122.17 49.67 117.34 51.13 112.65 52.94Z" fill="#009e73" stroke="#007049" stroke-width="0.4" stroke-linejoin="round"/>
-<path d="M241.93 80.91C245.01 85 247.8 89.29 250.3 93.75L240.71 99.13C238.45 95.09 235.92 91.22 233.14 87.52Z" fill="#9aa5b1" stroke="#6d7883" stroke-width="0.4" stroke-linejoin="round"/>
+<path d="M251.97 110.09L258.54 111.99C259 113.3 259.43 114.62 259.84 115.95L249.34 119.21C248.96 118.01 248.57 116.81 248.16 115.63ZM100.62 52.27L108.69 42.67C113.89 40.67 119.22 39.05 124.65 37.83L127.08 48.56C122.17 49.67 117.34 51.13 112.65 52.94Z" fill="#009e73" stroke="#007049" stroke-width="0.4" stroke-linejoin="round"/>
+<path d="M241.77 80.7C244.85 84.78 247.66 89.06 250.17 93.51L240.59 98.92C238.32 94.89 235.78 91.02 232.99 87.33Z" fill="#9aa5b1" stroke="#6d7883" stroke-width="0.4" stroke-linejoin="round"/>
 <g transform="translate(234 53.58)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">lacZα</tspan></text></g>
-<g transform="translate(256.17 79.1)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">MCS</tspan></text></g>
-<g transform="translate(269.36 105.99)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">lac promoter</tspan></text></g>
+<g transform="translate(256.01 78.86)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">MCS</tspan></text></g>
+<g transform="translate(269.26 105.71)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">lac promoter</tspan></text></g>
 <g transform="translate(203.9 258.82)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">ori</tspan></text></g>
 <g transform="translate(56.06 30.37)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">AmpR promoter</tspan></text></g>
 <g transform="translate(4.92 134.68)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">AmpR</tspan></text></g>
-<path d="M225.67 63.4L233 57.08M246.33 87.19L255.17 82.6M258.63 112.24L268.36 109.49M197.62 254.68L202.9 262.32M111.1 41.78L106.46 33.87M35.53 138.99L25.37 138.18" fill="none" stroke="#7d8996" stroke-width="0.4"/>
+<path d="M225.67 63.4L233 57.08M246.18 86.96L255.01 82.36M258.54 111.99L268.26 109.21M197.62 254.68L202.9 262.32M111.1 41.78L106.46 33.87M35.53 138.99L25.37 138.18" fill="none" stroke="#7d8996" stroke-width="0.4"/>
 <g transform="translate(132.26 137.12)"><text xml:space="preserve"><tspan x="0" y="9.48" font-family="Arimo" font-size="11.2" font-weight="bold" fill="#1f2933">pUC19</tspan></text></g>
 <g transform="translate(131.47 152.52)"><text xml:space="preserve"><tspan x="0" y="8.06" font-family="Arimo" font-size="9.52" fill="#1f2933">2,686 bp</tspan></text></g>
 </svg>

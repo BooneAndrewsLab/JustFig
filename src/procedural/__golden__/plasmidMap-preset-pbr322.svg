@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
+<path d="M40.5 150A109.5 109.5 0 1 0 259.5 150A109.5 109.5 0 1 0 40.5 150Z" fill="none" stroke="#52606d" stroke-width="1.32"/>
+<g transform="translate(234.91 135.18)"><text xml:space="preserve"><tspan x="0" y="4.74" font-family="Arimo" font-size="5.6" fill="#1f2933">1,000</tspan></text></g>
+<g transform="translate(166.83 236.78)"><text xml:space="preserve"><tspan x="0" y="4.74" font-family="Arimo" font-size="5.6" fill="#1f2933">2,000</tspan></text></g>
+<g transform="translate(57.26 182.45)"><text xml:space="preserve"><tspan x="0" y="4.74" font-family="Arimo" font-size="5.6" fill="#1f2933">3,000</tspan></text></g>
+<g transform="translate(96.92 66.76)"><text xml:space="preserve"><tspan x="0" y="4.74" font-family="Arimo" font-size="5.6" fill="#1f2933">4,000</tspan></text></g>
+<path d="M252.13 136.64L248.16 137.16M176.49 249.54L175.46 245.67M54.74 189.17L58.44 187.65M98.81 60.62L100.8 64.09" fill="none" stroke="#52606d" stroke-width="0.5"/>
+<path d="M164.05 35.86C184.66 38.4 204.2 46.47 220.6 59.22C236.99 71.97 249.63 88.92 257.16 108.27C264.7 127.62 266.85 148.66 263.4 169.13L255.6 178.96L252.55 167.3C255.68 148.78 253.73 129.76 246.91 112.26C240.1 94.76 228.67 79.43 213.84 67.9C199.02 56.37 181.35 49.07 162.7 46.78ZM193.08 256.63C186.81 259.16 180.34 261.13 173.72 262.53L161.73 258.87L171.46 251.76C177.44 250.5 183.29 248.72 188.96 246.43ZM40.55 146.65L35.99 134.97C38.86 113.16 47.93 92.63 62.12 75.82C76.32 59.01 95.03 46.62 116.05 40.13L119.3 50.64C100.29 56.51 83.36 67.71 70.53 82.91C57.7 98.12 49.49 116.68 46.89 136.41Z" fill="#0072b2" stroke="#004682" stroke-width="0.4" stroke-linejoin="round"/>
+<path d="M96.75 245.68L84.28 244.37C60.47 227.79 43.8 202.81 37.63 174.46L48.38 172.12C53.96 197.76 69.03 220.35 90.56 235.34Z" fill="#e69f00" stroke="#b47000" stroke-width="0.4" stroke-linejoin="round"/>
+<g transform="translate(255.31 77.81)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">TetR</tspan></text></g>
+<g transform="translate(182.81 266.2)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">rop</tspan></text></g>
+<g transform="translate(29.58 71.73)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">AmpR</tspan></text></g>
+<g transform="translate(40.34 220.06)"><text xml:space="preserve"><tspan x="0" y="5.93" font-family="Arimo" font-size="7" fill="#1f2933">ori</tspan></text></g>
+<path d="M245.54 85.98L254.31 81.31M177.97 261.55L181.81 269.7M58.51 80.32L50.03 75.23M57.66 218.55L49.12 223.56" fill="none" stroke="#7d8996" stroke-width="0.4"/>
+<g transform="translate(129.15 137.12)"><text xml:space="preserve"><tspan x="0" y="9.48" font-family="Arimo" font-size="11.2" font-weight="bold" fill="#1f2933">pBR322</tspan></text></g>
+<g transform="translate(131.47 152.52)"><text xml:space="preserve"><tspan x="0" y="8.06" font-family="Arimo" font-size="9.52" fill="#1f2933">4,361 bp</tspan></text></g>
+</svg>

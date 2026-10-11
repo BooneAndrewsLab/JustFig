@@ -151,6 +151,11 @@ one), Western-blot look.
 **Plasmid (`plasmid`).** Common backbones (pUC19, pET-28a, pLKO.1) as named features with
 coordinates. Coordinates must be checked against the GenBank records and cited in the code; a
 wrong map is worse than none. Built here from public records, not from PlasmidPop.
+_Built (issue #88):_ pUC19 (L09137, whose record has no feature table, so each feature was
+found by sequence in the record) and pBR322 (J01749, from its feature table); the checks are in
+the header of `plasmidBackbones.ts`. pET-28a(+) and pLKO.1 were **omitted**: NCBI has no record
+of the vector itself, only insert-carrying derivatives. This also corrected the plasmid kind's
+default features (MCS and lac promoter were one base off).
 
 **Timeline and study design.** Mouse treatment schedule, time course, pooled CRISPR screen.
 
