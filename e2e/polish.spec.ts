@@ -33,7 +33,7 @@ async function rect(page: Page, x: number, y: number, w: number, h: number) {
 const field = (page: Page, name: string) => page.locator('.side').getByLabel(name, { exact: true });
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('./');
+  await page.goto('./?editor');
   await expect(page.locator('.icon-tile').first()).toBeVisible();
 });
 

@@ -29,7 +29,7 @@ function diff(a: PNG, b: PNG): number {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('./');
+  await page.goto('./?editor');
   await expect(page.locator('.icon-tile').first()).toBeVisible();
   await page.getByTestId('open-input').setInputFiles(FIXTURE);
   await expect(page.locator('.topbar .title')).toHaveValue('Torture');

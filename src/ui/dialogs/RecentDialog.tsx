@@ -3,7 +3,7 @@
  * first, with a thumbnail. Open, rename, download as .jfig and delete (asked
  * in this dialog, never with the browser's confirm box).
  */
-import { useCallback, useEffect, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useState } from 'react';
 
 import { type FigureSummary, MAX_FIGURES, type StorageUsage, storageUsage } from '@/io/storage';
 
@@ -24,7 +24,26 @@ function formatBytes(n: number): string {
   return `${(n / 1024 ** 3).toFixed(1)} GB`;
 }
 
-export function RecentDialog({ onClose }: { onClose: () => void }) {
+/**
+ * The kept figures as a list with every action, and the storage line; the
+ * Recent dialog and the front page (note 57) share it. `onOpened` runs after
+ * a figure came forward; `onRows` reports the list (the front page hides its
+ * section while there is none); `intro` is the dialog's explanation.
+ */
+export function RecentList({
+  onOpened,
+  onRows,
+  intro,
+  emptyText = true,
+  keepList = false,
+}: {
+  onOpened?: () => void;
+  onRows?: (rows: FigureSummary[]) => void;
+  intro?: ReactNode;
+  emptyText?: boolean;
+  /** Keep the list on screen under the delete confirmation (the front page). */
+  keepList?: boolean;
+}) {
   const [rows, setRows] = useState<FigureSummary[] | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
@@ -66,43 +85,46 @@ export function RecentDialog({ onClose }: { onClose: () => void }) {
     };
   }, [rows]);
 
-  if (deleting) {
-    return (
-      <Dialog
-        title="Delete this figure?"
-        onClose={() => {
-          setDeleting(null);
-        }}
-      >
-        <p>
-          Delete <strong>{deleting.title}</strong> and its saved versions from this browser? It
-          cannot be brought back unless you have saved it as a file.
-        </p>
-        <div className="actions">
-          <button
-            type="button"
-            onClick={() => {
+  useEffect(() => {
+    if (rows) onRows?.(rows);
+  }, [rows, onRows]);
+
+  const confirm = deleting && (
+    <Dialog
+      title="Delete this figure?"
+      onClose={() => {
+        setDeleting(null);
+      }}
+    >
+      <p>
+        Delete <strong>{deleting.title}</strong> and its saved versions from this browser? It cannot
+        be brought back unless you have saved it as a file.
+      </p>
+      <div className="actions">
+        <button
+          type="button"
+          onClick={() => {
+            setDeleting(null);
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          className="primary"
+          onClick={() => {
+            void deleteRecent(deleting.id).then(() => {
               setDeleting(null);
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="primary"
-            onClick={() => {
-              void deleteRecent(deleting.id).then(() => {
-                setDeleting(null);
-                return refresh();
-              });
-            }}
-          >
-            Delete
-          </button>
-        </div>
-      </Dialog>
-    );
-  }
+              return refresh();
+            });
+          }}
+        >
+          Delete
+        </button>
+      </div>
+    </Dialog>
+  );
+  if (deleting && !keepList) return confirm;
 
   const commit = (id: string) => {
     setRenaming(null);
@@ -110,12 +132,9 @@ export function RecentDialog({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <Dialog title="Recent figures" onClose={onClose}>
-      <p className="note">
-        Figures are kept in this browser as you work. The {String(MAX_FIGURES)} most recent are
-        kept; older ones are dropped, except figures with saved versions. Save a file for anything
-        you want to keep for good.
-      </p>
+    <>
+      {confirm}
+      {intro}
       {usage?.usage != null && (
         <p className="note" data-testid="storage-usage">
           This browser has {formatBytes(usage.usage)}
@@ -133,7 +152,9 @@ export function RecentDialog({ onClose }: { onClose: () => void }) {
           This browser would not let the app read its kept figures.
         </p>
       )}
-      {rows?.length === 0 && <p>No figures are kept yet. Start drawing and one appears here.</p>}
+      {emptyText && rows?.length === 0 && (
+        <p>No figures are kept yet. Start drawing and one appears here.</p>
+      )}
       <ul className="recent-list" aria-label="Recent figures">
         {rows?.map((r) => (
           <li key={r.id} className="recent-row" data-figure={r.id}>
@@ -187,7 +208,7 @@ export function RecentDialog({ onClose }: { onClose: () => void }) {
                     aria-label={`Open ${r.title}`}
                     onClick={() => {
                       void openRecent(r.id).then((ok) => {
-                        if (ok) onClose();
+                        if (ok) onOpened?.();
                       });
                     }}
                   >
@@ -229,6 +250,23 @@ export function RecentDialog({ onClose }: { onClose: () => void }) {
           </li>
         ))}
       </ul>
+    </>
+  );
+}
+
+export function RecentDialog({ onClose }: { onClose: () => void }) {
+  return (
+    <Dialog title="Recent figures" onClose={onClose}>
+      <RecentList
+        onOpened={onClose}
+        intro={
+          <p className="note">
+            Figures are kept in this browser as you work. The {String(MAX_FIGURES)} most recent are
+            kept; older ones are dropped, except figures with saved versions. Save a file for
+            anything you want to keep for good.
+          </p>
+        }
+      />
       <div className="actions">
         <button type="button" onClick={onClose}>
           Close

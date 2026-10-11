@@ -220,7 +220,7 @@ const frameDone = (page: Page) =>
 test('a large figure: first render, drag frames, export times', async ({ page }, info) => {
   test.setTimeout(240_000);
   await downloadFallback(page);
-  await page.goto('./');
+  await page.goto('./?editor');
   await expect(page.locator('.icon-tile').first()).toBeVisible();
 
   const names = page.locator('.layers .item .name');

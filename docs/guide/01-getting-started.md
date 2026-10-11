@@ -2,9 +2,20 @@
 
 JustFig is a free figure editor that runs entirely in your browser. There is no account and nothing is uploaded: your figures stay on your computer. It is made for the figures in a paper or a poster: panels, icons, arrows, labels, plates, gels and plasmid maps.
 
+## The front page
+
+When no figure is on screen, JustFig shows its front page instead of the editor: on your first visit, whenever nothing could be brought back from the last time, and after you close the last tab. It says what JustFig is and offers somewhere to start:
+
+- **New figure** starts an empty figure. **Open a figure…** opens a `.jfig` file (other files you choose are imported, as with **File › Open…**). **Try an example** opens the first of the built-in examples (see [Templates and examples](10-templates.md)).
+- **Open…** and the round **?** in the bar at the top do the same as in the editor, and the keys Ctrl+O, Shift+O (Recent figures) and ? work here too. A file dropped anywhere on the window opens like **Open…**.
+- **Recent figures** lists the figures JustFig has kept in this browser, the same list as the Recent figures dialog: open, rename, download as `.jfig` and delete. It only shows when there are any.
+- **Start from a template** has a card for each template: choose its title to start a new figure from it. **More templates and examples…** opens the Templates and examples dialog.
+
+The **logo** at the left of the top bar is a button: choose it to go to the front page at any time. Your open figures stay open in their tabs; the front page then has a **Back to your figures** button in its bar, and the Recent figures list marks them "Open now" or "Open in a tab". Opening or starting anything, or choosing a figure in the list, takes you to the editor again. To skip the front page at start-up, add `?editor` to the address.
+
 ## The screen
 
-- **Top bar:** the logo and the figure title on the left; on the right the **File** menu and **Save**, Undo and Redo with the **History** list, zoom, **Export…** and the round **?** (Help) button.
+- **Top bar:** the logo (it leads to the front page) and the figure title on the left; on the right the **File** menu and **Save**, Undo and Redo with the **History** list, zoom, **Export…** and the round **?** (Help) button.
 - **Tab strip:** under the top bar. **Recent…**, then one tab per open figure, then **+** for a new one (see [Several figures at once](17-several-figures.md)).
 - **Left:** the Icons panel. At its top is the Scientific objects shelf (see [Scientific objects](08-objects.md)), below it the icon search and categories (see [Icons](07-icons.md)).
 - **Tool palette:** a narrow column of tools next to the canvas (see [Drawing](02-drawing.md)).

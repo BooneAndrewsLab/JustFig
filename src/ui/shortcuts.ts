@@ -155,6 +155,28 @@ const TOOL_ACTIONS: Readonly<Record<string, ToolId>> = {
 
 let pasteInPlaceUntil = 0;
 
+/** The front page (note 57): no figure is on screen, so only opening files, Recent and the guide act. */
+export function onHomeKeyDown(
+  e: KeyboardEvent,
+  open: Pick<ShortcutTargets, 'openFile' | 'recent' | 'guide'>,
+): void {
+  if (isTyping(e.target) || document.querySelector('.dialog')) return;
+  const mod = e.ctrlKey || e.metaKey;
+  if (!mod && !e.altKey && e.key === '?') {
+    e.preventDefault();
+    open.guide();
+    return;
+  }
+  const id = actionFor(e, resolveBindings(store.getState().keyBindings));
+  if (id === 'open') {
+    e.preventDefault();
+    open.openFile();
+  } else if (id === 'recent') {
+    e.preventDefault();
+    open.recent();
+  }
+}
+
 export function onKeyDown(e: KeyboardEvent, open: ShortcutTargets): void {
   if (isTyping(e.target) || document.querySelector('.dialog')) return;
   const s = store.getState();

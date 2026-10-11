@@ -6,7 +6,7 @@ test('the page ships a loading screen that the editor replaces', async ({ page }
   expect(html).toContain('id="loading"');
   expect(html).toContain('Loading…');
 
-  await page.goto('./');
+  await page.goto('./?editor');
   await expect(page.locator('.icon-tile').first()).toBeVisible();
   await expect(page.locator('#loading')).toHaveCount(0);
 });
@@ -14,7 +14,7 @@ test('the page ships a loading screen that the editor replaces', async ({ page }
 test('a start failure replaces the loading screen with the recovery page', async ({ page }) => {
   // Break the font download so startup fails before React renders.
   await page.route('**/fonts/*.ttf', (route) => route.fulfill({ status: 500, body: '' }));
-  await page.goto('./');
+  await page.goto('./?editor');
   const recovery = page.getByRole('alertdialog');
   await expect(recovery).toBeVisible();
   await expect(recovery).toContainText('could not start');

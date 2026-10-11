@@ -193,3 +193,6 @@ changes (the guide test enforces it), and a design note in `docs/design/`
 - 2026-10-11: the top bar takes PlasmidPop's toolbar metrics (48px, 16px sides, 16px between
   clusters) with every action on the right, and Undo and Redo become PlasmidPop's History
   control (Undo | Redo | ▾ list of changes to jump to); note 56.
+- 2026-10-11: a front page (BarelySig's layout: bar, hero, Recent figures, template cards,
+  promises) shown instead of the editor when no figure is on screen; the top-bar logo returns to
+  it with the tabs kept; note 57.

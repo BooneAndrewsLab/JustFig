@@ -42,7 +42,7 @@ async function badgesLeftToRight(page: Page): Promise<{ x: number; n: string }[]
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('./');
+  await page.goto('./?editor');
   await expect(page.locator('.icon-tile').first()).toBeVisible();
 });
 

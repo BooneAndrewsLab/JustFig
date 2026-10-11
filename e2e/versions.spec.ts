@@ -18,7 +18,7 @@ async function rect(page: Page, x: number, y: number, w: number, h: number) {
 const rects = (page: Page) => page.locator('.layers .item .name', { hasText: 'Rect' });
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('./');
+  await page.goto('./?editor');
   await expect(page.locator('.icon-tile').first()).toBeVisible();
   page.on('dialog', (d) => {
     // Leaving a figure never saved as a file is guarded by the browser's own prompt.

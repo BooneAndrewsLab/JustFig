@@ -164,6 +164,45 @@ describe('AppStore tabs (note 25)', () => {
     expect(only && isUntouched(only)).toBe(true);
   });
 
+  it('shows and leaves the front page, which any figure change leaves too (note 57)', () => {
+    const s = new AppStore();
+    expect(s.getState().home).toBe(false);
+    s.showHome();
+    expect(s.getState().home).toBe(true);
+    s.leaveHome();
+    expect(s.getState().home).toBe(false);
+
+    s.showHome();
+    s.open(blank());
+    expect(s.getState().home).toBe(false);
+    s.showHome();
+    s.load(blank());
+    expect(s.getState().home).toBe(false);
+    s.showHome();
+    s.edit(addObjects(currentPage(s.getState()).id, [createRect(frame(0, 0, 5, 5))]));
+    expect(s.getState().home).toBe(false);
+
+    const a = s.getState().front;
+    const b = s.open(blank());
+    s.showHome();
+    s.activate(b);
+    expect(s.getState().home).toBe(false);
+    s.showHome();
+    s.activate(a);
+    expect(s.getState().home).toBe(false);
+  });
+
+  it('shows the front page after the last tab closes, over one fresh tab', () => {
+    const s = new AppStore(blank());
+    const other = s.open(blank());
+    s.close(other);
+    expect(s.getState().home).toBe(false);
+    s.close(s.getState().front);
+    expect(s.getState().home).toBe(true);
+    expect(s.getState().tabs).toHaveLength(1);
+    expect(isUntouched(s.getState().tabs[0]!)).toBe(true);
+  });
+
   it('moves tabs, and the front one by a place either way', () => {
     const s = new AppStore(blank());
     const a = s.getState().front;

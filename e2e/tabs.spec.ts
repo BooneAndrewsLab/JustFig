@@ -39,7 +39,7 @@ async function twoFigures(page: Page) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('./');
+  await page.goto('./?editor');
   await expect(page.locator('.icon-tile').first()).toBeVisible();
   page.on('dialog', (d) => {
     // Leaving with figures never saved to a file asks (on purpose); nothing else may.
@@ -174,9 +174,11 @@ test('closing an unsaved tab keeps the figure; opening it again brings its tab f
   await tabs(page).first().focus();
   await expect(tabs(page).first()).toBeFocused();
   await page.keyboard.press('Delete');
-  // The last tab closed leaves an empty New figure, which the next figure opened takes over.
-  await expect(tabs(page)).toHaveCount(1);
-  await expect(rects(page)).toHaveCount(0);
+  // The last tab closed shows the front page over the store's empty New figure (note 57);
+  // the next figure opened takes that tab over.
+  await expect(
+    page.getByRole('heading', { name: 'Figures for papers, posters and grants.' }),
+  ).toBeVisible();
   await page.keyboard.press('Shift+O');
   await dialog.getByRole('button', { name: 'Open Figure B' }).click();
   await expect(tabs(page)).toHaveCount(1);

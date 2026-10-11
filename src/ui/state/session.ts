@@ -117,6 +117,7 @@ let saver: Autosaver | null = null;
 /** Restores the open figures from the browser and starts autosaving. */
 export async function startSession(): Promise<void> {
   const storage = getStorage();
+  let figureCount = 0;
   try {
     const kept = await Promise.race([
       keptTabs(storage, rememberedTabs()),
@@ -128,11 +129,13 @@ export async function startSession(): Promise<void> {
     ]);
     if (kept) {
       reopenTabs(store, kept);
+      figureCount = kept.figs.length;
       void loadHandles(store.getState().tabs.map((t) => figure(t).doc.id));
     }
   } catch {
     // A wedged IndexedDB must not block the app.
   }
+  if (figureCount === 0 && !new URLSearchParams(location.search).has('editor')) store.showHome();
   saver = new Autosaver(store, storage, APP, undefined, renderThumbnail, {
     unsaved: (ids) => {
       store.setUnsaved(ids);

@@ -24,14 +24,14 @@ async function openExport(page: Page) {
 }
 
 test('one file per panel is disabled without panels, with the reason', async ({ page }) => {
-  await page.goto('./');
+  await page.goto('./?editor');
   const dialog = await openExport(page);
   await expect(dialog.getByLabel('One file per panel, in a zip')).toBeDisabled();
   await expect(dialog.getByText('this page has no panels')).toBeVisible();
 });
 
 test('exports a zip with one cropped file per panel', async ({ page }) => {
-  await page.goto('./');
+  await page.goto('./?editor');
   await drawPanel(page, [10, 10], [200, 190]);
   await drawPanel(page, [260, 10], [450, 190]);
   const dialog = await openExport(page);
@@ -58,7 +58,7 @@ test('exports a zip with one cropped file per panel', async ({ page }) => {
 });
 
 test('exports panels as PNG through the band path', async ({ page }) => {
-  await page.goto('./');
+  await page.goto('./?editor');
   await drawPanel(page, [10, 10], [200, 190]);
   const dialog = await openExport(page);
   await dialog.locator('input[name="format"][value="png"]').check();
@@ -77,7 +77,7 @@ test('exports panels as PNG through the band path', async ({ page }) => {
 });
 
 test('exports panels as PDFs sized to the panel', async ({ page }) => {
-  await page.goto('./');
+  await page.goto('./?editor');
   await drawPanel(page, [10, 10], [200, 190]);
   const dialog = await openExport(page);
   await dialog.getByLabel('One file per panel, in a zip').check();

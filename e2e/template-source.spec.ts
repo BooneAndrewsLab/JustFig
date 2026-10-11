@@ -4,7 +4,7 @@ import { expect, test } from '@playwright/test';
 import { fileMenu } from './helpers';
 
 test('writes the current page as a gallery entry source file', async ({ page }) => {
-  await page.goto('./');
+  await page.goto('./?editor');
   await expect(page.locator('.icon-tile').first()).toBeVisible();
   await fileMenu(page, 'Templates…');
   const gallery = page.getByRole('dialog', { name: 'Templates and examples' });

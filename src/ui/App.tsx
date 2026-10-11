@@ -13,6 +13,7 @@ import { ExportDialog } from './dialogs/ExportDialog';
 import { Icon } from './icons';
 import { FileMenu } from './FileMenu';
 import { HistoryMenu } from './HistoryMenu';
+import { Home } from './Home';
 import { Logo } from './Logo';
 import { GalleryDialog } from './dialogs/GalleryDialog';
 import { ChannelsDialog } from './dialogs/ChannelsDialog';
@@ -34,7 +35,7 @@ import { TabStrip } from './panels/TabStrip';
 import { ToolPalette } from './panels/ToolPalette';
 import { startInsetBaker } from './insetBaker';
 import { resolveBindings, withKey } from './keyBindings';
-import { onCopy, onKeyDown, onPaste } from './shortcuts';
+import { type ShortcutTargets, onCopy, onHomeKeyDown, onKeyDown, onPaste } from './shortcuts';
 import { canSaveInPlace } from '@/io/fileHandles';
 
 import {
@@ -46,7 +47,7 @@ import {
   saveFile,
   saveFileAs,
 } from './state/session';
-import { currentPage, figure, isUnsaved, selectedObjects, store } from './state/store';
+import { currentPage, figure, isUnsaved, isUntouched, selectedObjects, store } from './state/store';
 import { useAppState } from './state/useAppState';
 import { onChannelsRequest } from './state/channelsRequest';
 import { usePdfPageRequest } from './state/pdfPagePicker';
@@ -110,33 +111,36 @@ export function App() {
   useEffect(() => startInsetBaker(), []);
 
   useEffect(() => {
+    const targets: ShortcutTargets = {
+      exportDialog: () => {
+        setDialog('export');
+      },
+      openFile: () => {
+        chooseFile(() => openInput.current?.click());
+      },
+      recent: () => {
+        setDialog('recent');
+      },
+      guide: () => {
+        setDialog('guide');
+      },
+      grid: () => {
+        setDialog('grid');
+      },
+    };
+    // The front page has no figure on screen: only opening and the guide act (note 57).
     const key = (e: KeyboardEvent) => {
-      onKeyDown(e, {
-        exportDialog: () => {
-          setDialog('export');
-        },
-        openFile: () => {
-          chooseFile(() => openInput.current?.click());
-        },
-        recent: () => {
-          setDialog('recent');
-        },
-        guide: () => {
-          setDialog('guide');
-        },
-        grid: () => {
-          setDialog('grid');
-        },
-      });
+      if (store.getState().home) onHomeKeyDown(e, targets);
+      else onKeyDown(e, targets);
     };
     const copy = (e: ClipboardEvent) => {
-      onCopy(e, false);
+      if (!store.getState().home) onCopy(e, false);
     };
     const cut = (e: ClipboardEvent) => {
-      onCopy(e, true);
+      if (!store.getState().home) onCopy(e, true);
     };
     const paste = (e: ClipboardEvent) => {
-      onPaste(e, (f) => void importToCanvas(f));
+      if (!store.getState().home) onPaste(e, (f) => void importToCanvas(f));
     };
     window.addEventListener('keydown', key);
     document.addEventListener('copy', copy);
@@ -149,6 +153,26 @@ export function App() {
       document.removeEventListener('paste', paste);
     };
   }, []);
+
+  // A file dropped anywhere on the front page opens like Open… (note 57).
+  const home = s.home;
+  useEffect(() => {
+    if (!home) return;
+    const over = (e: DragEvent) => {
+      if (e.dataTransfer?.types.includes('Files')) e.preventDefault();
+    };
+    const drop = (e: DragEvent) => {
+      if (!e.dataTransfer?.files.length) return;
+      e.preventDefault();
+      for (const f of Array.from(e.dataTransfer.files)) void openFile(f);
+    };
+    window.addEventListener('dragover', over);
+    window.addEventListener('drop', drop);
+    return () => {
+      window.removeEventListener('dragover', over);
+      window.removeEventListener('drop', drop);
+    };
+  }, [home]);
 
   // Autosave keeps a copy; the prompt only guards a figure, in any tab, never saved as a file.
   const neverSaved = s.tabs.some((t) => isUnsaved(t) && t.downloaded === null);
@@ -177,181 +201,8 @@ export function App() {
     zoomAt(s.view, w / 2, h / 2, s.view.zoom * k);
   };
 
-  return (
-    <div className="app">
-      <header className="topbar">
-        <span className="brand">
-          <Logo />
-        </span>
-        <input
-          className="title"
-          aria-label="Figure title"
-          value={fig.doc.title}
-          onChange={(e) => {
-            const title = e.target.value;
-            store.edit(
-              updateDoc('Rename figure', (d) => ({ ...d, title })),
-              { coalesce: 'title' },
-            );
-          }}
-        />
-        <span className="spacer" />
-        <div className="toolbar-group">
-          <FileMenu
-            bound={bound}
-            inPlace={inPlace}
-            saveTitle={saveTitle}
-            onNew={newFigure}
-            onTemplates={() => {
-              setDialog('gallery');
-            }}
-            onOpen={() => {
-              chooseFile(() => openInput.current?.click());
-            }}
-            onImport={() => importInput.current?.click()}
-            onSave={() => void saveFile()}
-            onSaveAs={() => void saveFileAs()}
-            onVersions={() => {
-              setDialog('versions');
-            }}
-            onExport={() => {
-              setDialog('export');
-            }}
-            onAttribution={openAttribution}
-          />
-          <button
-            type="button"
-            title={withKey(saveTitle, 'save', bound)}
-            onClick={() => void saveFile()}
-          >
-            Save
-          </button>
-        </div>
-        <HistoryMenu history={s.history} bound={bound} />
-        <div className="toolbar-group">
-          <button
-            type="button"
-            className="icon"
-            aria-label="Zoom out"
-            onClick={() => {
-              zoomBy(1 / 1.25);
-            }}
-          >
-            <Icon name="zoom-out" />
-          </button>
-          <button
-            type="button"
-            style={{ minWidth: 56 }}
-            title="Fit page"
-            onClick={() => {
-              fitPage(currentPage(s), canvasSize());
-            }}
-          >
-            {String(Math.round((s.view.zoom * 100 * 96) / 72))}%
-          </button>
-          <button
-            type="button"
-            className="icon"
-            aria-label="Zoom in"
-            onClick={() => {
-              zoomBy(1.25);
-            }}
-          >
-            <Icon name="zoom-in" />
-          </button>
-        </div>
-        <button
-          type="button"
-          className="primary"
-          title={withKey('Export', 'export', bound)}
-          onClick={() => {
-            setDialog('export');
-          }}
-        >
-          Export…
-        </button>
-        <button
-          type="button"
-          className="help-button"
-          aria-label="Help"
-          aria-haspopup="dialog"
-          aria-expanded={dialog === 'guide'}
-          title="Open the guide (?)"
-          onClick={() => {
-            setDialog('guide');
-          }}
-        >
-          ?
-        </button>
-        <input
-          ref={openInput}
-          type="file"
-          hidden
-          data-testid="open-input"
-          accept={`${BRAND.fileExt},${BRAND.mime}`}
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) void openFile(f);
-            e.target.value = '';
-          }}
-        />
-        <input
-          ref={importInput}
-          type="file"
-          hidden
-          data-testid="import-input"
-          accept=".svg,.pdf,.png,.jpg,.jpeg,.tif,.tiff,image/svg+xml,application/pdf,image/png,image/jpeg,image/tiff"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) void importToCanvas(f);
-            e.target.value = '';
-          }}
-        />
-      </header>
-      <SaveFailureBanner />
-      <TabStrip
-        onRecent={() => {
-          setDialog('recent');
-        }}
-      />
-      <IconBrowser
-        onCredits={() => {
-          setDialog('credits');
-        }}
-      />
-      <ToolPalette />
-      <CrashProbe />
-      <Canvas key={s.front} />
-      <aside className="side" aria-label="Inspector">
-        <Inspector
-          onArrangeGrid={() => {
-            setDialog('grid');
-          }}
-          onCrop={() => {
-            setDialog('crop');
-          }}
-          onInset={() => {
-            setDialog('inset');
-          }}
-          onChannels={() => {
-            setDialog('channels');
-          }}
-          onSavePreset={() => {
-            setDialog('save-preset');
-          }}
-        />
-        <LayersPanel />
-        <NotesPanel />
-      </aside>
-      <footer className="status" aria-live="polite">
-        <span>
-          {s.selection.length > 0
-            ? `${String(s.selection.length)} selected${selectionName(s)}`
-            : 'Nothing selected'}
-        </span>
-        <span>{s.downloaded === fig ? 'Saved to file' : 'Kept in this browser'}</span>
-        {s.notice && <span className={`notice-${s.notice.tone}`}>{s.notice.text}</span>}
-      </footer>
+  const dialogs = (
+    <>
       {dialog === 'export' && (
         <ExportDialog
           onClose={() => {
@@ -452,6 +303,226 @@ export function App() {
           }}
         />
       )}
+    </>
+  );
+  const fileInputs = (
+    <>
+      <input
+        ref={openInput}
+        type="file"
+        hidden
+        data-testid="open-input"
+        accept={`${BRAND.fileExt},${BRAND.mime}`}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) void openFile(f);
+          e.target.value = '';
+        }}
+      />
+      <input
+        ref={importInput}
+        type="file"
+        hidden
+        data-testid="import-input"
+        accept=".svg,.pdf,.png,.jpg,.jpeg,.tif,.tiff,image/svg+xml,application/pdf,image/png,image/jpeg,image/tiff"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) void importToCanvas(f);
+          e.target.value = '';
+        }}
+      />
+    </>
+  );
+
+  if (s.home) {
+    return (
+      <div className="app app-landing">
+        <Home
+          canGoBack={s.tabs.some((t) => !isUntouched(t))}
+          onBack={() => {
+            store.leaveHome();
+          }}
+          onOpenFile={() => {
+            chooseFile(() => openInput.current?.click());
+          }}
+          onGuide={() => {
+            setDialog('guide');
+          }}
+          onTemplates={() => {
+            setDialog('gallery');
+          }}
+          openTitle={withKey('Open a figure file', 'open', bound)}
+        />
+        <footer className="status" aria-live="polite">
+          {s.notice && <span className={`notice-${s.notice.tone}`}>{s.notice.text}</span>}
+        </footer>
+        {fileInputs}
+        {dialogs}
+      </div>
+    );
+  }
+
+  return (
+    <div className="app">
+      <header className="topbar">
+        <button
+          type="button"
+          className="brand"
+          title="Front page: your open figures stay open"
+          aria-label={`${BRAND.name} front page`}
+          onClick={() => {
+            store.showHome();
+          }}
+        >
+          <Logo />
+        </button>
+        <input
+          className="title"
+          aria-label="Figure title"
+          value={fig.doc.title}
+          onChange={(e) => {
+            const title = e.target.value;
+            store.edit(
+              updateDoc('Rename figure', (d) => ({ ...d, title })),
+              { coalesce: 'title' },
+            );
+          }}
+        />
+        <span className="spacer" />
+        <div className="toolbar-group">
+          <FileMenu
+            bound={bound}
+            inPlace={inPlace}
+            saveTitle={saveTitle}
+            onNew={newFigure}
+            onTemplates={() => {
+              setDialog('gallery');
+            }}
+            onOpen={() => {
+              chooseFile(() => openInput.current?.click());
+            }}
+            onImport={() => importInput.current?.click()}
+            onSave={() => void saveFile()}
+            onSaveAs={() => void saveFileAs()}
+            onVersions={() => {
+              setDialog('versions');
+            }}
+            onExport={() => {
+              setDialog('export');
+            }}
+            onAttribution={openAttribution}
+          />
+          <button
+            type="button"
+            title={withKey(saveTitle, 'save', bound)}
+            onClick={() => void saveFile()}
+          >
+            Save
+          </button>
+        </div>
+        <HistoryMenu history={s.history} bound={bound} />
+        <div className="toolbar-group">
+          <button
+            type="button"
+            className="icon"
+            aria-label="Zoom out"
+            onClick={() => {
+              zoomBy(1 / 1.25);
+            }}
+          >
+            <Icon name="zoom-out" />
+          </button>
+          <button
+            type="button"
+            style={{ minWidth: 56 }}
+            title="Fit page"
+            onClick={() => {
+              fitPage(currentPage(s), canvasSize());
+            }}
+          >
+            {String(Math.round((s.view.zoom * 100 * 96) / 72))}%
+          </button>
+          <button
+            type="button"
+            className="icon"
+            aria-label="Zoom in"
+            onClick={() => {
+              zoomBy(1.25);
+            }}
+          >
+            <Icon name="zoom-in" />
+          </button>
+        </div>
+        <button
+          type="button"
+          className="primary"
+          title={withKey('Export', 'export', bound)}
+          onClick={() => {
+            setDialog('export');
+          }}
+        >
+          Export…
+        </button>
+        <button
+          type="button"
+          className="help-button"
+          aria-label="Help"
+          aria-haspopup="dialog"
+          aria-expanded={dialog === 'guide'}
+          title="Open the guide (?)"
+          onClick={() => {
+            setDialog('guide');
+          }}
+        >
+          ?
+        </button>
+      </header>
+      <SaveFailureBanner />
+      <TabStrip
+        onRecent={() => {
+          setDialog('recent');
+        }}
+      />
+      <IconBrowser
+        onCredits={() => {
+          setDialog('credits');
+        }}
+      />
+      <ToolPalette />
+      <CrashProbe />
+      <Canvas key={s.front} />
+      <aside className="side" aria-label="Inspector">
+        <Inspector
+          onArrangeGrid={() => {
+            setDialog('grid');
+          }}
+          onCrop={() => {
+            setDialog('crop');
+          }}
+          onInset={() => {
+            setDialog('inset');
+          }}
+          onChannels={() => {
+            setDialog('channels');
+          }}
+          onSavePreset={() => {
+            setDialog('save-preset');
+          }}
+        />
+        <LayersPanel />
+        <NotesPanel />
+      </aside>
+      <footer className="status" aria-live="polite">
+        <span>
+          {s.selection.length > 0
+            ? `${String(s.selection.length)} selected${selectionName(s)}`
+            : 'Nothing selected'}
+        </span>
+        <span>{s.downloaded === fig ? 'Saved to file' : 'Kept in this browser'}</span>
+        {s.notice && <span className={`notice-${s.notice.tone}`}>{s.notice.text}</span>}
+      </footer>
+      {fileInputs}
+      {dialogs}
     </div>
   );
 }

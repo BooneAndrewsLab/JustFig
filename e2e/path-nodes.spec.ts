@@ -37,7 +37,7 @@ async function centre(page: Page, selector: string, i = 0) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('./');
+  await page.goto('./?editor');
   await expect(page.locator('.icon-tile').first()).toBeVisible();
 });
 

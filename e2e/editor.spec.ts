@@ -31,7 +31,7 @@ async function drag(page: Page, from: [number, number], to: [number, number]) {
 test('builds a 2×2 figure with icons, arrows and sub/sup labels, and exports all four formats', async ({
   page,
 }) => {
-  await page.goto('./');
+  await page.goto('./?editor');
   await expect(page.locator('.icon-tile').first()).toBeVisible();
   const canvas = page.getByTestId('canvas');
 
@@ -123,7 +123,7 @@ test('builds a 2×2 figure with icons, arrows and sub/sup labels, and exports al
 });
 
 test('undo and redo walk back through the edits', async ({ page }) => {
-  await page.goto('./');
+  await page.goto('./?editor');
   await expect(page.locator('.icon-tile').first()).toBeVisible();
   await page.keyboard.press('r');
   await drag(page, [20, 20], [120, 80]);

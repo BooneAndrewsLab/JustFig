@@ -58,6 +58,25 @@ describe('the user guide', () => {
     for (const t of TOOLS) expect(has(t.label.split(' (')[0] ?? t.label), t.id).toBe(true);
   });
 
+  it('describes the front page and each of its buttons (note 57)', () => {
+    const home = src('./Home.tsx');
+    for (const b of [
+      'Back to your figures',
+      'Open…',
+      'New figure',
+      'Open a figure…',
+      'Try an example',
+      'More templates and examples…',
+      'Recent figures',
+      'Start from a template',
+    ]) {
+      expect(home, b).toContain(b);
+      expect(has(b.replace('…', '')), b).toBe(true);
+    }
+    expect(src('./App.tsx')).toContain('Front page: your open figures stay open');
+    expect(has('front page')).toBe(true);
+  });
+
   it('describes every top-bar button, File menu item, dialog and Inspector section', () => {
     const app = src('./App.tsx') + src('./FileMenu.tsx') + src('./HistoryMenu.tsx');
     for (const b of [

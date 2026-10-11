@@ -115,6 +115,8 @@ export interface SharedState {
   readonly showNotes: boolean;
   /** Document ids of open figures whose last autosave failed (note 02); empty when all is kept. */
   readonly unsaved: readonly string[];
+  /** The front page shows instead of the editor (note 57); every figure change leaves it. */
+  readonly home: boolean;
 }
 
 type DocFields = Omit<TabState, 'key' | 'fresh'>;
@@ -256,6 +258,7 @@ export class AppStore {
       notice: null,
       showNotes: initialShowNotes(),
       unsaved: [],
+      home: false,
     };
     this.state = this.flatten();
   }
@@ -289,6 +292,7 @@ export class AppStore {
     const history = t.history.push(next, e.label, Date.now(), coalesce);
     const selection =
       opts.keepSelection === true || e.select === undefined ? t.selection : e.select;
+    this.shared = { ...this.shared, home: false };
     this.replaceTab(fix({ ...t, history }, history.present, selection));
     return true;
   }
@@ -363,6 +367,7 @@ export class AppStore {
   /** Replaces the front tab's figure; its history starts afresh. The caller flushes autosave first. */
   load(f: Figure, opts: OpenOptions = {}): void {
     const t = this.front();
+    this.shared = { ...this.shared, home: false };
     this.replaceTab({ ...this.newTab(f, opts), key: t.key });
   }
 
@@ -386,12 +391,16 @@ export class AppStore {
     }
     const front = this.front();
     const tab = this.newTab(f, opts);
+    this.shared = { ...this.shared, home: false };
     if (isUntouched(front) && opts.fresh !== true) {
       const taken = { ...tab, key: front.key };
       this.replaceTab(taken);
       return taken.key;
     }
-    if (isUntouched(front) && opts.fresh === true) return front.key;
+    if (isUntouched(front) && opts.fresh === true) {
+      this.publish();
+      return front.key;
+    }
     this.tabs = [...this.tabs, tab];
     this.frontKey = tab.key;
     this.publish();
@@ -401,12 +410,27 @@ export class AppStore {
 
   /** Brings a tab forward; a half-done text edit or note draft in the one left is dropped. */
   activate(key: string): void {
-    if (key === this.frontKey || !this.tab(key)) return;
+    if (!this.tab(key)) return;
+    if (key === this.frontKey) {
+      if (this.shared.home) this.set({ home: false });
+      return;
+    }
+    this.shared = { ...this.shared, home: false };
     this.tabs = this.tabs.map((t) =>
       t.key === this.frontKey ? { ...t, editingText: null, nodeEdit: null, noteDraft: null } : t,
     );
     this.frontKey = key;
     this.publish();
+  }
+
+  /** Shows the front page over the editor; the tabs stay open (note 57). */
+  showHome(): void {
+    if (!this.shared.home) this.set({ home: true });
+  }
+
+  /** Back to the editor without changing any figure. */
+  leaveHome(): void {
+    if (this.shared.home) this.set({ home: false });
   }
 
   /** Brings the tab at this place in the strip forward (Alt+1…9). */
@@ -424,6 +448,7 @@ export class AppStore {
       const t = this.newTab(emptyFigure(), { fresh: true });
       this.tabs = [t];
       this.frontKey = t.key;
+      this.shared = { ...this.shared, home: true };
     } else {
       this.tabs = rest;
       const next = rest[at] ?? rest[at - 1];

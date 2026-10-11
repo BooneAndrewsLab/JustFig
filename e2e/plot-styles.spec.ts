@@ -20,7 +20,7 @@ async function importPlot(page: Page, name: string, count: number) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('./');
+  await page.goto('./?editor');
   await expect(page.locator('.icon-tile').first()).toBeVisible();
 });
 

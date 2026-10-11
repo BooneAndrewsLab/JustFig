@@ -28,7 +28,7 @@ const markers = (page: Page) => page.getByTestId('note-marker');
 const heads = (page: Page) => notes(page).locator('.note-head');
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('./');
+  await page.goto('./?editor');
   await expect(page.locator('.icon-tile').first()).toBeVisible();
   page.on('dialog', (d) => {
     if (d.type() === 'beforeunload') return void d.accept();
@@ -132,7 +132,7 @@ test('notes survive saving and reopening the file, and no export carries them', 
   page,
 }, info) => {
   await downloadFallback(page);
-  await page.goto('./');
+  await page.goto('./?editor');
   await rect(page, 30, 30, 60, 40);
   await page.keyboard.press('Escape');
   await notes(page).getByRole('button', { name: '+ Note' }).click();

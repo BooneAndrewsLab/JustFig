@@ -12,7 +12,7 @@ test('an injected render error shows the recovery screen; download and reload ke
     if (d.type() !== 'beforeunload') throw new Error('window.confirm must not be used');
     void d.accept();
   });
-  await page.goto('./');
+  await page.goto('./?editor');
   await expect(page.locator('.icon-tile').first()).toBeVisible();
   const title = page.getByLabel('Figure title');
   const tabs = page.getByRole('tablist', { name: 'Open figures' }).getByRole('tab');
@@ -69,7 +69,7 @@ test('an injected render error shows the recovery screen; download and reload ke
 });
 
 test('an uncaught error shows a status message and keeps the app', async ({ page }) => {
-  await page.goto('./');
+  await page.goto('./?editor');
   await expect(page.locator('.icon-tile').first()).toBeVisible();
   await page.evaluate(() => {
     setTimeout(() => {

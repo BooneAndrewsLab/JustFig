@@ -4,7 +4,7 @@ import { expect, test } from '@playwright/test';
 import { pageBox } from './helpers';
 
 test('on load the page is centred at the fit zoom, same as Fit page', async ({ page }) => {
-  await page.goto('./');
+  await page.goto('./?editor');
   await expect(page.locator('.icon-tile').first()).toBeVisible();
   const canvas = await page.locator('.canvas').boundingBox();
   if (!canvas) throw new Error('canvas not visible');

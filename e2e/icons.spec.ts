@@ -9,7 +9,7 @@ import { expect, test } from '@playwright/test';
 import { fileMenu, iconTile } from './helpers';
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('./');
+  await page.goto('./?editor');
   await expect(page.locator('.icon-tile').first()).toBeVisible();
 });
 

@@ -29,7 +29,7 @@ async function rect(page: Page, x: number, y: number, w: number, h: number) {
 const field = (page: Page, name: string) => page.locator('.side').getByLabel(name, { exact: true });
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('./');
+  await page.goto('./?editor');
   await expect(page.locator('.icon-tile').first()).toBeVisible();
 });
 
@@ -172,7 +172,7 @@ test('save, open, import an SVG, attribution, and autosave survive a reload', as
     Reflect.deleteProperty(window, 'showSaveFilePicker');
     Reflect.deleteProperty(window, 'showOpenFilePicker');
   });
-  await page.goto('/');
+  await page.goto('/?editor');
   await (await iconTile(page, 'petri-dish', 'petri dish')).click();
   await rect(page, 10, 10, 30, 30);
   const svgPath = info.outputPath('shape.svg');

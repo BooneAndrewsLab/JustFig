@@ -20,7 +20,7 @@ const caret = (page: Page) => page.getByRole('button', { name: 'History', exact:
 const changes = (page: Page) => page.getByRole('menu', { name: 'Changes' });
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('./');
+  await page.goto('./?editor');
   await expect(page.locator('.icon-tile').first()).toBeVisible();
 });
 

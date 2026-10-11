@@ -26,6 +26,7 @@ import {
   renamePreset,
 } from '../state/session';
 import { Dialog } from './Dialog';
+import { galleryThumbnail, svgUrl } from './galleryThumbnail';
 
 type GalleryTab = GalleryEntry['kind'] | 'presets';
 
@@ -34,15 +35,6 @@ const TABS: readonly [GalleryTab, string][] = [
   ['example', 'Examples'],
   ['presets', 'My presets'],
 ];
-
-const svgUrl = (svg: string) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-
-function thumbnail(e: GalleryEntry): string {
-  const fig = e.build();
-  const page = fig.doc.pages[0];
-  if (!page) return '';
-  return svgUrl(exportSvg(fig, page, { textMode: 'outline', footer: false, background: true }, ''));
-}
 
 /** A preset drawn on a page just its size, with a small margin. */
 function presetThumbnail(p: Preset): string {
@@ -71,7 +63,7 @@ export function GalleryDialog({
   onSaveTemplate: () => void;
 }) {
   const [tab, setTab] = useState<GalleryTab>('template');
-  const thumbs = useMemo(() => new Map(GALLERY.map((e) => [e.id, thumbnail(e)])), []);
+  const thumbs = useMemo(() => new Map(GALLERY.map((e) => [e.id, galleryThumbnail(e)])), []);
   const [presets, setPresets] = useState<KeptPreset[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [renaming, setRenaming] = useState<string | null>(null);

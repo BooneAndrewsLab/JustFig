@@ -22,7 +22,7 @@ test.describe('light system setting', () => {
   test.use({ colorScheme: 'light' });
 
   test('keeps the light chrome', async ({ page }) => {
-    await page.goto('./');
+    await page.goto('./?editor');
     await expect(page.locator('.icon-tile').first()).toBeVisible();
     expect(await rootBackground(page)).toBe('rgb(243, 242, 242)');
     expect(await pageFill(page)).toBe('#ffffff');
@@ -33,7 +33,7 @@ test.describe('dark system setting', () => {
   test.use({ colorScheme: 'dark' });
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('./');
+    await page.goto('./?editor');
     await expect(page.locator('.icon-tile').first()).toBeVisible();
   });
 

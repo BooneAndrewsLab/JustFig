@@ -16,7 +16,7 @@ async function typeText(page: Page, at: [number, number], s: string) {
 }
 
 test('a warning selects the object it is about, from the keyboard', async ({ page }) => {
-  await page.goto('./');
+  await page.goto('./?editor');
   // Starts near the right edge of the page, so it runs off it.
   await typeText(page, [470, 100], 'A label that runs off the page');
   await page.keyboard.press('Escape');
@@ -41,7 +41,7 @@ test('a warning selects the object it is about, from the keyboard', async ({ pag
 });
 
 test('a clean page says so', async ({ page }) => {
-  await page.goto('./');
+  await page.goto('./?editor');
   await page.getByRole('button', { name: 'Export…' }).click();
   const dialog = page.getByRole('dialog', { name: 'Export figure' });
   await expect(dialog.getByText('No problems found.')).toBeVisible();
@@ -50,7 +50,7 @@ test('a clean page says so', async ({ page }) => {
 test('swatches that look alike in colour-blind vision are warned about, and selected', async ({
   page,
 }) => {
-  await page.goto('./');
+  await page.goto('./?editor');
   await fileMenu(page, 'Templates…');
   const gallery = page.getByRole('dialog', { name: 'Templates and examples' });
   await gallery.getByRole('tab', { name: 'Examples' }).click();

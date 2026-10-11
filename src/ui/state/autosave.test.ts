@@ -8,6 +8,7 @@ import { FigureDb, FigureStorage, StoreFullError } from '@/io/storage';
 import { Autosaver, RETRY_DELAY } from './autosave';
 import { keptTabs, rememberTabs, rememberedTabs, reopenTabs, TABS_KEY } from './openTabs';
 import { AppStore, currentPage, figure } from './store';
+import { tabsText } from './openTabs';
 
 const blank = (): Figure => ({ doc: createDoc(), assets: {} });
 const newStorage = () => new FigureStorage(new FigureDb(`t-${String(Math.random())}`));
@@ -139,9 +140,42 @@ describe('open tabs across a reload (note 25)', () => {
   it('reads the one figure remembered before tabs', () => {
     const kv = memoryKv();
     kv.setItem('justfig.current', 'abc');
-    expect(rememberedTabs(kv)).toEqual({ ids: ['abc'], front: 'abc' });
+    expect(rememberedTabs(kv)).toEqual({ ids: ['abc'], front: 'abc', explicit: false });
     kv.setItem(TABS_KEY, 'not json');
-    expect(rememberedTabs(kv)).toEqual({ ids: [], front: null });
+    expect(rememberedTabs(kv)).toEqual({ ids: [], front: null, explicit: false });
+  });
+});
+
+describe('the front page and the remembered tabs (note 57)', () => {
+  it('writes an empty list only when the front page shows over untouched tabs', () => {
+    const s = new AppStore();
+    s.showHome();
+    expect(JSON.parse(tabsText(s.getState()))).toEqual({ ids: [], front: null });
+    s.leaveHome();
+    expect((JSON.parse(tabsText(s.getState())) as { ids: string[] }).ids).toHaveLength(1);
+    draw(s);
+    s.showHome();
+    const ids = (JSON.parse(tabsText(s.getState())) as { ids: string[] }).ids;
+    expect(ids).toEqual([figure(s.getState()).doc.id]);
+  });
+
+  it('keeps nothing open for an explicit empty list, and falls back otherwise', async () => {
+    const storage = newStorage();
+    const kept = blank();
+    await storage.save(kept, APP);
+    const kv = memoryKv();
+    kv.setItem(TABS_KEY, '{"ids":[],"front":null}');
+    const open = rememberedTabs(kv);
+    expect(open.explicit).toBe(true);
+    expect((await keptTabs(storage, open)).figs).toEqual([]);
+    for (const text of ['not json', '{"front":null}', '[]']) {
+      kv.setItem(TABS_KEY, text);
+      expect((await keptTabs(storage, rememberedTabs(kv))).figs).toHaveLength(1);
+    }
+    const legacy = memoryKv();
+    legacy.setItem('justfig.current', 'gone');
+    expect((await keptTabs(storage, rememberedTabs(legacy))).figs).toHaveLength(1);
+    expect((await keptTabs(storage, rememberedTabs(memoryKv()))).figs).toHaveLength(1);
   });
 });
 

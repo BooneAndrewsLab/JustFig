@@ -6,7 +6,7 @@
 import { type Page, expect, test } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('./');
+  await page.goto('./?editor');
   await expect(page.locator('.icon-tile').first()).toBeVisible();
 });
 

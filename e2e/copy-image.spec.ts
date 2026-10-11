@@ -2,7 +2,7 @@
 import { expect, test } from '@playwright/test';
 
 test('Copy as image is in the Export dialog and says what happened', async ({ page }) => {
-  await page.goto('./');
+  await page.goto('./?editor');
   await page.getByRole('button', { name: 'Export…' }).click();
   const button = page.getByRole('button', { name: 'Copy as image' });
   await expect(button).toBeVisible();

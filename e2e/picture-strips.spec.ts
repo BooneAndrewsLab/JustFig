@@ -63,7 +63,7 @@ test('a big picture in strips shows no seam, placed off the pixel grid or turned
   page,
 }, info) => {
   test.setTimeout(240_000);
-  await page.goto('./');
+  await page.goto('./?editor');
   await expect(page.locator('.icon-tile').first()).toBeVisible();
   const names = page.locator('.layers .item .name');
   await page.getByTestId('import-input').setInputFiles({

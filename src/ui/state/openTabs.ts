@@ -5,7 +5,7 @@
  */
 import type { FigureStorage, KeptFigure } from '@/io/storage';
 
-import { type AppState, type AppStore, figure } from './store';
+import { type AppState, type AppStore, figure, isUntouched } from './store';
 
 export const TABS_KEY = 'justfig.tabs';
 /** Before tabs, the one figure open; read when there is no TABS_KEY yet. */
@@ -14,6 +14,8 @@ export const CURRENT_KEY = 'justfig.current';
 export interface OpenTabs {
   readonly ids: readonly string[];
   readonly front: string | null;
+  /** TABS_KEY held a list (maybe empty): trust it, no fallback to the latest figure. */
+  readonly explicit: boolean;
 }
 
 type KeyValue = Pick<Storage, 'getItem' | 'setItem'>;
@@ -26,23 +28,26 @@ export function rememberedTabs(kv: KeyValue = local()): OpenTabs {
     const raw = kv.getItem(TABS_KEY);
     if (raw === null) {
       const one = kv.getItem(CURRENT_KEY);
-      return { ids: one ? [one] : [], front: one };
+      return { ids: one ? [one] : [], front: one, explicit: false };
     }
     const v: unknown = JSON.parse(raw);
-    if (typeof v !== 'object' || v === null) return { ids: [], front: null };
+    if (typeof v !== 'object' || v === null) return { ids: [], front: null, explicit: false };
     const { ids, front } = v as { ids?: unknown; front?: unknown };
     return {
+      explicit: Array.isArray(ids),
       ids: Array.isArray(ids) ? ids.filter((x): x is string => typeof x === 'string') : [],
       front: typeof front === 'string' ? front : null,
     };
   } catch {
-    return { ids: [], front: null };
+    return { ids: [], front: null, explicit: false };
   }
 }
 
 /** What to remember of the store's tabs, as stored. */
 export const tabsText = (s: AppState): string =>
-  JSON.stringify({ ids: s.tabs.map((t) => figure(t).doc.id), front: figure(s).doc.id });
+  s.home && s.tabs.every(isUntouched)
+    ? JSON.stringify({ ids: [], front: null })
+    : JSON.stringify({ ids: s.tabs.map((t) => figure(t).doc.id), front: figure(s).doc.id });
 
 /** Keeps the remembered tabs up to date with the store. Returns the unsubscribe. */
 export function rememberTabs(store: AppStore, kv: KeyValue = local()): () => void {
@@ -64,7 +69,7 @@ export function rememberTabs(store: AppStore, kv: KeyValue = local()): () => voi
 /**
  * The figures that were open, in order, with the front one's id. Ids whose
  * row is gone are skipped; when none is left, the most recently changed
- * figure stands in, as before tabs.
+ * figure stands in, as before tabs; but not for an explicit empty list (the front page was showing, note 57).
  */
 export async function keptTabs(
   storage: FigureStorage,
@@ -75,7 +80,7 @@ export async function keptTabs(
     const f = await storage.load(id);
     if (f && !figs.some((g) => g.doc.id === f.doc.id)) figs.push(f);
   }
-  if (figs.length === 0) {
+  if (figs.length === 0 && !(open.explicit && open.ids.length === 0)) {
     const latest = await storage.latest();
     if (latest) figs.push(latest);
   }

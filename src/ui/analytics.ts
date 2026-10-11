@@ -96,6 +96,8 @@ export const EVENTS = {
   tabs: ['second', 'close', 'move'],
   /** The guide page id as the name. */
   guide: ['open'],
+  /** The front page (note 57): shown, and what was chosen on it. */
+  home: ['show', 'new', 'open', 'example', 'template', 'recent', 'back'],
   embedded: ['import'],
   arrange: ['grid'],
   image: ['crop', 'crop-level', 'merge', 'channels', 'split', 'inset'],

@@ -30,7 +30,7 @@ test('a full browser store shows the banner with a download, and clears on the n
       return orig.call(this, value, key);
     };
   });
-  await page.goto('./');
+  await page.goto('./?editor');
   await expect(page.locator('.icon-tile').first()).toBeVisible();
   const banner = page.getByRole('alert').filter({ hasText: 'Not saved in this browser' });
 

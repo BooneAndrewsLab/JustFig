@@ -32,7 +32,7 @@ test('without the File System Access API the File menu has no Save as…', async
     Reflect.deleteProperty(window, 'showSaveFilePicker');
     Reflect.deleteProperty(window, 'showOpenFilePicker');
   });
-  await page.goto('/');
+  await page.goto('/?editor');
   await page.getByRole('button', { name: 'File', exact: true }).click();
   await expect(page.getByRole('menuitem', { name: 'Save', exact: true })).toBeVisible();
   await expect(page.getByRole('menuitem', { name: 'Save as…' })).toHaveCount(0);
@@ -46,7 +46,7 @@ test('without the File System Access API the File menu has no Save as…', async
 
 test('Save asks once, then writes the same file; Save as always asks', async ({ page }) => {
   await page.addInitScript(stubPickers);
-  await page.goto('/');
+  await page.goto('/?editor');
   const read = (k: string) => page.evaluate((key) => (window as never)[key] as string[], k);
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect.poll(async () => (await read('__writes')).length).toBe(1);
