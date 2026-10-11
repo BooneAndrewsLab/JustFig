@@ -29,6 +29,11 @@ with note 50).
 - **Version:** "Version 0.1.0" sits beside the guide's title
   (`Dialog`'s new `meta` slot), not at the end of the status line.
 
+- **Step 4's remainder** needed no code: the tool palette buttons were
+  already 34×34 with the 16px line icon (note 50, `.tools button`), and the
+  zoom, tab-close and new-tab buttons keep their icons. An e2e now holds
+  those sizes.
+
 ## Why
 
 `DESIGN.md` §1: the family's chrome is a "?" at the far right, text

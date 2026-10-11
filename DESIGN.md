@@ -178,3 +178,5 @@ changes (the guide test enforces it), and a design note in `docs/design/`
   Archivo UI font landed; note 51.
 - 2026-10-10: step 3 (round "?" help, `?` a fixed key, Change shortcuts as a guide page,
   text Undo/Redo, version in the guide header); note 52.
+- 2026-10-10: step 4 finished: the tool palette was already 34×34 with 16px icons (note 50);
+  an e2e now checks it, and only zoom, tab close and new tab keep chrome icons; note 52.

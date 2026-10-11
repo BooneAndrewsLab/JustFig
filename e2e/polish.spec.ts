@@ -183,3 +183,19 @@ test('the top bar is one row at 1280 × 720, with ? at its right end (note 52)',
   await page.getByRole('button', { name: 'Undo', exact: true }).waitFor();
   await page.getByRole('button', { name: 'Redo', exact: true }).waitFor();
 });
+
+test('tool palette buttons are 34 × 34 with a 16 px line icon (DESIGN.md step 4)', async ({
+  page,
+}) => {
+  const tools = page.locator('[data-tool]');
+  await expect(tools.first()).toBeVisible();
+  for (const tool of await tools.all()) {
+    const b = await tool.boundingBox();
+    const i = await tool.locator('svg.icon-glyph').boundingBox();
+    if (!b || !i) throw new Error('tool button or its icon not visible');
+    expect(b.width).toBeCloseTo(34, 1);
+    expect(b.height).toBeCloseTo(34, 1);
+    expect(i.width).toBeCloseTo(16, 1);
+    expect(i.height).toBeCloseTo(16, 1);
+  }
+});
