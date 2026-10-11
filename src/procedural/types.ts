@@ -5,7 +5,7 @@
  */
 import type { PathNode, SlotDef } from '@/core/model/types';
 
-import type { Prim } from './prims';
+import { LOOKS, type Prim, STYLE_IDS, type StyleId } from './prims';
 
 export type Scalar = number | string | boolean;
 export type Item = Readonly<Record<string, Scalar>>;
@@ -147,6 +147,11 @@ export interface ProceduralKind<P = Params> {
   readonly slots: readonly SlotDef[];
   /** Named starting points (note 58), in picker order. */
   readonly presets?: readonly KindPreset<P>[];
+  /**
+   * The styles it can be drawn in besides flat (note 58). Listing any adds the generic `style`
+   * field (`defineKind`); `render` reads `p.style` through `lookOf` in prims.ts.
+   */
+  readonly styles?: readonly StyleId[];
   /** Questions that fill the params (note 58), for kinds where they beat fields. */
   readonly wizard?: KindWizard<P>;
   /** Path-following kinds draw along `obj.path`. */
@@ -169,6 +174,34 @@ export interface ProceduralKind<P = Params> {
   readonly render: (p: P, input: RenderInput) => readonly Prim[];
 }
 
-/** Kinds are written against their own params type; the registry holds them generically. */
-export const defineKind = <P>(k: ProceduralKind<P>): ProceduralKind =>
-  k as unknown as ProceduralKind;
+/** The generic style param's key (note 58). */
+export const STYLE_KEY = 'style';
+
+/**
+ * The `style` enum a kind that lists `styles` gets (note 58): flat first and the default, so an
+ * object saved before the kind had styles decodes to flat and needs no version bump.
+ */
+export function styleField(styles: readonly StyleId[]): EnumField {
+  const ids = STYLE_IDS.filter((s) => s === 'flat' || styles.includes(s));
+  return {
+    key: STYLE_KEY,
+    label: 'Style',
+    type: 'enum',
+    help: 'How it is drawn; what it shows stays the same.',
+    options: ids.map((s) => ({ value: s, label: LOOKS[s].label })),
+    default: 'flat',
+  };
+}
+
+/**
+ * Kinds are written against their own params type; the registry holds them generically. A kind
+ * that lists `styles` gets the generic `style` field first, so the Inspector, decoder, schema and
+ * test arbitraries all see it like any other field.
+ */
+export const defineKind = <P>(k: ProceduralKind<P>): ProceduralKind => {
+  const styled =
+    k.styles !== undefined && k.styles.length > 0 && !k.fields.some((f) => f.key === STYLE_KEY)
+      ? { ...k, fields: [styleField(k.styles), ...k.fields] }
+      : k;
+  return styled as unknown as ProceduralKind;
+};

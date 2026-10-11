@@ -6,7 +6,7 @@ import { type Edit, EditError, updateObjects } from '@/core/edits/edits';
 import { refit } from '@/core/geometry/transform';
 import { frame } from '@/core/model/factory';
 import { type Id, newId } from '@/core/model/ids';
-import { mapPageObjs, pageObjects } from '@/core/model/tree';
+import { mapPageObjs, pageObjects, walk } from '@/core/model/tree';
 import type {
   Assets,
   Figure,
@@ -21,10 +21,10 @@ import type {
 } from '@/core/model/types';
 
 import { defaultParams } from './params';
-import { ellipseNodes } from './prims';
+import { LOOKS, STYLE_IDS, type StyleId, ellipseNodes } from './prims';
 import { getKind, resolveProcedural } from './registry';
 import { convertToShapes } from './shapes';
-import type { Params, ProceduralKind } from './types';
+import { type Params, type ProceduralKind, STYLE_KEY } from './types';
 
 const fixed = (k: ProceduralKind, p: Params): Params => (k.fix ? k.fix(p) : p);
 
@@ -109,6 +109,45 @@ export function setParams(pageId: Id, id: Id, label: string, fn: (p: Params) => 
         ? { path: r.kind.defaultPath(o.frame.w, o.frame.h, next['closed'] === true) }
         : {};
     return { ...o, kindVersion: r.kind.version, params: next, ...reshape };
+  });
+}
+
+/** The styles a kind can be drawn in (note 58): flat, then the ones it lists; none without. */
+export const stylesOf = (k: ProceduralKind): readonly StyleId[] =>
+  k.styles && k.styles.length > 0
+    ? STYLE_IDS.filter((s) => s === 'flat' || k.styles?.includes(s))
+    : [];
+
+/** Procedural objects among these (and inside selected groups) whose kind has styles. */
+export function styledObjects(objs: readonly Obj[]): Procedural[] {
+  const out: Procedural[] = [];
+  for (const o of walk(objs)) {
+    if (o.type !== 'procedural') continue;
+    const r = resolveProcedural(o);
+    if (r && stylesOf(r.kind).length > 0) out.push(o);
+  }
+  return out;
+}
+
+/**
+ * "Apply this style to all" (note 58): one named edit giving every selected procedural object
+ * whose kind supports `style` that style; the others are left as they are.
+ */
+export function applyStyle(pageId: Id, objs: readonly Obj[], style: StyleId): Edit {
+  const ids = styledObjects(objs)
+    .filter((o) => {
+      const r = resolveProcedural(o);
+      return r !== null && stylesOf(r.kind).includes(style);
+    })
+    .map((o) => o.id);
+  if (ids.length === 0) throw new EditError('None of the selected objects can be drawn that way.');
+  return updateObjects(pageId, ids, `Apply style ${LOOKS[style].label}`, (o) => {
+    if (o.type !== 'procedural') return o;
+    const r = resolveProcedural(o);
+    if (!r)
+      throw new EditError('This object was made by a newer version and cannot be edited here.');
+    const next = fixed(r.kind, { ...r.params, [STYLE_KEY]: style });
+    return { ...o, kindVersion: r.kind.version, params: next };
   });
 }
 

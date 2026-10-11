@@ -255,3 +255,15 @@ export const GOLDEN_CASES: Readonly<Record<string, Readonly<Record<string, Parti
     malformed: { newick: '((A:1,B:x),C' },
   },
 };
+
+/**
+ * Which of a kind's golden cases are also drawn in each of its styles (note 58), besides its
+ * defaults: the ones that show a style's handling of data colours and odd shapes.
+ */
+export const STYLE_GOLDEN_CASES: Readonly<Record<string, readonly string[]>> = {
+  cell: ['apoptotic-bud', 'irregular-wall-microvilli'],
+  bacterium: ['coccus-tuft-pili', 'vibrio-positive'],
+  wellPlate: ['6-painted'],
+  petriDish: ['blue-white', 'disk-diffusion', 'tetrads-3-1', 'morph-sectored', 'rect-grid-96'],
+  gel: ['inverted'],
+};

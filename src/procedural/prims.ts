@@ -4,6 +4,7 @@
  * text labels. Render turns them into SvgNodes; "Convert to shapes" turns
  * them into plain objects. Both read the same data, so they agree.
  */
+import { oklchToRgb, parseHex, rgbToOklch, toHex } from '@/core/color/color';
 import type { PathNode, Vec2 } from '@/core/model/types';
 import { num } from '@/render/svgNode';
 
@@ -218,4 +219,395 @@ export function* primPoints(p: Prim): Generator<Vec2> {
         if (n.out) yield n.out;
       }
   }
+}
+
+// Styles (note 58): how a kind draws, as opposed to what. A kind lists the styles it supports;
+// its render asks the look for each part's colours and weights instead of branching on the
+// style itself. Everything stays in the export subset: flat fills and strokes, no gradients,
+// filters or opacity. A new style is one entry in `STYLE_IDS` and `LOOKS`.
+
+/** Every style, in menu order. */
+export const STYLE_IDS = ['flat', 'line-art', 'cartoon'] as const;
+export type StyleId = (typeof STYLE_IDS)[number];
+
+export interface LookSpec {
+  readonly label: string;
+  /** Fills: the part's own colour, white paper (line art), or a more saturated version. */
+  readonly fill: 'keep' | 'paper' | 'vivid';
+  /** Outlines and lines: their own colour, the one ink colour, or a dark shade of the part. */
+  readonly edge: 'keep' | 'ink' | 'dark';
+  /** Parts whose colour is data (bands, painted wells, marker colonies): kept, ink tints, vivid. */
+  readonly mark: 'keep' | 'tint' | 'vivid';
+  /** Body outline width as a multiple of the kind's line weight; 0 keeps the kind's own. */
+  readonly outline: number;
+  /** Outline of fill-only details, × the line weight; 0 leaves them as drawn. */
+  readonly detail: number;
+  /** Stroke-only parts' width factor. */
+  readonly lines: number;
+  /** The widest a stroke-only part may be, × the line weight; 0 for no limit. */
+  readonly maxLine: number;
+  /** Inward edge wobble, as a fraction of the part's half-size; 0 keeps exact geometry. */
+  readonly wobble: number;
+  /** Decorative part counts are divided by this, their sizes multiplied by `bigger`. */
+  readonly fewer: number;
+  readonly bigger: number;
+  /** A small light arc on the main parts. */
+  readonly highlight: boolean;
+}
+
+export const LOOKS: Readonly<Record<StyleId, LookSpec>> = {
+  flat: {
+    label: 'Flat',
+    fill: 'keep',
+    edge: 'keep',
+    mark: 'keep',
+    outline: 0,
+    detail: 0,
+    lines: 1,
+    maxLine: 0,
+    wobble: 0,
+    fewer: 1,
+    bigger: 1,
+    highlight: false,
+  },
+  'line-art': {
+    label: 'Line art',
+    fill: 'paper',
+    edge: 'ink',
+    mark: 'tint',
+    outline: 1,
+    detail: 0.6,
+    lines: 1,
+    maxLine: 1.2,
+    wobble: 0,
+    fewer: 1,
+    bigger: 1,
+    highlight: false,
+  },
+  cartoon: {
+    label: 'Cartoon',
+    fill: 'vivid',
+    edge: 'dark',
+    mark: 'vivid',
+    outline: 2,
+    detail: 0.9,
+    lines: 1.5,
+    maxLine: 0,
+    wobble: 0.035,
+    fewer: 3,
+    bigger: 1.35,
+    highlight: true,
+  },
+};
+
+/** The one ink colour of line art, and the paper it is drawn on. */
+export const INK = '#1a1a1a';
+export const PAPER = '#ffffff';
+
+const oklchOf = (hex: string) => {
+  const rgb = parseHex(hex);
+  return rgb ? rgbToOklch(rgb) : null;
+};
+
+/** More saturated, same lightness and hue. */
+function vivid(hex: string): string {
+  const o = oklchOf(hex);
+  if (!o || o.c < 0.02) return hex;
+  return toHex(oklchToRgb({ ...o, c: Math.min(0.3, o.c * 1.4 + 0.02) }));
+}
+
+/** A dark shade of the colour, for cartoon outlines. */
+function dark(hex: string): string {
+  const o = oklchOf(hex);
+  if (!o) return INK;
+  return toHex(oklchToRgb({ l: Math.min(0.4, o.l * 0.5), c: Math.min(0.12, o.c * 0.9), h: o.h }));
+}
+
+/** An ink tint as light as the colour: monochrome keeps the order of light and dark. */
+function tint(hex: string): string {
+  const o = oklchOf(hex);
+  return o ? inkAt(Math.min(0.92, Math.max(0, (o.l - 0.3) / 0.65))) : INK;
+}
+
+/** Ink thinned towards paper by `t` (0 = ink, 1 = paper). */
+function inkAt(t: number): string {
+  const ink = parseHex(INK) ?? { r: 0, g: 0, b: 0 };
+  return toHex({
+    r: ink.r + (1 - ink.r) * t,
+    g: ink.g + (1 - ink.g) * t,
+    b: ink.b + (1 - ink.b) * t,
+  });
+}
+
+export interface Look {
+  readonly id: StyleId;
+  /** Drawn in ink on white paper: a kind with a dark ground (a stained gel) turns it light. */
+  readonly onPaper: boolean;
+  /** Every part is outlined, even where the kind's own option leaves outlines off. */
+  readonly outlines: boolean;
+  /** A plain fill's colour (paper in line art). */
+  fill(colour: string): string;
+  /** A filled part with an outline (a cell, a dish, a nucleus); with no fill, just the outline. */
+  body(s: Style): Style;
+  /** A small fill-only part (a nucleolus, ribosomes): line art outlines it. */
+  detail(s: Style): Style;
+  /** A part whose colour is data (a band, a painted well): line art keeps it as an ink tint. */
+  mark(s: Style): Style;
+  /**
+   * Several data colours at once (a plate map): line art spreads the distinct colours evenly
+   * over ink tints in their order of lightness, so two colours of equal lightness stay apart.
+   */
+  marks(colours: readonly string[]): (colour: string) => string;
+  /** A stroke-only part (ER, spindle fibres, flagella). */
+  line(s: Style): Style;
+  text(colour: string): string;
+  /** How many of a decorative part to draw (cartoon draws fewer). */
+  parts(n: number): number;
+  /** Their size factor (cartoon draws them bigger). */
+  readonly bigger: number;
+  /** The subpath with an organic edge, never outside its own bounds; others unchanged. */
+  organic(sub: Sub, seed: number): Sub;
+  /** A small light arc inside the upper left of an ellipse, or nothing. */
+  highlight(cx: number, cy: number, rx: number, ry: number, fill: string): PathPrim[];
+}
+
+const isStyle = (v: unknown): v is StyleId => STYLE_IDS.some((s) => s === v);
+
+/** An ellipse arc as nodes: the unit-circle arc stretched to `rx` × `ry`. */
+function ellipseArc(
+  cx: number,
+  cy: number,
+  rx: number,
+  ry: number,
+  a0: number,
+  a1: number,
+): PathNode[] {
+  const tf = (v: Vec2): Vec2 => ({ x: cx + v.x * rx, y: cy + v.y * ry });
+  return arcNodes(0, 0, 1, a0, a1).map((n) => ({
+    ...tf(n),
+    ...(n.in ? { in: tf(n.in) } : {}),
+    ...(n.out ? { out: tf(n.out) } : {}),
+  }));
+}
+
+/**
+ * The look of a style, for a kind whose body outlines are `lw` points wide. An unknown style
+ * (or none, as in old objects) is flat, which leaves every part exactly as the kind drew it.
+ */
+export function lookOf(style: unknown, lw: number): Look {
+  const id = isStyle(style) ? style : 'flat';
+  const L = LOOKS[id];
+  const w = Math.max(0.1, lw);
+  const fillOf = (c: string | null | undefined): string | null =>
+    c == null ? null : L.fill === 'paper' ? PAPER : L.fill === 'vivid' ? vivid(c) : c;
+  const edgeOf = (c: string): string => (L.edge === 'ink' ? INK : L.edge === 'dark' ? dark(c) : c);
+  return {
+    id,
+    onPaper: L.fill === 'paper',
+    outlines: L.outline > 0,
+    fill: (c) => fillOf(c) ?? c,
+    body: (s) => {
+      if (L.outline === 0) return s;
+      return {
+        ...s,
+        fill: fillOf(s.fill),
+        stroke: edgeOf(s.fill ?? s.stroke ?? INK),
+        sw: Math.max(s.sw ?? 0, w) * L.outline,
+        join: 'round',
+      };
+    },
+    detail: (s) => {
+      if (L.detail === 0) return s;
+      return {
+        ...s,
+        fill: fillOf(s.fill),
+        stroke: edgeOf(s.fill ?? s.stroke ?? INK),
+        sw: w * L.detail,
+      };
+    },
+    mark: (s) => {
+      if (L.mark === 'keep') return s;
+      if (L.mark === 'vivid' && s.stroke != null && s.fill != null)
+        return {
+          ...s,
+          fill: vivid(s.fill),
+          stroke: dark(s.fill),
+          sw: Math.max(s.sw ?? 0, w * L.detail),
+        };
+      const map = L.mark === 'tint' ? tint : vivid;
+      return {
+        ...s,
+        fill: s.fill == null ? null : map(s.fill),
+        stroke: s.stroke == null ? null : map(s.stroke),
+      };
+    },
+    marks: (colours) => {
+      if (L.mark === 'keep') return (c) => c;
+      if (L.mark === 'vivid') return vivid;
+      const distinct = [...new Set(colours)];
+      if (distinct.length < 2) return tint;
+      const light = (c: string) => oklchOf(c)?.l ?? 0;
+      distinct.sort((a, b) => light(b) - light(a) || (a < b ? -1 : 1));
+      const at = new Map(distinct.map((c, i) => [c, inkAt(0.7 * (1 - i / (distinct.length - 1)))]));
+      return (c) => at.get(c) ?? tint(c);
+    },
+    line: (s) =>
+      L.edge === 'keep' && L.lines === 1
+        ? s
+        : {
+            ...s,
+            stroke: s.stroke == null ? null : L.edge === 'ink' ? INK : vivid(s.stroke),
+            sw:
+              L.maxLine > 0
+                ? Math.min((s.sw ?? 0) * L.lines, w * L.maxLine)
+                : (s.sw ?? 0) * L.lines,
+            cap: 'round',
+            join: 'round',
+          },
+    text: (c) => (L.edge === 'ink' ? INK : c),
+    parts: (n) => (L.fewer === 1 || n <= 0 ? n : Math.max(Math.min(n, 2), Math.round(n / L.fewer))),
+    bigger: L.bigger,
+    // Big parts wobble by at most about an outline's width: hand-drawn, not crumpled.
+    organic: (sub, seed) => (L.wobble > 0 ? wobble(sub, L.wobble, seed, w * 1.2) : sub),
+    highlight: (cx, cy, rx, ry, fill) => {
+      if (!L.highlight || !(rx > 1 && ry > 1)) return [];
+      const o = oklchOf(fill);
+      const light =
+        o === null
+          ? PAPER
+          : toHex(oklchToRgb({ l: Math.min(0.98, o.l + (1 - o.l) * 0.75), c: o.c * 0.3, h: o.h }));
+      const k = 0.7;
+      return pathPrim(
+        [
+          {
+            t: 'poly',
+            nodes: ellipseArc(cx, cy, rx * k, ry * k, Math.PI * 1.08, Math.PI * 1.4),
+            closed: false,
+          },
+        ],
+        { stroke: light, sw: Math.min(rx, ry) * 0.1, cap: 'round' },
+      );
+    },
+  };
+}
+
+/** Points along a closed subpath's outline, about `n` per curved segment. */
+function outlinePoints(s: Sub, n: number): Vec2[] {
+  if (s.t === 'circle') {
+    const out: Vec2[] = [];
+    for (let i = 0; i < n * 4; i += 1) {
+      const a = (i / (n * 4)) * 2 * Math.PI;
+      out.push({ x: s.cx + Math.cos(a) * s.r, y: s.cy + Math.sin(a) * s.r });
+    }
+    return out;
+  }
+  let nodes: readonly PathNode[];
+  if (s.t === 'rect') {
+    const r = Math.min(s.rx, s.w / 2, s.h / 2);
+    const [x0, y0, x1, y1] = [s.x, s.y, s.x + s.w, s.y + s.h];
+    const q = Math.PI / 2;
+    nodes =
+      r <= 0
+        ? [
+            { x: x0, y: y0 },
+            { x: x1, y: y0 },
+            { x: x1, y: y1 },
+            { x: x0, y: y1 },
+          ]
+        : joinNodes(
+            arcNodes(x1 - r, y0 + r, r, -q, 0),
+            arcNodes(x1 - r, y1 - r, r, 0, q),
+            arcNodes(x0 + r, y1 - r, r, q, 2 * q),
+            arcNodes(x0 + r, y0 + r, r, 2 * q, 3 * q),
+          );
+  } else nodes = s.nodes;
+  const out: Vec2[] = [];
+  const m = nodes.length;
+  for (let i = 0; i < m; i += 1) {
+    const a = nodes[i];
+    const b = nodes[(i + 1) % m];
+    if (!a || !b) continue;
+    const len = Math.hypot(b.x - a.x, b.y - a.y);
+    if (len < 1e-9) continue;
+    const p1 = a.out ?? a;
+    const p2 = b.in ?? b;
+    // Straight sides get points too, so a rectangle can wobble.
+    const k = a.out !== undefined || b.in !== undefined ? n : Math.max(2, Math.round(n / 2));
+    for (let j = 0; j < k; j += 1) {
+      const t = j / k;
+      const u = 1 - t;
+      out.push({
+        x: u * u * u * a.x + 3 * u * u * t * p1.x + 3 * u * t * t * p2.x + t * t * t * b.x,
+        y: u * u * u * a.y + 3 * u * u * t * p1.y + 3 * u * t * t * p2.y + t * t * t * b.y,
+      });
+    }
+  }
+  return out;
+}
+
+/** A smooth closed curve through the points (Catmull-Rom as cubics). */
+export function smoothLoop(pts: readonly Vec2[]): PathNode[] {
+  const n = pts.length;
+  return pts.map((p, i) => {
+    const a = pts[(i - 1 + n) % n] ?? p;
+    const b = pts[(i + 1) % n] ?? p;
+    const tx = (b.x - a.x) / 6;
+    const ty = (b.y - a.y) / 6;
+    return { x: p.x, y: p.y, in: { x: p.x - tx, y: p.y - ty }, out: { x: p.x + tx, y: p.y + ty } };
+  });
+}
+
+/** A seeded phase in 0..2π. */
+const phase = (seed: number, k: number): number => {
+  const v = Math.sin(seed * 12.9898 + k * 78.233) * 43758.5453;
+  return (v - Math.floor(v)) * 2 * Math.PI;
+};
+
+/**
+ * A closed subpath with an organic edge: each outline point pulled in towards the centre by up
+ * to twice `amount` of the half-size (and twice `most` points), by a few smooth seeded waves of the angle (so concentric parts
+ * with one seed wobble alike), then clamped to the original bounds, so it never reaches further
+ * than the exact shape. Open or tiny subpaths are kept as they are.
+ */
+export function wobble(s: Sub, amount: number, seed: number, most = Infinity): Sub {
+  if (s.t === 'poly' && (!s.closed || s.nodes.length < 2)) return s;
+  let x0 = Infinity;
+  let y0 = Infinity;
+  let x1 = -Infinity;
+  let y1 = -Infinity;
+  for (const q of primPoints({ kind: 'path', subs: [s], fill: null, stroke: null, sw: 0 })) {
+    x0 = Math.min(x0, q.x);
+    y0 = Math.min(y0, q.y);
+    x1 = Math.max(x1, q.x);
+    y1 = Math.max(y1, q.y);
+  }
+  const half = Math.min(x1 - x0, y1 - y0) / 2;
+  if (!Number.isFinite(half) || half < 1) return s;
+  const pts = outlinePoints(s, 6);
+  if (pts.length < 6) return s;
+  const cx = pts.reduce((v, q) => v + q.x, 0) / pts.length;
+  const cy = pts.reduce((v, q) => v + q.y, 0) / pts.length;
+  const p1 = phase(seed, 1);
+  const p2 = phase(seed, 2);
+  const amp = Math.min(half * amount, most);
+  const moved = pts.map((q) => {
+    const dx = q.x - cx;
+    const dy = q.y - cy;
+    const d = Math.hypot(dx, dy);
+    if (d < 1e-9) return q;
+    const a = Math.atan2(dy, dx);
+    const k = amp * (1 + 0.6 * Math.sin(3 * a + p1) + 0.4 * Math.sin(5 * a + p2));
+    const f = Math.max(0, d - k) / d;
+    return { x: cx + dx * f, y: cy + dy * f };
+  });
+  const cl = (q: Vec2): Vec2 => ({
+    x: Math.min(x1, Math.max(x0, q.x)),
+    y: Math.min(y1, Math.max(y0, q.y)),
+  });
+  const nodes = smoothLoop(moved).map((n): PathNode => ({
+    ...cl(n),
+    ...(n.in ? { in: cl(n.in) } : {}),
+    ...(n.out ? { out: cl(n.out) } : {}),
+  }));
+  return { t: 'poly', nodes, closed: true };
 }

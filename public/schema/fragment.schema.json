@@ -1691,6 +1691,15 @@
       "title": "cell params",
       "description": "A eukaryotic cell (animal, plant, yeast, neuron, epithelial); switch organelles on and off and colour each one.",
       "properties": {
+        "style": {
+          "enum": [
+            "flat",
+            "line-art",
+            "cartoon"
+          ],
+          "default": "flat",
+          "description": "Style. How it is drawn; what it shows stays the same."
+        },
         "shape": {
           "enum": [
             "round",
@@ -1814,6 +1823,15 @@
       "title": "bacterium params",
       "description": "A bacterium: rod, coccus or curved rod, Gram-negative or Gram-positive, with nucleoid, plasmids, flagella and pili.",
       "properties": {
+        "style": {
+          "enum": [
+            "flat",
+            "line-art",
+            "cartoon"
+          ],
+          "default": "flat",
+          "description": "Style. How it is drawn; what it shows stays the same."
+        },
         "shape": {
           "enum": [
             "rod",
@@ -2276,6 +2294,15 @@
       "title": "wellPlate params",
       "description": "A 6- to 1536-well plate; paint wells or paste a layout from a spreadsheet.",
       "properties": {
+        "style": {
+          "enum": [
+            "flat",
+            "line-art",
+            "cartoon"
+          ],
+          "default": "flat",
+          "description": "Style. How it is drawn; what it shows stays the same."
+        },
         "format": {
           "enum": [
             "6",
@@ -2325,6 +2352,15 @@
       "title": "petriDish params",
       "description": "An agar plate with colonies: random, streaked, spotted dilutions, a pinned grid, a lawn or a tetrad dissection.",
       "properties": {
+        "style": {
+          "enum": [
+            "flat",
+            "line-art",
+            "cartoon"
+          ],
+          "default": "flat",
+          "description": "Style. How it is drawn; what it shows stays the same."
+        },
         "plate": {
           "enum": [
             "round",
@@ -2495,6 +2531,15 @@
       "title": "gel params",
       "description": "A gel with a ladder and lanes of bands; type band sizes in bp.",
       "properties": {
+        "style": {
+          "enum": [
+            "flat",
+            "line-art",
+            "cartoon"
+          ],
+          "default": "flat",
+          "description": "Style. How it is drawn; what it shows stays the same."
+        },
         "ladder": {
           "enum": [
             "1kb",

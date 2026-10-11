@@ -3,7 +3,7 @@
  * Wells of one colour are one `<path>`, so a full 1536-well plate is a
  * handful of DOM nodes.
  */
-import { type Prim, type Sub, circle, pathPrim, poly, rect } from '../prims';
+import { type Prim, type StyleId, type Sub, circle, lookOf, pathPrim, poly, rect } from '../prims';
 import { type KindWizard, type Params, type WellMap, defineKind } from '../types';
 import { byColour, mix, rowLabel, text } from './util';
 
@@ -19,6 +19,7 @@ export const PLATE_FORMATS = {
 export type PlateFormat = keyof typeof PLATE_FORMATS;
 
 export interface WellPlateParams {
+  readonly style: StyleId;
   readonly format: PlateFormat;
   readonly shape: 'circle' | 'square';
   readonly showLabels: boolean;
@@ -333,6 +334,7 @@ export const wellPlate = defineKind<WellPlateParams>({
   description: 'A 6- to 1536-well plate; paint wells or paste a layout from a spreadsheet.',
   keywords: ['well', '96', '384', 'microplate', 'microtiter', 'multiwell', 'elisa', 'layout'],
   defaultSize: { w: 240, h: 160 },
+  styles: ['line-art', 'cartoon'],
   fields: [
     {
       key: 'format',
@@ -408,48 +410,64 @@ export const wellPlate = defineKind<WellPlateParams>({
       ],
       true,
     );
+    const wellW = Math.min(0.5, L.pitch * 0.06);
+    const look = lookOf(p.style, wellW);
     out.push(
-      ...pathPrim([body], {
-        fill: slots['plate'] ?? null,
-        stroke: slots['rim'] ?? null,
-        sw: 0.75,
-        join: 'round',
-      }),
+      ...pathPrim(
+        [look.organic(body, 1)],
+        look.body({
+          fill: slots['plate'] ?? null,
+          stroke: slots['rim'] ?? null,
+          sw: 0.75,
+          join: 'round',
+        }),
+      ),
     );
     const r = L.pitch * 0.4;
+    // Hand-drawn wells only where they stay few enough to see (and to draw quickly).
+    const wobbly = L.rows * L.cols <= 384;
     const wellSub = (row: number, col: number): Sub => {
       const cx = L.x0 + (col + 0.5) * L.pitch;
       const cy = L.y0 + (row + 0.5) * L.pitch;
-      return p.shape === 'circle'
-        ? circle(cx, cy, r)
-        : rect(cx - r, cy - r, 2 * r, 2 * r, r * 0.15);
+      const s =
+        p.shape === 'circle'
+          ? circle(cx, cy, r)
+          : rect(cx - r, cy - r, 2 * r, 2 * r, r * 0.15 * look.bigger);
+      return wobbly ? look.organic(s, row * 131 + col) : s;
     };
-    const cells: { row: number; col: number; colour: string }[] = [];
+    const cells: { sub: Sub; colour: string; painted: boolean }[] = [];
     for (let row = 0; row < L.rows; row += 1)
-      for (let col = 0; col < L.cols; col += 1)
+      for (let col = 0; col < L.cols; col += 1) {
+        const painted = p.wells[wellId(row, col)];
         cells.push({
-          row,
-          col,
-          colour: p.wells[wellId(row, col)] ?? slots['well'] ?? '#ffffff',
+          sub: wellSub(row, col),
+          colour: painted ?? slots['well'] ?? '#ffffff',
+          painted: painted !== undefined,
         });
+      }
     if (r > 0) {
-      for (const [colour, list] of byColour(cells, (c) => c.colour))
+      // Painted wells are data (distinct ink tints in line art); empty ones plain fill (paper).
+      const tone = look.marks(cells.filter((c) => c.painted).map((c) => c.colour));
+      for (const list of byColour(cells, (c) => `${c.painted ? 'p' : 'e'}${c.colour}`).values()) {
+        const first = list[0];
+        if (!first) continue;
         out.push(
           ...pathPrim(
-            list.map((c) => wellSub(c.row, c.col)),
-            { fill: colour },
+            list.map((c) => c.sub),
+            { fill: first.painted ? tone(first.colour) : look.fill(first.colour) },
           ),
         );
-      if (p.outline)
+      }
+      if (p.outline || look.outlines)
         out.push(
           ...pathPrim(
-            cells.map((c) => wellSub(c.row, c.col)),
-            { stroke: slots['rim'] ?? null, sw: Math.min(0.5, L.pitch * 0.06) },
+            cells.map((c) => c.sub),
+            look.body({ stroke: slots['rim'] ?? null, sw: wellW }),
           ),
         );
     }
     if (p.showLabels && L.label > 0.5) {
-      const colour = slots['text'] ?? '#000000';
+      const colour = look.text(slots['text'] ?? '#000000');
       for (let col = 0; col < L.cols; col += 1)
         out.push(
           text(

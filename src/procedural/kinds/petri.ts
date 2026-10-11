@@ -2,12 +2,13 @@
 import { shiftLightness } from '@/core/color/color';
 import type { Vec2 } from '@/core/model/types';
 
-import { type Prim, type Sub, circle, pathPrim, poly, rect } from '../prims';
+import { type Prim, type StyleId, type Sub, circle, lookOf, pathPrim, poly, rect } from '../prims';
 import { defineKind } from '../types';
 import { tetradWizard } from './petriTetradWizard';
 import { mix, rng, text } from './util';
 
 export interface PetriParams {
+  readonly style: StyleId;
   readonly plate: 'round' | 'rect';
   readonly pattern: 'random' | 'streak' | 'spots' | 'grid' | 'lawn' | 'tetrads' | 'none';
   readonly count: number;
@@ -64,6 +65,7 @@ export const petriDish = defineKind<PetriParams>({
     'spores',
   ],
   defaultSize: { w: 150, h: 150 },
+  styles: ['line-art', 'cartoon'],
   fields: [
     {
       key: 'plate',
@@ -442,51 +444,40 @@ export const petriDish = defineKind<PetriParams>({
         Math.max(0, R * 0.12 - i * 0.5),
       );
     };
-    if (isRect) {
-      out.push(
-        ...pathPrim([box(0)], {
+    const look = lookOf(p.style, Math.max(0.3, R * 0.012));
+    // The rim, the agar and the lid's edge, as insets of the dish.
+    const part = (k: number): Sub => look.organic(isRect ? box(k) : circle(cx, cy, R * (1 - k)), 1);
+    out.push(
+      ...pathPrim(
+        [part(0)],
+        look.body({
           fill: mix(agar, '#ffffff', 0.5),
           stroke: dish,
           sw: Math.max(0.3, R * 0.025),
         }),
-      );
-      out.push(
-        ...pathPrim([box(0.05)], {
+      ),
+    );
+    out.push(
+      ...pathPrim(
+        [part(isRect ? 0.05 : 0.07)],
+        look.body({
           fill: agar,
           stroke: shiftLightness(agar, -0.08),
           sw: Math.max(0.2, R * 0.008),
         }),
-      );
-      if (p.lid)
-        out.push(
-          ...pathPrim([box(0.02)], {
+      ),
+    );
+    if (p.lid)
+      out.push(
+        ...pathPrim(
+          [part(isRect ? 0.02 : 0.025)],
+          look.line({
             stroke: shiftLightness(dish, 0.15),
             sw: Math.max(0.2, R * 0.01),
           }),
-        );
-    } else {
-      out.push(
-        ...pathPrim([circle(cx, cy, R)], {
-          fill: mix(agar, '#ffffff', 0.5),
-          stroke: dish,
-          sw: Math.max(0.3, R * 0.025),
-        }),
+        ),
       );
-      out.push(
-        ...pathPrim([circle(cx, cy, R * 0.93)], {
-          fill: agar,
-          stroke: shiftLightness(agar, -0.08),
-          sw: Math.max(0.2, R * 0.008),
-        }),
-      );
-      if (p.lid)
-        out.push(
-          ...pathPrim([circle(cx, cy, R * 0.975)], {
-            stroke: shiftLightness(dish, 0.15),
-            sw: Math.max(0.2, R * 0.01),
-          }),
-        );
-    }
+    if (!isRect) out.push(...look.highlight(cx, cy, R * 0.93, R * 0.93, agar));
     // Where colonies may go: half-extents of the usable area (a rectangle, or the circle of radius Ra).
     const Ra = R * 0.86;
     const ux = isRect ? hw - R * 0.1 : Ra;
@@ -511,9 +502,15 @@ export const petriDish = defineKind<PetriParams>({
         if (halo > 0) halos.push(circle(q.x, q.y, discR + halo));
         discs.push(circle(q.x, q.y, discR));
       }
-      out.push(...pathPrim(halos, { fill: agar, stroke: clear, sw: Math.max(0.15, R * 0.006) }));
       out.push(
-        ...pathPrim(discs, { fill: '#f7f4ec', stroke: '#b9b4a6', sw: Math.max(0.2, R * 0.008) }),
+        // Clear zones: paper with an ink edge in line art.
+        ...pathPrim(halos, look.body({ fill: agar, stroke: clear, sw: Math.max(0.15, R * 0.006) })),
+      );
+      out.push(
+        ...pathPrim(
+          discs,
+          look.body({ fill: '#f7f4ec', stroke: '#b9b4a6', sw: Math.max(0.2, R * 0.008) }),
+        ),
       );
       const pl: Sub[] = [];
       for (let i = 0, tries = 0; i < p.plaques && tries < p.plaques * 8; tries += 1) {
@@ -528,7 +525,14 @@ export const petriDish = defineKind<PetriParams>({
         i += 1;
       }
       out.push(
-        ...pathPrim(pl, { fill: agar, stroke: clear, sw: Math.max(0.1, p.plaqueSize * 0.12) }),
+        ...pathPrim(
+          pl,
+          lookOf(p.style, Math.max(0.1, p.plaqueSize * 0.12)).body({
+            fill: agar,
+            stroke: clear,
+            sw: Math.max(0.1, p.plaqueSize * 0.12),
+          }),
+        ),
       );
     };
     const inside = (q: Vec2, r: number) =>
@@ -558,10 +562,13 @@ export const petriDish = defineKind<PetriParams>({
       case 'lawn':
         out.push(
           ...pathPrim(
-            [isRect ? rect(cx - ux, cy - uy, 2 * ux, 2 * uy, R * 0.05) : circle(cx, cy, Ra)],
-            {
-              fill: mix(agar, colony, 0.75),
-            },
+            [
+              look.organic(
+                isRect ? rect(cx - ux, cy - uy, 2 * ux, 2 * uy, R * 0.05) : circle(cx, cy, Ra),
+                2,
+              ),
+            ],
+            look.mark({ fill: mix(agar, colony, 0.75) }),
           ),
         );
         lawnFeatures();
@@ -617,7 +624,7 @@ export const petriDish = defineKind<PetriParams>({
         // Colonies in a small spot stay small enough to count; 3 x 5 on a normal dish is unchanged.
         const spotSize = Math.min(size, spotR * 0.5);
         const x0 = cx - (pitch * (cols - 1)) / 2 + lab * pitch * 0.5;
-        const ink = mix(dish, '#000000', 0.5);
+        const ink = look.text(mix(dish, '#000000', 0.5));
         for (let r = 0; r < rows; r += 1) {
           const y = cy + (r - (rows - 1) / 2) * pitch * 1.1;
           if (p.rowLabels)
@@ -648,7 +655,7 @@ export const petriDish = defineKind<PetriParams>({
         const rowsTotal = bands * (4 + lab) + (bands - 1) * 0.6;
         const pitch = (Ra * 0.95 * 2) / Math.hypot(perBand, rowsTotal);
         const r0 = Math.min(size, pitch * 0.42);
-        const ink = mix(dish, '#000000', 0.5);
+        const ink = look.text(mix(dish, '#000000', 0.5));
         const x0 = cx - ((perBand - 1) * pitch) / 2;
         const y0 = cy - (rowsTotal * pitch) / 2;
         for (let t = 0; t < n; t += 1) {
@@ -692,12 +699,15 @@ export const petriDish = defineKind<PetriParams>({
           }
           if (dense) {
             out.push(
-              ...pathPrim([poly(pts)], {
-                stroke: mix(agar, colony, 0.8),
-                sw: Math.max(0.3, size * 1.6),
-                cap: 'round',
-                join: 'round',
-              }),
+              ...pathPrim(
+                [poly(pts)],
+                look.mark({
+                  stroke: mix(agar, colony, 0.8),
+                  sw: Math.max(0.3, size * 1.6),
+                  cap: 'round',
+                  join: 'round',
+                }),
+              ),
             );
             return;
           }
@@ -733,6 +743,11 @@ export const petriDish = defineKind<PetriParams>({
           (!solid.has(s) && rand() * 100 < p.markerShare ? markerSubs : keep).push(s);
         subs = keep;
       }
+      // Thousands of colonies get fewer wrinkles or filaments each, keeping the render bounded.
+      const lineBudget = Math.max(
+        1,
+        Math.floor(30_000 / Math.max(1, subs.length + markerSubs.length)),
+      );
       // Shape: reshape each colony and add wrinkles, filaments or a marker wedge.
       const shape = (s: Sub, sector: boolean): Sub => {
         if (s.t !== 'circle') return s;
@@ -749,16 +764,18 @@ export const petriDish = defineKind<PetriParams>({
             const pts: Vec2[] = [];
             for (let k = 0; k < 14; k += 1)
               pts.push(at((k / 14) * 2 * Math.PI, r * (1 + (rand() - 0.5) * 0.24)));
-            for (let k = 0; k < 5; k += 1) {
-              const a = a0 + (k / 5) * 2 * Math.PI + (rand() - 0.5) * 0.5;
+            const nw = Math.min(5, lineBudget);
+            for (let k = 0; k < nw; k += 1) {
+              const a = a0 + (k / nw) * 2 * Math.PI + (rand() - 0.5) * 0.5;
               lines.push(poly([at(a, r * 0.2), at(a + 0.25, r * 0.55), at(a, r * 0.85)]));
             }
             return poly(pts, true);
           }
           case 'filamentous': {
             const a0 = rand() * 2 * Math.PI;
-            for (let k = 0; k < 10; k += 1) {
-              const a = a0 + (k / 10) * 2 * Math.PI + (rand() - 0.5) * 0.3;
+            const nf = Math.min(10, lineBudget);
+            for (let k = 0; k < nf; k += 1) {
+              const a = a0 + (k / nf) * 2 * Math.PI + (rand() - 0.5) * 0.3;
               lines.push(poly([at(a, r * 0.7), at(a + 0.12, r * (1.1 + rand() * 0.4))]));
             }
             return circle(x, y, r * 0.8);
@@ -784,27 +801,41 @@ export const petriDish = defineKind<PetriParams>({
         markerSubs.push(...m);
       }
     }
-    out.push(...pathPrim(subs, stroke));
+    // Colonies get a look of their own, its outlines in proportion to the colonies.
+    const cl = lookOf(p.style, stroke.sw);
+    const few = subs.length + markerSubs.length <= 600;
+    const hand = (list: readonly Sub[], seed: number) =>
+      few ? list.map((s, i) => cl.organic(s, seed + i)) : list;
+    out.push(...pathPrim(hand(subs, 10), cl.body(stroke)));
     if (wedges.length > 0)
       out.push(
-        ...pathPrim(wedges, { fill: marker, stroke: shiftLightness(marker, -0.12), sw: stroke.sw }),
+        ...pathPrim(
+          wedges,
+          cl.mark({ fill: marker, stroke: shiftLightness(marker, -0.12), sw: stroke.sw }),
+        ),
       );
     if (markerSubs.length > 0) {
       out.push(
-        ...pathPrim(markerSubs, {
-          fill: marker,
-          stroke: shiftLightness(marker, -0.12),
-          sw: stroke.sw,
-        }),
+        ...pathPrim(
+          hand(markerSubs, 5000),
+          cl.mark({
+            fill: marker,
+            stroke: shiftLightness(marker, -0.12),
+            sw: stroke.sw,
+          }),
+        ),
       );
     }
     if (lines.length > 0)
       out.push(
-        ...pathPrim(lines, {
-          stroke: shiftLightness(colony, -0.3),
-          sw: Math.max(0.1, size * 0.06),
-          cap: 'round',
-        }),
+        ...pathPrim(
+          lines,
+          cl.line({
+            stroke: shiftLightness(colony, -0.3),
+            sw: Math.max(0.1, size * 0.06),
+            cap: 'round',
+          }),
+        ),
       );
     return out;
   },
