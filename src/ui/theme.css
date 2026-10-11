@@ -127,6 +127,11 @@ textarea {
   color: inherit;
 }
 
+/* Links take the accent in both schemes instead of the browser's blue/purple. */
+a {
+  color: var(--accent);
+}
+
 button {
   cursor: pointer;
   background: var(--panel);
