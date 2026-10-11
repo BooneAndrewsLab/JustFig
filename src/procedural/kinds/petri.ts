@@ -1,4 +1,4 @@
-/** Petri dish with seeded colony patterns (note 04): random, streak, spot dilutions, pinned grid, lawn tetrad dissection or a strain by dilution spot grid (note 58). */
+/** Petri dish with seeded colony patterns (note 04): random, streak, spot dilutions, pinned grid, lawn tetrad dissection a strain by dilution spot grid, antibiotic discs, plaques, two colony colours or colony morphology (note 58). */
 import { shiftLightness } from '@/core/color/color';
 import type { Vec2 } from '@/core/model/types';
 
@@ -21,14 +21,24 @@ export interface PetriParams {
   readonly spotRows: number;
   readonly spotCols: number;
   readonly rowLabels: boolean;
+  readonly discs: number;
+  readonly haloSize: number;
+  readonly plaques: number;
+  readonly plaqueSize: number;
+  readonly markerShare: number;
+  readonly morphology: 'smooth' | 'wrinkled' | 'filamentous' | 'petite' | 'sectored';
 }
+
+/** Patterns of separate colonies: the ones whose colour mix and shape can be set. */
+const hasColonies = (p: { readonly pattern?: unknown }) =>
+  p.pattern === 'random' || p.pattern === 'streak' || p.pattern === 'spots' || p.pattern === 'grid';
 
 /** Strain row names: A to H. */
 const rowName = (r: number) => String.fromCharCode(65 + (r % 26));
 
 export const petriDish = defineKind<PetriParams>({
   kind: 'petriDish',
-  version: 3,
+  version: 4,
   title: 'Petri dish',
   category: 'Lab',
   description:
@@ -159,6 +169,75 @@ export const petriDish = defineKind<PetriParams>({
       showIf: (p) => p['pattern'] === 'spots',
     },
     {
+      key: 'discs',
+      label: 'Antibiotic discs',
+      type: 'int',
+      min: 0,
+      max: 8,
+      default: 0,
+      help: 'Paper discs on the lawn, each with a clear inhibition halo.',
+      showIf: (p) => p['pattern'] === 'lawn',
+    },
+    {
+      key: 'haloSize',
+      label: 'Halo width',
+      type: 'number',
+      min: 0,
+      max: 40,
+      step: 1,
+      unit: 'pt',
+      default: 12,
+      help: 'Clear zone beyond the disc edge; it varies a little between discs.',
+      showIf: (p) => p['pattern'] === 'lawn' && Number(p['discs']) > 0,
+    },
+    {
+      key: 'plaques',
+      label: 'Plaques',
+      type: 'int',
+      min: 0,
+      max: 300,
+      default: 0,
+      help: 'Clear spots where phage lysed the lawn.',
+      showIf: (p) => p['pattern'] === 'lawn',
+    },
+    {
+      key: 'plaqueSize',
+      label: 'Plaque size',
+      type: 'number',
+      min: 0.5,
+      max: 10,
+      step: 0.25,
+      unit: 'pt',
+      default: 2,
+      showIf: (p) => p['pattern'] === 'lawn' && Number(p['plaques']) > 0,
+    },
+    {
+      key: 'markerShare',
+      label: 'Marker colour share',
+      type: 'number',
+      min: 0,
+      max: 100,
+      step: 5,
+      unit: '%',
+      default: 0,
+      help: 'Share of colonies drawn in the marker colour, for blue/white or red/white screens.',
+      showIf: hasColonies,
+    },
+    {
+      key: 'morphology',
+      label: 'Colony shape',
+      type: 'enum',
+      options: [
+        { value: 'smooth', label: 'Smooth' },
+        { value: 'wrinkled', label: 'Wrinkled' },
+        { value: 'filamentous', label: 'Filamentous' },
+        { value: 'petite', label: 'Petite (small)' },
+        { value: 'sectored', label: 'Sectored (marker wedge)' },
+      ],
+      default: 'smooth',
+      showIf: hasColonies,
+    },
+    {
       key: 'size',
       label: 'Colony size',
       type: 'number',
@@ -194,7 +273,7 @@ export const petriDish = defineKind<PetriParams>({
     { id: 'colony', label: 'Colonies', default: '#fffcf0' },
     { id: 'marker', label: 'Marker colonies', default: '#c0392b' },
   ],
-  // Fields added in versions 2 and 3 take their defaults (3 x 5 spots, no row labels), so older params stand as they are.
+  // Fields added in versions 2 to 4 take their defaults (3 x 5 spots, no discs or plaques, smooth single-colour colonies), so older params stand as they are.
   migrate: (raw) => raw,
   // Patterns set only params and media only slot colours, so one of each combines (note 58).
   presets: [
@@ -223,6 +302,38 @@ export const petriDish = defineKind<PetriParams>({
       params: { pattern: 'grid', count: 96, variation: 0.1 },
     },
     { id: 'lawn', label: 'Lawn', group: 'Patterns', params: { pattern: 'lawn' } },
+    {
+      id: 'disk-diffusion',
+      label: 'Disk diffusion (antibiotic discs)',
+      group: 'Patterns',
+      params: { pattern: 'lawn', discs: 5, haloSize: 12 },
+    },
+    {
+      id: 'phage-plaques',
+      label: 'Phage plaques',
+      group: 'Patterns',
+      params: { pattern: 'lawn', plaques: 40, plaqueSize: 2 },
+    },
+    {
+      id: 'blue-white',
+      label: 'Blue/white screening',
+      group: 'Patterns',
+      params: { pattern: 'random', count: 70, markerShare: 25, size: 3 },
+      slots: { agar: '#f2dfa7', colony: '#fffcf0', marker: '#2f6fbf' },
+    },
+    {
+      id: 'ade2-sectoring',
+      label: 'Red/white sectored colonies',
+      group: 'Patterns',
+      params: { pattern: 'grid', count: 36, size: 5, variation: 0.1, morphology: 'sectored' },
+      slots: { marker: '#c0392b' },
+    },
+    {
+      id: 'wrinkled-colonies',
+      label: 'Wrinkled colonies',
+      group: 'Patterns',
+      params: { pattern: 'random', count: 12, size: 9, morphology: 'wrinkled' },
+    },
     {
       id: 'tetrad-dissection',
       label: 'Tetrad dissection',
@@ -298,7 +409,41 @@ export const petriDish = defineKind<PetriParams>({
     const rand = rng(p.seed);
     const size = Math.min(p.size, Math.max(0.1, R * 0.12));
     const rOf = () => size * (1 - p.variation * 0.75 * rand());
-    const subs: Sub[] = [];
+    let subs: Sub[] = [];
+    // Confluent spots: never reshaped or recoloured.
+    const solid = new Set<Sub>();
+    const lawnFeatures = () => {
+      const clear = shiftLightness(agar, -0.05);
+      const discR = Math.max(0.5, R * 0.09);
+      const n = Math.min(8, Math.max(0, p.discs));
+      const discs: Sub[] = [];
+      const halos: Sub[] = [];
+      for (let i = 0; i < n; i += 1) {
+        const d = n === 1 ? 0 : Ra * 0.5;
+        const a = (i / n) * 2 * Math.PI - Math.PI / 2;
+        const q = { x: cx + Math.cos(a) * d, y: cy + Math.sin(a) * d };
+        const halo = Math.min(p.haloSize * (1 - p.variation * 0.5 * rand()), Ra - d - discR);
+        if (halo > 0) halos.push(circle(q.x, q.y, discR + halo));
+        discs.push(circle(q.x, q.y, discR));
+      }
+      out.push(...pathPrim(halos, { fill: agar, stroke: clear, sw: Math.max(0.15, R * 0.006) }));
+      out.push(
+        ...pathPrim(discs, { fill: '#f7f4ec', stroke: '#b9b4a6', sw: Math.max(0.2, R * 0.008) }),
+      );
+      const pl: Sub[] = [];
+      for (let i = 0, tries = 0; i < p.plaques && tries < p.plaques * 8; tries += 1) {
+        const a = rand() * 2 * Math.PI;
+        const d = Math.sqrt(rand()) * Ra;
+        const r = p.plaqueSize * (1 - p.variation * 0.5 * rand());
+        const q = { x: cx + Math.cos(a) * d, y: cy + Math.sin(a) * d };
+        if (!inside(q, r)) continue;
+        pl.push(circle(q.x, q.y, r));
+        i += 1;
+      }
+      out.push(
+        ...pathPrim(pl, { fill: agar, stroke: clear, sw: Math.max(0.1, p.plaqueSize * 0.12) }),
+      );
+    };
     const inside = (q: Vec2, r: number) => Math.hypot(q.x - cx, q.y - cy) <= Ra - r;
     const scatter = (n: number, c: Vec2, rad: number, k = 1) => {
       for (let i = 0, tries = 0; i < n && tries < n * 8; tries += 1) {
@@ -322,6 +467,7 @@ export const petriDish = defineKind<PetriParams>({
         break;
       case 'lawn':
         out.push(...pathPrim([circle(cx, cy, Ra)], { fill: mix(agar, colony, 0.75) }));
+        lawnFeatures();
         break;
       case 'random':
         scatter(p.count, { x: cx, y: cy }, Ra);
@@ -357,8 +503,11 @@ export const petriDish = defineKind<PetriParams>({
             out.push(text(rowName(r), x0 - pitch * 0.95, y, Math.max(1, pitch * 0.5), ink));
           for (let c = 0; c < cols; c += 1) {
             const q = { x: x0 + c * pitch, y };
-            if (c === 0) subs.push(circle(q.x, q.y, spotR));
-            else
+            if (c === 0) {
+              const big = circle(q.x, q.y, spotR);
+              solid.add(big);
+              subs.push(big);
+            } else
               scatter(
                 Math.round(Math.max(1, p.count) / 10 ** (c - 1)),
                 q,
@@ -452,9 +601,74 @@ export const petriDish = defineKind<PetriParams>({
         break;
       }
     }
+    const marker = slots['marker'] ?? '#c0392b';
+    const wedges: Sub[] = [];
+    const lines: Sub[] = [];
+    if (hasColonies(p)) {
+      // Colour mix: a share of the colonies take the marker colour.
+      if (p.markerShare > 0) {
+        const keep: Sub[] = [];
+        for (const s of subs)
+          (!solid.has(s) && rand() * 100 < p.markerShare ? markerSubs : keep).push(s);
+        subs = keep;
+      }
+      // Shape: reshape each colony and add wrinkles, filaments or a marker wedge.
+      const shape = (s: Sub, sector: boolean): Sub => {
+        if (s.t !== 'circle') return s;
+        const { cx: x, cy: y, r } = s;
+        const at = (a: number, d: number): Vec2 => ({
+          x: x + Math.cos(a) * d,
+          y: y + Math.sin(a) * d,
+        });
+        switch (p.morphology) {
+          case 'petite':
+            return circle(x, y, r * 0.5);
+          case 'wrinkled': {
+            const a0 = rand() * 2 * Math.PI;
+            const pts: Vec2[] = [];
+            for (let k = 0; k < 14; k += 1)
+              pts.push(at((k / 14) * 2 * Math.PI, r * (1 + (rand() - 0.5) * 0.24)));
+            for (let k = 0; k < 5; k += 1) {
+              const a = a0 + (k / 5) * 2 * Math.PI + (rand() - 0.5) * 0.5;
+              lines.push(poly([at(a, r * 0.2), at(a + 0.25, r * 0.55), at(a, r * 0.85)]));
+            }
+            return poly(pts, true);
+          }
+          case 'filamentous': {
+            const a0 = rand() * 2 * Math.PI;
+            for (let k = 0; k < 10; k += 1) {
+              const a = a0 + (k / 10) * 2 * Math.PI + (rand() - 0.5) * 0.3;
+              lines.push(poly([at(a, r * 0.7), at(a + 0.12, r * (1.1 + rand() * 0.4))]));
+            }
+            return circle(x, y, r * 0.8);
+          }
+          case 'sectored': {
+            if (sector) {
+              const a0 = rand() * 2 * Math.PI;
+              const span = (0.4 + rand() * 0.6) * Math.PI;
+              const pts: Vec2[] = [{ x, y }];
+              for (let k = 0; k <= 8; k += 1) pts.push(at(a0 + (k / 8) * span, r));
+              wedges.push(poly(pts, true));
+            }
+            return s;
+          }
+          case 'smooth':
+            return s;
+        }
+      };
+      if (p.morphology !== 'smooth') {
+        subs = subs.map((s) => (solid.has(s) ? s : shape(s, true)));
+        const m = markerSubs.map((s) => shape(s, false));
+        markerSubs.length = 0;
+        markerSubs.push(...m);
+      }
+    }
     out.push(...pathPrim(subs, stroke));
+    if (wedges.length > 0)
+      out.push(
+        ...pathPrim(wedges, { fill: marker, stroke: shiftLightness(marker, -0.12), sw: stroke.sw }),
+      );
     if (markerSubs.length > 0) {
-      const marker = slots['marker'] ?? '#c0392b';
       out.push(
         ...pathPrim(markerSubs, {
           fill: marker,
@@ -463,6 +677,14 @@ export const petriDish = defineKind<PetriParams>({
         }),
       );
     }
+    if (lines.length > 0)
+      out.push(
+        ...pathPrim(lines, {
+          stroke: shiftLightness(colony, -0.3),
+          sw: Math.max(0.1, size * 0.06),
+          cap: 'round',
+        }),
+      );
     return out;
   },
   overhang: () => 0,
