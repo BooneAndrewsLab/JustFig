@@ -165,7 +165,8 @@ changes (the guide test enforces it), and a design note in `docs/design/`
   reason (nothing of anyone else's licence ships) holds.
 - No menubar. PlasmidPop's File / Format / Edits menus suit a document
   editor with many commands; JustFig's commands live in the inspector and
-  the tool palette, and the top bar stays flat.
+  the tool palette. The one exception is a File menu for the file-level
+  actions, like PlasmidPop's (note 55); Save and Export… stay buttons.
 - No shared npm package until a fourth app makes copying hurt.
 
 ## 6. Progress
@@ -187,3 +188,5 @@ changes (the guide test enforces it), and a design note in `docs/design/`
   UI font, base controls, dialogs, tabs, status bar, focus ring) under the app's own
   `theme.css`, no visual change; note 54. Steps 1–6 are done here; the copies into PlasmidPop
   and BarelySig are pending with the user (`design/theme-base/README.md`).
+- 2026-10-11: a File menu in the top bar for the file-level actions (Save and Export… stay
+  buttons), its rules added to the base sheet under PlasmidPop's class names; note 55.

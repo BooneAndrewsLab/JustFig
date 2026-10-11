@@ -1,6 +1,6 @@
 /** Accessibility (note 09): axe finds no serious or critical problems in the main screen and the dialogs. */
 import { expect, test } from '@playwright/test';
-import { audit } from './helpers';
+import { audit, fileMenu } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('./');
@@ -35,15 +35,16 @@ test('the dialogs and the Inspector of each kind of selection have none either',
   page,
 }) => {
   const problems: string[] = [];
-  for (const [button, name] of [
-    ['Templates…', 'Templates and examples'],
-    ['Help', 'User guide'],
-    ['Export…', 'Export figure'],
-    ['Attribution', 'Attribution'],
-    ['Recent…', 'Recent figures'],
-    ['Versions…', 'Saved versions'],
+  for (const [button, name, inMenu] of [
+    ['Templates…', 'Templates and examples', true],
+    ['Help', 'User guide', false],
+    ['Export…', 'Export figure', false],
+    ['Attribution…', 'Attribution', true],
+    ['Recent…', 'Recent figures', false],
+    ['Versions…', 'Saved versions', true],
   ] as const) {
-    await page.getByRole('button', { name: button, exact: true }).click();
+    if (inMenu) await fileMenu(page, button);
+    else await page.getByRole('button', { name: button, exact: true }).click();
     const dialog = page.getByRole('dialog').first();
     await expect(dialog).toBeVisible();
     problems.push(...(await audit(page, '.dialog')).map((p) => `${name}: ${p}`));
@@ -64,14 +65,14 @@ test('the dialogs and the Inspector of each kind of selection have none either',
   problems.push(...(await audit(page, '.dialog')).map((p) => `Save as preset: ${p}`));
   await page.keyboard.press('Enter');
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Templates…', exact: true }).click();
+  await fileMenu(page, 'Templates…');
   await page.getByRole('tab', { name: 'My presets' }).click();
   await expect(page.locator('.preset-item')).toHaveCount(1);
   problems.push(...(await audit(page, '.dialog')).map((p) => `My presets: ${p}`));
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   // Saved versions with one version in the list, then comparing it.
-  await page.getByRole('button', { name: 'Versions…', exact: true }).click();
+  await fileMenu(page, 'Versions…');
   await page.getByRole('button', { name: 'Save version' }).click();
   await expect(page.locator('.version-row')).toHaveCount(1);
   problems.push(...(await audit(page, '.dialog')).map((p) => `Saved versions: ${p}`));

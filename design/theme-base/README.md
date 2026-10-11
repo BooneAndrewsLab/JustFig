@@ -8,8 +8,10 @@ form-control font inherit, `a`), buttons (`button`, `button.primary`,
 `select`, the `:focus-visible` ring, `.section` / `.section > h2`, `.status`,
 dialogs (`.dialog-backdrop`, `.dialog`, `.dialog--wide`, `.dialog h1`,
 `.dialog-head`, `.dialog-meta`, `.dialog .actions`, `.dialog fieldset`),
-`.tabs` and `.sr-only`. There is no menu rule yet: this app has no menus
-(DESIGN.md §5), and a rule nobody here renders would go untested.
+`.tabs`, `.sr-only`, and the dropdown menu under PlasmidPop's names
+(`.menu`, `.menu__list`, `.menu__item`, `.menu__separator`,
+`.menu__shortcut`; note 55). The base sets no left or right on
+`.menu__list`: each app anchors its own lists.
 
 It is not a package. Each sibling gets a verbatim copy plus one first line
 naming where it came from. Never edit a copy. Change the source here,
@@ -111,6 +113,13 @@ styles them by element:
   still applies. The base `width` is overridden by its `width: 100%`.
   PlasmidPop's `.dialog__title` and `.dialog__actions` and the base
   `.dialog h1` and `.dialog .actions` do not collide.
+- **Menus:** the class names are PlasmidPop's own. `button.menu__item`
+  (0,1,1) beats its `.menu__item` (0,1,0): items take the base 5px 10px
+  padding, a radius of 4px and the `--accent-soft` hover and focus wash
+  instead of `--surface-3`. `.menu__list` is equal in specificity and
+  PlasmidPop's comes later, so its `right: 0`, `--line` border, 8px radius
+  and `z-index: 10` stay. Keep PlasmidPop's `.menu__item:hover` if the grey
+  wash should stay.
 - **No collision:** `.status` (PlasmidPop has `.statusbar`), `.tabs`
   (`.doctabs`, `.sidebar__tabs`), `.section` (`.panel__section`,
   `.panel__heading`, which already match the base header, 13px/600
@@ -186,6 +195,10 @@ select` (line 91) has the same specificity and loads later, so it wins.
 - **No collision:** `.dialog-backdrop` (BarelySig has `.backdrop`),
   `.dialog--wide` (`.dialog.wide`), `.tabs` (`.mode-tabs`), `.section`
   (`.side` and `.side h2`, which stay 11px uppercase) and `.sr-only` (none).
+- **`.menu`** is BarelySig's list itself, not a wrapper. Its rule comes later
+  at equal specificity, so its `position: absolute` and anchor win over the
+  base `position: relative`. Its items carry no `.menu__item` class, so the
+  base item rules do not reach them.
 - **Left side panel 250px:** layout is not in the base sheet, so nothing
   changes.
 

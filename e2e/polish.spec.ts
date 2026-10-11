@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 
 import { type Page, expect, test } from '@playwright/test';
 
-import { pageBox } from './helpers';
+import { fileMenu, pageBox } from './helpers';
 
 const { version } = JSON.parse(
   readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
@@ -75,7 +75,7 @@ test('an arrow drawn between two objects follows them, and detaches when dragged
 });
 
 test('a gallery example opens as a new figure, and a palette recolours it', async ({ page }) => {
-  await page.getByRole('button', { name: 'Templates…' }).click();
+  await fileMenu(page, 'Templates…');
   const dialog = page.getByRole('dialog', { name: 'Templates and examples' });
   await expect(dialog.locator('.gallery-card')).toHaveCount(3);
   await dialog.getByRole('tab', { name: 'Examples' }).click();

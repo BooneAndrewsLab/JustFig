@@ -5,6 +5,7 @@ JustFig is designed so that most of it works without a mouse, and so that a scre
 ## Moving around
 
 - **Tab** and **Shift+Tab** move through the top bar, the figure tab strip, the icon panel, the tools, the Inspector, the Layers panel and the Pages bar. Every button and field is reachable and has a name a screen reader can read.
+- The **File** menu opens with Enter, Space or the down arrow; the arrow keys, Home and End move through it, Enter chooses, and Escape closes it and returns to the File button.
 - The tools are buttons that say whether they are pressed. You can also switch tool by key (V, R, E, L, P, A, T, F, H).
 - The figure tab strip is a list of tabs: Tab reaches the tab in front, the arrow keys, Home and End move between figures, and Delete closes one. A screen reader reads each tab's title and whether it is unsaved. Alt+1 to Alt+9 bring a tab forward from anywhere.
 - Dialogs trap focus: Tab stays inside until you close them with **Escape** or a button, and focus then returns to where you were.
@@ -14,7 +15,7 @@ JustFig is designed so that most of it works without a mouse, and so that a scre
 
 1. Press **Tab** to the Icons panel and press **Enter** on an icon, or on a tile of the Scientific objects shelf, to place it in the middle of the view.
 2. Type exact **X**, **Y**, **W**, **H** and **Rotate °** values in the Inspector, or nudge with the arrow keys (1 pt, or 10 pt with Shift).
-3. Start from a template (**Templates…**) for a ready-made layout of lettered panels.
+3. Start from a template (**File › Templates…**) for a ready-made layout of lettered panels.
 4. Change colours, fonts and sizes in the Inspector. Every choice is a normal list, box or button.
 
 ## Selecting

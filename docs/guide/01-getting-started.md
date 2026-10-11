@@ -4,7 +4,7 @@ JustFig is a free figure editor that runs entirely in your browser. There is no 
 
 ## The screen
 
-- **Top bar:** the logo, the figure title, then the file buttons, Undo and Redo, zoom, and on the right Attribution, Export… and the round **?** (Help) button.
+- **Top bar:** the logo, the figure title, then the **File** menu and **Save**, Undo and Redo, zoom, and on the right **Export…** and the round **?** (Help) button.
 - **Tab strip:** under the top bar. **Recent…**, then one tab per open figure, then **+** for a new one (see [Several figures at once](17-several-figures.md)).
 - **Left:** the Icons panel. At its top is the Scientific objects shelf (see [Scientific objects](08-objects.md)), below it the icon search and categories (see [Icons](07-icons.md)).
 - **Tool palette:** a narrow column of tools next to the canvas (see [Drawing](02-drawing.md)).
@@ -16,25 +16,27 @@ JustFig is a free figure editor that runs entirely in your browser. There is no 
 
 JustFig follows your system's light or dark setting; there is no switch in the app. Change it in your operating system or browser and JustFig follows at once. In dark mode only the editor around your figure turns dark: the page stays white, icon and template pictures sit on light tiles so their colours look as they will on paper, and exported figures are exactly the same in either mode.
 
-## The top-bar buttons
+## The top bar and the File menu
+
+**File** opens a menu of everything you do with the figure as a file. Click it, or press Enter, Space or the down arrow on it, then move with the arrow keys, Home and End, and press Enter to choose; Escape closes the menu. Items with a shortcut show it at the right. **Save** and **Export…** are also buttons in the top bar, as they are used most.
 
 - **New** starts an empty figure in a new tab. The figures you had open stay open in their tabs.
 - **Templates…** opens the Templates and examples dialog (see [Templates and examples](10-templates.md)).
 - **Open…** opens a figure file (`.jfig`). Any other file you choose here, such as an SVG or a PNG, is imported onto the page instead.
 - **Recent…**, at the start of the tab strip, opens the Recent figures dialog (shortcut `Shift+O`): every figure JustFig has kept in this browser, newest first, each with a small picture of its first page and the time it was last changed. **Open** brings one back, **Rename** changes its title, **Download .jfig** saves it as a file, and **Delete** removes it, with its saved versions, after asking "Delete this figure?" in a second dialog. **Open** on a figure that is already open brings its tab forward. Below the note it shows how much storage JustFig uses, when the browser can say. Figures open in a tab are marked "Open now" or "Open in a tab"; they can be renamed and downloaded but not deleted.
 - **Versions…** opens the Saved versions dialog for the figure you have open (see Saved versions below).
-- **Save** (Ctrl+S) writes the figure to its `.jfig` file. In browsers that can write files (Chrome, Edge and other Chromium browsers) the first Save, or **Save as…** (Ctrl+Shift+S, which always asks), asks where to put the file; after that Save writes to the same file with no download. A figure opened with **Open…** saves back to the file it came from. JustFig remembers the file for the figure in this browser, shows its name in the window title and on the Save button's tooltip, and asks for permission again after a reload; if you refuse, or the file has been moved or deleted, it asks where to save instead. In other browsers (Firefox, Safari) there is no Save as… button and Save downloads a new `.jfig` named after the figure title each time. Dropping a file onto the window opens it but does not link it for saving.
+- **Save** (Ctrl+S) writes the figure to its `.jfig` file. In browsers that can write files (Chrome, Edge and other Chromium browsers) the first Save, or **Save as…** (Ctrl+Shift+S, which always asks), asks where to put the file; after that Save writes to the same file with no download. A figure opened with **Open…** saves back to the file it came from. JustFig remembers the file for the figure in this browser, shows its name in the window title and on the Save button's tooltip, and asks for permission again after a reload; if you refuse, or the file has been moved or deleted, it asks where to save instead. In other browsers (Firefox, Safari) there is no Save as… in the menu and Save downloads a new `.jfig` named after the figure title each time. Dropping a file onto the window opens it but does not link it for saving.
 - **Import…** places an SVG, PNG or JPEG on the page (see [Importing and other apps](11-import-and-other-apps.md)).
 - **Undo** and **Redo** step through your changes. Their tooltips name the change and the key. A drag, a nudge or a run of typing in one field counts as one step.
 - **−**, the percentage and **+** change the zoom. The percentage button fits the whole page in the window.
-- **Attribution** opens the credit dialog and **Export…** the export dialog (see [Exporting](12-export.md)).
+- **Export…** opens the export dialog and **Attribution…** the credit dialog (see [Exporting](12-export.md)). Both are in the File menu; Export… is also the blue button at the right of the top bar.
 - **?** (Help), at the far right, opens this guide, as does the ? key. Its title line shows the JustFig version. The **Change shortcuts** page, after [the shortcuts page](13-keyboard-shortcuts.md), is where keys are changed.
 
 To zoom with the mouse, hold Ctrl (⌘ on a Mac) and turn the wheel. The wheel alone scrolls the page. To pan, use the Pan tool, hold Space, or drag with the middle mouse button.
 
 ## Your first figure
 
-1. Choose **Templates…**, pick a layout such as "Four panels, two columns", or start from the empty page.
+1. Choose **File › Templates…**, pick a layout such as "Four panels, two columns", or start from the empty page.
 2. Drag icons from the left panel onto the panels, or draw shapes with the tools.
 3. Select text, arrows and shapes and adjust them in the Inspector.
 4. Choose **Export…** and pick PDF for a journal, or PNG for slides.
@@ -53,7 +55,7 @@ If a figure open in any tab has changes and has never been saved as a file, the 
 
 ## Saved versions
 
-Undo only reaches back to when you opened the figure, and autosave keeps only its latest state. To keep the figure as it is at a moment that matters, such as "sent to PI" or "before revision", choose **Versions…** in the top bar. The Saved versions dialog names the figure as it is now: type a **Version name** (it starts as today's date) and choose **Save version**. The list below shows the figure's saved versions, newest first, each with:
+Undo only reaches back to when you opened the figure, and autosave keeps only its latest state. To keep the figure as it is at a moment that matters, such as "sent to PI" or "before revision", choose **File › Versions…**. The Saved versions dialog names the figure as it is now: type a **Version name** (it starts as today's date) and choose **Save version**. The list below shows the figure's saved versions, newest first, each with:
 
 - **Compare**, which opens the Compare versions dialog. Pick the **Older** and **Newer** figure from two menus, each a saved version or **Now (the open figure)**, and choose a **View**: **Side by side**, or **Onion skin**, which draws the older one faded over the newer. Pages are paired by their identity (**Previous page** and **Next page** when there are several). Objects that differ are outlined: changed in orange, added (only in the newer) in green, removed (only in the older) in dashed red. Below the pictures, the **Changed objects** list names each one, and pressing one makes its outline heavier. For an object the older or newer saved version has, **Restore this object from** that version puts it back in the open figure as one change (Undo brings back what you had): a changed object is replaced, a deleted one is added again, with any pictures or icons it needs. **Restore this version** restores the whole older version.
 - **Restore…**, which asks "Restore this version?" first. Restoring makes the figure what it was in that version, as a single change: **Undo** brings back what you had.

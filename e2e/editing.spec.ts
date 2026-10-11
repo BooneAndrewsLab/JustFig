@@ -2,7 +2,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { type Page, expect, test } from '@playwright/test';
 
-import { exportVia, iconTile, pageBox } from './helpers';
+import { exportVia, fileMenu, iconTile, pageBox } from './helpers';
 
 const PAGE_W = (183 / 25.4) * 72;
 const OUT = process.env['E2E_OUT'];
@@ -185,7 +185,7 @@ test('save, open, import an SVG, attribution, and autosave survive a reload', as
   await expect(page.locator('.status')).toContainText('Imported with changes');
 
   // Attribution: the credit line names the house icon; add it as text.
-  await page.getByRole('button', { name: 'Attribution' }).click();
+  await fileMenu(page, 'Attribution…');
   const dialog = page.getByRole('dialog', { name: 'Attribution and licences' });
   await expect(dialog.getByTestId('credit-line')).toContainText('House icons');
   await expect(dialog.getByLabel(/Include the credit line/)).toBeChecked();

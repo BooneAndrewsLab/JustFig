@@ -1,6 +1,6 @@
 # Exporting
 
-**Export…** in the top bar (or Ctrl+E) opens the Export figure dialog. Choose a format, set the options and choose the **Export** button at the bottom, which is named after the format, for example "Export PDF". The file downloads with the figure's title as its name. When a figure has several pages, the page name is added to the file name.
+**Export…** in the top bar or the File menu (or Ctrl+E) opens the Export figure dialog. Choose a format, set the options and choose the **Export** button at the bottom, which is named after the format, for example "Export PDF". The file downloads with the figure's title as its name. When a figure has several pages, the page name is added to the file name.
 
 ## Copy as image
 
@@ -73,7 +73,7 @@ Turning it off in the Export dialog also changes the figure's setting. If you tu
 
 ## Attribution and licences
 
-**Attribution** in the top bar opens the Attribution and licences dialog. It shows:
+**Attribution…** in the File menu opens the Attribution and licences dialog. It shows:
 
 - the **legend skeleton** with **Copy legend** (see below);
 - the **credit line** for the whole figure, with **Copy** to put it on the clipboard and **Add as text object** to place it on the page as text, at the bottom;

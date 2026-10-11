@@ -3,6 +3,7 @@
  * picker is a stub that writes to memory; the real API is checked by hand.
  */
 import { expect, test } from '@playwright/test';
+import { fileMenu } from './helpers';
 
 const stubPickers = () => {
   const w = window as unknown as Record<string, unknown>;
@@ -26,13 +27,16 @@ const stubPickers = () => {
   };
 };
 
-test('without the File System Access API there is no Save as button', async ({ page }) => {
+test('without the File System Access API the File menu has no Save as…', async ({ page }) => {
   await page.addInitScript(() => {
     Reflect.deleteProperty(window, 'showSaveFilePicker');
     Reflect.deleteProperty(window, 'showOpenFilePicker');
   });
   await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Save as…' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'File', exact: true }).click();
+  await expect(page.getByRole('menuitem', { name: 'Save', exact: true })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: 'Save as…' })).toHaveCount(0);
+  await page.keyboard.press('Escape');
   const [download] = await Promise.all([
     page.waitForEvent('download'),
     page.getByRole('button', { name: 'Save', exact: true }).click(),
@@ -55,6 +59,6 @@ test('Save asks once, then writes the same file; Save as always asks', async ({ 
 
   await page.keyboard.press('Control+Shift+S');
   await expect.poll(async () => (await read('__picks')).length).toBe(2);
-  await page.getByRole('button', { name: 'Save as…' }).click();
+  await fileMenu(page, 'Save as…');
   await expect.poll(async () => (await read('__picks')).length).toBe(3);
 });

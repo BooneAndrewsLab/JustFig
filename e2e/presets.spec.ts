@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { type Page, expect, test } from '@playwright/test';
 
-import { iconTile, pageBox } from './helpers';
+import { fileMenu, iconTile, pageBox } from './helpers';
 
 const PAGE_W = (183 / 25.4) * 72;
 
@@ -48,7 +48,7 @@ test('a selection saved as a preset is placed, exported, deleted and imported ag
   await expect(page.locator('.status')).toContainText('Saved preset “Dish and box”');
 
   // Place it from the gallery, by keyboard: one undo step adds both objects.
-  await page.getByRole('button', { name: 'Templates…' }).click();
+  await fileMenu(page, 'Templates…');
   const gallery = page.getByRole('dialog', { name: 'Templates and examples' });
   await gallery.getByRole('tab', { name: 'My presets' }).click();
   const card = gallery.getByRole('button', { name: 'Place Dish and box' });
@@ -61,7 +61,7 @@ test('a selection saved as a preset is placed, exported, deleted and imported ag
   await expect(items(page)).toHaveCount(before);
 
   // Export, then delete, then import the file back.
-  await page.getByRole('button', { name: 'Templates…' }).click();
+  await fileMenu(page, 'Templates…');
   await gallery.getByRole('tab', { name: 'My presets' }).click();
   const [download] = await Promise.all([
     page.waitForEvent('download'),

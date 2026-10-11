@@ -6,7 +6,7 @@ Each figure you open gets a tab in the strip under the top bar, so you can work 
 
 - **Recent…** at the start of the strip opens the Recent figures dialog.
 - One tab per open figure, named by its title. A dot after the name means the figure has changed since you last saved it to a file. The **×** closes the tab.
-- **+** at the end starts a new, empty figure in a tab of its own, like **New** in the top bar.
+- **+** at the end starts a new, empty figure in a tab of its own, like **New** in the File menu.
 
 Click a tab to bring its figure forward. Each tab keeps its own undo history, selection, page and zoom: undo in one figure never touches another, and a tab comes back exactly where you left it. The tool, units and other settings are shared.
 

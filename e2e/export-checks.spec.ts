@@ -1,7 +1,7 @@
 /** Checks before export (issue 4): warnings in the Export dialog select what they are about. */
 import { type Page, expect, test } from '@playwright/test';
 
-import { pageBox } from './helpers';
+import { fileMenu, pageBox } from './helpers';
 
 const PAGE_W = (183 / 25.4) * 72;
 
@@ -51,7 +51,7 @@ test('swatches that look alike in colour-blind vision are warned about, and sele
   page,
 }) => {
   await page.goto('./');
-  await page.getByRole('button', { name: 'Templates…' }).click();
+  await fileMenu(page, 'Templates…');
   const gallery = page.getByRole('dialog', { name: 'Templates and examples' });
   await gallery.getByRole('tab', { name: 'Examples' }).click();
   await gallery.locator('[data-entry="signalling-pathway"]').click();

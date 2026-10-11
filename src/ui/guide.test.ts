@@ -58,16 +58,18 @@ describe('the user guide', () => {
     for (const t of TOOLS) expect(has(t.label.split(' (')[0] ?? t.label), t.id).toBe(true);
   });
 
-  it('describes every top-bar button, dialog and Inspector section', () => {
-    const app = src('./App.tsx');
+  it('describes every top-bar button, File menu item, dialog and Inspector section', () => {
+    const app = src('./App.tsx') + src('./FileMenu.tsx');
     for (const b of [
+      'File',
       'New',
       'Templates…',
       'Open…',
       'Save',
       'Import…',
       'Versions…',
-      'Attribution',
+      'Save as…',
+      'Attribution…',
       'Export…',
       'Undo',
       'Redo',

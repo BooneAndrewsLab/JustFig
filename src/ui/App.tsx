@@ -11,6 +11,7 @@ import { AttributionDialog } from './dialogs/AttributionDialog';
 import { CreditsDialog } from './dialogs/CreditsDialog';
 import { ExportDialog } from './dialogs/ExportDialog';
 import { Icon } from './icons';
+import { FileMenu } from './FileMenu';
 import { Logo } from './Logo';
 import { GalleryDialog } from './dialogs/GalleryDialog';
 import { ChannelsDialog } from './dialogs/ChannelsDialog';
@@ -163,6 +164,15 @@ export function App() {
   const bound = resolveBindings(s.keyBindings);
   const undo = store.undoLabel();
   const redo = store.redoLabel();
+  const saveTitle = inPlace
+    ? savedAs
+      ? `Save to ${savedAs}`
+      : 'Save the figure file (asks where the first time)'
+    : 'Download the figure file';
+  const openAttribution = () => {
+    setDialog('attribution');
+    analytics.trackOnce('attribution', 'open');
+  };
   const zoomBy = (k: number) => {
     const { w, h } = canvasSize();
     zoomAt(s.view, w / 2, h / 2, s.view.zoom * k);
@@ -187,66 +197,34 @@ export function App() {
           }}
         />
         <div className="toolbar-group">
-          <button type="button" title="Start a new figure in a tab of its own" onClick={newFigure}>
-            New
-          </button>
-          <button
-            type="button"
-            title="Start from a template or an example"
-            onClick={() => {
+          <FileMenu
+            bound={bound}
+            inPlace={inPlace}
+            saveTitle={saveTitle}
+            onNew={newFigure}
+            onTemplates={() => {
               setDialog('gallery');
             }}
-          >
-            Templates…
-          </button>
-          <button
-            type="button"
-            title={withKey('Open a figure file', 'open', bound)}
-            onClick={() => {
+            onOpen={() => {
               chooseFile(() => openInput.current?.click());
             }}
-          >
-            Open…
-          </button>
-          <button
-            type="button"
-            title="Save a named version of this figure, or compare and restore one"
-            onClick={() => {
+            onImport={() => importInput.current?.click()}
+            onSave={() => void saveFile()}
+            onSaveAs={() => void saveFileAs()}
+            onVersions={() => {
               setDialog('versions');
             }}
-          >
-            Versions…
-          </button>
+            onExport={() => {
+              setDialog('export');
+            }}
+            onAttribution={openAttribution}
+          />
           <button
             type="button"
-            title={withKey(
-              inPlace
-                ? savedAs
-                  ? `Save to ${savedAs}`
-                  : 'Save the figure file (asks where the first time)'
-                : 'Download the figure file',
-              'save',
-              bound,
-            )}
+            title={withKey(saveTitle, 'save', bound)}
             onClick={() => void saveFile()}
           >
             Save
-          </button>
-          {inPlace && (
-            <button
-              type="button"
-              title={withKey('Save the figure to a new file', 'save-as', bound)}
-              onClick={() => void saveFileAs()}
-            >
-              Save as…
-            </button>
-          )}
-          <button
-            type="button"
-            title="Import an SVG, PNG or JPEG (a BarelySig SVG keeps its graph data)"
-            onClick={() => importInput.current?.click()}
-          >
-            Import…
           </button>
         </div>
         <div className="toolbar-group">
@@ -304,15 +282,6 @@ export function App() {
           </button>
         </div>
         <span className="spacer" />
-        <button
-          type="button"
-          onClick={() => {
-            setDialog('attribution');
-            analytics.trackOnce('attribution', 'open');
-          }}
-        >
-          Attribution
-        </button>
         <button
           type="button"
           className="primary"

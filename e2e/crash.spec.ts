@@ -3,7 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
-import { pageBox } from './helpers';
+import { fileMenu, pageBox } from './helpers';
 
 test('an injected render error shows the recovery screen; download and reload keep the tabs', async ({
   page,
@@ -26,7 +26,7 @@ test('an injected render error shows the recovery screen; download and reload ke
   await page.mouse.move(b.x + 120, b.y + 100, { steps: 6 });
   await page.mouse.up();
   await expect(page.locator('.layers .item .name', { hasText: 'Rect' })).toHaveCount(1);
-  await page.getByRole('button', { name: 'New', exact: true }).click();
+  await fileMenu(page, 'New');
   await expect(tabs).toHaveCount(2);
   await title.fill('Crash B');
   await title.blur();

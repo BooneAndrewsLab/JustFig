@@ -55,7 +55,7 @@ BarelySig has `.dialog` and `.status`. Where the siblings use other names
 
 There is no menu rule. This app has no menus (§5), and a rule nothing here
 renders would go untested. The menu shadow token is shared, so a later
-`.menu` can join the base sheet once an app here uses it.
+`.menu` can join the base sheet once an app here uses it. (It did: note 55.)
 
 ## What is not changed here
 

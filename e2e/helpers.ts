@@ -17,6 +17,12 @@ export async function downloadFallback(page: Page) {
   });
 }
 
+/** Chooses an item of the top bar's File menu (note 55). */
+export async function fileMenu(page: Page, item: string) {
+  await page.getByRole('button', { name: 'File', exact: true }).click();
+  await page.getByRole('menuitem', { name: item, exact: true }).click();
+}
+
 /** The page's on-screen box (the outline rect over the page). */
 export async function pageBox(page: Page) {
   const b = await page.getByTestId('page').boundingBox();

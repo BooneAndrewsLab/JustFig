@@ -275,6 +275,58 @@ button.link {
   margin: 8px 0;
 }
 
+/* Dropdown menu (PlasmidPop's class names): a trigger and its role=menu list
+ * in a .menu wrapper, the list under the trigger. Its left or right anchor is
+ * the app's, so PlasmidPop's right-anchored lists keep theirs. */
+.menu {
+  position: relative;
+}
+
+.menu__list {
+  position: absolute;
+  top: calc(100% + 4px);
+  z-index: 40;
+  min-width: 200px;
+  padding: 4px;
+  background: var(--panel);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-menu);
+}
+
+button.menu__item {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: calc(var(--radius) - 2px);
+  background: transparent;
+  text-align: left;
+  white-space: nowrap;
+}
+
+button.menu__item:hover:not(:disabled),
+button.menu__item:focus-visible {
+  background: var(--accent-soft);
+}
+
+button.menu__item:focus-visible {
+  outline-offset: -2px;
+}
+
+.menu__separator {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--rule);
+}
+
+.menu__shortcut {
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
 /* Tab row: the selected tab takes the pressed look. */
 .tabs {
   display: flex;

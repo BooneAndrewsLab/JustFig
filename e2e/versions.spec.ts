@@ -1,7 +1,7 @@
 /** Saved versions (note 23): save a named version, compare it, restore it as one undo step. */
 import { type Page, expect, test } from '@playwright/test';
 
-import { pageBox } from './helpers';
+import { fileMenu, pageBox } from './helpers';
 
 const PAGE_W = (183 / 25.4) * 72;
 
@@ -34,7 +34,7 @@ test('save a version, change the figure, compare, restore, undo; versions surviv
   await expect(rects(page)).toHaveCount(1);
 
   // Saved straight after a change: the version and the figure both hold it.
-  await page.getByRole('button', { name: 'Versions…' }).click();
+  await fileMenu(page, 'Versions…');
   const dialog = page.getByRole('dialog', { name: 'Saved versions' });
   await expect(dialog.getByLabel('Version name')).toBeFocused();
   await dialog.getByLabel('Version name').fill('sent to PI');
@@ -48,7 +48,7 @@ test('save a version, change the figure, compare, restore, undo; versions surviv
   await expect(rects(page)).toHaveCount(2);
 
   // Compare, by keyboard.
-  await page.getByRole('button', { name: 'Versions…' }).click();
+  await fileMenu(page, 'Versions…');
   await dialog.getByRole('button', { name: 'Compare sent to PI' }).focus();
   await page.keyboard.press('Enter');
   const compare = page.getByRole('dialog', { name: 'Compare versions' });
@@ -78,7 +78,7 @@ test('save a version, change the figure, compare, restore, undo; versions surviv
   await expect(rects(page)).toHaveCount(1);
 
   // Rename, then reload: the restored figure was autosaved and the version is still there.
-  await page.getByRole('button', { name: 'Versions…' }).click();
+  await fileMenu(page, 'Versions…');
   await dialog.getByRole('button', { name: 'Rename sent to PI' }).click();
   await page.getByLabel('New name for sent to PI').fill('before revision');
   await page.keyboard.press('Enter');
@@ -88,7 +88,7 @@ test('save a version, change the figure, compare, restore, undo; versions surviv
   await page.reload();
   await expect(page.locator('.icon-tile').first()).toBeVisible();
   await expect(rects(page)).toHaveCount(1);
-  await page.getByRole('button', { name: 'Versions…' }).click();
+  await fileMenu(page, 'Versions…');
   await expect(dialog.locator('.version-row')).toHaveCount(1);
 
   // Delete asks first.
@@ -102,22 +102,22 @@ test('save a version, change the figure, compare, restore, undo; versions surviv
 
 test('versions belong to their figure', async ({ page }) => {
   await rect(page, 30, 30, 40, 40);
-  await page.getByRole('button', { name: 'Versions…' }).click();
+  await fileMenu(page, 'Versions…');
   const dialog = page.getByRole('dialog', { name: 'Saved versions' });
   await dialog.getByLabel('Version name').fill('A1');
   await dialog.getByRole('button', { name: 'Save version' }).click();
   await expect(dialog.locator('.version-row')).toHaveCount(1);
   await page.keyboard.press('Escape');
 
-  await page.getByRole('button', { name: 'New', exact: true }).click();
+  await fileMenu(page, 'New');
   await expect(rects(page)).toHaveCount(0);
-  await page.getByRole('button', { name: 'Versions…' }).click();
+  await fileMenu(page, 'Versions…');
   await expect(dialog).toContainText('No saved versions of this figure yet.');
 });
 
 test('compare two versions in both modes and restore one deleted object', async ({ page }) => {
   await rect(page, 30, 30, 40, 40);
-  await page.getByRole('button', { name: 'Versions…' }).click();
+  await fileMenu(page, 'Versions…');
   const dialog = page.getByRole('dialog', { name: 'Saved versions' });
   await dialog.getByLabel('Version name').fill('v1');
   await dialog.getByRole('button', { name: 'Save version' }).click();
@@ -130,7 +130,7 @@ test('compare two versions in both modes and restore one deleted object', async 
   await rect(page, 100, 60, 30, 30);
   await expect(rects(page)).toHaveCount(1);
 
-  await page.getByRole('button', { name: 'Versions…' }).click();
+  await fileMenu(page, 'Versions…');
   await dialog.getByRole('button', { name: 'Compare v1' }).focus();
   await page.keyboard.press('Enter');
   const compare = page.getByRole('dialog', { name: 'Compare versions' });

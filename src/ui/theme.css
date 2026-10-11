@@ -191,6 +191,11 @@
   border-color: var(--rule-strong);
 }
 
+/* The File menu (note 55) opens under its trigger's left edge. */
+.topbar .menu__list {
+  left: 0;
+}
+
 .topbar .spacer {
   flex: 1;
 }

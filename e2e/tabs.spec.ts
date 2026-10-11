@@ -1,7 +1,7 @@
 /** Several figures open at once, in tabs (note 25). */
 import { type Page, expect, test } from '@playwright/test';
 
-import { iconTile, pageBox } from './helpers';
+import { fileMenu, iconTile, pageBox } from './helpers';
 
 const PAGE_W = (183 / 25.4) * 72;
 
@@ -30,7 +30,7 @@ async function twoFigures(page: Page) {
   await rect(page, 20);
   await rect(page, 80);
   await expect(rects(page)).toHaveCount(2);
-  await page.getByRole('button', { name: 'New', exact: true }).click();
+  await fileMenu(page, 'New');
   await expect(tabs(page)).toHaveCount(2);
   await expect(rects(page)).toHaveCount(0);
   await setTitle(page, 'Figure B');
@@ -111,7 +111,7 @@ test('copy in one figure, paste in another: the icon brings its asset along', as
   await expect(icons).toHaveCount(1);
 
   // The pasted icon is credited in the receiving figure.
-  await page.getByRole('button', { name: 'Attribution', exact: true }).click();
+  await fileMenu(page, 'Attribution…');
   const dialog = page.getByRole('dialog', { name: 'Attribution' });
   await expect(dialog).toContainText(/petri/i);
   await page.keyboard.press('Escape');

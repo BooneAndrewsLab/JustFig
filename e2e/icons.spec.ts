@@ -6,7 +6,7 @@
  */
 import { expect, test } from '@playwright/test';
 
-import { iconTile } from './helpers';
+import { fileMenu, iconTile } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('./');
@@ -73,7 +73,7 @@ test('recolours a CC BY icon per slot and credits it as modified', async ({ page
   await expect(recoloured.first()).toBeAttached();
   await expect(page.getByRole('complementary', { name: 'Inspector' })).toContainText('modified');
 
-  await page.getByRole('button', { name: 'Attribution' }).click();
+  await fileMenu(page, 'Attribution…');
   const dialog = page.getByRole('dialog', { name: 'Attribution and licences' });
   await expect(dialog.getByTestId('credit-line')).toContainText(
     'Bioicons: Servier (CC BY 3.0, modified)',
@@ -81,7 +81,7 @@ test('recolours a CC BY icon per slot and credits it as modified', async ({ page
   await dialog.getByRole('button', { name: 'Done' }).click();
 
   await page.getByRole('button', { name: 'Reset colours' }).click();
-  await page.getByRole('button', { name: 'Attribution' }).click();
+  await fileMenu(page, 'Attribution…');
   await expect(dialog.getByTestId('credit-line')).toContainText('Servier (CC BY 3.0)');
   await expect(dialog.getByTestId('credit-line')).not.toContainText('modified');
 });

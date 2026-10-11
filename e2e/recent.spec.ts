@@ -1,7 +1,7 @@
 /** Recent figures (note 02): figures are kept separately and reopen from the dialog. */
 import { type Page, expect, test } from '@playwright/test';
 
-import { pageBox } from './helpers';
+import { fileMenu, pageBox } from './helpers';
 
 const PAGE_W = (183 / 25.4) * 72;
 
@@ -35,7 +35,7 @@ test('make A, start B, reopen A from Recent figures; rename, download, delete', 
   page.on('dialog', () => {
     throw new Error('window.confirm must not be used');
   });
-  await page.getByRole('button', { name: 'New', exact: true }).click();
+  await fileMenu(page, 'New');
   await expect(rects(page)).toHaveCount(0);
   await page.getByLabel('Figure title').fill('Figure B');
   await page.getByLabel('Figure title').blur();

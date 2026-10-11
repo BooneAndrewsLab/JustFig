@@ -2,7 +2,7 @@
 
 ## Import…
 
-**Import…** in the top bar places a picture on the page. Choose an SVG, PDF, PNG, JPEG or TIFF file. You can also drag a file from your computer onto the canvas to drop it where you want it, or paste an image from the clipboard (Ctrl+V).
+**Import…** in the File menu places a picture on the page. Choose an SVG, PDF, PNG, JPEG or TIFF file. You can also drag a file from your computer onto the canvas to drop it where you want it, or paste an image from the clipboard (Ctrl+V).
 
 - A **PNG or JPEG** is kept as a picture at its original quality. A very large image is scaled down to at most about 106 mm on its longer side when it is placed; resize it afterwards as you like. A picture over about 6 million pixels (a full-size micrograph) is shown on the canvas as a lighter working copy of about 4 million pixels, so the page stays quick to open, scroll and drag; for a moment after opening it is a grey box while the copy is made. The working copy is only for the screen: saved files and SVG, PDF, PNG and TIFF exports use every pixel of the picture.
 - An **SVG** stays vector, so it remains sharp at any size and in every export. JustFig cleans it as it imports it, removing anything that is not plain drawing, such as scripts. If something had to be changed, a warning appears in the status line.

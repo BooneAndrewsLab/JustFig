@@ -4,7 +4,7 @@
  * contrast problems in dark either. `E2E_OUT=<dir>` saves screenshots.
  */
 import { type Page, expect, test } from '@playwright/test';
-import { audit, iconTile } from './helpers';
+import { audit, fileMenu, iconTile } from './helpers';
 
 const OUT = process.env['E2E_OUT'];
 
@@ -59,15 +59,19 @@ test.describe('dark system setting', () => {
     await shot(page, 'icon-preview');
     problems.push(...(await audit(page, '.icons-panel')).map((p) => `icons: ${p}`));
     await page.mouse.move(600, 400);
-    for (const [button, name] of [
-      ['Templates…', 'templates'],
-      ['Help', 'guide'],
-      ['Export…', 'export'],
-      ['Attribution', 'attribution'],
-      ['Recent…', 'recent'],
-      ['Versions…', 'versions'],
+    await page.getByRole('button', { name: 'File', exact: true }).click();
+    problems.push(...(await audit(page, '.menu')).map((p) => `File menu: ${p}`));
+    await page.keyboard.press('Escape');
+    for (const [button, name, inMenu] of [
+      ['Templates…', 'templates', true],
+      ['Help', 'guide', false],
+      ['Export…', 'export', false],
+      ['Attribution…', 'attribution', true],
+      ['Recent…', 'recent', false],
+      ['Versions…', 'versions', true],
     ] as const) {
-      await page.getByRole('button', { name: button, exact: true }).click();
+      if (inMenu) await fileMenu(page, button);
+      else await page.getByRole('button', { name: button, exact: true }).click();
       await expect(page.getByRole('dialog').first()).toBeVisible();
       await shot(page, name);
       problems.push(...(await audit(page, '.dialog')).map((p) => `${name}: ${p}`));
