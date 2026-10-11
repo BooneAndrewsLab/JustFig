@@ -9,7 +9,7 @@ import { updateObjects } from '@/core/edits/edits';
 import type { Id } from '@/core/model/ids';
 import type { Paint, PathObj, Procedural, Swatch } from '@/core/model/types';
 import { convertObjects, makeFromPath, setParams } from '@/procedural/edits';
-import { roundTo, visibleFields } from '@/procedural/params';
+import { visibleFields } from '@/procedural/params';
 import { applyPreset, groupedPresets } from '@/procedural/presets';
 import { allKinds, resolveProcedural } from '@/procedural/registry';
 import type {
@@ -20,14 +20,15 @@ import type {
   Params,
   ProceduralKind,
   Scalar,
-  ScalarField,
   WellMap,
 } from '@/procedural/types';
 
 import { analytics } from '../analytics';
 import { type AppState, currentPage, figure, store } from '../state/store';
 import { useMenu } from '../useMenu';
+import { KindWizardButton } from '../dialogs/KindWizardDialog';
 import { ColorInput } from './ColorInput';
+import { ScalarControl } from './ScalarControl';
 import { WellMapEditor } from './WellMapEditor';
 
 const fieldKey = (id: Id, field: string) => `param:${field}:${id}`;
@@ -43,114 +44,6 @@ function setParam(
     coalesce: fieldKey(o.id, field),
     keepSelection: true,
   });
-}
-
-/** One scalar control (also used inside list rows). */
-function ScalarControl({
-  f,
-  value,
-  onChange,
-  idPrefix,
-  palette,
-}: {
-  f: ScalarField;
-  value: Scalar;
-  onChange: (v: Scalar) => void;
-  idPrefix: string;
-  palette: readonly Swatch[];
-}) {
-  const id = `${idPrefix}-${f.key}`;
-  switch (f.type) {
-    case 'number':
-    case 'int':
-      return (
-        <div className="row">
-          <label htmlFor={id}>{f.label}</label>
-          <input
-            id={id}
-            type="number"
-            value={typeof value === 'number' ? roundTo(value, f.step) : ''}
-            min={f.min}
-            max={f.max}
-            step={f.step ?? (f.type === 'int' ? 1 : 0.5)}
-            onChange={(e) => {
-              const v = Number(e.target.value);
-              if (e.target.value !== '' && Number.isFinite(v)) onChange(v);
-            }}
-          />
-          {f.unit && <span className="note">{f.unit}</span>}
-        </div>
-      );
-    case 'enum':
-      return (
-        <div className="row">
-          <label htmlFor={id}>{f.label}</label>
-          <select
-            id={id}
-            value={String(value)}
-            onChange={(e) => {
-              const o = f.options.find((x) => String(x.value) === e.target.value);
-              if (o) onChange(o.value);
-            }}
-          >
-            {f.options.map((o) => (
-              <option key={String(o.value)} value={String(o.value)}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      );
-    case 'bool':
-      return (
-        <div className="row">
-          <label>
-            <input
-              type="checkbox"
-              checked={value === true}
-              onChange={(e) => {
-                onChange(e.target.checked);
-              }}
-            />{' '}
-            {f.label}
-          </label>
-        </div>
-      );
-    case 'text':
-      return (
-        <div className="row">
-          <label htmlFor={id}>{f.label}</label>
-          <input
-            id={id}
-            type="text"
-            value={typeof value === 'string' ? value : ''}
-            maxLength={f.maxLength}
-            {...(f.placeholder ? { placeholder: f.placeholder } : {})}
-            onChange={(e) => {
-              onChange(e.target.value);
-            }}
-          />
-        </div>
-      );
-    case 'color': {
-      const hex = typeof value === 'string' ? value : '';
-      return (
-        <>
-          <ColorInput
-            label={f.label}
-            value={hex === '' ? null : { hex }}
-            palette={palette}
-            copy
-            allowNone={f.auto === true}
-            onChange={(p: Paint | null) => {
-              onChange(p === null ? '' : 'hex' in p ? p.hex : f.default);
-            }}
-          />
-          {f.auto === true && hex === '' && <p className="note">Automatic colour</p>}
-        </>
-      );
-    }
-  }
 }
 
 function ListControl({
@@ -436,7 +329,12 @@ export function ProceduralSection({ s, obj }: { s: AppState; obj: Procedural }) 
     <>
       <section className="section procedural" aria-label={`${kind.title} options`}>
         <h2>{kind.title}</h2>
-        <StartFromMenu s={s} obj={obj} kind={kind} />
+        {(kind.presets !== undefined || kind.wizard !== undefined) && (
+          <div className="start-from-row">
+            <StartFromMenu s={s} obj={obj} kind={kind} />
+            <KindWizardButton kind={kind} target={obj} />
+          </div>
+        )}
         {visibleFields(kind.fields, params).map((f) => (
           <FieldControl key={f.key} s={s} o={obj} f={f} params={params} palette={fig.doc.palette} />
         ))}

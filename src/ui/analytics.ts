@@ -82,8 +82,11 @@ export const EVENTS = {
   /** A check warning chosen in the Export dialog; the rule id (app vocabulary) as the name. */
   check: ['select'],
   attribution: ['open', 'copy', 'add-text', 'copy-legend'],
-  /** `kind-place`, `kind-apply`: a built-in kind preset (note 58), `kind/preset-id` as the name. */
-  preset: ['save', 'place', 'export', 'import', 'kind-place', 'kind-apply'],
+  /**
+   * `kind-place`, `kind-apply`: a built-in kind preset (note 58), `kind/preset-id` as the name.
+   * `wizard`: a kind's wizard finished, `kind/place` or `kind/apply` as the name (never answers).
+   */
+  preset: ['save', 'place', 'export', 'import', 'kind-place', 'kind-apply', 'wizard'],
   /** Saved versions of a figure (note 23); never a name. */
   version: ['save', 'restore', 'compare'],
   /** Review notes (note 24); never their text or author. */

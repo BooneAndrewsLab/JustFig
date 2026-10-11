@@ -1,7 +1,7 @@
 # 58 Kind presets: named starting points for procedural objects
 
-2026-10-11. Step 1 (the mechanism, issue #82) and the cell types of step 2 (issue #87) are built;
-the rest is a plan. Every procedural kind (note 04) starts from its field
+2026-10-11. Step 1 (the mechanism, issue #82), the cell types of step 2 (issue #87) and the
+well plate's wizard of step 3 (issue #90) are built; the rest is a plan. Every procedural kind (note 04) starts from its field
 defaults: an agar plate is always 60 scattered colonies on yellow agar, a cell always the same
 generic animal cell. A biologist wants "a tetrad dissection plate", "YPD", "a yeast cell", "a
 96-well plate with controls in column 12", and gets there today by setting six fields by hand,
@@ -74,6 +74,29 @@ readonly wizard?: {
   existing object starts from the defaults again, not from the object.
 - Only for kinds where questions really beat fields: the well plate first, then the tetrad
   plate. A kind whose presets plus Inspector already do the job gets no wizard.
+
+_Built (issue #90): the stepper and the well plate's wizard._ As built, a wizard also has a
+`title` ("Plate map wizard", its dialog and buttons) and an optional PURE `problems(answers)`
+shown live under the questions ("Only 24 of 40 conditions fit…"); step fields are
+`ScalarField`s only (no list or well-map question has been needed). The pieces:
+
+- `procedural/wizard.ts`: answers are decoded against every step's fields before `build` sees
+  them; `createFromWizard` places a new object, `applyWizard` is one named edit (the wizard's
+  title) through `applyOver`, the same helper as `applyPreset`, so it sets only the keys
+  `build` returns.
+- `ui/dialogs/WizardDialog.tsx` knows nothing of kinds: steps in, decoded answers out, inside
+  `Dialog` (focus trap, Escape). One `fieldset` per step with the question as its legend; Enter
+  goes on from any control (a select or checkbox included), Back keeps the answers, focus moves to
+  each step's first control, a `preview` render prop shows the result. `KindWizardDialog.tsx`
+  adds the kind: the preview drawn through the one renderer, Add from the shelf (the button
+  sits in the kind's starting-points disclosure) or Apply from the Inspector (beside **Start
+  from…**). Neither touches the top bar.
+- The well plate's `plateMap`: blank edges take the outer ring, controls the first (negative)
+  and last (positive) column or row of what is left, then each condition `replicates`
+  neighbouring wells along rows or down columns, a group never split over two lines when one
+  is long enough; conditions that do not fit are left out and reported. 24 condition colours
+  (six Okabe-Ito hues the controls do not use, in four tiers) before they repeat.
+- Analytics: `preset` / `wizard`, named `kind/place` or `kind/apply`; never the answers.
 
 ## Styles
 

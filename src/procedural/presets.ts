@@ -17,7 +17,7 @@ export const findPreset = (k: ProceduralKind, id: string): KindPreset | undefine
   presetsOf(k).find((p) => p.id === id);
 
 /** The preset's slot colours as the object's overrides: plain hex, never swatch links. */
-export function presetSlots(p: KindPreset): Procedural['slots'] {
+export function presetSlots(p: Pick<KindPreset, 'slots'>): Procedural['slots'] {
   const out: Record<string, { hex: string }> = {};
   for (const [id, hex] of Object.entries(p.slots ?? {})) out[id] = { hex };
   return out;
@@ -49,15 +49,29 @@ export function groupedPresets(
  * (resized about its centre). Path-following kinds keep their frame.
  */
 export function applyPreset(pageId: Id, id: Id, k: ProceduralKind, p: KindPreset): Edit {
-  return updateObjects(pageId, [id], `Apply preset ${p.label}`, (o) => {
+  return applyOver(pageId, id, k, `Apply preset ${p.label}`, p);
+}
+
+/**
+ * One named edit setting only the keys `over.params` names (then the kind's `fix`), its slot
+ * colours, and its frame size as `applyPreset` describes: shared by presets and wizards.
+ */
+export function applyOver(
+  pageId: Id,
+  id: Id,
+  k: ProceduralKind,
+  label: string,
+  over: Pick<KindPreset, 'params' | 'slots' | 'size'>,
+): Edit {
+  return updateObjects(pageId, [id], label, (o) => {
     if (o.type !== 'procedural' || o.kind !== k.kind) return o;
     const r = resolveProcedural(o);
     if (!r)
       throw new EditError('This object was made by a newer version and cannot be edited here.');
-    const merged = { ...r.params, ...(p.params ?? {}) } as Params;
+    const merged = { ...r.params, ...(over.params ?? {}) } as Params;
     const params = r.kind.fix ? r.kind.fix(merged) : merged;
     const f = o.frame;
-    const size = p.size;
+    const size = over.size;
     const frame =
       size !== undefined &&
       !r.kind.usesPath &&
@@ -75,7 +89,7 @@ export function applyPreset(pageId: Id, id: Id, k: ProceduralKind, p: KindPreset
       ...o,
       kindVersion: r.kind.version,
       params,
-      slots: { ...o.slots, ...presetSlots(p) },
+      slots: { ...o.slots, ...presetSlots(over) },
       frame,
     };
   });

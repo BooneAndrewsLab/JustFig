@@ -62,6 +62,20 @@ test('the dialogs and the Inspector of each kind of selection have none either',
   await expect(page.getByRole('menu', { name: 'Well plate starting points' })).toBeVisible();
   problems.push(...(await audit(page, '.side')).map((p) => `Start from…: ${p}`));
   await page.keyboard.press('Escape');
+  // Its plate map wizard (note 58), every step, with a problem note on the last.
+  await page.locator('.side').getByRole('button', { name: 'Plate map wizard…' }).click();
+  const wizard = page.getByRole('dialog', { name: 'Plate map wizard' });
+  await expect(wizard).toBeVisible();
+  for (const q of ['Which plate?', 'What goes on it?', 'Where do the controls go?']) {
+    await expect(wizard.getByRole('group', { name: q })).toBeVisible();
+    if (q === 'What goes on it?') await wizard.getByLabel('Conditions').fill('40');
+    problems.push(...(await audit(page, '.dialog')).map((p) => `Plate map wizard, ${q} ${p}`));
+    if (q !== 'Where do the controls go?')
+      await wizard.getByRole('button', { name: 'Next' }).click();
+  }
+  await expect(wizard.getByText('Only 24 of 40 conditions fit')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   // Arrange in grid needs a selection: the well plate just added is one.
   await page.keyboard.press('Shift+G');
   await expect(page.getByRole('dialog', { name: 'Arrange in grid' })).toBeVisible();

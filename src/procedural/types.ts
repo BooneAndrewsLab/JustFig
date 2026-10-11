@@ -109,6 +109,28 @@ export interface KindPreset<P = Params> {
   readonly size?: { readonly w: number; readonly h: number };
 }
 
+/** One page of a kind's wizard (note 58): a question and the answers it asks for. */
+export interface WizardStep {
+  readonly question: string;
+  /** Ordinary scalar fields (their `showIf` sees all the answers so far); never stored. */
+  readonly fields: readonly ScalarField[];
+}
+
+/**
+ * A few answers that fill many params (note 58), asked by one generic stepper dialog. The
+ * answers are not stored, only the params `build` makes of them; re-running the wizard starts
+ * from the answers' defaults again.
+ */
+export interface KindWizard<P = Params> {
+  /** The dialog title and the buttons that open it: "Plate map wizard". */
+  readonly title: string;
+  readonly steps: readonly WizardStep[];
+  /** PURE: decoded answers → params over the kind's defaults; applying sets only these keys. */
+  readonly build: (answers: Params) => Partial<P>;
+  /** PURE: what the answers cannot give (conditions that do not fit), shown before finishing. */
+  readonly problems?: (answers: Params) => readonly string[];
+}
+
 export interface ProceduralKind<P = Params> {
   readonly kind: string;
   readonly version: number;
@@ -125,6 +147,8 @@ export interface ProceduralKind<P = Params> {
   readonly slots: readonly SlotDef[];
   /** Named starting points (note 58), in picker order. */
   readonly presets?: readonly KindPreset<P>[];
+  /** Questions that fill the params (note 58), for kinds where they beat fields. */
+  readonly wizard?: KindWizard<P>;
   /** Path-following kinds draw along `obj.path`. */
   readonly usesPath?: 'open' | 'closed';
   readonly defaultSize: { readonly w: number; readonly h: number };

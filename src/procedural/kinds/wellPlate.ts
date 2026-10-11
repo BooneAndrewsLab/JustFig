@@ -4,7 +4,7 @@
  * handful of DOM nodes.
  */
 import { type Prim, type Sub, circle, pathPrim, poly, rect } from '../prims';
-import { type WellMap, defineKind } from '../types';
+import { type KindWizard, type Params, type WellMap, defineKind } from '../types';
 import { byColour, mix, rowLabel, text } from './util';
 
 export const PLATE_FORMATS = {
@@ -86,6 +86,245 @@ const LAYOUTS = {
   checkerboard: layout96((r, c) => mix(shade('#0072b2', r / 7), '#d55e00', (c / 11) * 0.7)),
 } as const;
 
+/** Condition colours: Okabe-Ito hues the controls do not use, then lighter and darker tiers. */
+const CONDITION_HUES = ['#56b4e9', '#e69f00', '#009e73', '#0072b2', '#cc79a7', '#f0e442'];
+const TIERS = [
+  (h: string) => h,
+  (h: string) => mix('#ffffff', h, 0.5),
+  (h: string) => mix(h, '#000000', 0.35),
+  (h: string) => mix('#ffffff', h, 0.25),
+];
+/** Distinct colours before they repeat. */
+export const CONDITION_COLOURS = CONDITION_HUES.length * TIERS.length;
+
+/** Condition `i`'s colour (0-based), repeating after `CONDITION_COLOURS`. */
+export function conditionColour(i: number): string {
+  const n = i % CONDITION_COLOURS;
+  const tier = TIERS[Math.floor(n / CONDITION_HUES.length)] ?? ((h: string) => h);
+  return tier(CONDITION_HUES[n % CONDITION_HUES.length] ?? SAMPLE);
+}
+
+/** The plate map's control and blank colours. */
+export const PLATE_MAP_COLOURS = { negative: NEG, positive: POS, blank: BLANK } as const;
+
+const MAX_CONDITIONS = 384;
+const MAX_REPLICATES = 48;
+
+/** The plate map wizard's answers (note 58), decoded. Never stored. */
+export interface PlateMapAnswers {
+  readonly format: PlateFormat;
+  readonly conditions: number;
+  readonly replicates: number;
+  readonly direction: 'across' | 'down';
+  readonly controls: 'none' | 'negative' | 'both';
+  readonly controlPlace: 'columns' | 'rows';
+  readonly blankEdges: boolean;
+}
+
+export interface PlateMap {
+  readonly format: PlateFormat;
+  readonly wells: WellMap;
+  /** How many conditions got their replicates, and how many groups would fit at most. */
+  readonly placed: number;
+  readonly capacity: number;
+}
+
+function pick<T extends string>(a: Params, key: string, ok: readonly T[], fallback: T): T {
+  const v = a[key];
+  return ok.find((x) => x === v) ?? fallback;
+}
+
+function int(a: Params, key: string, min: number, max: number, fallback: number): number {
+  const v = a[key];
+  return typeof v === 'number' && Number.isFinite(v)
+    ? Math.min(max, Math.max(min, Math.round(v)))
+    : fallback;
+}
+
+/** The answers, any value out of range or unknown falling back to its default. */
+export function plateMapAnswers(a: Params): PlateMapAnswers {
+  return {
+    format: pick(a, 'format', Object.keys(PLATE_FORMATS) as PlateFormat[], '96'),
+    conditions: int(a, 'conditions', 1, MAX_CONDITIONS, 8),
+    replicates: int(a, 'replicates', 1, MAX_REPLICATES, 3),
+    direction: pick(a, 'direction', ['across', 'down'], 'across'),
+    controls: pick(a, 'controls', ['none', 'negative', 'both'], 'both'),
+    controlPlace: pick(a, 'controlPlace', ['columns', 'rows'], 'columns'),
+    blankEdges: a['blankEdges'] === true,
+  };
+}
+
+/**
+ * PURE: the plate map the answers describe. Blank edges take the outer ring; controls take the
+ * first (negative) and last (positive) column or row of what is left; each condition then gets
+ * `replicates` neighbouring wells, side by side in a row or one under another in a column, a
+ * group never split over two rows (or columns) when one is long enough. Conditions that do not
+ * fit are left out (`placed` says how many fit); wells nobody uses stay empty.
+ */
+export function plateMap(raw: Params): PlateMap {
+  const a = plateMapAnswers(raw);
+  const { rows, cols } = PLATE_FORMATS[a.format];
+  const wells: Record<string, string> = {};
+  let r0 = 0;
+  let r1 = rows - 1;
+  let c0 = 0;
+  let c1 = cols - 1;
+  if (a.blankEdges) {
+    for (let r = 0; r < rows; r += 1)
+      for (let c = 0; c < cols; c += 1)
+        if (r === 0 || c === 0 || r === rows - 1 || c === cols - 1) wells[wellId(r, c)] = BLANK;
+    r0 += 1;
+    r1 -= 1;
+    c0 += 1;
+    c1 -= 1;
+  }
+  const byColumn = a.controlPlace === 'columns';
+  const control = (colour: string, at: number) => {
+    if (byColumn) for (let r = r0; r <= r1; r += 1) wells[wellId(r, at)] = colour;
+    else for (let c = c0; c <= c1; c += 1) wells[wellId(at, c)] = colour;
+  };
+  if (a.controls !== 'none' && r0 <= r1 && c0 <= c1) {
+    control(NEG, byColumn ? c0 : r0);
+    if (byColumn) c0 += 1;
+    else r0 += 1;
+    if (a.controls === 'both' && r0 <= r1 && c0 <= c1) {
+      control(POS, byColumn ? c1 : r1);
+      if (byColumn) c1 -= 1;
+      else r1 -= 1;
+    }
+  }
+  // The sample area as lines of wells along the replicates' direction.
+  const lines: { r: number; c: number }[][] = [];
+  if (a.direction === 'across')
+    for (let r = r0; r <= r1; r += 1) {
+      const l = [];
+      for (let c = c0; c <= c1; c += 1) l.push({ r, c });
+      if (l.length > 0) lines.push(l);
+    }
+  else
+    for (let c = c0; c <= c1; c += 1) {
+      const l = [];
+      for (let r = r0; r <= r1; r += 1) l.push({ r, c });
+      if (l.length > 0) lines.push(l);
+    }
+  const len = lines[0]?.length ?? 0;
+  const n = a.replicates;
+  const groups: { r: number; c: number }[][] = [];
+  if (n <= len) {
+    for (const l of lines) for (let g = 0; g + n <= len; g += n) groups.push(l.slice(g, g + n));
+  } else {
+    const flat = lines.flat();
+    for (let g = 0; g + n <= flat.length; g += n) groups.push(flat.slice(g, g + n));
+  }
+  const placed = Math.min(a.conditions, groups.length);
+  for (let i = 0; i < placed; i += 1)
+    for (const w of groups[i] ?? []) wells[wellId(w.r, w.c)] = conditionColour(i);
+  return { format: a.format, wells, placed, capacity: groups.length };
+}
+
+/** The well plate's wizard (note 58): format, conditions × replicates, controls → well map. */
+export const plateMapWizard: KindWizard<WellPlateParams> = {
+  title: 'Plate map wizard',
+  steps: [
+    {
+      question: 'Which plate?',
+      fields: [
+        {
+          key: 'format',
+          label: 'Wells',
+          type: 'enum',
+          options: Object.keys(PLATE_FORMATS).map((k) => ({ value: k, label: `${k}-well` })),
+          default: '96',
+        },
+      ],
+    },
+    {
+      question: 'What goes on it?',
+      fields: [
+        {
+          key: 'conditions',
+          label: 'Conditions',
+          type: 'int',
+          min: 1,
+          max: MAX_CONDITIONS,
+          default: 8,
+          help: 'Samples, treatments or strains: each gets a colour of its own.',
+        },
+        {
+          key: 'replicates',
+          label: 'Replicates',
+          type: 'int',
+          min: 1,
+          max: MAX_REPLICATES,
+          default: 3,
+        },
+        {
+          key: 'direction',
+          label: 'Replicates go',
+          type: 'enum',
+          options: [
+            { value: 'across', label: 'Side by side in a row' },
+            { value: 'down', label: 'One under another in a column' },
+          ],
+          default: 'across',
+        },
+      ],
+    },
+    {
+      question: 'Where do the controls go?',
+      fields: [
+        {
+          key: 'controls',
+          label: 'Controls',
+          type: 'enum',
+          options: [
+            { value: 'none', label: 'None' },
+            { value: 'negative', label: 'Negative only' },
+            { value: 'both', label: 'Negative and positive' },
+          ],
+          default: 'both',
+        },
+        {
+          key: 'controlPlace',
+          label: 'Controls fill',
+          type: 'enum',
+          options: [
+            { value: 'columns', label: 'The first and last columns' },
+            { value: 'rows', label: 'The first and last rows' },
+          ],
+          default: 'columns',
+          help: 'Negative controls first (grey), positive controls last (orange).',
+          showIf: (p) => p['controls'] !== 'none',
+        },
+        {
+          key: 'blankEdges',
+          label: 'Leave the edge wells blank (edge effect)',
+          type: 'bool',
+          default: false,
+        },
+      ],
+    },
+  ],
+  build(answers) {
+    const m = plateMap(answers);
+    return { format: m.format, wells: m.wells };
+  },
+  problems(answers) {
+    const a = plateMapAnswers(answers);
+    const m = plateMap(answers);
+    const out: string[] = [];
+    if (m.capacity === 0) out.push('No wells are left for samples: choose a bigger plate.');
+    else if (m.placed < a.conditions)
+      out.push(
+        `Only ${String(m.placed)} of ${String(a.conditions)} conditions fit in ` +
+          `${String(a.replicates)} replicates on a ${a.format}-well plate.`,
+      );
+    if (m.placed > CONDITION_COLOURS)
+      out.push(`Colours repeat after ${String(CONDITION_COLOURS)} conditions.`);
+    return out;
+  },
+};
+
 export const wellPlate = defineKind<WellPlateParams>({
   kind: 'wellPlate',
   version: 1,
@@ -154,6 +393,7 @@ export const wellPlate = defineKind<WellPlateParams>({
       params: { format: '96', wells: LAYOUTS.checkerboard },
     },
   ],
+  wizard: plateMapWizard,
   render(p, { w, h, slots }) {
     const L = plateLayout(p, w, h);
     const out: Prim[] = [];

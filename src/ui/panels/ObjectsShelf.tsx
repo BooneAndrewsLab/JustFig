@@ -2,7 +2,7 @@
  * The Objects shelf (note 04): one tile per procedural kind, drawn by the
  * kind itself with its defaults. Click places one at the view centre; drag
  * drops it where it lands. A kind with presets (note 58) also gets its
- * starting points, under a disclosure. An icon search also lists the kinds
+ * starting points, under a disclosure, and its wizard's button there too. An icon search also lists the kinds
  * and presets it matches (`matchKinds`, `matchPresets`), tagged "Adjustable".
  */
 import { useEffect, useState } from 'react';
@@ -11,11 +11,11 @@ import { createProcedural } from '@/procedural/edits';
 import { createFromPreset, groupedPresets, presetsOf } from '@/procedural/presets';
 import { allKinds } from '@/procedural/registry';
 import type { KindPreset, ProceduralKind } from '@/procedural/types';
-import { proceduralNodes } from '@/render/procedural';
-import { nodeToSvgString } from '@/render/svgNode';
 
 import { KIND_DRAG_TYPE, kindDragData } from '../canvas/view';
 import { placeProcedural } from '../state/session';
+import { KindWizardButton } from '../dialogs/KindWizardDialog';
+import { procSvg } from './kindSvg';
 
 const thumbs = new Map<string, string>();
 
@@ -27,12 +27,7 @@ function thumb(k: ProceduralKind, preset?: KindPreset): string {
     const { w, h } = preset?.size ?? k.defaultSize;
     const at = { x: w / 2, y: h / 2 };
     const o = preset ? createFromPreset(k, preset, at) : createProcedural(k, at);
-    const nodes = proceduralNodes(o, 'outline', false, []) ?? [];
-    const pad = Math.max(w, h) * 0.06;
-    t =
-      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${String(-pad)} ${String(-pad)} ${String(w + 2 * pad)} ${String(h + 2 * pad)}">` +
-      nodes.map((n) => nodeToSvgString(n)).join('') +
-      '</svg>';
+    t = procSvg(o);
     thumbs.set(key, t);
   }
   return t;
@@ -108,6 +103,7 @@ function PresetTiles({ kind: k, drawn }: { kind: ProceduralKind; drawn: boolean 
       <summary title={names.join(', ')}>
         {k.title} starting points <span className="note">({String(names.length)})</span>
       </summary>
+      <KindWizardButton kind={k} />
       {groups.map((g) => (
         <div key={g.group} role="group" aria-label={g.group || `${k.title} starting points`}>
           {g.group !== '' && <p className="object-presets-group">{g.group}</p>}
@@ -169,7 +165,7 @@ export function ObjectsShelf() {
         ))}
       </div>
       {allKinds()
-        .filter((k) => presetsOf(k).length > 0)
+        .filter((k) => presetsOf(k).length > 0 || k.wizard !== undefined)
         .map((k) => (
           <PresetTiles key={k.kind} kind={k} drawn={open && drawn} />
         ))}
