@@ -1,28 +1,46 @@
-/** Petri dish with seeded colony patterns (note 04): random, streak, spot dilutions, pinned grid or lawn. */
+/** Petri dish with seeded colony patterns (note 04): random, streak, spot dilutions, pinned grid, lawn or tetrad dissection (note 58). */
 import { shiftLightness } from '@/core/color/color';
 import type { Vec2 } from '@/core/model/types';
 
 import { type Prim, type Sub, circle, pathPrim, poly } from '../prims';
 import { defineKind } from '../types';
-import { mix, rng } from './util';
+import { mix, rng, text } from './util';
 
 export interface PetriParams {
-  readonly pattern: 'random' | 'streak' | 'spots' | 'grid' | 'lawn' | 'none';
+  readonly pattern: 'random' | 'streak' | 'spots' | 'grid' | 'lawn' | 'tetrads' | 'none';
   readonly count: number;
   readonly size: number;
   readonly variation: number;
   readonly seed: number;
   readonly lid: boolean;
+  readonly tetrads: number;
+  readonly segregation: 'mixed' | '2:2' | '4:0' | '3:1' | '1:3' | '0:4';
+  readonly dead: number;
+  readonly missing: number;
+  readonly tetradLabels: boolean;
 }
 
 export const petriDish = defineKind<PetriParams>({
   kind: 'petriDish',
-  version: 1,
+  version: 2,
   title: 'Petri dish',
   category: 'Lab',
   description:
-    'An agar plate with colonies: random, streaked, spotted dilutions, a pinned grid or a lawn.',
-  keywords: ['agar', 'plate', 'colony', 'colonies', 'bacteria', 'yeast', 'culture', 'streak'],
+    'An agar plate with colonies: random, streaked, spotted dilutions, a pinned grid, a lawn or a tetrad dissection.',
+  keywords: [
+    'agar',
+    'plate',
+    'colony',
+    'colonies',
+    'bacteria',
+    'yeast',
+    'culture',
+    'streak',
+    'tetrad',
+    'tetrads',
+    'dissection',
+    'spores',
+  ],
   defaultSize: { w: 150, h: 150 },
   fields: [
     {
@@ -35,6 +53,7 @@ export const petriDish = defineKind<PetriParams>({
         { value: 'spots', label: 'Spot dilutions' },
         { value: 'grid', label: 'Pinned grid' },
         { value: 'lawn', label: 'Lawn' },
+        { value: 'tetrads', label: 'Tetrad dissection' },
         { value: 'none', label: 'None (empty plate)' },
       ],
       default: 'random',
@@ -46,7 +65,65 @@ export const petriDish = defineKind<PetriParams>({
       min: 0,
       max: 1536,
       default: 60,
-      showIf: (p) => p['pattern'] !== 'lawn' && p['pattern'] !== 'none',
+      showIf: (p) =>
+        p['pattern'] !== 'lawn' && p['pattern'] !== 'none' && p['pattern'] !== 'tetrads',
+    },
+    {
+      key: 'tetrads',
+      label: 'Tetrads',
+      type: 'int',
+      min: 1,
+      max: 24,
+      default: 8,
+      help: 'One column of four spores (a to d) per tetrad.',
+      showIf: (p) => p['pattern'] === 'tetrads',
+    },
+    {
+      key: 'segregation',
+      label: 'Segregation',
+      type: 'enum',
+      options: [
+        { value: 'mixed', label: 'Mostly 2:2, some others' },
+        { value: '2:2', label: '2:2' },
+        { value: '4:0', label: '4:0' },
+        { value: '3:1', label: '3:1' },
+        { value: '1:3', label: '1:3' },
+        { value: '0:4', label: '0:4' },
+      ],
+      default: '2:2',
+      help: 'Spores of the usual colour : spores of the marker colour in each tetrad.',
+      showIf: (p) => p['pattern'] === 'tetrads',
+    },
+    {
+      key: 'dead',
+      label: 'Dead spores',
+      type: 'number',
+      min: 0,
+      max: 100,
+      step: 5,
+      unit: '%',
+      default: 0,
+      help: 'Spores that germinated but stopped as a tiny microcolony.',
+      showIf: (p) => p['pattern'] === 'tetrads',
+    },
+    {
+      key: 'missing',
+      label: 'Missing spores',
+      type: 'number',
+      min: 0,
+      max: 100,
+      step: 5,
+      unit: '%',
+      default: 0,
+      help: 'Spores that did not grow at all: an empty spot.',
+      showIf: (p) => p['pattern'] === 'tetrads',
+    },
+    {
+      key: 'tetradLabels',
+      label: 'Tetrad numbers',
+      type: 'bool',
+      default: true,
+      showIf: (p) => p['pattern'] === 'tetrads',
     },
     {
       key: 'size',
@@ -82,7 +159,10 @@ export const petriDish = defineKind<PetriParams>({
     { id: 'dish', label: 'Dish', default: '#9aa5b1' },
     { id: 'agar', label: 'Agar', default: '#f5e6b8' },
     { id: 'colony', label: 'Colonies', default: '#fffcf0' },
+    { id: 'marker', label: 'Marker colonies', default: '#c0392b' },
   ],
+  // Fields added in version 2 take their defaults, so version 1 params stand as they are.
+  migrate: (raw) => raw,
   // Patterns set only params and media only slot colours, so one of each combines (note 58).
   presets: [
     {
@@ -104,6 +184,19 @@ export const petriDish = defineKind<PetriParams>({
       params: { pattern: 'grid', count: 96, variation: 0.1 },
     },
     { id: 'lawn', label: 'Lawn', group: 'Patterns', params: { pattern: 'lawn' } },
+    {
+      id: 'tetrad-dissection',
+      label: 'Tetrad dissection',
+      group: 'Patterns',
+      params: {
+        pattern: 'tetrads',
+        tetrads: 8,
+        segregation: '2:2',
+        size: 4,
+        variation: 0.15,
+        tetradLabels: true,
+      },
+    },
     { id: 'empty', label: 'Empty plate', group: 'Patterns', params: { pattern: 'none' } },
     { id: 'lb', label: 'LB', group: 'Media', slots: { agar: '#f2dfa7', colony: '#fffcf0' } },
     { id: 'ypd', label: 'YPD', group: 'Media', slots: { agar: '#e3b46c', colony: '#fff4e0' } },
@@ -179,6 +272,7 @@ export const petriDish = defineKind<PetriParams>({
         i += 1;
       }
     };
+    const markerSubs: Sub[] = [];
     const stroke = {
       fill: colony,
       stroke: shiftLightness(colony, -0.12),
@@ -224,6 +318,48 @@ export const petriDish = defineKind<PetriParams>({
           }
         break;
       }
+      case 'tetrads': {
+        // One column of four spores (a to d) per tetrad, in bands of at most eight columns.
+        const n = Math.max(1, p.tetrads);
+        const perBand = Math.min(n, 8);
+        const bands = Math.ceil(n / perBand);
+        const lab = p.tetradLabels ? 0.8 : 0;
+        const rowsTotal = bands * (4 + lab) + (bands - 1) * 0.6;
+        const pitch = (Ra * 0.95 * 2) / Math.hypot(perBand, rowsTotal);
+        const r0 = Math.min(size, pitch * 0.42);
+        const ink = mix(dish, '#000000', 0.5);
+        const x0 = cx - ((perBand - 1) * pitch) / 2;
+        const y0 = cy - (rowsTotal * pitch) / 2;
+        for (let t = 0; t < n; t += 1) {
+          const band = Math.floor(t / perBand);
+          const col = t % perBand;
+          const inBand = Math.min(perBand, n - band * perBand);
+          const x = x0 + (col + (perBand - inBand) / 2) * pitch;
+          const top = y0 + band * (4 + lab + 0.6) * pitch;
+          if (p.tetradLabels)
+            out.push(text(String(t + 1), x, top + pitch * 0.4, Math.max(1, pitch * 0.5), ink));
+          // How many of the four spores carry the marker.
+          let mut: number;
+          if (p.segregation === 'mixed') {
+            const u = rand();
+            mut = u < 0.7 ? 2 : u < 0.8 ? 1 : u < 0.9 ? 3 : u < 0.95 ? 0 : 4;
+          } else mut = 4 - Number(p.segregation.charAt(0));
+          const order = [0, 1, 2, 3]
+            .map((i) => ({ i, k: rand() }))
+            .sort((a, b) => a.k - b.k)
+            .map((o) => o.i);
+          for (let s = 0; s < 4; s += 1) {
+            const q = { x, y: top + (lab + s + 0.5) * pitch };
+            const u = rand();
+            const r = r0 * (1 - p.variation * 0.6 * rand());
+            const isMarker = order.indexOf(s) < mut;
+            if (u < p.missing / 100) continue;
+            if (u < (p.missing + p.dead) / 100) subs.push(circle(q.x, q.y, r * 0.25));
+            else (isMarker ? markerSubs : subs).push(circle(q.x, q.y, r));
+          }
+        }
+        break;
+      }
       case 'streak': {
         // Three zones, each a zig-zag: a smear, then colonies thinning out.
         const zone = (a0: number, n: number, dense: boolean) => {
@@ -266,6 +402,16 @@ export const petriDish = defineKind<PetriParams>({
       }
     }
     out.push(...pathPrim(subs, stroke));
+    if (markerSubs.length > 0) {
+      const marker = slots['marker'] ?? '#c0392b';
+      out.push(
+        ...pathPrim(markerSubs, {
+          fill: marker,
+          stroke: shiftLightness(marker, -0.12),
+          sw: stroke.sw,
+        }),
+      );
+    }
     return out;
   },
   overhang: () => 0,
