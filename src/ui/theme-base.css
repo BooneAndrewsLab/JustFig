@@ -135,6 +135,14 @@ button.primary {
   color: var(--accent-ink);
 }
 
+/* Outranks the plain hover above, which would put --accent-ink on --ground.
+ * Mixing toward --ink darkens the accent in light and lightens it in dark,
+ * so the label's contrast only rises. */
+button.primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 85%, var(--ink));
+  border-color: color-mix(in srgb, var(--accent) 85%, var(--ink));
+}
+
 button.icon {
   min-width: 28px;
   height: 28px;
