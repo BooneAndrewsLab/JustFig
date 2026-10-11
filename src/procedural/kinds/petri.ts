@@ -1,4 +1,4 @@
-/** Petri dish with seeded colony patterns (note 04): random, streak, spot dilutions, pinned grid, lawn or tetrad dissection (note 58). */
+/** Petri dish with seeded colony patterns (note 04): random, streak, spot dilutions, pinned grid, lawn tetrad dissection or a strain by dilution spot grid (note 58). */
 import { shiftLightness } from '@/core/color/color';
 import type { Vec2 } from '@/core/model/types';
 
@@ -18,11 +18,17 @@ export interface PetriParams {
   readonly dead: number;
   readonly missing: number;
   readonly tetradLabels: boolean;
+  readonly spotRows: number;
+  readonly spotCols: number;
+  readonly rowLabels: boolean;
 }
+
+/** Strain row names: A to H. */
+const rowName = (r: number) => String.fromCharCode(65 + (r % 26));
 
 export const petriDish = defineKind<PetriParams>({
   kind: 'petriDish',
-  version: 2,
+  version: 3,
   title: 'Petri dish',
   category: 'Lab',
   description:
@@ -126,6 +132,33 @@ export const petriDish = defineKind<PetriParams>({
       showIf: (p) => p['pattern'] === 'tetrads',
     },
     {
+      key: 'spotRows',
+      label: 'Strains (rows)',
+      type: 'int',
+      min: 1,
+      max: 8,
+      default: 3,
+      showIf: (p) => p['pattern'] === 'spots',
+    },
+    {
+      key: 'spotCols',
+      label: 'Dilutions (columns)',
+      type: 'int',
+      min: 2,
+      max: 8,
+      default: 5,
+      help: 'The first spot is confluent, each next one a 10-fold dilution of it.',
+      showIf: (p) => p['pattern'] === 'spots',
+    },
+    {
+      key: 'rowLabels',
+      label: 'Row labels',
+      type: 'bool',
+      default: false,
+      help: 'A, B, C... beside each strain row.',
+      showIf: (p) => p['pattern'] === 'spots',
+    },
+    {
       key: 'size',
       label: 'Colony size',
       type: 'number',
@@ -161,7 +194,7 @@ export const petriDish = defineKind<PetriParams>({
     { id: 'colony', label: 'Colonies', default: '#fffcf0' },
     { id: 'marker', label: 'Marker colonies', default: '#c0392b' },
   ],
-  // Fields added in version 2 take their defaults, so version 1 params stand as they are.
+  // Fields added in versions 2 and 3 take their defaults (3 x 5 spots, no row labels), so older params stand as they are.
   migrate: (raw) => raw,
   // Patterns set only params and media only slot colours, so one of each combines (note 58).
   presets: [
@@ -176,6 +209,12 @@ export const petriDish = defineKind<PetriParams>({
       label: 'Spot dilutions',
       group: 'Patterns',
       params: { pattern: 'spots', count: 40 },
+    },
+    {
+      id: 'strain-dilutions',
+      label: 'Strains by 10-fold dilutions',
+      group: 'Patterns',
+      params: { pattern: 'spots', count: 400, spotRows: 4, spotCols: 6, rowLabels: true },
     },
     {
       id: 'pinned-grid',
@@ -261,11 +300,11 @@ export const petriDish = defineKind<PetriParams>({
     const rOf = () => size * (1 - p.variation * 0.75 * rand());
     const subs: Sub[] = [];
     const inside = (q: Vec2, r: number) => Math.hypot(q.x - cx, q.y - cy) <= Ra - r;
-    const scatter = (n: number, c: Vec2, rad: number) => {
+    const scatter = (n: number, c: Vec2, rad: number, k = 1) => {
       for (let i = 0, tries = 0; i < n && tries < n * 8; tries += 1) {
         const a = rand() * 2 * Math.PI;
         const d = Math.sqrt(rand()) * rad;
-        const r = rOf();
+        const r = rOf() * k;
         const q = { x: c.x + Math.cos(a) * d, y: c.y + Math.sin(a) * d };
         if (!inside(q, r)) continue;
         subs.push(circle(q.x, q.y, r));
@@ -302,20 +341,32 @@ export const petriDish = defineKind<PetriParams>({
         break;
       }
       case 'spots': {
-        // Rows of 10-fold dilutions: the first spot is confluent, then fewer colonies each step.
-        const cols = 5;
-        const rows = 3;
-        const pitch = (Ra * 1.5) / cols;
+        // Strain rows of 10-fold dilutions: the first spot is confluent, then fewer colonies each step.
+        const cols = Math.max(1, p.spotCols);
+        const rows = Math.max(1, p.spotRows);
+        const lab = p.rowLabels ? 1 : 0;
+        const pitch = Math.min((Ra * 1.5) / cols, (Ra * 1.9) / Math.hypot(cols + lab, rows * 1.1));
         const spotR = pitch * 0.4;
-        for (let r = 0; r < rows; r += 1)
+        // Colonies in a small spot stay small enough to count; 3 x 5 on a normal dish is unchanged.
+        const spotSize = Math.min(size, spotR * 0.5);
+        const x0 = cx - (pitch * (cols - 1)) / 2 + lab * pitch * 0.5;
+        const ink = mix(dish, '#000000', 0.5);
+        for (let r = 0; r < rows; r += 1) {
+          const y = cy + (r - (rows - 1) / 2) * pitch * 1.1;
+          if (p.rowLabels)
+            out.push(text(rowName(r), x0 - pitch * 0.95, y, Math.max(1, pitch * 0.5), ink));
           for (let c = 0; c < cols; c += 1) {
-            const q = {
-              x: cx - (pitch * (cols - 1)) / 2 + c * pitch,
-              y: cy + (r - (rows - 1) / 2) * pitch * 1.1,
-            };
+            const q = { x: x0 + c * pitch, y };
             if (c === 0) subs.push(circle(q.x, q.y, spotR));
-            else scatter(Math.round(Math.max(1, p.count) / 10 ** (c - 1)), q, spotR - size);
+            else
+              scatter(
+                Math.round(Math.max(1, p.count) / 10 ** (c - 1)),
+                q,
+                spotR - spotSize,
+                spotSize / size,
+              );
           }
+        }
         break;
       }
       case 'tetrads': {

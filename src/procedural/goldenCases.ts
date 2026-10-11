@@ -43,6 +43,8 @@ export const GOLDEN_CASES: Readonly<Record<string, Readonly<Record<string, Parti
     spots: { pattern: 'spots', count: 40 },
     grid: { pattern: 'grid', count: 96, variation: 0 },
     lawn: { pattern: 'lawn', lid: false },
+    'spots-strains': { pattern: 'spots', count: 60, spotRows: 4, spotCols: 6, rowLabels: true },
+    'spots-wide': { pattern: 'spots', count: 400, spotRows: 8, spotCols: 8, rowLabels: true },
     'tetrads-mixed': {
       pattern: 'tetrads',
       tetrads: 12,

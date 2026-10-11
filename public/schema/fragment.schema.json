@@ -1129,7 +1129,7 @@
                 "const": "petriDish"
               },
               "kindVersion": {
-                "const": 2
+                "const": 3
               }
             },
             "required": [
@@ -2384,6 +2384,25 @@
           "type": "boolean",
           "default": true,
           "description": "Tetrad numbers"
+        },
+        "spotRows": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8,
+          "default": 3,
+          "description": "Strains (rows)"
+        },
+        "spotCols": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 8,
+          "default": 5,
+          "description": "Dilutions (columns). The first spot is confluent, each next one a 10-fold dilution of it."
+        },
+        "rowLabels": {
+          "type": "boolean",
+          "default": false,
+          "description": "Row labels. A, B, C... beside each strain row."
         },
         "size": {
           "type": "number",

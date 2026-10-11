@@ -137,7 +137,10 @@ describe('matchPresets', () => {
     expect(ids('blood')).toEqual(['petriDish/blood-agar']);
     expect(ids('colony pcr')).toEqual(['gel/colony-pcr']);
     expect(ids('checkerboard')).toEqual(['wellPlate/checkerboard']);
-    expect(ids('agar dilution')).toEqual(['petriDish/spot-dilutions']);
+    expect(ids('agar dilution')).toEqual([
+      'petriDish/spot-dilutions',
+      'petriDish/strain-dilutions',
+    ]);
   });
 
   it('needs a word of the label: kind words alone find the kind, not its presets', () => {
