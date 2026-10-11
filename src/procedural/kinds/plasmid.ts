@@ -12,6 +12,7 @@ import { type Prim, type Sub, arcNodes, circle, joinNodes, line, pathPrim, poly 
 import { measure } from '@/core/text/layout';
 
 import { type Item, defineKind } from '../types';
+import { PBR322_FEATURES, PBR322_LENGTH, PUC19_FEATURES, PUC19_LENGTH } from './plasmidBackbones';
 import { byColour, clamp, fmtInt, niceStep, text } from './util';
 
 export type Feature = Readonly<{
@@ -62,15 +63,6 @@ export const featureColour = (f: Pick<Feature, 'color' | 'type'>): string =>
     : Object.hasOwn(TYPE_COLOURS, f.type.toLowerCase())
       ? (TYPE_COLOURS[f.type.toLowerCase()] ?? '#7b8794')
       : '#7b8794';
-
-const DEFAULT_FEATURES: readonly Feature[] = [
-  { name: 'AmpR', start: 1626, end: 2486, strand: -1, type: 'CDS', color: '' },
-  { name: 'ori', start: 867, end: 1455, strand: -1, type: 'rep_origin', color: '' },
-  { name: 'lacZα', start: 146, end: 469, strand: -1, type: 'CDS', color: '#56b4e9' },
-  { name: 'lac promoter', start: 514, end: 544, strand: -1, type: 'promoter', color: '' },
-  { name: 'MCS', start: 397, end: 453, strand: 0, type: 'misc_feature', color: '' },
-  { name: 'AmpR promoter', start: 2487, end: 2591, strand: -1, type: 'promoter', color: '' },
-];
 
 const FEATURE_FIELDS = [
   { key: 'name', label: 'Name', type: 'text', maxLength: 80, default: 'feature' },
@@ -377,7 +369,15 @@ export const plasmidMap = defineKind<PlasmidParams>({
   defaultSize: { w: 300, h: 300 },
   fields: [
     { key: 'name', label: 'Name', type: 'text', maxLength: 200, default: 'pUC19' },
-    { key: 'length', label: 'Length', type: 'int', min: 1, max: MAX_BP, unit: 'bp', default: 2686 },
+    {
+      key: 'length',
+      label: 'Length',
+      type: 'int',
+      min: 1,
+      max: MAX_BP,
+      unit: 'bp',
+      default: PUC19_LENGTH,
+    },
     {
       key: 'topology',
       label: 'Topology',
@@ -395,7 +395,7 @@ export const plasmidMap = defineKind<PlasmidParams>({
       item: FEATURE_FIELDS,
       min: 0,
       max: 500,
-      default: DEFAULT_FEATURES,
+      default: PUC19_FEATURES,
       itemTitle: (it: Item, i: number) =>
         `${typeof it['name'] === 'string' && it['name'] !== '' ? it['name'] : `Feature ${String(i + 1)}`} (${String(it['start'])}–${String(it['end'])})`,
       newItem: (p, items) => {
@@ -444,6 +444,30 @@ export const plasmidMap = defineKind<PlasmidParams>({
       step: 0.1,
       unit: '% of length',
       default: 1,
+    },
+  ],
+  presets: [
+    {
+      id: 'puc19',
+      label: 'pUC19',
+      group: 'Backbones',
+      params: {
+        name: 'pUC19',
+        length: PUC19_LENGTH,
+        topology: 'circular',
+        features: PUC19_FEATURES,
+      },
+    },
+    {
+      id: 'pbr322',
+      label: 'pBR322',
+      group: 'Backbones',
+      params: {
+        name: 'pBR322',
+        length: PBR322_LENGTH,
+        topology: 'circular',
+        features: PBR322_FEATURES,
+      },
     },
   ],
   slots: [
