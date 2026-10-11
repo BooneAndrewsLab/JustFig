@@ -1,41 +1,15 @@
 /*
- * App styles (note 01): one global sheet with custom-property tokens, as
- * the siblings (tokens: note 51). Every colour in a rule goes through a
- * token, and the dark scheme (note 53) redeclares them in the media block
- * below, following the system setting with no toggle. Brand red is a
- * logo colour, never a control colour; the UI accent is PlasmidPop's teal.
- * The canvas text is drawn as glyph outlines from the figure fonts
- * (public/fonts/*.ttf); the UI font below is for the chrome only.
+ * The app's own layer (note 01), imported after the family base sheet
+ * `theme-base.css` (note 54), which holds the shared tokens, the light and
+ * dark token blocks, the UI font and the base controls. This sheet holds the
+ * editor layout, canvas, icon browser, inspector, tool palette and every
+ * app widget, plus the tokens only this app uses. Every colour in a rule goes
+ * through a token. The canvas text is drawn as glyph outlines from the figure
+ * fonts (public/fonts/*.ttf); the UI font is for the chrome only.
  */
 
-/* UI font, as BarelySig ships it: self-hosted Archivo subset, one variable-
- * weight file, system font while it loads (public/fonts/README.md). */
-@font-face {
-  font-family: 'Archivo UI';
-  src: url('/fonts/archivo-ui.woff2') format('woff2');
-  font-weight: 380 720;
-  font-display: swap;
-}
-
 :root {
-  color-scheme: light dark;
-  /* Family palette (design/logo/README.md). */
-  --ink: #201e1d;
-  --ground: #f3f2f2;
-  --brand-red: #ec3013;
-  /* Text tiers: --ink-2 7.7:1 on panel, 6.9:1 on ground; --ink-3 5.4:1 and 4.8:1 (AA). */
-  --ink-2: #57524f;
-  --ink-3: #6f6966;
-  --panel: #ffffff;
-  --rule: #dcd9d7;
-  --rule-strong: #c4c0bd;
   --pasteboard: #e6e4e3;
-  --accent: #1b6e8c;
-  --accent-ink: #ffffff;
-  --accent-soft: rgb(27 110 140 / 12%);
-  --backdrop: rgb(32 30 29 / 35%);
-  --warning: #8a5a00;
-  --error: #b3200a;
   /* Surfaces that show figure or image content stay white or black in any scheme. */
   --paper: #ffffff;
   --ink-black: #000000;
@@ -61,125 +35,20 @@
   --figure-tile: var(--ground);
   --thumb-tile: transparent;
   --thumb-tile-hover: var(--ground);
-  /* Metrics. */
-  --radius: 6px;
-  --radius-dialog: 10px;
-  --shadow-menu: 0 6px 24px rgb(0 0 0 / 18%);
-  --shadow-dialog: 0 12px 40px rgb(0 0 0 / 30%);
-  --font-ui: 'Archivo UI', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  color: var(--ink);
-  background: var(--ground);
 }
 
-/* Dark scheme (note 53): the system setting decides, as in PlasmidPop. Warm
- * greys from the same ink; the accent is PlasmidPop's dark teal. The canvas
- * page, figure previews and the canvas overlay's figure-side colours keep
- * their light values. Contrast (AA): ink 14.2:1 on the panel, 15.7:1 on the
- * ground; --ink-2 8.7:1 / 9.6:1; --ink-3 5.8:1 / 6.5:1; accent 6.5:1 / 7.2:1,
- * its ink on it 7.5:1. */
+/* Dark scheme (note 53): the canvas page, figure previews and the canvas
+ * overlay's figure-side colours keep their light values; only these move. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --ink: #f3f2f2;
-    --ground: #1a1918;
-    --ink-2: #c4bfbc;
-    --ink-3: #a29c98;
-    --panel: #242221;
-    --rule: #3a3735;
-    --rule-strong: #5c5754;
     --pasteboard: #141312;
-    --accent: #5fb0d0;
-    --accent-ink: #0e1620;
-    --accent-soft: rgb(95 176 208 / 16%);
-    --backdrop: rgb(0 0 0 / 55%);
-    --warning: #e0a458;
-    --error: #ff8a80;
     --page-edge: #6f6966;
     --page-shadow: rgb(0 0 0 / 45%);
     --page-under: #e6e4e3;
     --figure-tile: #e6e4e3;
     --thumb-tile: #e6e4e3;
     --thumb-tile-hover: #ffffff;
-    --shadow-menu: 0 6px 24px rgb(0 0 0 / 50%);
-    --shadow-dialog: 0 12px 40px rgb(0 0 0 / 60%);
   }
-}
-
-body {
-  font: 14px/1.45 var(--font-ui);
-}
-
-* {
-  box-sizing: border-box;
-}
-
-html,
-body,
-#root {
-  height: 100%;
-  margin: 0;
-}
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
-  color: inherit;
-}
-
-/* Links take the accent in both schemes instead of the browser's blue/purple. */
-a {
-  color: var(--accent);
-}
-
-button {
-  cursor: pointer;
-  background: var(--panel);
-  border: 1px solid var(--rule-strong);
-  border-radius: var(--radius);
-  padding: 3px 8px;
-}
-
-button:hover:not(:disabled) {
-  background: var(--ground);
-}
-
-button:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-
-button.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-ink);
-}
-
-button.icon {
-  min-width: 28px;
-  height: 28px;
-  padding: 0 4px;
-}
-
-button[aria-pressed='true'] {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-}
-
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-input[type='number'],
-input[type='text'],
-input[type='search'],
-select {
-  border: 1px solid var(--rule-strong);
-  border-radius: var(--radius);
-  padding: 2px 5px;
-  background: var(--panel);
-  min-width: 0;
 }
 
 .app {
@@ -411,17 +280,6 @@ select {
   color: var(--ink-2);
 }
 
-button.link {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: inherit;
-  text-decoration: underline;
-  cursor: pointer;
-  font: inherit;
-  text-align: left;
-}
-
 .icons-scroll h3 {
   font-size: 13px;
   font-weight: 600;
@@ -572,18 +430,6 @@ button.link {
   border-left: 1px solid var(--rule);
   overflow: auto;
   min-height: 0;
-}
-
-.section {
-  border-bottom: 1px solid var(--rule);
-  padding: 8px 10px 10px;
-}
-
-.section > h2 {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-2);
-  margin: 0 0 6px;
 }
 
 .row {
@@ -738,22 +584,6 @@ button.link {
 
 .status {
   grid-area: status;
-  display: flex;
-  gap: 12px;
-  padding: 2px 10px;
-  font-size: 12px;
-  color: var(--ink-2);
-  background: var(--panel);
-  border-top: 1px solid var(--rule);
-  min-height: 22px;
-}
-
-.status .notice-error {
-  color: var(--error);
-}
-
-.status .notice-warning {
-  color: var(--warning);
 }
 
 .text-editor {
@@ -794,59 +624,6 @@ button.link {
   padding: 2px 0;
 }
 
-.dialog-backdrop {
-  position: fixed;
-  inset: 0;
-  background: var(--backdrop);
-  display: grid;
-  place-items: center;
-  z-index: 50;
-}
-
-.dialog {
-  background: var(--panel);
-  border-radius: var(--radius-dialog);
-  box-shadow: var(--shadow-dialog);
-  width: min(560px, calc(100vw - 32px));
-  max-height: calc(100vh - 48px);
-  overflow: auto;
-  padding: 20px 22px;
-}
-
-.dialog--wide {
-  width: min(52rem, calc(100vw - 32px));
-}
-
-.dialog h1 {
-  font-size: 16px;
-  font-weight: 600;
-  margin: 0 0 10px;
-}
-
-/* A title with something beside it: the guide's version (note 52). */
-.dialog-head {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin: 0 0 10px;
-}
-
-.dialog-head h1 {
-  margin: 0;
-}
-
-.dialog-meta {
-  color: var(--ink-3);
-  font-size: 12px;
-}
-
-.dialog .actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 14px;
-}
-
 .dialog .crop-preview {
   display: block;
   width: 100%;
@@ -864,12 +641,6 @@ button.link {
   margin: 0 auto 10px;
   background: var(--ink-black);
   image-rendering: pixelated;
-}
-
-.dialog fieldset {
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  margin: 8px 0;
 }
 
 .dialog .note {
@@ -930,14 +701,6 @@ button.link {
   text-align: left;
   border-bottom: 1px solid var(--rule);
   padding: 3px 4px;
-}
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
 }
 
 /* --- procedural objects (note 04) --- */
@@ -1095,17 +858,6 @@ button.link {
 
 .wellmap-legend .swatch {
   display: inline-block;
-}
-
-.tabs {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 6px;
-}
-
-.tabs [aria-selected='true'] {
-  background: var(--accent-soft);
-  border-color: var(--accent);
 }
 
 .gallery-grid {

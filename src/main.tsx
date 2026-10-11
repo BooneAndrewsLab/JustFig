@@ -8,6 +8,7 @@ import { installCrashHandlers } from './ui/crashHandlers';
 import { showStartFailure } from './ui/startFailure';
 import { onLaunchFiles, registerServiceWorker } from './ui/pwa';
 import { openFile, startSession } from './ui/state/session';
+import './ui/theme-base.css';
 import './ui/theme.css';
 
 const root = document.getElementById('root');

@@ -183,3 +183,7 @@ changes (the guide test enforces it), and a design note in `docs/design/`
 - 2026-10-10: step 5 (dark mode following `prefers-color-scheme`, no toggle: a dark token
   block, `color-scheme` and `theme-color` metas, a dark loading screen, the page and figure
   previews kept on light tiles, axe in dark in e2e); note 53.
+- 2026-10-10: step 6, this repo's side: `src/ui/theme-base.css` (family tokens, light and dark,
+  UI font, base controls, dialogs, tabs, status bar, focus ring) under the app's own
+  `theme.css`, no visual change; note 54. Steps 1–6 are done here; the copies into PlasmidPop
+  and BarelySig are pending with the user (`design/theme-base/README.md`).
