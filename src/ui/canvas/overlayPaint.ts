@@ -12,6 +12,8 @@ export const OVERLAY = {
   snapGuide: 'var(--snap-guide)',
   bindTarget: 'var(--bind-target)',
   pageEdge: 'var(--page-edge)',
+  pageShadow: 'var(--page-shadow)',
+  pageUnder: 'var(--page-under)',
   rulerTick: 'var(--ink-3)',
   rulerText: 'var(--ink-2)',
   note: 'var(--note)',

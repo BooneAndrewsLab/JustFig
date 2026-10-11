@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module';
+import AxeBuilder from '@axe-core/playwright';
 import { type Download, type Page, expect } from '@playwright/test';
 import type * as Utif from 'utif';
 
@@ -64,4 +65,19 @@ export async function iconTile(page: Page, id: string, query: string) {
   const tile = page.locator(`.icon-tile[data-icon="${id}"]`);
   await expect(tile).toBeVisible();
   return tile;
+}
+
+/** Axe's serious and critical WCAG 2.1 A/AA problems on the page, or inside `include` (note 09). */
+export async function audit(page: Page, include?: string) {
+  let b = new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']);
+  if (include) b = b.include(include);
+  const r = await b.analyze();
+  const bad = r.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
+  return bad.map(
+    (v) =>
+      `${v.id}: ${v.help} — ${v.nodes
+        .map((n) => n.target.join(' '))
+        .slice(0, 5)
+        .join(' | ')}`,
+  );
 }

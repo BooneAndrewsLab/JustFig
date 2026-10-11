@@ -12,6 +12,10 @@ JustFig is a free figure editor that runs entirely in your browser. There is no 
 - **Right:** the Inspector, which shows the properties of whatever is selected, the Layers panel under it, and the Notes panel at the bottom (see [The Inspector](06-inspector.md), [Arranging](05-arranging.md) and [Review notes](16-review-notes.md)).
 - **Status line:** at the bottom. It says how many objects are selected, whether the figure is "Saved to file" or "Kept in this browser", and shows short messages. A screen reader announces changes to it.
 
+## Light and dark
+
+JustFig follows your system's light or dark setting; there is no switch in the app. Change it in your operating system or browser and JustFig follows at once. In dark mode only the editor around your figure turns dark: the page stays white, icon and template pictures sit on light tiles so their colours look as they will on paper, and exported figures are exactly the same in either mode.
+
 ## The top-bar buttons
 
 - **New** starts an empty figure in a new tab. The figures you had open stay open in their tabs.

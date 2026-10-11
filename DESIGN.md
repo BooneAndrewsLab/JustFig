@@ -180,3 +180,6 @@ changes (the guide test enforces it), and a design note in `docs/design/`
   text Undo/Redo, version in the guide header); note 52.
 - 2026-10-10: step 4 finished: the tool palette was already 34×34 with 16px icons (note 50);
   an e2e now checks it, and only zoom, tab close and new tab keep chrome icons; note 52.
+- 2026-10-10: step 5 (dark mode following `prefers-color-scheme`, no toggle: a dark token
+  block, `color-scheme` and `theme-color` metas, a dark loading screen, the page and figure
+  previews kept on light tiles, axe in dark in e2e); note 53.

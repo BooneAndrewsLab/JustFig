@@ -1,20 +1,6 @@
 /** Accessibility (note 09): axe finds no serious or critical problems in the main screen and the dialogs. */
-import AxeBuilder from '@axe-core/playwright';
-import { type Page, expect, test } from '@playwright/test';
-
-async function audit(page: Page, include?: string) {
-  let b = new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']);
-  if (include) b = b.include(include);
-  const r = await b.analyze();
-  const bad = r.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
-  return bad.map(
-    (v) =>
-      `${v.id}: ${v.help} — ${v.nodes
-        .map((n) => n.target.join(' '))
-        .slice(0, 5)
-        .join(' | ')}`,
-  );
-}
+import { expect, test } from '@playwright/test';
+import { audit } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('./');

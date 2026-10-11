@@ -3,19 +3,39 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f3f2f2" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1a1918" media="(prefers-color-scheme: dark)" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>%BRAND_NAME%</title>
     <!--
       The loading screen (note 49) is static HTML inside #root, styled inline because the app's
       stylesheet arrives with the script. React clears #root on its first commit, so it stays up
       exactly until the editor paints; a failed start replaces it with the recovery page.
+      Its colours follow the system scheme like theme.css's tokens (note 53), so a dark
+      system gets no white flash.
     -->
     <style>
+      :root {
+        color-scheme: light dark;
+        --l-ground: #f3f2f2;
+        --l-ink: #201e1d;
+        --l-ink-2: #57524f;
+        --l-rule: #dcd9d7;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --l-ground: #1a1918;
+          --l-ink: #f3f2f2;
+          --l-ink-2: #c4bfbc;
+          --l-rule: #3a3735;
+        }
+      }
       html,
       body {
         height: 100%;
         margin: 0;
-        background: #f3f2f2;
+        background: var(--l-ground);
       }
       #loading {
         position: fixed;
@@ -25,7 +45,7 @@
         align-items: center;
         justify-content: center;
         gap: 14px;
-        color: #57524f;
+        color: var(--l-ink-2);
         font:
           13px/1.4 system-ui,
           -apple-system,
@@ -34,20 +54,21 @@
           sans-serif;
       }
       #loading svg {
+        color: var(--l-ink);
         width: 56px;
         height: 56px;
       }
       #loading .name {
         font-size: 18px;
         font-weight: 600;
-        color: #201e1d;
+        color: var(--l-ink);
         letter-spacing: 0.01em;
       }
       #loading .bar {
         width: 120px;
         height: 3px;
         border-radius: 2px;
-        background: #dcd9d7;
+        background: var(--l-rule);
         overflow: hidden;
       }
       #loading .bar::after {
@@ -56,7 +77,7 @@
         width: 40%;
         height: 100%;
         border-radius: 2px;
-        background: #201e1d;
+        background: var(--l-ink);
         animation: loading-slide 1.1s ease-in-out infinite alternate;
       }
       @keyframes loading-slide {
@@ -79,8 +100,8 @@
     <div id="root">
       <div id="loading" role="status">
         <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
-          <path d="M48.5 17.5V40A17 17 0 0 1 16.78 48.5" stroke="#201e1d" stroke-width="11" />
-          <rect x="32" y="3" width="8" height="8" fill="#201e1d" />
+          <path d="M48.5 17.5V40A17 17 0 0 1 16.78 48.5" stroke="currentColor" stroke-width="11" />
+          <rect x="32" y="3" width="8" height="8" fill="currentColor" />
           <rect x="46" y="3" width="8" height="8" fill="#ec3013" />
         </svg>
         <div class="name">%BRAND_NAME%</div>

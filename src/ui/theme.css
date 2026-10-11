@@ -1,7 +1,8 @@
 /*
  * App styles (note 01): one global sheet with custom-property tokens, as
  * the siblings (tokens: note 51). Every colour in a rule goes through a
- * token, so a later dark scheme only redeclares this block. Brand red is a
+ * token, and the dark scheme (note 53) redeclares them in the media block
+ * below, following the system setting with no toggle. Brand red is a
  * logo colour, never a control colour; the UI accent is PlasmidPop's teal.
  * The canvas text is drawn as glyph outlines from the figure fonts
  * (public/fonts/*.ttf); the UI font below is for the chrome only.
@@ -17,6 +18,7 @@
 }
 
 :root {
+  color-scheme: light dark;
   /* Family palette (design/logo/README.md). */
   --ink: #201e1d;
   --ground: #f3f2f2;
@@ -49,6 +51,16 @@
   --note-ink: #201e1d;
   --note-resolved: #ffffff;
   --note-draft: #fff3d6;
+  /* The page's drop shadow on the pasteboard. */
+  --page-shadow: rgb(0 0 0 / 12%);
+  /* Under a page with no background: the light pasteboard shows through. */
+  --page-under: transparent;
+  /* Tiles behind previews of figure content (icons, objects, thumbnails):
+   * figure colours are chosen for a white page, so in the dark scheme these
+   * stay light while the chrome around them flips. */
+  --figure-tile: var(--ground);
+  --thumb-tile: transparent;
+  --thumb-tile-hover: var(--ground);
   /* Metrics. */
   --radius: 6px;
   --radius-dialog: 10px;
@@ -57,6 +69,39 @@
   --font-ui: 'Archivo UI', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   color: var(--ink);
   background: var(--ground);
+}
+
+/* Dark scheme (note 53): the system setting decides, as in PlasmidPop. Warm
+ * greys from the same ink; the accent is PlasmidPop's dark teal. The canvas
+ * page, figure previews and the canvas overlay's figure-side colours keep
+ * their light values. Contrast (AA): ink 14.2:1 on the panel, 15.7:1 on the
+ * ground; --ink-2 8.7:1 / 9.6:1; --ink-3 5.8:1 / 6.5:1; accent 6.5:1 / 7.2:1,
+ * its ink on it 7.5:1. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #f3f2f2;
+    --ground: #1a1918;
+    --ink-2: #c4bfbc;
+    --ink-3: #a29c98;
+    --panel: #242221;
+    --rule: #3a3735;
+    --rule-strong: #5c5754;
+    --pasteboard: #141312;
+    --accent: #5fb0d0;
+    --accent-ink: #0e1620;
+    --accent-soft: rgb(95 176 208 / 16%);
+    --backdrop: rgb(0 0 0 / 55%);
+    --warning: #e0a458;
+    --error: #ff8a80;
+    --page-edge: #6f6966;
+    --page-shadow: rgb(0 0 0 / 45%);
+    --page-under: #e6e4e3;
+    --figure-tile: #e6e4e3;
+    --thumb-tile: #e6e4e3;
+    --thumb-tile-hover: #ffffff;
+    --shadow-menu: 0 6px 24px rgb(0 0 0 / 50%);
+    --shadow-dialog: 0 12px 40px rgb(0 0 0 / 60%);
+  }
 }
 
 body {
@@ -392,7 +437,7 @@ button.link {
   aspect-ratio: 1;
   padding: 4px;
   border: 1px solid transparent;
-  background: transparent;
+  background: var(--thumb-tile);
 }
 
 /* A 48 px cell of the library's sprite sheet (IconBrowser sets the position). */
@@ -418,8 +463,9 @@ button.link {
   pointer-events: none;
 }
 
-.icon-tile:hover {
+.icon-tile:hover:not(:disabled) {
   border-color: var(--rule-strong);
+  background: var(--thumb-tile-hover);
 }
 
 .icon-tile img {
@@ -930,6 +976,8 @@ button.link {
   display: block;
   width: 100%;
   height: 34px;
+  background: var(--thumb-tile);
+  border-radius: 3px;
 }
 
 .object-thumb svg {
@@ -1078,7 +1126,7 @@ button.link {
   width: 100%;
   aspect-ratio: 4 / 3;
   object-fit: contain;
-  background: var(--ground);
+  background: var(--figure-tile);
   border-radius: 3px;
 }
 
@@ -1244,7 +1292,7 @@ button.link {
   width: 80px;
   height: 60px;
   object-fit: contain;
-  background: var(--ground);
+  background: var(--figure-tile);
   border-radius: 3px;
   flex: none;
 }
@@ -1293,7 +1341,7 @@ button.link {
   width: 100%;
   aspect-ratio: 4 / 3;
   object-fit: contain;
-  background: var(--ground);
+  background: var(--figure-tile);
   border: 1px solid var(--rule);
   border-radius: 3px;
   margin: 0;
@@ -1574,7 +1622,7 @@ button.link {
   width: 100%;
   height: auto;
   max-height: 46vh;
-  background: var(--ground);
+  background: var(--figure-tile);
   border: 1px solid var(--rule);
   border-radius: 3px;
 }

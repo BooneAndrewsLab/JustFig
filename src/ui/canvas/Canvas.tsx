@@ -803,8 +803,12 @@ export function Canvas() {
               y={3 / v.zoom}
               width={page.size.w}
               height={page.size.h}
-              fill="rgb(0 0 0 / 12%)"
+              style={{ fill: OVERLAY.pageShadow }}
             />
+            {/* A transparent page shows the light pasteboard in either scheme (note 53). */}
+            {page.background === null && (
+              <rect width={page.size.w} height={page.size.h} style={{ fill: OVERLAY.pageUnder }} />
+            )}
             <g
               data-testid="vision"
               filter={s.vision === 'normal' ? undefined : `url(#vision-${s.vision})`}
