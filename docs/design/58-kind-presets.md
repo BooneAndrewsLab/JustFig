@@ -157,6 +157,7 @@ _strain rows × 10-fold spot columns_ with row labels; _disk diffusion_ (discs w
 halos); _plaques_ on a lawn; _two colony colours by ratio_ (blue/white screening, red/white
 _ade2_ sectoring); colony morphology (smooth, wrinkled, filamentous, petite, sectored); a
 _rectangular single-well plate_ for 384/1536 pinned grids, which a round dish draws wrongly.
+_Built (issue #86, version 5):_ a `plate` param (`round` or `rect`); a rectangular plate fills the frame, pinned grids take the plate's aspect (48 x 32 for 1536), and a _Plates_ preset group sets the SBS 127.8 x 85.5 mm frame, including an SGA 1536 pinned grid.
 
 **Cell (`cell`).** Animal, plant, budding yeast, bacterium, neuron, polarised epithelial,
 dividing, apoptotic. Most need fields the kind lacks: cell wall, chloroplasts, central vacuole,

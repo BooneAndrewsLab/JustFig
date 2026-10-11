@@ -1129,7 +1129,7 @@
                 "const": "petriDish"
               },
               "kindVersion": {
-                "const": 4
+                "const": 5
               }
             },
             "required": [
@@ -2325,6 +2325,14 @@
       "title": "petriDish params",
       "description": "An agar plate with colonies: random, streaked, spotted dilutions, a pinned grid, a lawn or a tetrad dissection.",
       "properties": {
+        "plate": {
+          "enum": [
+            "round",
+            "rect"
+          ],
+          "default": "round",
+          "description": "Plate. A rectangular single-well plate (PlusPlate, OmniTray) fills the frame: resize it to 127.8 x 85.5 mm for the SBS footprint that 384 and 1536 pinned grids sit on."
+        },
         "pattern": {
           "enum": [
             "random",

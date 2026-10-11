@@ -2,11 +2,12 @@
 import { shiftLightness } from '@/core/color/color';
 import type { Vec2 } from '@/core/model/types';
 
-import { type Prim, type Sub, circle, pathPrim, poly } from '../prims';
+import { type Prim, type Sub, circle, pathPrim, poly, rect } from '../prims';
 import { defineKind } from '../types';
 import { mix, rng, text } from './util';
 
 export interface PetriParams {
+  readonly plate: 'round' | 'rect';
   readonly pattern: 'random' | 'streak' | 'spots' | 'grid' | 'lawn' | 'tetrads' | 'none';
   readonly count: number;
   readonly size: number;
@@ -36,9 +37,12 @@ const hasColonies = (p: { readonly pattern?: unknown }) =>
 /** Strain row names: A to H. */
 const rowName = (r: number) => String.fromCharCode(65 + (r % 26));
 
+/** An SBS single-well plate, 127.8 x 85.5 mm, in points. */
+const SBS_PLATE = { w: 362, h: 242 };
+
 export const petriDish = defineKind<PetriParams>({
   kind: 'petriDish',
-  version: 4,
+  version: 5,
   title: 'Petri dish',
   category: 'Lab',
   description:
@@ -59,6 +63,17 @@ export const petriDish = defineKind<PetriParams>({
   ],
   defaultSize: { w: 150, h: 150 },
   fields: [
+    {
+      key: 'plate',
+      label: 'Plate',
+      type: 'enum',
+      options: [
+        { value: 'round', label: 'Round dish' },
+        { value: 'rect', label: 'Rectangular plate' },
+      ],
+      default: 'round',
+      help: 'A rectangular single-well plate (PlusPlate, OmniTray) fills the frame: resize it to 127.8 x 85.5 mm for the SBS footprint that 384 and 1536 pinned grids sit on.',
+    },
     {
       key: 'pattern',
       label: 'Colonies',
@@ -273,7 +288,7 @@ export const petriDish = defineKind<PetriParams>({
     { id: 'colony', label: 'Colonies', default: '#fffcf0' },
     { id: 'marker', label: 'Marker colonies', default: '#c0392b' },
   ],
-  // Fields added in versions 2 to 4 take their defaults (3 x 5 spots, no discs or plaques, smooth single-colour colonies), so older params stand as they are.
+  // Fields added in versions 2 to 5 take their defaults (3 x 5 spots, no discs or plaques, smooth single-colour colonies, a round dish), so older params stand as they are.
   migrate: (raw) => raw,
   // Patterns set only params and media only slot colours, so one of each combines (note 58).
   presets: [
@@ -348,6 +363,34 @@ export const petriDish = defineKind<PetriParams>({
       },
     },
     { id: 'empty', label: 'Empty plate', group: 'Patterns', params: { pattern: 'none' } },
+    {
+      id: 'round-dish',
+      label: 'Round dish',
+      group: 'Plates',
+      params: { plate: 'round' },
+      size: { w: 150, h: 150 },
+    },
+    {
+      id: 'rect-plate',
+      label: 'Rectangular plate (SBS)',
+      group: 'Plates',
+      params: { plate: 'rect' },
+      size: SBS_PLATE,
+    },
+    {
+      id: 'pinned-384',
+      label: '384 pinned grid (rectangular plate)',
+      group: 'Plates',
+      params: { plate: 'rect', pattern: 'grid', count: 384, size: 4, variation: 0.1 },
+      size: SBS_PLATE,
+    },
+    {
+      id: 'sga-1536',
+      label: 'SGA 1536 pinned grid (rectangular plate)',
+      group: 'Plates',
+      params: { plate: 'rect', pattern: 'grid', count: 1536, size: 2, variation: 0.15 },
+      size: SBS_PLATE,
+    },
     { id: 'lb', label: 'LB', group: 'Media', slots: { agar: '#f2dfa7', colony: '#fffcf0' } },
     { id: 'ypd', label: 'YPD', group: 'Media', slots: { agar: '#e3b46c', colony: '#fff4e0' } },
     {
@@ -384,28 +427,68 @@ export const petriDish = defineKind<PetriParams>({
     const dish = slots['dish'] ?? '#9aa5b1';
     const agar = slots['agar'] ?? '#f5e6b8';
     const colony = slots['colony'] ?? '#fffcf0';
-    out.push(
-      ...pathPrim([circle(cx, cy, R)], {
-        fill: mix(agar, '#ffffff', 0.5),
-        stroke: dish,
-        sw: Math.max(0.3, R * 0.025),
-      }),
-    );
-    out.push(
-      ...pathPrim([circle(cx, cy, R * 0.93)], {
-        fill: agar,
-        stroke: shiftLightness(agar, -0.08),
-        sw: Math.max(0.2, R * 0.008),
-      }),
-    );
-    if (p.lid)
+    const isRect = p.plate === 'rect';
+    // Rectangular plate: the whole frame, rim, agar and the area colonies may use, as insets of the short side.
+    const hw = Math.max(0, w / 2 - 0.5);
+    const box = (k: number) => {
+      const i = R * k;
+      return rect(
+        cx - hw + i,
+        cy - R + i,
+        Math.max(0, 2 * (hw - i)),
+        Math.max(0, 2 * (R - i)),
+        Math.max(0, R * 0.12 - i * 0.5),
+      );
+    };
+    if (isRect) {
       out.push(
-        ...pathPrim([circle(cx, cy, R * 0.975)], {
-          stroke: shiftLightness(dish, 0.15),
-          sw: Math.max(0.2, R * 0.01),
+        ...pathPrim([box(0)], {
+          fill: mix(agar, '#ffffff', 0.5),
+          stroke: dish,
+          sw: Math.max(0.3, R * 0.025),
         }),
       );
+      out.push(
+        ...pathPrim([box(0.05)], {
+          fill: agar,
+          stroke: shiftLightness(agar, -0.08),
+          sw: Math.max(0.2, R * 0.008),
+        }),
+      );
+      if (p.lid)
+        out.push(
+          ...pathPrim([box(0.02)], {
+            stroke: shiftLightness(dish, 0.15),
+            sw: Math.max(0.2, R * 0.01),
+          }),
+        );
+    } else {
+      out.push(
+        ...pathPrim([circle(cx, cy, R)], {
+          fill: mix(agar, '#ffffff', 0.5),
+          stroke: dish,
+          sw: Math.max(0.3, R * 0.025),
+        }),
+      );
+      out.push(
+        ...pathPrim([circle(cx, cy, R * 0.93)], {
+          fill: agar,
+          stroke: shiftLightness(agar, -0.08),
+          sw: Math.max(0.2, R * 0.008),
+        }),
+      );
+      if (p.lid)
+        out.push(
+          ...pathPrim([circle(cx, cy, R * 0.975)], {
+            stroke: shiftLightness(dish, 0.15),
+            sw: Math.max(0.2, R * 0.01),
+          }),
+        );
+    }
+    // Where colonies may go: half-extents of the usable area (a rectangle, or the circle of radius Ra).
     const Ra = R * 0.86;
+    const ux = isRect ? hw - R * 0.1 : Ra;
+    const uy = isRect ? R - R * 0.1 : Ra;
     const rand = rng(p.seed);
     const size = Math.min(p.size, Math.max(0.1, R * 0.12));
     const rOf = () => size * (1 - p.variation * 0.75 * rand());
@@ -435,7 +518,9 @@ export const petriDish = defineKind<PetriParams>({
         const a = rand() * 2 * Math.PI;
         const d = Math.sqrt(rand()) * Ra;
         const r = p.plaqueSize * (1 - p.variation * 0.5 * rand());
-        const q = { x: cx + Math.cos(a) * d, y: cy + Math.sin(a) * d };
+        const q = isRect
+          ? { x: cx + (rand() * 2 - 1) * ux, y: cy + (rand() * 2 - 1) * uy }
+          : { x: cx + Math.cos(a) * d, y: cy + Math.sin(a) * d };
         if (!inside(q, r)) continue;
         pl.push(circle(q.x, q.y, r));
         i += 1;
@@ -444,7 +529,10 @@ export const petriDish = defineKind<PetriParams>({
         ...pathPrim(pl, { fill: agar, stroke: clear, sw: Math.max(0.1, p.plaqueSize * 0.12) }),
       );
     };
-    const inside = (q: Vec2, r: number) => Math.hypot(q.x - cx, q.y - cy) <= Ra - r;
+    const inside = (q: Vec2, r: number) =>
+      isRect
+        ? Math.abs(q.x - cx) <= ux - r && Math.abs(q.y - cy) <= uy - r
+        : Math.hypot(q.x - cx, q.y - cy) <= Ra - r;
     const scatter = (n: number, c: Vec2, rad: number, k = 1) => {
       for (let i = 0, tries = 0; i < n && tries < n * 8; tries += 1) {
         const a = rand() * 2 * Math.PI;
@@ -466,13 +554,44 @@ export const petriDish = defineKind<PetriParams>({
       case 'none':
         break;
       case 'lawn':
-        out.push(...pathPrim([circle(cx, cy, Ra)], { fill: mix(agar, colony, 0.75) }));
+        out.push(
+          ...pathPrim(
+            [isRect ? rect(cx - ux, cy - uy, 2 * ux, 2 * uy, R * 0.05) : circle(cx, cy, Ra)],
+            {
+              fill: mix(agar, colony, 0.75),
+            },
+          ),
+        );
         lawnFeatures();
         break;
       case 'random':
-        scatter(p.count, { x: cx, y: cy }, Ra);
+        if (isRect) {
+          // Uniform over the whole rectangle, not a disc inside it.
+          for (let i = 0, tries = 0; i < p.count && tries < p.count * 8; tries += 1) {
+            const r = rOf();
+            const q = { x: cx + (rand() * 2 - 1) * ux, y: cy + (rand() * 2 - 1) * uy };
+            if (!inside(q, r)) continue;
+            subs.push(circle(q.x, q.y, r));
+            i += 1;
+          }
+        } else scatter(p.count, { x: cx, y: cy }, Ra);
         break;
       case 'grid': {
+        if (isRect) {
+          // Rows and columns in the aspect of the plate (48 x 32 for 1536 on an SBS plate), filled row by row.
+          const cols = Math.max(1, Math.round(Math.sqrt(p.count * (R > 0 ? hw / R : 1))));
+          const rows = Math.max(1, Math.ceil(p.count / cols));
+          const pitch = Math.min((ux * 1.9) / cols, (uy * 1.9) / rows);
+          const r0 = Math.min(size, pitch * 0.42);
+          for (let i = 0; i < p.count; i += 1) {
+            const q = {
+              x: cx + ((i % cols) - (cols - 1) / 2) * pitch,
+              y: cy + (Math.floor(i / cols) - (rows - 1) / 2) * pitch,
+            };
+            subs.push(circle(q.x, q.y, r0 * (1 - p.variation * 0.6 * rand())));
+          }
+          break;
+        }
         const n = Math.max(1, Math.ceil(Math.sqrt(p.count)));
         const side = Ra * Math.SQRT2 * 0.95;
         const pitch = side / n;
