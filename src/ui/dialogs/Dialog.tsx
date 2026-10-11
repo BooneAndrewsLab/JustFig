@@ -12,12 +12,15 @@ export function Dialog({
   onClose,
   children,
   wide = false,
+  meta,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
   /** PlasmidPop's `.dialog--wide` (52rem), for the guide. */
   wide?: boolean;
+  /** Beside the title, as PlasmidPop's guide shows its version there. */
+  meta?: ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const close = useRef(onClose);
@@ -74,7 +77,14 @@ export function Dialog({
         aria-modal="true"
         aria-label={title}
       >
-        <h1>{title}</h1>
+        {meta === undefined ? (
+          <h1>{title}</h1>
+        ) : (
+          <div className="dialog-head">
+            <h1>{title}</h1>
+            {meta}
+          </div>
+        )}
         {children}
       </div>
     </div>

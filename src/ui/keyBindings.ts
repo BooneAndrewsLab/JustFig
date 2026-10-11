@@ -3,7 +3,7 @@
  * (note 09). Ported from PlasmidPop's `keyBindings.ts` (#79 there): the
  * handlers ask the table what key an action is on, the tooltips and the
  * guide ask it what to print, and the user may move an action to another
- * key in Keyboard shortcuts….
+ * key on the guide's Change shortcuts page (note 52).
  *
  * A binding is its modifiers and the physical key code, in a fixed order:
  * `ctrl+KeyG`, `ctrl+shift+KeyG`, `shift+BracketRight`, `KeyR`. The code,
@@ -91,7 +91,6 @@ export const KEY_ACTIONS: readonly KeyAction[] = [
   { id: 'fit', label: 'Fit the page in the window', group: 'View', defaultBinding: 'shift+Digit1' },
   { id: 'zoom-in', label: 'Zoom in', group: 'View', defaultBinding: 'shift+Equal' },
   { id: 'zoom-out', label: 'Zoom out', group: 'View', defaultBinding: 'Minus' },
-  { id: 'guide', label: 'The user guide', group: 'View', defaultBinding: 'shift+Slash', note: '?' },
   ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n): KeyAction => ({
     id: `tab-${String(n)}`,
     label: `Show figure tab ${String(n)}`,
@@ -133,6 +132,14 @@ export const KEY_ACTIONS: readonly KeyAction[] = [
     fixed: true,
   },
   { id: 'redo', label: 'Redo', group: 'Fixed', defaultBinding: 'ctrl+KeyY', fixed: true },
+  {
+    id: 'help',
+    label: 'The user guide, as the ? button does',
+    group: 'Fixed',
+    defaultBinding: 'shift+Slash',
+    fixed: true,
+    note: 'the ? key on any keyboard layout',
+  },
   {
     id: 'copy',
     label: 'Copy, cut (Ctrl+X) and paste (Ctrl+V)',

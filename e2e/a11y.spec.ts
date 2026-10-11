@@ -51,7 +51,7 @@ test('the dialogs and the Inspector of each kind of selection have none either',
   const problems: string[] = [];
   for (const [button, name] of [
     ['Templates…', 'Templates and examples'],
-    ['Shortcuts…', 'Keyboard shortcuts'],
+    ['Help', 'User guide'],
     ['Export…', 'Export figure'],
     ['Attribution', 'Attribution'],
     ['Recent…', 'Recent figures'],
@@ -157,11 +157,14 @@ test('the well map, the layers, the pages and the dialogs work from the keyboard
   await expect(tabs.nth(0)).toHaveAttribute('aria-selected', 'true');
   await expect(tabs.nth(0)).toBeFocused();
 
-  // A dialog keeps focus inside, and gives it back.
-  const opener = page.getByRole('button', { name: 'Shortcuts…' });
+  // A dialog keeps focus inside, and gives it back; Change shortcuts is a page of the guide.
+  const opener = page.getByRole('button', { name: 'Help', exact: true });
   await opener.focus();
   await page.keyboard.press('Enter');
-  const dialog = page.getByRole('dialog', { name: 'Keyboard shortcuts' });
+  const dialog = page.getByRole('dialog', { name: 'User guide' });
+  await dialog.getByRole('button', { name: 'Change shortcuts' }).click();
+  await expect(dialog.getByRole('heading', { name: 'Change shortcuts' })).toBeVisible();
+  expect(await audit(page, '.dialog')).toEqual([]);
   for (let i = 0; i < 80; i += 1) await page.keyboard.press('Tab');
   expect(await dialog.evaluate((d) => d.contains(document.activeElement))).toBe(true);
   await page.keyboard.press('Escape');

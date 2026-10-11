@@ -32,7 +32,7 @@ Select objects in one figure, copy them (Ctrl+C), switch to another tab and past
 - **Alt+Shift+Page Up** and **Alt+Shift+Page Down** move the tab in front one place left or right. You can also drag a tab along the strip with the mouse.
 - On the strip itself, Tab reaches the tab in front; **←** and **→** move to the previous or next tab, **Home** and **End** to the first and last, and **Delete** closes the focused tab.
 
-On Linux some browsers use Alt with a number for their own tabs. If yours does, give these actions other keys in **Shortcuts…**.
+On Linux some browsers use Alt with a number for their own tabs. If yours does, give these actions other keys on the guide's **Change shortcuts** page.
 
 ## When you come back
 

@@ -1,7 +1,13 @@
 /** Phase 4: arrow binding, templates, palettes, the shortcut editor, BarelySig import, the guide, keyboard access. */
+import { readFileSync } from 'node:fs';
+
 import { type Page, expect, test } from '@playwright/test';
 
 import { pageBox } from './helpers';
+
+const { version } = JSON.parse(
+  readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+) as { version: string };
 
 const PAGE_W = (183 / 25.4) * 72;
 
@@ -94,11 +100,13 @@ test('a gallery example opens as a new figure, and a palette recolours it', asyn
   await expect(ligand).toHaveValue('#e69f00');
 });
 
-test('a shortcut moved in Keyboard shortcuts works at once and after a reload', async ({
-  page,
-}) => {
-  await page.getByRole('button', { name: 'Shortcuts…' }).click();
-  const dialog = page.getByRole('dialog', { name: 'Keyboard shortcuts' });
+test('a shortcut moved in Change shortcuts works at once and after a reload', async ({ page }) => {
+  const dialog = page.getByRole('dialog', { name: 'User guide' });
+  const openKeys = async () => {
+    await page.getByRole('button', { name: 'Help', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Change shortcuts' }).click();
+  };
+  await openKeys();
   await dialog.getByRole('button', { name: 'Change the key for Rectangle tool' }).click();
   await page.keyboard.press('Control+w');
   await expect(dialog.getByRole('alert')).toContainText('belongs to the browser');
@@ -116,7 +124,7 @@ test('a shortcut moved in Keyboard shortcuts works at once and after a reload', 
   await expect(page.locator('[data-tool="rect"]')).toHaveAttribute('title', /\(Q\)/);
   await page.keyboard.press('q');
   await expect(page.locator('[data-tool="rect"]')).toHaveAttribute('aria-pressed', 'true');
-  await page.getByRole('button', { name: 'Shortcuts…' }).click();
+  await openKeys();
   await page.getByRole('button', { name: 'All back to their defaults' }).click();
   await expect(dialog.locator('[data-action="tool-rect"] kbd')).toHaveText('R');
 });
@@ -152,6 +160,26 @@ test('the guide opens from the top bar and from ?, and its pages link to each ot
   await expect(page.getByTestId('guide-page')).toContainText('Detach');
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
-  await page.getByRole('button', { name: 'Guide', exact: true }).click();
+  await page.getByRole('button', { name: 'Help', exact: true }).click();
   await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText(`Version ${version}`);
+});
+
+test('the top bar is one row at 1280 × 720, with ? at its right end (note 52)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  const bar = page.locator('.topbar');
+  const help = page.getByRole('button', { name: 'Help', exact: true });
+  await expect(help).toBeVisible();
+  const b = await bar.boundingBox();
+  const h = await help.boundingBox();
+  if (!b || !h) throw new Error('top bar not visible');
+  expect(b.height).toBeLessThanOrEqual(40);
+  expect(b.width).toBeLessThanOrEqual(1280);
+  expect(h.width).toBeCloseTo(28, 1);
+  expect(h.height).toBeCloseTo(28, 1);
+  expect(b.x + b.width - (h.x + h.width)).toBeLessThanOrEqual(12);
+  await page.getByRole('button', { name: 'Undo', exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Redo', exact: true }).waitFor();
 });

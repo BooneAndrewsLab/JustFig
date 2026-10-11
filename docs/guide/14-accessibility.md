@@ -51,4 +51,4 @@ A plate's well grid is fully keyboard-operable. Tab to it, move with the arrow k
 
 ## Changing the keys
 
-If a shortcut clashes with your screen reader or keyboard layout, change it in **Shortcuts…**. Shortcuts are tied to the physical key, so they do not depend on the layout.
+If a shortcut clashes with your screen reader or keyboard layout, change it on the guide's **Change shortcuts** page. Shortcuts are tied to the physical key, so they do not depend on the layout.

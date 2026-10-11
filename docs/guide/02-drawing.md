@@ -17,7 +17,7 @@ The tool palette lists the tools. Hover over a tool to see its name and key. Aft
 | Panel       | Drag to draw a lettered panel. A plain click makes a 200 × 150 pt panel. See [Arranging](05-arranging.md).     |
 | Review note | Click an object to pin a note to it, or an empty spot to pin it there. See [Review notes](16-review-notes.md). |
 
-The default keys are V, H, R, E, L, P, A, T, F and N. You can change them in Shortcuts….
+The default keys are V, H, R, E, L, P, A, T, F and N. You can change them on the guide's Change shortcuts page.
 
 New shapes get a fill and an outline in the default colours. Change them in the Style section of the Inspector.
 
@@ -75,7 +75,7 @@ You can reshape a path, line or arrow after drawing it, and the path that a memb
 
 Each drag is one step in Undo. A point moves exactly under the pointer even when the path is rotated or flipped.
 
-From the keyboard: **Tab** and **Shift+Tab** go to the next or previous point, including handles. The **arrow keys** move the current point by 1 pt, and with **Shift** by 10 pt. **I** adds a point halfway to the next one. You can change I and S in Shortcuts…. **Edit points** in the Inspector moves the focus to the canvas, so these keys work from there.
+From the keyboard: **Tab** and **Shift+Tab** go to the next or previous point, including handles. The **arrow keys** move the current point by 1 pt, and with **Shift** by 10 pt. **I** adds a point halfway to the next one. You can change I and S on the guide's Change shortcuts page. **Edit points** in the Inspector moves the focus to the canvas, so these keys work from there.
 
 An arrow attached to a closed path follows its outline when you move the path's points. Dragging the attached end point of an arrow detaches it, as dragging the whole arrow does.
 

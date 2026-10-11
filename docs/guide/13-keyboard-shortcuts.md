@@ -32,7 +32,6 @@ Every shortcut in JustFig is in this table. **Ctrl** means **⌘** on a Mac. Sho
 | Fit the page in the window                                                             | `Shift+1`             |                                                                           |
 | Zoom in                                                                                | `Shift+=`             | The plus key.                                                             |
 | Zoom out                                                                               | `−`                   | The minus key.                                                            |
-| The user guide                                                                         | `Shift+/`             | The question mark key.                                                    |
 | Show figure tab 1                                                                      | `Alt+1`               | Brings the first tab forward.                                             |
 | Show figure tab 2                                                                      | `Alt+2`               |                                                                           |
 | Show figure tab 3                                                                      | `Alt+3`               |                                                                           |
@@ -45,6 +44,7 @@ Every shortcut in JustFig is in this table. **Ctrl** means **⌘** on a Mac. Sho
 | Close the figure tab                                                                   | `Alt+W`               | The tab in front.                                                         |
 | Move the figure tab left                                                               | `Alt+Shift+Page Up`   | The tab in front.                                                         |
 | Move the figure tab right                                                              | `Alt+Shift+Page Down` | The tab in front.                                                         |
+| The user guide, as the ? button does                                                   | `Shift+/`             | Fixed. The ? key on any keyboard layout.                                  |
 | Save the figure file                                                                   | `Ctrl+S`              | Fixed.                                                                    |
 | Save the figure file as a new file                                                     | `Ctrl+Shift+S`        | Fixed. Always asks where.                                                 |
 | Undo (with Shift, redo; Ctrl+Y also redoes)                                            | `Ctrl+Z`              | Fixed.                                                                    |
@@ -61,7 +61,7 @@ Every shortcut in JustFig is in this table. **Ctrl** means **⌘** on a Mac. Sho
 
 ## Changing the keys
 
-Choose **Shortcuts…** in the top bar to open the Keyboard shortcuts dialog. The actions are grouped as Tools, Edit, Points, Arrange, File, View, Tabs and Fixed keys.
+Open the guide with the **?** button at the right end of the top bar (or the ? key) and choose **Change shortcuts** in its page list, just after this page. The actions are grouped as Tools, Edit, Points, Arrange, File, View, Tabs and Fixed keys.
 
 1. Choose **Change** next to an action.
 2. Press the keys you want. Escape leaves it as it was.
@@ -73,7 +73,7 @@ A single letter such as R is a valid shortcut, because nothing on the canvas typ
 
 ## Fixed keys
 
-The rows marked Fixed cannot be changed. They are the keys every program shares (save, undo, redo, copy, cut, paste, delete), ranges such as the arrow keys, and the keys inside the text editor. Ctrl+Shift+Z also redoes, and Backspace also deletes.
+The rows marked Fixed cannot be changed. They are the keys every program shares (save, undo, redo, copy, cut, paste, delete), ranges such as the arrow keys, the keys inside the text editor, and **?** for this guide, which follows the character rather than the physical key so it works on every layout. Ctrl+Shift+Z also redoes, and Backspace also deletes.
 
 ## Other keys
 

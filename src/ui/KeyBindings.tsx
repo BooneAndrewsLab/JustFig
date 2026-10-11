@@ -1,12 +1,12 @@
 /**
- * Keyboard shortcuts… (note 09), ported from PlasmidPop's KeyBindings: one
+ * Change shortcuts (note 09), ported from PlasmidPop's KeyBindings: one
  * row per action, from the same table the handlers and tooltips read, so
  * what is listed is what the app answers. **Change** waits for a key and
- * takes it if it may; fixed keys say so.
+ * takes it if it may; fixed keys say so. It is a page of the guide (note 52).
  */
 import { useEffect, useState } from 'react';
 
-import { analytics } from '../analytics';
+import { analytics } from './analytics';
 import {
   type KeyAction,
   KEY_ACTIONS,
@@ -14,16 +14,15 @@ import {
   bindingProblem,
   formatBinding,
   resolveBindings,
-} from '../keyBindings';
-import { store } from '../state/store';
-import { useAppState } from '../state/useAppState';
-import { Dialog } from './Dialog';
+} from './keyBindings';
+import { store } from './state/store';
+import { useAppState } from './state/useAppState';
 
 const groupsOf = (actions: readonly KeyAction[]): string[] => [
   ...new Set(actions.map((a) => a.group)),
 ];
 
-export function KeyBindingsDialog({ onClose }: { onClose: () => void }) {
+export function KeyBindings() {
   const { keyBindings } = useAppState();
   const bound = resolveBindings(keyBindings);
   const [listening, setListening] = useState<string | null>(null);
@@ -56,7 +55,7 @@ export function KeyBindingsDialog({ onClose }: { onClose: () => void }) {
       setListening(null);
       setProblem(null);
     };
-    // Capture, so the dialog's own Escape and the app's shortcuts never see the key.
+    // Capture, so the guide's Escape and the app's shortcuts never see the key.
     window.addEventListener('keydown', onKey, true);
     return () => {
       window.removeEventListener('keydown', onKey, true);
@@ -65,12 +64,8 @@ export function KeyBindingsDialog({ onClose }: { onClose: () => void }) {
 
   const changed = Object.keys(keyBindings).length > 0;
   return (
-    <Dialog
-      title="Keyboard shortcuts"
-      onClose={() => {
-        if (listening === null) onClose();
-      }}
-    >
+    <section className="keybindings-page" aria-labelledby="keybindings-title">
+      <h2 id="keybindings-title">Change shortcuts</h2>
       <p className="note">
         Click <strong>Change</strong> and press the keys you want. Escape leaves it as it was. Your
         keys are remembered in this browser. Ctrl means ⌘ on a Mac.
@@ -78,7 +73,7 @@ export function KeyBindingsDialog({ onClose }: { onClose: () => void }) {
       <div className="keybindings">
         {groupsOf(KEY_ACTIONS).map((group) => (
           <section key={group}>
-            <h2>{group === 'Fixed' ? 'Fixed keys' : group}</h2>
+            <h3>{group === 'Fixed' ? 'Fixed keys' : group}</h3>
             <ul aria-label={`${group} shortcuts`}>
               {KEY_ACTIONS.filter((a) => a.group === group).map((action) => {
                 const binding = bound.get(action.id);
@@ -123,6 +118,12 @@ export function KeyBindingsDialog({ onClose }: { onClose: () => void }) {
                         )}
                       </span>
                     )}
+                    {/* In the row, so it shows where the guide page is scrolled to. */}
+                    {waiting && problem !== null && (
+                      <p className="note warn keybindings-problem" role="alert">
+                        {problem}
+                      </p>
+                    )}
                   </li>
                 );
               })}
@@ -130,12 +131,7 @@ export function KeyBindingsDialog({ onClose }: { onClose: () => void }) {
           </section>
         ))}
       </div>
-      {problem !== null && (
-        <p className="note warn" role="alert">
-          {problem}
-        </p>
-      )}
-      <div className="actions">
+      <p>
         <button
           type="button"
           disabled={!changed}
@@ -148,10 +144,7 @@ export function KeyBindingsDialog({ onClose }: { onClose: () => void }) {
         >
           All back to their defaults
         </button>
-        <button type="button" className="primary" onClick={onClose}>
-          Done
-        </button>
-      </div>
-    </Dialog>
+      </p>
+    </section>
   );
 }

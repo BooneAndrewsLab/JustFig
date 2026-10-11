@@ -69,8 +69,9 @@ describe('the user guide', () => {
       'Versions…',
       'Attribution',
       'Export…',
-      'Guide',
-      'Shortcuts…',
+      'Undo',
+      'Redo',
+      'Help',
     ]) {
       expect(app, b).toContain(b);
       expect(has(b.replace('…', '')), b).toBe(true);

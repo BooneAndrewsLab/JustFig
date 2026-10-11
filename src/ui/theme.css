@@ -156,7 +156,7 @@ select {
 }
 
 /* One row at 1280 px at the 14 px base (note 51): labels never wrap. */
-.topbar button:not(.icon) {
+.topbar button:not(.icon, .help-button) {
   white-space: nowrap;
   padding: 3px 7px;
 }
@@ -274,6 +274,23 @@ select {
 
 .topbar .spacer {
   flex: 1;
+}
+
+/* PlasmidPop's round help button at the far right (note 52). */
+.topbar button.help-button {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50%;
+  color: var(--ink-2);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.topbar button.help-button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .toolbar-group {
@@ -755,6 +772,23 @@ button.link {
   margin: 0 0 10px;
 }
 
+/* A title with something beside it: the guide's version (note 52). */
+.dialog-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 10px;
+}
+
+.dialog-head h1 {
+  margin: 0;
+}
+
+.dialog-meta {
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
 .dialog .actions {
   display: flex;
   justify-content: flex-end;
@@ -1076,7 +1110,7 @@ button.link {
   padding: 0;
 }
 
-.keybindings h2 {
+.keybindings h3 {
   font-size: 13px;
   font-weight: 600;
   color: var(--ink-2);
@@ -1105,6 +1139,11 @@ button.link {
 .keybindings-buttons {
   display: flex;
   gap: 4px;
+}
+
+.keybindings-problem {
+  grid-column: 1 / -1;
+  margin: 2px 0 4px;
 }
 
 .keybindings-fixed {

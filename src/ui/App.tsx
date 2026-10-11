@@ -22,7 +22,6 @@ import { RecentDialog } from './dialogs/RecentDialog';
 import { SaveTemplateDialog } from './dialogs/SaveTemplateDialog';
 import { SavePresetDialog } from './dialogs/SavePresetDialog';
 import { VersionsDialog } from './dialogs/VersionsDialog';
-import { KeyBindingsDialog } from './dialogs/KeyBindingsDialog';
 import { PdfPageDialog } from './dialogs/PdfPageDialog';
 import { IconBrowser } from './panels/IconBrowser';
 import { Inspector } from './panels/Inspector';
@@ -56,7 +55,6 @@ type DialogId =
   | 'attribution'
   | 'credits'
   | 'gallery'
-  | 'keys'
   | 'guide'
   | 'grid'
   | 'crop'
@@ -254,27 +252,23 @@ export function App() {
         <div className="toolbar-group">
           <button
             type="button"
-            className="icon"
             disabled={!undo}
-            title={undo ?? 'Nothing to undo'}
-            aria-label={undo ?? 'Undo'}
+            title={withKey(undo ?? 'Nothing to undo', 'undo', bound)}
             onClick={() => {
               store.undo();
             }}
           >
-            <Icon name="undo" />
+            Undo
           </button>
           <button
             type="button"
-            className="icon"
             disabled={!redo}
-            title={redo ?? 'Nothing to redo'}
-            aria-label={redo ?? 'Redo'}
+            title={withKey(redo ?? 'Nothing to redo', 'redo', bound)}
             onClick={() => {
               store.redo();
             }}
           >
-            <Icon name="redo" />
+            Redo
           </button>
         </div>
         <div className="toolbar-group">
@@ -312,23 +306,6 @@ export function App() {
         <span className="spacer" />
         <button
           type="button"
-          title={withKey('The user guide', 'guide', bound)}
-          onClick={() => {
-            setDialog('guide');
-          }}
-        >
-          Guide
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setDialog('keys');
-          }}
-        >
-          Shortcuts…
-        </button>
-        <button
-          type="button"
           onClick={() => {
             setDialog('attribution');
             analytics.trackOnce('attribution', 'open');
@@ -345,6 +322,19 @@ export function App() {
           }}
         >
           Export…
+        </button>
+        <button
+          type="button"
+          className="help-button"
+          aria-label="Help"
+          aria-haspopup="dialog"
+          aria-expanded={dialog === 'guide'}
+          title="Open the guide (?)"
+          onClick={() => {
+            setDialog('guide');
+          }}
+        >
+          ?
         </button>
         <input
           ref={openInput}
@@ -414,8 +404,6 @@ export function App() {
         </span>
         <span>{s.downloaded === fig ? 'Saved to file' : 'Kept in this browser'}</span>
         {s.notice && <span className={`notice-${s.notice.tone}`}>{s.notice.text}</span>}
-        <span className="spacer" style={{ flex: 1 }} />
-        <span>v{__APP_VERSION__}</span>
       </footer>
       {dialog === 'export' && (
         <ExportDialog
@@ -504,13 +492,6 @@ export function App() {
       )}
       {dialog === 'inset' && (
         <InsetDialog
-          onClose={() => {
-            setDialog(null);
-          }}
-        />
-      )}
-      {dialog === 'keys' && (
-        <KeyBindingsDialog
           onClose={() => {
             setDialog(null);
           }}

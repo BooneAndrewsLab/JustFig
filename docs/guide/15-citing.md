@@ -6,7 +6,7 @@ If JustFig helped you make a figure in a paper, a poster or a thesis, please say
 
 The repository has a `CITATION.cff` file with the exact reference. On GitHub, the **Cite this repository** button on the project page reads it and gives you the citation in common formats. The tool has a DOI from Zenodo once a release is made; the DOI has not been minted yet, so see CITATION.cff for the DOI once released.
 
-Until then, cite the web address of the app and the version number. The version is shown at the right-hand end of the status line, for example "v0.1.0". The project page is [github.com/BooneAndrewsLab/JustFig](https://github.com/BooneAndrewsLab/JustFig).
+Until then, cite the web address of the app and the version number. The version is shown beside the title of this guide (open it with the **?** button), for example "Version 0.1.0". The project page is [github.com/BooneAndrewsLab/JustFig](https://github.com/BooneAndrewsLab/JustFig).
 
 You can say it in your methods like this: "Figures were prepared with JustFig (version X)."
 

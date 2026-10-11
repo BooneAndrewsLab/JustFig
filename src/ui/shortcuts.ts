@@ -197,6 +197,12 @@ export function onKeyDown(e: KeyboardEvent, open: ShortcutTargets): void {
       return;
     }
   }
+  // The guide, as in PlasmidPop: by the character, so `?` works on every layout.
+  if (!mod && !e.altKey && e.key === '?') {
+    handled();
+    open.guide();
+    return;
+  }
   if (!mod && !e.altKey && pointKeys(e)) {
     handled();
     return;
@@ -257,7 +263,6 @@ export function onKeyDown(e: KeyboardEvent, open: ShortcutTargets): void {
     open: open.openFile,
     recent: open.recent,
     export: open.exportDialog,
-    guide: open.guide,
     grid: () => {
       if (ids.length > 0) open.grid();
     },

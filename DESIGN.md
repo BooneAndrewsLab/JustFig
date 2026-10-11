@@ -176,3 +176,5 @@ changes (the guide test enforces it), and a design note in `docs/design/`
 - 2026-10-10: step 2 (tokens: family palette, teal accent, 14px base, radii, dialog metrics,
   shadows, focus ring, sentence-case section headers, canvas overlay colours as tokens) and the
   Archivo UI font landed; note 51.
+- 2026-10-10: step 3 (round "?" help, `?` a fixed key, Change shortcuts as a guide page,
+  text Undo/Redo, version in the guide header); note 52.

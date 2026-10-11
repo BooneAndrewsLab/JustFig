@@ -4,7 +4,7 @@ JustFig is a free figure editor that runs entirely in your browser. There is no 
 
 ## The screen
 
-- **Top bar:** the logo, the figure title, then the file buttons, undo and redo, zoom, and on the right Guide, Shortcuts…, Attribution and Export….
+- **Top bar:** the logo, the figure title, then the file buttons, Undo and Redo, zoom, and on the right Attribution, Export… and the round **?** (Help) button.
 - **Tab strip:** under the top bar. **Recent…**, then one tab per open figure, then **+** for a new one (see [Several figures at once](17-several-figures.md)).
 - **Left:** the Icons panel. At its top is the Scientific objects shelf (see [Scientific objects](08-objects.md)), below it the icon search and categories (see [Icons](07-icons.md)).
 - **Tool palette:** a narrow column of tools next to the canvas (see [Drawing](02-drawing.md)).
@@ -21,9 +21,10 @@ JustFig is a free figure editor that runs entirely in your browser. There is no 
 - **Versions…** opens the Saved versions dialog for the figure you have open (see Saved versions below).
 - **Save** (Ctrl+S) writes the figure to its `.jfig` file. In browsers that can write files (Chrome, Edge and other Chromium browsers) the first Save, or **Save as…** (Ctrl+Shift+S, which always asks), asks where to put the file; after that Save writes to the same file with no download. A figure opened with **Open…** saves back to the file it came from. JustFig remembers the file for the figure in this browser, shows its name in the window title and on the Save button's tooltip, and asks for permission again after a reload; if you refuse, or the file has been moved or deleted, it asks where to save instead. In other browsers (Firefox, Safari) there is no Save as… button and Save downloads a new `.jfig` named after the figure title each time. Dropping a file onto the window opens it but does not link it for saving.
 - **Import…** places an SVG, PNG or JPEG on the page (see [Importing and other apps](11-import-and-other-apps.md)).
-- **Undo** and **Redo** (the curved arrows) step through your changes. Their tooltips name the change. A drag, a nudge or a run of typing in one field counts as one step.
+- **Undo** and **Redo** step through your changes. Their tooltips name the change and the key. A drag, a nudge or a run of typing in one field counts as one step.
 - **−**, the percentage and **+** change the zoom. The percentage button fits the whole page in the window.
-- **Guide** opens this guide. **Shortcuts…** opens the dialog where keys are changed (see [the shortcuts page](13-keyboard-shortcuts.md)). **Attribution** opens the credit dialog and **Export…** the export dialog (see [Exporting](12-export.md)).
+- **Attribution** opens the credit dialog and **Export…** the export dialog (see [Exporting](12-export.md)).
+- **?** (Help), at the far right, opens this guide, as does the ? key. Its title line shows the JustFig version. The **Change shortcuts** page, after [the shortcuts page](13-keyboard-shortcuts.md), is where keys are changed.
 
 To zoom with the mouse, hold Ctrl (⌘ on a Mac) and turn the wheel. The wheel alone scrolls the page. To pan, use the Pan tool, hold Space, or drag with the middle mouse button.
 

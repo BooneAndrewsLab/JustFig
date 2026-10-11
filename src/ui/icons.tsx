@@ -20,8 +20,6 @@ const TOOL_PATHS: Readonly<Record<ToolId, string>> = {
 };
 
 const CHROME_PATHS = {
-  undo: 'M5.5 2.5 2.5 5.5l3 3M2.5 5.5h7a3.5 3.5 0 0 1 0 7H7',
-  redo: 'M10.5 2.5l3 3-3 3M13.5 5.5h-7a3.5 3.5 0 0 0 0 7H9',
   'zoom-in': 'M7 2.5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9zM10.2 10.2 14 14M5 7h4M7 5v4',
   'zoom-out': 'M7 2.5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9zM10.2 10.2 14 14M5 7h4',
   close: 'M4.5 4.5l7 7M11.5 4.5l-7 7',

@@ -68,7 +68,7 @@ test('save a version, change the figure, compare, restore, undo; versions surviv
   await expect(rects(page)).toHaveCount(1);
   await expect(page.getByRole('button', { name: /^Undo/ })).toHaveAttribute(
     'title',
-    'Undo Restore version “sent to PI”',
+    'Undo Restore version “sent to PI” (Ctrl+Z)',
   );
 
   // One undo step brings the two rectangles back; redo restores again.
