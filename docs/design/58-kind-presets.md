@@ -96,6 +96,10 @@ shown live under the questions ("Only 24 of 40 conditions fit…"); step fields 
   neighbouring wells along rows or down columns, a group never split over two lines when one
   is long enough; conditions that do not fit are left out and reported. 24 condition colours
   (six Okabe-Ito hues the controls do not use, in four tiers) before they repeat.
+- The agar plate's tetrad wizard (issue #91, `kinds/petriTetradWizard.ts`): tetrads and numbering,
+  segregation, dead and missing spores. `build` sets `pattern: 'tetrads'` and those four keys
+  only, so media colours, lid and seed survive applying it; a note warns when over half the
+  spores fail.
 - Analytics: `preset` / `wizard`, named `kind/place` or `kind/apply`; never the answers.
 
 ## Styles

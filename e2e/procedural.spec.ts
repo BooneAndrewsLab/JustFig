@@ -162,6 +162,49 @@ test('the plate map wizard, from the keyboard: placed from the shelf, applied in
   await expect(page.getByText('40 of 96 wells coloured')).toBeVisible();
 });
 
+test('the tetrad plate wizard, from the keyboard: placed from the shelf, applied in the Inspector (note 58)', async ({
+  page,
+}) => {
+  await page.locator('.object-presets[data-kind="petriDish"] > summary').click();
+  await page
+    .locator('.object-presets[data-kind="petriDish"]')
+    .getByRole('button', { name: 'Tetrad plate wizard…' })
+    .click();
+  const wizard = page.getByRole('dialog', { name: 'Tetrad plate wizard' });
+  await expect(wizard.getByLabel('Tetrads', { exact: true })).toBeFocused();
+  await expect(wizard.getByText('Step 1 of 3')).toBeVisible();
+  await wizard.getByLabel('Tetrads', { exact: true }).fill('12');
+  await page.keyboard.press('Enter');
+  await expect(wizard.getByLabel('Segregation')).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(wizard.getByText('Step 3 of 3')).toBeVisible();
+  await expect(wizard.getByRole('button', { name: 'Add' })).toBeVisible();
+  await page.keyboard.press('Enter');
+  await expect(wizard).toBeHidden();
+  const section = side(page).getByRole('region', { name: 'Petri dish options' });
+  await expect(section).toBeVisible();
+  await expect(section.getByLabel('Tetrads', { exact: true })).toHaveValue('12');
+  // The Inspector: Back keeps the answers; Apply is one undo step.
+  await section.getByRole('button', { name: 'Tetrad plate wizard…' }).click();
+  await wizard.getByLabel('Tetrads', { exact: true }).fill('6');
+  await page.keyboard.press('Enter');
+  await wizard.getByLabel('Segregation').selectOption('3:1');
+  await wizard.getByRole('button', { name: 'Back' }).click();
+  await expect(wizard.getByLabel('Tetrads', { exact: true })).toHaveValue('6');
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Enter');
+  await wizard.getByRole('button', { name: 'Apply' }).click();
+  await expect(wizard).toBeHidden();
+  await expect(section.getByLabel('Tetrads', { exact: true })).toHaveValue('6');
+  await expect(section.getByLabel('Segregation')).toHaveValue('3:1');
+  await expect(page.getByRole('button', { name: 'Undo', exact: true })).toHaveAttribute(
+    'title',
+    /Tetrad plate wizard/,
+  );
+  await page.keyboard.press('Control+z');
+  await expect(section.getByLabel('Tetrads', { exact: true })).toHaveValue('12');
+});
+
 test('a drawn line becomes a lipid bilayer that follows it', async ({ page }) => {
   await page.keyboard.press('l');
   const a = await at(page, 60, 200);

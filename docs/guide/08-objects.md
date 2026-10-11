@@ -37,7 +37,15 @@ Some objects can be set up by answering a few questions instead. The **Plate map
 2. **What goes on it?** How many **Conditions** (samples, treatments or strains; each gets a colour of its own), how many **Replicates** of each, and whether the replicates go side by side in a row or one under another in a column.
 3. **Where do the controls go?** **Controls**: none, negative only, or negative and positive. **Controls fill** the first and last columns or the first and last rows of the plate (negative grey, positive orange). And whether to leave the edge wells blank against edge effects; the controls then go just inside them.
 
-A preview under the questions shows the plate as it will be, and a note says when not every condition fits (or when colours start to repeat after 24 conditions). **Next** (or Enter) goes on, **Back** goes back, and **Add** or **Apply** on the last step finishes; Escape or **Cancel** leaves without changing anything. Applying it to a plate already in the figure is one step you can undo and changes only its number of wells and its well colours. The answers are not remembered: the wizard starts from the same questions every time, and the plate is then yours to edit in the well-map editor.
+The **Tetrad plate wizard…** button sits the same way under **Petri dish starting points** and beside **Start from…** in a Petri dish's Inspector section. It sets the dish to the tetrad dissection pattern, one step at a time:
+
+1. **How many tetrads?** How many **Tetrads** (1 to 24, one column of four spores each), and whether to number them.
+2. **How do the spores segregate?** **Segregation**: mostly 2:2 with some others, or all 2:2, 4:0, 3:1, 1:3 or 0:4 (usual colour : marker colour).
+3. **Which spores fail?** The share of **Dead spores** (a tiny microcolony) and **Missing spores** (an empty spot).
+
+Applying it to a dish already in the figure changes only those settings, not its media colours or lid.
+
+For both wizards, a preview under the questions shows the object as it will be, and a note says when not every plate condition fits (or when colours start to repeat after 24 conditions). **Next** (or Enter) goes on, **Back** goes back, and **Add** or **Apply** on the last step finishes; Escape or **Cancel** leaves without changing anything. Applying it to a plate already in the figure is one step you can undo and changes only its number of wells and its well colours. The answers are not remembered: the wizard starts from the same questions every time, and the plate is then yours to edit in the well-map editor.
 
 ## The objects
 
