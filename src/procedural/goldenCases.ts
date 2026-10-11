@@ -206,6 +206,17 @@ export const GOLDEN_CASES: Readonly<Record<string, Readonly<Record<string, Parti
   },
   cell: {
     irregular: { shape: 'irregular', er: false, mitochondria: 10, seed: 11 },
+    'irregular-wall-microvilli': { shape: 'irregular', wall: 3, microvilli: 10, vacuole: 0.3 },
+    'apoptotic-bud': { apoptotic: true, bud: 0.4, chloroplasts: 4 },
+  },
+  bacterium: {
+    'coccus-tuft-pili': { shape: 'coccus', flagella: 'tuft', pili: 12, capsule: true },
+    'vibrio-positive': {
+      shape: 'vibrio',
+      envelope: 'positive',
+      flagella: 'peritrichous',
+      nucleoid: false,
+    },
   },
   tree: {
     support: {

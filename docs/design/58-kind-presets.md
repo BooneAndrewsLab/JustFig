@@ -1,6 +1,7 @@
 # 58 Kind presets: named starting points for procedural objects
 
-2026-10-11. Step 1 (the mechanism, issue #82) is built; the rest is a plan. Every procedural kind (note 04) starts from its field
+2026-10-11. Step 1 (the mechanism, issue #82) and the cell types of step 2 (issue #87) are built;
+the rest is a plan. Every procedural kind (note 04) starts from its field
 defaults: an agar plate is always 60 scattered colonies on yellow agar, a cell always the same
 generic animal cell. A biologist wants "a tetrad dissection plate", "YPD", "a yeast cell", "a
 96-well plate with controls in column 12", and gets there today by setting six fields by hand,
@@ -139,6 +140,31 @@ dividing, apoptotic. Most need fields the kind lacks: cell wall, chloroplasts, c
 bud, nucleoid instead of nucleus, flagellum or pili, capsule, microvilli. Each one is weighed
 against a separate kind; a prokaryote probably deserves its own `bacterium` kind rather than
 switching off half the cell.
+
+_Built (issue #87): `cell` version 2 and a new `bacterium` kind._ The test per field was whether
+it is a part of a eukaryotic cell (or a state of one) that the existing layout can draw, or
+something a eukaryote does not have:
+
+| Need                              | Where                     | Why                                                                                                                                                                                                                                                                         |
+| --------------------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cell wall                         | `cell.wall` (pt, 0 = off) | Plants and fungi: a ring outside the membrane; the cell shrinks inside it.                                                                                                                                                                                                  |
+| Central vacuole                   | `cell.vacuole` (share)    | Plants (large, nucleus pressed to the side) and yeast (small): one size field covers both; organelles keep clear of it.                                                                                                                                                     |
+| Chloroplasts                      | `cell.chloroplasts`       | Placed like mitochondria (seeded `spot`), allowed onto the vacuole's edge so a plant's thin rim holds them.                                                                                                                                                                 |
+| Bud                               | `cell.bud` (share)        | Budding yeast: a daughter ellipse beside the mother, same membrane and wall.                                                                                                                                                                                                |
+| Microvilli, polarity              | `cell.microvilli`         | Polarised epithelium: fingers on the apical edge; their presence moves the nucleus basal and turns the Golgi to face apically.                                                                                                                                              |
+| Neuron                            | `cell.shape: 'neuron'`    | A soma with the same organelles plus dendrites and an axon to boutons: an outline, not a new kind (wall, bud, microvilli hidden).                                                                                                                                           |
+| Dividing                          | `cell.division`           | Metaphase (spindle, chromosomes, no envelope) and telophase (furrowed outline, two nuclei): states of the same cell.                                                                                                                                                        |
+| Apoptotic                         | `cell.apoptotic`          | Blebs and a fragmented nucleus: a state; it wins over division.                                                                                                                                                                                                             |
+| Nucleoid, flagella, pili, capsule | new kind `bacterium`      | A prokaryote has no nucleus, ER, Golgi or mitochondria and a different envelope (Gram-negative or -positive): a cell switching half its fields off would show a dozen fields that do nothing. Its own kind has rod, coccus and curved-rod shapes and nine slots of its own. |
+
+The version 2 `migrate` writes the new fields off, and the defaults are version 1's animal cell,
+drawn the same (the old goldens are unchanged, and the new parts draw nothing and use no random
+numbers when off). Every cell-type preset names every type field (and the cytoplasm and membrane
+colours), so choosing Plant after Neuron replaces the type instead of mixing them; the bacterium's
+presets do the same for shape, envelope, capsule, flagella and pili. Presets: Animal, Plant,
+Budding yeast, Neuron, Polarised epithelial, Mitosis (metaphase), Dividing (telophase),
+Apoptotic; Gram-negative rod (_E. coli_), Gram-positive rod (_Bacillus_), coccus
+(_Staphylococcus_), curved rod (_Vibrio_), encapsulated rod (_Klebsiella_).
 
 **Well plate (`wellPlate`).** Layouts: controls in fixed columns, blank edge wells (edge
 effect), dilution gradient across columns, standard curve plus samples in triplicate,

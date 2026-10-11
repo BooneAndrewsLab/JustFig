@@ -31,8 +31,10 @@ function placed(o: Procedural): Figure {
 const only = (fig: Figure): Procedural => [...docObjects(fig.doc)][0] as Procedural;
 
 describe('kind presets', () => {
-  it('are seeded on the petri dish, gel, plasmid map, well plate, timeline and study design', () => {
+  it('are seeded on the cell, bacterium, petri dish, gel, plasmid map, well plate, timeline and study design', () => {
     expect(withPresets.map((k) => k.kind).sort()).toEqual([
+      'bacterium',
+      'cell',
       'gel',
       'petriDish',
       'plasmidMap',

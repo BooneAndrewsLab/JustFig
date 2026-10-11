@@ -945,7 +945,7 @@
                 "const": "cell"
               },
               "kindVersion": {
-                "const": 1
+                "const": 2
               }
             },
             "required": [
@@ -957,6 +957,29 @@
             "properties": {
               "params": {
                 "$ref": "#/$defs/Params_cell"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "bacterium"
+              },
+              "kindVersion": {
+                "const": 1
+              }
+            },
+            "required": [
+              "kind",
+              "kindVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "params": {
+                "$ref": "#/$defs/Params_bacterium"
               }
             }
           }
@@ -1666,15 +1689,25 @@
     "Params_cell": {
       "type": "object",
       "title": "cell params",
-      "description": "An animal cell; switch organelles on and off and colour each one.",
+      "description": "A eukaryotic cell (animal, plant, yeast, neuron, epithelial); switch organelles on and off and colour each one.",
       "properties": {
         "shape": {
           "enum": [
             "round",
-            "irregular"
+            "irregular",
+            "box",
+            "neuron"
           ],
           "default": "round",
           "description": "Outline"
+        },
+        "wall": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 12,
+          "default": 0,
+          "description": "Cell wall. Plants and fungi; 0 for none.",
+          "x-unit": "pt"
         },
         "nucleus": {
           "type": "boolean",
@@ -1717,6 +1750,48 @@
           "default": 8,
           "description": "Vesicles"
         },
+        "vacuole": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.8,
+          "default": 0,
+          "description": "Vacuole size. Share of the cell; a large one presses the nucleus to the side. 0 for none."
+        },
+        "chloroplasts": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30,
+          "default": 0,
+          "description": "Chloroplasts"
+        },
+        "bud": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.8,
+          "default": 0,
+          "description": "Bud size. A daughter bud on the right, as a share of the mother; 0 for none."
+        },
+        "microvilli": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 40,
+          "default": 0,
+          "description": "Microvilli. Along the top (apical) edge; the nucleus moves to the base."
+        },
+        "division": {
+          "enum": [
+            "none",
+            "metaphase",
+            "telophase"
+          ],
+          "default": "none",
+          "description": "Division"
+        },
+        "apoptotic": {
+          "type": "boolean",
+          "default": false,
+          "description": "Apoptotic (blebbing)"
+        },
         "membrane": {
           "type": "number",
           "minimum": 0.25,
@@ -1730,6 +1805,86 @@
           "minimum": 0,
           "maximum": 99999,
           "default": 3,
+          "description": "Arrangement"
+        }
+      }
+    },
+    "Params_bacterium": {
+      "type": "object",
+      "title": "bacterium params",
+      "description": "A bacterium: rod, coccus or curved rod, Gram-negative or Gram-positive, with nucleoid, plasmids, flagella and pili.",
+      "properties": {
+        "shape": {
+          "enum": [
+            "rod",
+            "coccus",
+            "vibrio"
+          ],
+          "default": "rod",
+          "description": "Shape"
+        },
+        "envelope": {
+          "enum": [
+            "negative",
+            "positive"
+          ],
+          "default": "negative",
+          "description": "Envelope"
+        },
+        "capsule": {
+          "type": "boolean",
+          "default": false,
+          "description": "Capsule"
+        },
+        "nucleoid": {
+          "type": "boolean",
+          "default": true,
+          "description": "Nucleoid"
+        },
+        "plasmids": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6,
+          "default": 2,
+          "description": "Plasmids"
+        },
+        "ribosomes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200,
+          "default": 40,
+          "description": "Ribosomes"
+        },
+        "flagella": {
+          "enum": [
+            "none",
+            "polar",
+            "tuft",
+            "peritrichous"
+          ],
+          "default": "polar",
+          "description": "Flagella"
+        },
+        "pili": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 40,
+          "default": 0,
+          "description": "Pili"
+        },
+        "membrane": {
+          "type": "number",
+          "minimum": 0.25,
+          "maximum": 6,
+          "default": 1.5,
+          "description": "Membrane width",
+          "x-unit": "pt"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 99999,
+          "default": 7,
           "description": "Arrangement"
         }
       }
