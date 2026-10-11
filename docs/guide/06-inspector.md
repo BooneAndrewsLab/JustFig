@@ -120,7 +120,7 @@ For a graph imported from BarelySig with its data. It explains that the graph is
 
 ### Scientific objects
 
-A cell, plate, gel or other scientific object gets a section named after it (for example "Well plate"), then **Colours** with **Reset colours**, and **Convert to shapes**. A drawn path gets **Follow this path**. See [Scientific objects](08-objects.md).
+A cell, plate, gel or other scientific object gets a section named after it (for example "Well plate"), with **Start from…** at its top when the object has ready-made starting points, then **Colours** with **Reset colours**, and **Convert to shapes**. A drawn path gets **Follow this path**. See [Scientific objects](08-objects.md).
 
 An object made by a newer version of JustFig shows a **Procedural object** section instead. It is drawn from its saved picture and kept as it is; **Convert to picture** turns it into a plain picture.
 

@@ -1,6 +1,6 @@
 # 58 Kind presets: named starting points for procedural objects
 
-2026-10-11. Plan, not yet built. Every procedural kind (note 04) starts from its field
+2026-10-11. Step 1 (the mechanism, issue #82) is built; the rest is a plan. Every procedural kind (note 04) starts from its field
 defaults: an agar plate is always 60 scattered colonies on yellow agar, a cell always the same
 generic animal cell. A biologist wants "a tetrad dissection plate", "YPD", "a yeast cell", "a
 96-well plate with controls in column 12", and gets there today by setting six fields by hand,
@@ -40,13 +40,18 @@ interface KindPreset {
 
 All generic, driven by `presets`:
 
-- **Objects shelf:** a kind with presets gets a disclosure on its tile ("Tetrads, streak, …");
-  each preset is a tile drawn by the kind's own `render` (same `thumb` cache, keyed by kind and
-  preset id). Click places, drag drops, as for the kind.
+- **Objects shelf:** a kind with presets gets a disclosure ("Petri dish starting points") under
+  the grid of kind tiles, not on the tile: a disclosure inside a three-column grid of buttons
+  broke the grid and nested an interactive control in a button. Inside, a heading per group and
+  a tile per preset drawn by the kind's own `render` (same `thumb` cache, keyed by kind and
+  preset id; drawn only once the disclosure is opened). Click places, drag drops, as for the
+  kind (the drag carries `kind/preset-id`).
 - **Inspector:** a **Start from…** menu above the fields. Choosing one is one named edit
   (`Apply preset <label>`), one undo step, setting only the keys the preset names (and its
   frame size when it has one and the object still has the default size).
-- **Icon search:** preset labels join the kind's keywords, so typing "tetrad" or "YPD" finds the
+- **Icon search:** `matchPresets` (beside `matchKinds`): every query word must match the
+  preset's label, its group, the kind's title or a keyword, and at least one the label itself, so
+  "YPD" or "agar dilution" finds a preset while "petri" alone stays with the kind. Typing "YPD" finds the
   tile for that preset (with the Adjustable tag, as `matchKinds` does for kinds).
 
 ## The wizard
@@ -107,14 +112,16 @@ How, keeping the rules:
 
 ## Gates
 
-- Every preset renders a golden SVG (`goldenCases.ts` gains one case per preset) and passes
-  the bounded-render property test.
+- Every preset renders a golden SVG (`kinds.test.ts` walks `presets` itself, writing
+  `<kind>-preset-<id>.svg`, so `goldenCases.ts` needs no copy) and passes a bounded-render
+  property over frame sizes.
 - A unit test: preset ids unique per kind, every `params` key is a field of the kind, every
   value decodes to itself (a preset never relies on the decoder clamping it), every `slots`
   key is a slot of the kind.
-- `src/ui/guide.test.ts` learns presets: every preset label appears in the kind's guide entry.
-- Analytics: `preset` events gain `kind-place`, `kind-apply`, `wizard`, with the kind and the
-  preset id (our data, not figure content).
+- `src/ui/guide.test.ts` learns presets: every preset label appears on its kind's line under
+  "Starting points" in the Scientific objects guide page.
+- Analytics: `preset` events gain `kind-place`, `kind-apply` (built) and `wizard` (step 3),
+  named `kind/preset-id` (our data, not figure content).
 
 ## What each kind gets
 

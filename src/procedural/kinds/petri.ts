@@ -83,6 +83,56 @@ export const petriDish = defineKind<PetriParams>({
     { id: 'agar', label: 'Agar', default: '#f5e6b8' },
     { id: 'colony', label: 'Colonies', default: '#fffcf0' },
   ],
+  // Patterns set only params and media only slot colours, so one of each combines (note 58).
+  presets: [
+    {
+      id: 'streak',
+      label: 'Single-colony streak',
+      group: 'Patterns',
+      params: { pattern: 'streak', count: 40 },
+    },
+    {
+      id: 'spot-dilutions',
+      label: 'Spot dilutions',
+      group: 'Patterns',
+      params: { pattern: 'spots', count: 40 },
+    },
+    {
+      id: 'pinned-grid',
+      label: 'Pinned grid',
+      group: 'Patterns',
+      params: { pattern: 'grid', count: 96, variation: 0.1 },
+    },
+    { id: 'lawn', label: 'Lawn', group: 'Patterns', params: { pattern: 'lawn' } },
+    { id: 'empty', label: 'Empty plate', group: 'Patterns', params: { pattern: 'none' } },
+    { id: 'lb', label: 'LB', group: 'Media', slots: { agar: '#f2dfa7', colony: '#fffcf0' } },
+    { id: 'ypd', label: 'YPD', group: 'Media', slots: { agar: '#e3b46c', colony: '#fff4e0' } },
+    {
+      id: 'sc-dropout',
+      label: 'SC/dropout',
+      group: 'Media',
+      slots: { agar: '#f7f0d6', colony: '#fffaf0' },
+    },
+    {
+      id: 'blood-agar',
+      label: 'Blood agar',
+      group: 'Media',
+      slots: { agar: '#a31d1d', colony: '#e6e1d3' },
+    },
+    {
+      id: 'macconkey',
+      label: 'MacConkey',
+      group: 'Media',
+      slots: { agar: '#c9708f', colony: '#d81b60' },
+    },
+    { id: 'x-gal', label: 'X-gal', group: 'Media', slots: { agar: '#f2dfa7', colony: '#2f6fbf' } },
+    {
+      id: 'chocolate-agar',
+      label: 'Chocolate agar',
+      group: 'Media',
+      slots: { agar: '#6b4226', colony: '#d9d2c3' },
+    },
+  ],
   render(p, { w, h, slots }) {
     const out: Prim[] = [];
     const cx = w / 2;

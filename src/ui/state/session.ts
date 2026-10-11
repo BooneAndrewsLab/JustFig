@@ -41,6 +41,7 @@ import {
 } from '@/io/jfig';
 import { drawnBoundsIn } from '@/procedural/bounds';
 import { convertObjects, createProcedural } from '@/procedural/edits';
+import { createFromPreset, findPreset } from '@/procedural/presets';
 import { getKind } from '@/procedural/registry';
 import { figureWithSnapshots, withSnapshots } from '@/procedural/snapshot';
 import {
@@ -627,15 +628,23 @@ export async function placeIcon(entry: IconEntry, at?: { x: number; y: number })
 // --- procedural objects ------------------------------------------------------------
 
 /** Places a new object of a procedural kind, centred on `at` (default: the view centre). */
-export function placeProcedural(kind: string, at?: { x: number; y: number }): void {
+/** Places an object of `kind` (from one of its presets when `preset` names one, note 58). */
+export function placeProcedural(
+  kind: string,
+  at?: { x: number; y: number },
+  preset?: string,
+): void {
   const k = getKind(kind);
   if (!k) return;
-  const obj = createProcedural(k, at ?? viewCenter());
+  const p = preset === undefined ? undefined : findPreset(k, preset);
+  const centre = at ?? viewCenter();
+  const obj = p ? createFromPreset(k, p, centre) : createProcedural(k, centre);
   store.edit({
     ...addObjects(currentPage(store.getState()).id, [obj]),
-    label: `Add ${k.title.toLowerCase()}`,
+    label: p ? `Add ${k.title.toLowerCase()}: ${p.label}` : `Add ${k.title.toLowerCase()}`,
   });
   analytics.track('procedural', 'place');
+  if (p) analytics.track('preset', 'kind-place', `${k.kind}/${p.id}`);
 }
 
 /** "Convert to shapes" on every procedural object selected. */

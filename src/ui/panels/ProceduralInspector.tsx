@@ -10,6 +10,7 @@ import type { Id } from '@/core/model/ids';
 import type { Paint, PathObj, Procedural, Swatch } from '@/core/model/types';
 import { convertObjects, makeFromPath, setParams } from '@/procedural/edits';
 import { roundTo, visibleFields } from '@/procedural/params';
+import { applyPreset, groupedPresets } from '@/procedural/presets';
 import { allKinds, resolveProcedural } from '@/procedural/registry';
 import type {
   Field,
@@ -17,6 +18,7 @@ import type {
   ListField,
   ParamValue,
   Params,
+  ProceduralKind,
   Scalar,
   ScalarField,
   WellMap,
@@ -24,6 +26,7 @@ import type {
 
 import { analytics } from '../analytics';
 import { type AppState, currentPage, figure, store } from '../state/store';
+import { useMenu } from '../useMenu';
 import { ColorInput } from './ColorInput';
 import { WellMapEditor } from './WellMapEditor';
 
@@ -335,6 +338,73 @@ function FieldControl({
   );
 }
 
+/**
+ * "Start from…" (note 58): the kind's presets as a menu, by group. Choosing one is one named
+ * edit that sets only the keys the preset names.
+ */
+function StartFromMenu({ s, obj, kind }: { s: AppState; obj: Procedural; kind: ProceduralKind }) {
+  const { open, toggle, close, ref, trigger, list, onTriggerKeyDown, onListKeyDown } = useMenu();
+  const groups = groupedPresets(kind);
+  if (groups.length === 0) return null;
+  const listId = `start-from-${obj.id}`;
+  return (
+    <div className="menu start-from" ref={ref}>
+      <button
+        ref={trigger}
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={open ? listId : undefined}
+        title={`Set this ${kind.title.toLowerCase()} to a built-in starting point`}
+        onClick={toggle}
+        onKeyDown={onTriggerKeyDown}
+      >
+        Start from… <span aria-hidden="true">▾</span>
+      </button>
+      {open && (
+        <div
+          ref={list}
+          id={listId}
+          className="menu__list start-from__list"
+          role="menu"
+          aria-label={`${kind.title} starting points`}
+          onKeyDown={onListKeyDown}
+        >
+          {groups.map((g) => (
+            <div key={g.group} role="group" aria-label={g.group || kind.title}>
+              {g.group !== '' && (
+                <div className="menu__heading" aria-hidden="true">
+                  {g.group}
+                </div>
+              )}
+              {g.presets.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  role="menuitem"
+                  tabIndex={-1}
+                  className="menu__item"
+                  onClick={() => {
+                    close();
+                    if (
+                      store.edit(applyPreset(currentPage(s).id, obj.id, kind, p), {
+                        keepSelection: true,
+                      })
+                    )
+                      analytics.track('preset', 'kind-apply', `${kind.kind}/${p.id}`);
+                  }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ProceduralSection({ s, obj }: { s: AppState; obj: Procedural }) {
   const fig = figure(s);
   const page = currentPage(s);
@@ -366,6 +436,7 @@ export function ProceduralSection({ s, obj }: { s: AppState; obj: Procedural }) 
     <>
       <section className="section procedural" aria-label={`${kind.title} options`}>
         <h2>{kind.title}</h2>
+        <StartFromMenu s={s} obj={obj} kind={kind} />
         {visibleFields(kind.fields, params).map((f) => (
           <FieldControl key={f.key} s={s} o={obj} f={f} params={params} palette={fig.doc.palette} />
         ))}

@@ -5,7 +5,7 @@
  */
 import { type Prim, type Sub, circle, pathPrim, poly, rect } from '../prims';
 import { type WellMap, defineKind } from '../types';
-import { byColour, rowLabel, text } from './util';
+import { byColour, mix, rowLabel, text } from './util';
 
 export const PLATE_FORMATS = {
   '6': { rows: 2, cols: 3 },
@@ -49,6 +49,43 @@ export function plateLayout(p: WellPlateParams, w: number, h: number) {
   return { rows, cols, pitch, x0, y0, label, left, top, pad };
 }
 
+/** A 96-well map with `colour(row, col)` per well; `null` leaves the well empty. */
+function layout96(colour: (row: number, col: number) => string | null): WellMap {
+  const out: Record<string, string> = {};
+  for (let r = 0; r < 8; r += 1)
+    for (let c = 0; c < 12; c += 1) {
+      const hex = colour(r, c);
+      if (hex !== null) out[wellId(r, c)] = hex;
+    }
+  return out;
+}
+
+const SAMPLE = '#56b4e9';
+const NEG = '#999999';
+const POS = '#d55e00';
+const BLANK = '#d9dee3';
+/** Concentration `t` (0 lowest, 1 highest) as a shade of `hue`. */
+const shade = (hue: string, t: number): string => mix('#ffffff', hue, 0.15 + 0.85 * t);
+
+/** Layout presets (note 58): pure data, computed once at load. */
+const LAYOUTS = {
+  controls: layout96((_r, c) => (c === 0 ? NEG : c === 11 ? POS : SAMPLE)),
+  edges: layout96((r, c) => (r === 0 || r === 7 || c === 0 || c === 11 ? BLANK : SAMPLE)),
+  dilution: layout96((_r, c) => shade('#0072b2', (11 - c) / 11)),
+  // Standards in duplicate down columns 1-2, 24 samples in triplicate (alternating shades), blanks.
+  standards: layout96((r, c) =>
+    c < 2
+      ? shade('#e69f00', (7 - r) / 7)
+      : c === 11
+        ? BLANK
+        : Math.floor((c - 2) / 3) % 2 === 0
+          ? SAMPLE
+          : '#0072b2',
+  ),
+  // Drug A rises down the rows, drug B across the columns.
+  checkerboard: layout96((r, c) => mix(shade('#0072b2', r / 7), '#d55e00', (c / 11) * 0.7)),
+} as const;
+
 export const wellPlate = defineKind<WellPlateParams>({
   kind: 'wellPlate',
   version: 1,
@@ -89,6 +126,33 @@ export const wellPlate = defineKind<WellPlateParams>({
     { id: 'well', label: 'Empty wells', default: '#ffffff' },
     { id: 'rim', label: 'Outlines', default: '#52606d' },
     { id: 'text', label: 'Labels', default: '#3e4c59' },
+  ],
+  presets: [
+    {
+      id: 'controls-in-columns',
+      label: 'Controls in fixed columns',
+      params: { format: '96', wells: LAYOUTS.controls },
+    },
+    {
+      id: 'blank-edges',
+      label: 'Blank edge wells',
+      params: { format: '96', wells: LAYOUTS.edges },
+    },
+    {
+      id: 'dilution-gradient',
+      label: 'Dilution gradient',
+      params: { format: '96', wells: LAYOUTS.dilution },
+    },
+    {
+      id: 'standard-curve',
+      label: 'Standard curve and triplicates',
+      params: { format: '96', wells: LAYOUTS.standards },
+    },
+    {
+      id: 'checkerboard',
+      label: 'Drug-combination checkerboard',
+      params: { format: '96', wells: LAYOUTS.checkerboard },
+    },
   ],
   render(p, { w, h, slots }) {
     const L = plateLayout(p, w, h);

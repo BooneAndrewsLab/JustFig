@@ -48,7 +48,7 @@ import { getLibrary, importToCanvas, placeIcon, placeProcedural } from '../state
 import { type View, currentPage, figure, selectedObjects, store } from '../state/store';
 import { useAppState } from '../state/useAppState';
 import { PagesBar } from '../panels/PagesBar';
-import { ICON_DRAG_TYPE, KIND_DRAG_TYPE, fitPage, zoomAt } from './view';
+import { ICON_DRAG_TYPE, KIND_DRAG_TYPE, fitPage, parseKindDrag, zoomAt } from './view';
 import { resolveBindings } from '../keyBindings';
 import { NodeOverlay, NodeStatus } from './NodeOverlay';
 import { DEFICIENCIES, cvdFilterValues } from '@/export/colourVision';
@@ -741,7 +741,8 @@ export function Canvas() {
     const at = toPage(e);
     const kind = e.dataTransfer.getData(KIND_DRAG_TYPE);
     if (kind) {
-      placeProcedural(kind, at);
+      const d = parseKindDrag(kind);
+      placeProcedural(d.kind, at, d.preset);
       return;
     }
     const iconId = e.dataTransfer.getData(ICON_DRAG_TYPE);

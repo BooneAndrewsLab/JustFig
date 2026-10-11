@@ -111,6 +111,41 @@ export const gel = defineKind<GelParams>({
     { id: 'band', label: 'Bands', default: '#f5f7fa' },
     { id: 'text', label: 'Text', default: '#1f2933' },
   ],
+  presets: [
+    {
+      id: 'colony-pcr',
+      label: 'Colony PCR check',
+      params: {
+        ladder: '1kb',
+        lanes: [
+          { label: 'L', ladder: true, bands: '' },
+          // Colonies 1-6: most carry the 1.5 kb insert, 3 has none and 6 is faint.
+          { label: '1', ladder: false, bands: '1500' },
+          { label: '2', ladder: false, bands: '1500' },
+          { label: '3', ladder: false, bands: '' },
+          { label: '4', ladder: false, bands: '1500' },
+          { label: '5', ladder: false, bands: '1500' },
+          { label: '6', ladder: false, bands: '1500:0.3' },
+          { label: '+', ladder: false, bands: '1500' },
+          { label: '–', ladder: false, bands: '' },
+        ],
+      },
+    },
+    {
+      id: 'restriction-digest',
+      label: 'Restriction digest',
+      params: {
+        ladder: '1kb',
+        lanes: [
+          { label: 'L', ladder: true, bands: '' },
+          { label: 'Uncut', ladder: false, bands: '3500, 6000:0.4' },
+          { label: 'EcoRI', ladder: false, bands: '5400' },
+          { label: 'BamHI', ladder: false, bands: '3000, 2400' },
+          { label: 'E + B', ladder: false, bands: '3000, 1600, 800' },
+        ],
+      },
+    },
+  ],
   render(p, { w, h, slots }) {
     const out: Prim[] = [];
     const dark = slots['gel'] ?? '#2b2f36';

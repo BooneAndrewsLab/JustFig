@@ -831,6 +831,40 @@ button.history__item--current {
   margin: 4px 0 0;
 }
 
+/* A kind's presets (note 58), folded under the shelf's grid. */
+.object-presets {
+  margin-top: 6px;
+}
+
+.object-presets summary {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.object-presets-group {
+  margin: 4px 0 0;
+  font-size: 10px;
+  color: var(--ink-3);
+}
+
+/* "Start from…" in a procedural object's Inspector section (note 58). */
+.start-from {
+  margin-bottom: 6px;
+}
+
+.start-from__list {
+  left: 0;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.menu__heading {
+  padding: 4px 10px 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
 /* Scientific objects an icon search matches: the shelf's tiles, tagged and outlined. */
 .object-results {
   display: grid;

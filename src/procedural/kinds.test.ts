@@ -7,6 +7,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import fc from 'fast-check';
 import { beforeAll, describe, expect, it } from 'vitest';
 
+import type { Procedural } from '@/core/model/types';
 import { nodeToSvgString } from '@/render/svgNode';
 import { primNodes } from '@/render/procedural';
 import { loadTestFonts } from '@/test/fonts';
@@ -15,6 +16,7 @@ import { paramsArb, pathArb, sizeArb } from '@/test/procArbitraries';
 import { createProcedural } from './edits';
 import { decodeParams, defaultParams } from './params';
 import { type Prim, primPoints } from './prims';
+import { createFromPreset, presetSlots, presetsOf } from './presets';
 import { allKinds, slotHexes } from './registry';
 import { primObjects } from './shapes';
 import type { Params, ProceduralKind } from './types';
@@ -32,15 +34,20 @@ beforeAll(loadTestFonts);
 
 const fixed = (k: ProceduralKind, p: Params) => (k.fix ? k.fix(p) : p);
 
-function renderSvg(k: ProceduralKind, over: Partial<Params>, size?: { w: number; h: number }) {
-  const o = createProcedural(k, { x: 0, y: 0 }, over);
+function renderSvg(
+  k: ProceduralKind,
+  over: Partial<Params>,
+  size?: { w: number; h: number },
+  slots: Procedural['slots'] = {},
+) {
+  const o = createProcedural(k, { x: 0, y: 0 }, over, size ?? k.defaultSize);
   const w = size?.w ?? o.frame.w;
   const h = size?.h ?? o.frame.h;
   const prims = k.render(fixed(k, decodeParams(k.fields, o.params)), {
     w,
     h,
     ...(o.path ? { path: o.path } : {}),
-    slots: slotHexes(k, {}, []),
+    slots: slotHexes(k, slots, []),
   });
   const body = primNodes(prims, 'text', [])
     .map((n) => nodeToSvgString(n))
@@ -77,6 +84,39 @@ describe.each(allKinds().map((k) => [k.kind, k] as const))('%s', (_name, k) => {
     const cases = { default: {}, ...(GOLDEN_CASES[k.kind] ?? {}) };
     for (const [name, over] of Object.entries(cases))
       golden(`${k.kind}-${name}.svg`, renderSvg(k, over));
+  });
+
+  // Kind presets (note 58): a golden SVG each, and a finite render inside the frame at any size.
+  it.runIf(presetsOf(k).length > 0)('draws each preset, goldens and bounded', () => {
+    for (const pr of presetsOf(k)) {
+      const slots = presetSlots(pr);
+      golden(
+        `${k.kind}-preset-${pr.id}.svg`,
+        renderSvg(k, pr.params ?? {}, pr.size ?? k.defaultSize, slots),
+      );
+      const p = createFromPreset(k, pr, { x: 0, y: 0 }).params as Params;
+      fc.assert(
+        fc.property(sizeArb, ({ w, h }) => {
+          const prims = k.render(fixed(k, decodeParams(k.fields, p)), {
+            w,
+            h,
+            slots: slotHexes(k, slots, []),
+          });
+          expect(primsFinite(prims), pr.id).toBe(true);
+          expect(units(prims)).toBeLessThanOrEqual(50_000);
+          const pad = (k.overhang ? k.overhang(p) : 0) + 1e-4 * Math.max(w, h) + 1e-6;
+          for (const x of prims)
+            for (const q of primPoints(x)) {
+              expect(q.x).toBeGreaterThanOrEqual(-pad);
+              expect(q.y).toBeGreaterThanOrEqual(-pad);
+              expect(q.x).toBeLessThanOrEqual(w + pad);
+              expect(q.y).toBeLessThanOrEqual(h + pad);
+            }
+          expect(svgNumbersClean(prims)).toBe(true);
+        }),
+        { numRuns: 10 },
+      );
+    }
   });
 
   it('decodes its own defaults to themselves', () => {

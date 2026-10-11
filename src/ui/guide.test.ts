@@ -127,6 +127,22 @@ describe('the user guide', () => {
     for (const e of GALLERY) expect(has(e.title), e.id).toBe(true);
   });
 
+  it("lists every kind preset on its kind's line under Starting points (note 58)", () => {
+    const objects = pages.find((p) => p.id === '08-objects')?.text ?? '';
+    const start = objects.indexOf('## Starting points');
+    expect(start).toBeGreaterThan(-1);
+    const section = objects.slice(start, objects.indexOf('\n## ', start + 1));
+    const lines = section.split('\n');
+    expect(section).toContain('Start from…');
+    expect(src('./panels/ProceduralInspector.tsx')).toContain('Start from…');
+    for (const k of allKinds()) {
+      if ((k.presets ?? []).length === 0) continue;
+      const line = lines.find((l) => l.startsWith(`- **${k.title}**`));
+      expect(line, k.kind).toBeDefined();
+      for (const p of k.presets ?? []) expect(line, `${k.kind}/${p.id}`).toContain(p.label);
+    }
+  });
+
   it('covers files, imports, the sibling apps, exports and citing', () => {
     for (const s of [
       'SVG',

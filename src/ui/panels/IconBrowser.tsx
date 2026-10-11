@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import type { IconEntry, LibraryManifest } from '@/icons/manifest';
-import { matchKinds } from '@/procedural/search';
+import { matchKinds, matchPresets } from '@/procedural/search';
 
 import { ICON_DRAG_TYPE } from '../canvas/view';
 import { IconPreview } from './IconPreview';
@@ -201,10 +201,10 @@ export function IconBrowser({ onCredits }: { onCredits: () => void }) {
   const loading = result.key !== `${query.trim()}|${category ?? ''}|${String(sa)}`;
   const icons = result.icons;
   const objects = useMemo(() => matchKinds(query), [query]);
+  const presets = useMemo(() => matchPresets(query), [query]);
+  const found = objects.length + presets.length;
   const objectCount =
-    objects.length === 0
-      ? ''
-      : `${String(objects.length)} adjustable object${objects.length === 1 ? '' : 's'}, `;
+    found === 0 ? '' : `${String(found)} adjustable object${found === 1 ? '' : 's'}, `;
   return (
     <aside className="icons-panel" aria-label="Icons">
       <ObjectsShelf />
@@ -256,7 +256,7 @@ export function IconBrowser({ onCredits }: { onCredits: () => void }) {
               : `${String(icons.length)}${icons.length >= 240 ? '+' : ''} icons`}
           </p>
         )}
-        {searching && objects.length > 0 && (
+        {searching && found > 0 && (
           <>
             <h3>
               Scientific objects <span className="kind-hint">· redrawn from settings</span>
@@ -264,6 +264,14 @@ export function IconBrowser({ onCredits }: { onCredits: () => void }) {
             <div className="object-results">
               {objects.map((k) => (
                 <ObjectTile key={k.kind} kind={k} tagged />
+              ))}
+              {presets.map((m) => (
+                <ObjectTile
+                  key={`${m.kind.kind}/${m.preset.id}`}
+                  kind={m.kind}
+                  preset={m.preset}
+                  tagged
+                />
               ))}
             </div>
             <h3>

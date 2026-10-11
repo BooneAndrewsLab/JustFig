@@ -8,6 +8,15 @@ export const ICON_DRAG_TYPE = 'application/x-figure-icon';
 /** A procedural kind dragged from the Objects shelf. */
 export const KIND_DRAG_TYPE = 'application/x-figure-kind';
 
+/** What a dragged object tile carries: the kind, and `/preset-id` for a kind preset (note 58). */
+export const kindDragData = (kind: string, preset?: string): string =>
+  preset === undefined ? kind : `${kind}/${preset}`;
+
+export function parseKindDrag(data: string): { kind: string; preset?: string } {
+  const i = data.indexOf('/');
+  return i === -1 ? { kind: data } : { kind: data.slice(0, i), preset: data.slice(i + 1) };
+}
+
 export function zoomAt(v: View, sx: number, sy: number, zoom: number): void {
   const z = Math.min(16, Math.max(0.1, zoom));
   store.setView({ zoom: z, x: sx - ((sx - v.x) * z) / v.zoom, y: sy - ((sy - v.y) * z) / v.zoom });

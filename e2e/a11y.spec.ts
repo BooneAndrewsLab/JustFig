@@ -13,6 +13,10 @@ test('the editor has no serious accessibility problems', async ({ page }) => {
   await page.getByLabel('Search icons').fill('plate');
   await expect(page.locator('.object-tile.tagged').first()).toBeVisible();
   expect(await audit(page, '.icons-panel')).toEqual([]);
+  // The shelf's kind presets (note 58), unfolded.
+  await page.locator('.object-presets[data-kind="petriDish"] > summary').click();
+  await expect(page.getByRole('group', { name: 'Media' })).toBeVisible();
+  expect(await audit(page, '.icons-panel')).toEqual([]);
   // The large icon preview, open on a tile.
   await page.locator('.icon-tile').first().hover();
   await expect(page.getByRole('tooltip')).toBeVisible();
@@ -53,6 +57,11 @@ test('the dialogs and the Inspector of each kind of selection have none either',
   }
   await page.getByRole('button', { name: 'Add Well plate' }).click();
   problems.push(...(await audit(page, '.side')).map((p) => `well plate: ${p}`));
+  // Its Start from… menu of kind presets (note 58), open.
+  await page.getByRole('button', { name: 'Start from…' }).click();
+  await expect(page.getByRole('menu', { name: 'Well plate starting points' })).toBeVisible();
+  problems.push(...(await audit(page, '.side')).map((p) => `Start from…: ${p}`));
+  await page.keyboard.press('Escape');
   // Arrange in grid needs a selection: the well plate just added is one.
   await page.keyboard.press('Shift+G');
   await expect(page.getByRole('dialog', { name: 'Arrange in grid' })).toBeVisible();

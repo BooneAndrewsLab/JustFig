@@ -85,6 +85,41 @@ test('a well plate from the shelf: generated Inspector, painting, Convert to sha
   await expect(side(page).getByRole('region', { name: 'Well plate options' })).toBeVisible();
 });
 
+test('kind presets: placed from the shelf and search, applied from Start from… (note 58)', async ({
+  page,
+}) => {
+  // The shelf: a Media preset places a dish with the default pattern.
+  await page.locator('.object-presets[data-kind="petriDish"] > summary').click();
+  await page.getByRole('button', { name: 'Add Petri dish: YPD', exact: true }).click();
+  const section = side(page).getByRole('region', { name: 'Petri dish options' });
+  await expect(section).toBeVisible();
+  const colonies = section.getByLabel('Colonies', { exact: true });
+  await expect(colonies).toHaveValue('random');
+  // Start from… from the keyboard: Enter opens on the first item, one undo step per choice.
+  const trigger = section.getByRole('button', { name: 'Start from…' });
+  await trigger.focus();
+  await page.keyboard.press('Enter');
+  const menu = page.getByRole('menu', { name: 'Petri dish starting points' });
+  await expect(menu.getByRole('menuitem').first()).toBeFocused();
+  await menu.getByRole('menuitem', { name: 'Single-colony streak' }).click();
+  await expect(menu).toBeHidden();
+  await expect(colonies).toHaveValue('streak');
+  await expect(page.getByRole('button', { name: 'Undo', exact: true })).toHaveAttribute(
+    'title',
+    /Apply preset Single-colony streak/,
+  );
+  await page.keyboard.press('Control+z');
+  await expect(colonies).toHaveValue('random');
+  // Search finds a preset by name, tagged Adjustable; dragging drops it.
+  await page.getByLabel('Search icons').fill('checkerboard');
+  const tile = page.getByTestId('icon-results').getByRole('button', {
+    name: 'Add Well plate: Drug-combination checkerboard (adjustable object)',
+  });
+  await tile.dragTo(page.getByTestId('canvas'));
+  await expect(side(page).getByRole('region', { name: 'Well plate options' })).toBeVisible();
+  await expect(page.getByText('96 of 96 wells coloured')).toBeVisible();
+});
+
 test('a drawn line becomes a lipid bilayer that follows it', async ({ page }) => {
   await page.keyboard.press('l');
   const a = await at(page, 60, 200);

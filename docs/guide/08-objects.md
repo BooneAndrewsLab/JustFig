@@ -14,6 +14,16 @@ A scientific object is not the same as an icon of the same thing. An icon is a f
 
 Select an object to see its settings in the Inspector. Resize it with its handles; the object is redrawn at the new size. You can also rotate, flip and fade it like anything else.
 
+## Starting points
+
+Some objects come with ready-made **starting points**: a Petri dish already streaked, a gel already loaded for a colony PCR, a well plate already laid out. Under the shelf's tiles, open **Petri dish starting points** (or the gel's or well plate's) to see them, each drawn as it will look. Click one to place it, or drag it onto the canvas. Searching for a starting point by name, such as "YPD", "blood agar" or "checkerboard", finds it too, tagged **Adjustable**.
+
+On an object already in the figure, **Start from…** at the top of its Inspector section offers the same list. Choosing one changes only what that starting point is about and keeps the rest, in one step you can undo: a Patterns choice on a Petri dish keeps its medium, and a Media choice keeps its colonies. A starting point is only a start: every setting stays yours to change, and the figure does not remember which one you began from.
+
+- **Petri dish** — Patterns: Single-colony streak, Spot dilutions, Pinned grid, Lawn, Empty plate. Media (the agar and colony colours): LB, YPD, SC/dropout, Blood agar, MacConkey, X-gal (blue colonies), Chocolate agar.
+- **Agarose gel** — Colony PCR check (a 1 kb ladder, six colonies screened for a 1.5 kb insert, with + and – controls) and Restriction digest (uncut plasmid, two single digests and the double digest).
+- **Well plate** — 96-well layouts: Controls in fixed columns (negative in column 1, positive in column 12), Blank edge wells (the outer ring left blank against edge effects), Dilution gradient (across the columns), Standard curve and triplicates (standards down columns 1 and 2, samples in triplicate, blanks in column 12) and Drug-combination checkerboard (one drug rising down the rows, the other across the columns).
+
 ## The objects
 
 | Object              | What it is                                                                                                                                                                                                                                                                                                                                                       |

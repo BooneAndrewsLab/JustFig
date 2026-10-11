@@ -100,14 +100,16 @@ test('a search lists matching scientific objects first, tagged, and places them'
 }) => {
   const search = page.getByLabel('Search icons');
   await search.fill('plate');
-  await expect(page.getByRole('status')).toContainText(/2 adjustable objects, \d+\+? icons/);
+  await expect(page.getByRole('status')).toContainText(/3 adjustable objects, \d+\+? icons/);
   const results = page.getByTestId('icon-results');
   // The objects come before every icon, the title match first, each tagged.
   const first = results.locator('button').first();
   await expect(first).toHaveAttribute('data-kind', 'wellPlate');
   await expect(first).toHaveAccessibleName('Add Well plate (adjustable object)');
   await expect(first.locator('.adjustable-tag')).toHaveText('Adjustable');
-  await expect(results.locator('.object-tile.tagged[data-kind="petriDish"]')).toBeVisible();
+  await expect(
+    results.locator('.object-tile.tagged[data-kind="petriDish"]:not([data-preset])'),
+  ).toBeVisible();
   await expect(results.getByRole('heading', { name: /Icons · fixed drawings/ })).toBeVisible();
 
   // Enter places it, like a click.

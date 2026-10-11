@@ -44,13 +44,14 @@ function isDefaultShape(path: readonly PathNode[]): boolean {
   });
 }
 
-/** A new object of a kind, centred on `at`, with default params. */
+/** A new object of a kind, centred on `at`, with default params (`over` over them) in a `size` frame. */
 export function createProcedural(
   k: ProceduralKind,
   at: Vec2,
   over: Partial<Params> = {},
+  size: { readonly w: number; readonly h: number } = k.defaultSize,
 ): Procedural {
-  const { w, h } = k.defaultSize;
+  const { w, h } = size;
   const params = fixed(k, { ...defaultParams(k.fields), ...over } as Params);
   const path =
     k.usesPath && k.defaultPath ? k.defaultPath(w, h, params['closed'] === true) : undefined;

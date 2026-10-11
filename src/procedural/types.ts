@@ -90,6 +90,25 @@ export interface RenderInput {
   readonly slots: Readonly<Record<string, string>>;
 }
 
+/**
+ * A named starting point for a kind (note 58): params over the field defaults and plain-hex
+ * slot colours. Built in, never stored on the object: nothing remembers which preset an object
+ * came from, so presets can be renamed, reordered or retired without a migration.
+ */
+export interface KindPreset<P = Params> {
+  /** Stable, kebab-case, unique within the kind. */
+  readonly id: string;
+  readonly label: string;
+  /** A heading in the pickers ("Patterns", "Media"); presets of one group are alternatives. */
+  readonly group?: string;
+  /** Over the field defaults; applying a preset sets only these keys. */
+  readonly params?: Partial<P>;
+  /** Slot id → `#rrggbb`, plain hex (never a swatch link, note 07). */
+  readonly slots?: Readonly<Record<string, string>>;
+  /** The frame, points, when the kind's default size is the wrong shape for it. */
+  readonly size?: { readonly w: number; readonly h: number };
+}
+
 export interface ProceduralKind<P = Params> {
   readonly kind: string;
   readonly version: number;
@@ -104,6 +123,8 @@ export interface ProceduralKind<P = Params> {
   readonly keywords: readonly string[];
   readonly fields: readonly Field[];
   readonly slots: readonly SlotDef[];
+  /** Named starting points (note 58), in picker order. */
+  readonly presets?: readonly KindPreset<P>[];
   /** Path-following kinds draw along `obj.path`. */
   readonly usesPath?: 'open' | 'closed';
   readonly defaultSize: { readonly w: number; readonly h: number };

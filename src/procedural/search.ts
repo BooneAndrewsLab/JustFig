@@ -4,7 +4,7 @@
  * is data from another repo.
  */
 import { allKinds } from './registry';
-import type { ProceduralKind } from './types';
+import type { KindPreset, ProceduralKind } from './types';
 
 const words = (s: string): string[] =>
   s
@@ -41,4 +41,41 @@ export function matchKinds(
     scored.push({ k, score, i });
   });
   return scored.sort((a, b) => b.score - a.score || a.i - b.i).map((s) => s.k);
+}
+
+export interface PresetMatch {
+  readonly kind: ProceduralKind;
+  readonly preset: KindPreset;
+}
+
+/**
+ * The kind presets (note 58) a query finds: every word matches the preset's label, its group,
+ * the kind's title or a keyword, and at least one word the label itself, so "YPD" or "tetrad"
+ * finds the preset while "plate" alone stays with the kinds. Best first: more words in the
+ * label, then kind and preset order.
+ */
+export function matchPresets(
+  query: string,
+  kinds: readonly ProceduralKind[] = allKinds(),
+): PresetMatch[] {
+  const qs = words(query);
+  if (qs.length === 0) return [];
+  const scored: { m: PresetMatch; score: number; i: number }[] = [];
+  let i = 0;
+  for (const k of kinds) {
+    const rest = [...words(k.title), ...k.keywords.flatMap(words)];
+    for (const preset of k.presets ?? []) {
+      i += 1;
+      const label = words(preset.label);
+      const group = words(preset.group ?? '');
+      let score = 0;
+      let ok = true;
+      for (const q of qs) {
+        if (hits(q, label)) score += 2;
+        else if (!hits(q, group) && !hits(q, rest)) ok = false;
+      }
+      if (ok && score > 0) scored.push({ m: { kind: k, preset }, score, i });
+    }
+  }
+  return scored.sort((a, b) => b.score - a.score || a.i - b.i).map((s) => s.m);
 }
