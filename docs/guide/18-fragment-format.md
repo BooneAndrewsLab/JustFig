@@ -100,9 +100,10 @@ A `procedural` object is drawn by JustFig from a short list of parameters, so a 
 
 ### `cell`: Cell
 
-`kindVersion` 1. An animal cell; switch organelles on and off and colour each one. Default size 220 x 160 pt.
+`kindVersion` 2. A eukaryotic cell (animal, plant, yeast, neuron, epithelial); switch organelles on and off and colour each one. Default size 220 x 160 pt. Version 1 cells are read as version 2 with the new parts off.
 
-- `shape`: one of `round`, `irregular`, default `round`
+- `shape`: one of `round`, `irregular`, `box`, `neuron`, default `round`
+- `wall`: number 0 to 12 pt, default 0 (no cell wall)
 - `nucleus`: true or false, default true
 - `nucleolus`: true or false, default true
 - `er`: true or false, default true
@@ -110,8 +111,29 @@ A `procedural` object is drawn by JustFig from a short list of parameters, so a 
 - `mitochondria`: whole number 0 to 30, default 5
 - `lysosomes`: whole number 0 to 40, default 4
 - `vesicles`: whole number 0 to 60, default 8
+- `vacuole`: number 0 to 0.8 (share of the cell), default 0
+- `chloroplasts`: whole number 0 to 30, default 0
+- `bud`: number 0 to 0.8 (share of the mother), default 0
+- `microvilli`: whole number 0 to 40, default 0
+- `division`: one of `none`, `metaphase`, `telophase`, default `none`
+- `apoptotic`: true or false, default false
 - `membrane`: number 0.25 to 8 pt, default 2
 - `seed`: whole number 0 to 99999, default 3
+
+### `bacterium`: Bacterium
+
+`kindVersion` 1. A bacterium: rod, coccus or curved rod, Gram-negative or Gram-positive, with nucleoid, plasmids, flagella and pili. Default size 240 x 110 pt.
+
+- `shape`: one of `rod`, `coccus`, `vibrio`, default `rod`
+- `envelope`: one of `negative`, `positive`, default `negative`
+- `capsule`: true or false, default false
+- `nucleoid`: true or false, default true
+- `plasmids`: whole number 0 to 6, default 2
+- `ribosomes`: whole number 0 to 200, default 40
+- `flagella`: one of `none`, `polar`, `tuft`, `peritrichous`, default `polar`
+- `pili`: whole number 0 to 40, default 0
+- `membrane`: number 0.25 to 6 pt, default 1.5
+- `seed`: whole number 0 to 99999, default 7
 
 ### `bilayer`: Lipid bilayer
 

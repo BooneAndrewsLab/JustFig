@@ -1,5 +1,6 @@
 /** Every procedural kind this version knows (note 04), in Objects-panel order. */
 import type { ProceduralKind } from '../types';
+import { bacterium } from './bacterium';
 import { cell } from './cell';
 import { proteinDomains } from './domains';
 import { gel } from './gel';
@@ -17,6 +18,7 @@ import { wellPlate } from './wellPlate';
 
 export const KINDS: readonly ProceduralKind[] = [
   cell,
+  bacterium,
   bilayer,
   receptors,
   helix,
