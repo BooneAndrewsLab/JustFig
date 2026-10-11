@@ -8,6 +8,7 @@
  */
 import { type DragEvent, type KeyboardEvent, useRef, useState } from 'react';
 
+import { Icon } from '../icons';
 import { analytics } from '../analytics';
 import { withKey, resolveBindings } from '../keyBindings';
 import { closeTab, newFigure } from '../state/session';
@@ -147,7 +148,7 @@ export function TabStrip({ onRecent }: { readonly onRecent: () => void }) {
                   closeTab(t.key);
                 }}
               >
-                ×
+                <Icon name="close" />
               </span>
             </div>
           );
@@ -160,7 +161,7 @@ export function TabStrip({ onRecent }: { readonly onRecent: () => void }) {
         title="Start a new figure in a tab of its own"
         onClick={newFigure}
       >
-        +
+        <Icon name="add" />
       </button>
     </nav>
   );

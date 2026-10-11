@@ -13,3 +13,6 @@ src/export/fixtures/*.jfig
 src/io/fixtures/*.jfig
 LANDSCAPE.md
 public/schema
+# Sibling logo files copied verbatim for the Claude Design brief
+design/brief/references
+design/logo/*.html

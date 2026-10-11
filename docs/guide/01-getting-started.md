@@ -4,7 +4,7 @@ JustFig is a free figure editor that runs entirely in your browser. There is no 
 
 ## The screen
 
-- **Top bar:** the figure title, then the file buttons, undo and redo, zoom, and on the right Guide, Shortcuts…, Attribution and Export….
+- **Top bar:** the logo, the figure title, then the file buttons, undo and redo, zoom, and on the right Guide, Shortcuts…, Attribution and Export….
 - **Tab strip:** under the top bar. **Recent…**, then one tab per open figure, then **+** for a new one (see [Several figures at once](17-several-figures.md)).
 - **Left:** the Icons panel. At its top is the Scientific objects shelf (see [Scientific objects](08-objects.md)), below it the icon search and categories (see [Icons](07-icons.md)).
 - **Tool palette:** a narrow column of tools next to the canvas (see [Drawing](02-drawing.md)).

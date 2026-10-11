@@ -18,8 +18,8 @@ export const BRAND = Object.freeze({
   fileExt: '.jfig',
   /** MIME type of saved figures (the PWA file handler). */
   mime: 'application/json',
-  themeColor: '#1f2933',
-  backgroundColor: '#f4f5f7',
+  themeColor: '#201e1d',
+  backgroundColor: '#f3f2f2',
   /**
    * Base URL of the icon library inside the deployed site (`public/lib/<version>/`);
    * the version is the one pinned in icons.lock.json (src/icons/lock.test.ts checks).

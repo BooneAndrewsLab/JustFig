@@ -1,6 +1,7 @@
 import { resolveBindings, withKey } from '../keyBindings';
 import { store } from '../state/store';
 import { TOOLS } from './tools';
+import { Icon } from '../icons';
 import { useAppState } from '../state/useAppState';
 
 export function ToolPalette() {
@@ -20,7 +21,7 @@ export function ToolPalette() {
             store.setTool(t.id);
           }}
         >
-          {t.glyph}
+          <Icon name={t.id} />
         </button>
       ))}
     </nav>

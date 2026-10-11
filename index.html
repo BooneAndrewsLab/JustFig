@@ -15,7 +15,7 @@
       body {
         height: 100%;
         margin: 0;
-        background: #f4f5f7;
+        background: #f3f2f2;
       }
       #loading {
         position: fixed;
@@ -25,7 +25,7 @@
         align-items: center;
         justify-content: center;
         gap: 14px;
-        color: #52606d;
+        color: #57524f;
         font:
           13px/1.4 system-ui,
           -apple-system,
@@ -40,14 +40,14 @@
       #loading .name {
         font-size: 18px;
         font-weight: 600;
-        color: #1f2933;
+        color: #201e1d;
         letter-spacing: 0.01em;
       }
       #loading .bar {
         width: 120px;
         height: 3px;
         border-radius: 2px;
-        background: #e1e4e8;
+        background: #dcd9d7;
         overflow: hidden;
       }
       #loading .bar::after {
@@ -56,7 +56,7 @@
         width: 40%;
         height: 100%;
         border-radius: 2px;
-        background: #0072b2;
+        background: #201e1d;
         animation: loading-slide 1.1s ease-in-out infinite alternate;
       }
       @keyframes loading-slide {
@@ -78,12 +78,10 @@
   <body>
     <div id="root">
       <div id="loading" role="status">
-        <svg viewBox="0 0 64 64" aria-hidden="true">
-          <rect x="4" y="4" width="56" height="56" rx="10" fill="#1f2933" />
-          <rect x="13" y="13" width="17" height="17" rx="2" fill="#56b4e9" />
-          <circle cx="42.5" cy="21.5" r="8.5" fill="#e69f00" />
-          <rect x="13" y="34" width="17" height="17" rx="2" fill="#009e73" />
-          <path d="M36 51 L42.5 36 L49 51 Z" fill="#cc79a7" />
+        <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+          <path d="M48.5 17.5V40A17 17 0 0 1 16.78 48.5" stroke="#201e1d" stroke-width="11" />
+          <rect x="32" y="3" width="8" height="8" fill="#201e1d" />
+          <rect x="46" y="3" width="8" height="8" fill="#ec3013" />
         </svg>
         <div class="name">%BRAND_NAME%</div>
         <div class="bar"></div>

@@ -59,7 +59,7 @@ export default defineConfig({
       // Registered by hand in main.tsx, production only.
       injectRegister: null,
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
+      includeAssets: ['favicon.svg', 'icons/*.png'],
       manifest: {
         name: BRAND.name,
         short_name: BRAND.shortName,
@@ -69,7 +69,16 @@ export default defineConfig({
         display: 'standalone',
         start_url: base,
         scope: base,
-        icons: [{ src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml' }],
+        icons: [
+          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+          {
+            src: 'icons/icon-maskable-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
+        ],
         file_handlers: [{ action: base, accept: { [BRAND.mime]: [BRAND.fileExt] } }],
       },
       workbox: {

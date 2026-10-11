@@ -194,8 +194,25 @@ select {
 }
 
 .topbar .brand {
-  font-weight: 700;
+  display: flex;
+  align-items: center;
   margin-right: 8px;
+  color: var(--ink);
+}
+
+.logo {
+  display: block;
+}
+
+/* Line icons (icons.tsx) centred in the buttons that hold them. */
+.icon-glyph {
+  display: block;
+  margin: auto;
+}
+
+.tabstrip-close .icon-glyph {
+  width: 12px;
+  height: 12px;
 }
 
 .topbar .title {
@@ -235,7 +252,6 @@ select {
   width: 34px;
   height: 34px;
   padding: 0;
-  font-size: 15px;
 }
 
 .icons-panel {

@@ -17,6 +17,7 @@ export default defineConfig(
       '.idea',
       'dev-dist',
       'public/lib',
+      'design/brief/references',
       'playwright-report',
       'test-results',
     ],

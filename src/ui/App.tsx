@@ -10,6 +10,8 @@ import { canvasSize, fitPage, zoomAt } from './canvas/view';
 import { AttributionDialog } from './dialogs/AttributionDialog';
 import { CreditsDialog } from './dialogs/CreditsDialog';
 import { ExportDialog } from './dialogs/ExportDialog';
+import { Icon } from './icons';
+import { Logo } from './Logo';
 import { GalleryDialog } from './dialogs/GalleryDialog';
 import { ChannelsDialog } from './dialogs/ChannelsDialog';
 import { CropDialog } from './dialogs/CropDialog';
@@ -171,7 +173,9 @@ export function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <span className="brand">{BRAND.name}</span>
+        <span className="brand">
+          <Logo />
+        </span>
         <input
           className="title"
           aria-label="Figure title"
@@ -258,7 +262,7 @@ export function App() {
               store.undo();
             }}
           >
-            ↶
+            <Icon name="undo" />
           </button>
           <button
             type="button"
@@ -270,7 +274,7 @@ export function App() {
               store.redo();
             }}
           >
-            ↷
+            <Icon name="redo" />
           </button>
         </div>
         <div className="toolbar-group">
@@ -282,7 +286,7 @@ export function App() {
               zoomBy(1 / 1.25);
             }}
           >
-            −
+            <Icon name="zoom-out" />
           </button>
           <button
             type="button"
@@ -302,7 +306,7 @@ export function App() {
               zoomBy(1.25);
             }}
           >
-            +
+            <Icon name="zoom-in" />
           </button>
         </div>
         <span className="spacer" />

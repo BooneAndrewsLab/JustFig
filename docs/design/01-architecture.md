@@ -36,7 +36,8 @@ src/
   icons/           library client: manifest, shards, SVG fetch, SVG -> SvgNode, slot recolouring
   io/              .jfig codec + migrations, SVG/PNG/JPG import, sanitiser, Dexie storage
   export/          svg.ts, pdf.ts, raster.ts, png.ts (pHYs, from BarelySig), tiff.ts, fixtures/
-  ui/              App, canvas/ (viewport, tools, overlays), panels/, dialogs/, state/
+  ui/              App, canvas/ (viewport, tools, overlays), panels/, dialogs/, state/,
+                   Logo + logoWordmark (the lockup), icons (line icons; note 50)
 ```
 
 Phase 1 also has `ui/canvas/` (Canvas with the tools' pointer gestures, PageView, Rulers,

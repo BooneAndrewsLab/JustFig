@@ -1,6 +1,7 @@
 import { addPage, deletePage, updatePage } from '@/core/edits/edits';
 import { createPage } from '@/core/model/factory';
 
+import { Icon } from '../icons';
 import { store } from '../state/store';
 import { useAppState } from '../state/useAppState';
 
@@ -82,7 +83,7 @@ export function PagesBar() {
           if (store.edit(addPage(page))) store.setPage(page.id);
         }}
       >
-        +
+        <Icon name="add" />
       </button>
       {pages.length > 1 && (
         <button
