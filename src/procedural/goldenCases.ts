@@ -44,6 +44,13 @@ export const GOLDEN_CASES: Readonly<Record<string, Readonly<Record<string, Parti
     grid: { pattern: 'grid', count: 96, variation: 0 },
     lawn: { pattern: 'lawn', lid: false },
     'spots-strains': { pattern: 'spots', count: 60, spotRows: 4, spotCols: 6, rowLabels: true },
+    'disk-diffusion': { pattern: 'lawn', discs: 5, haloSize: 12 },
+    plaques: { pattern: 'lawn', plaques: 40, plaqueSize: 2 },
+    'blue-white': { pattern: 'random', count: 70, markerShare: 25, size: 3 },
+    'morph-wrinkled': { pattern: 'random', count: 12, size: 9, morphology: 'wrinkled' },
+    'morph-filamentous': { pattern: 'random', count: 12, size: 9, morphology: 'filamentous' },
+    'morph-petite': { pattern: 'random', count: 60, morphology: 'petite' },
+    'morph-sectored': { pattern: 'grid', count: 36, size: 5, morphology: 'sectored' },
     'spots-wide': { pattern: 'spots', count: 400, spotRows: 8, spotCols: 8, rowLabels: true },
     'tetrads-mixed': {
       pattern: 'tetrads',

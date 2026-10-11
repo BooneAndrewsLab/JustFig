@@ -1129,7 +1129,7 @@
                 "const": "petriDish"
               },
               "kindVersion": {
-                "const": 3
+                "const": 4
               }
             },
             "required": [
@@ -2403,6 +2403,55 @@
           "type": "boolean",
           "default": false,
           "description": "Row labels. A, B, C... beside each strain row."
+        },
+        "discs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8,
+          "default": 0,
+          "description": "Antibiotic discs. Paper discs on the lawn, each with a clear inhibition halo."
+        },
+        "haloSize": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 40,
+          "default": 12,
+          "description": "Halo width. Clear zone beyond the disc edge; it varies a little between discs.",
+          "x-unit": "pt"
+        },
+        "plaques": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 300,
+          "default": 0,
+          "description": "Plaques. Clear spots where phage lysed the lawn."
+        },
+        "plaqueSize": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 10,
+          "default": 2,
+          "description": "Plaque size",
+          "x-unit": "pt"
+        },
+        "markerShare": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 0,
+          "description": "Marker colour share. Share of colonies drawn in the marker colour, for blue/white or red/white screens.",
+          "x-unit": "%"
+        },
+        "morphology": {
+          "enum": [
+            "smooth",
+            "wrinkled",
+            "filamentous",
+            "petite",
+            "sectored"
+          ],
+          "default": "smooth",
+          "description": "Colony shape"
         },
         "size": {
           "type": "number",

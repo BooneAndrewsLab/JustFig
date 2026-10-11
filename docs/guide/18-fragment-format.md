@@ -209,7 +209,7 @@ A `procedural` object is drawn by JustFig from a short list of parameters, so a 
 
 ### `petriDish`: Petri dish
 
-`kindVersion` 3. An agar plate with colonies: random, streaked, spotted dilutions (strain rows by 10-fold columns), a pinned grid, a lawn or a tetrad dissection. Default size 150 x 150 pt.
+`kindVersion` 4. An agar plate with colonies: random, streaked, spotted dilutions (strain rows by 10-fold columns), a pinned grid, a lawn (with antibiotic discs and plaques) or a tetrad dissection; colonies can mix two colours and take other shapes. Default size 150 x 150 pt.
 
 - `pattern`: one of `random`, `streak`, `spots`, `grid`, `lawn`, `tetrads`, `none`, default `random`
 - `count`: whole number 0 to 1536, default 60
@@ -225,6 +225,12 @@ A `procedural` object is drawn by JustFig from a short list of parameters, so a 
 - `spotRows`: whole number 1 to 8, default 3
 - `spotCols`: whole number 2 to 8, default 5
 - `rowLabels`: true or false, default false
+- `discs`: whole number 0 to 8, default 0
+- `haloSize`: number 0 to 40 pt, default 12
+- `plaques`: whole number 0 to 300, default 0
+- `plaqueSize`: number 0.5 to 10 pt, default 2
+- `markerShare`: number 0 to 100 %, default 0
+- `morphology`: one of `smooth`, `wrinkled`, `filamentous`, `petite`, `sectored`, default `smooth`
 
 ### `gel`: Agarose gel
 
