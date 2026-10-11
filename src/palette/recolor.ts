@@ -5,11 +5,11 @@
  * change, add and remove swatches, and apply a built-in palette.
  */
 import { resolvePaint } from '@/core/color/color';
-import { type Edit, updateDoc } from '@/core/edits/edits';
+import { type Edit, updateDoc, updateObjects } from '@/core/edits/edits';
 import { createDoc, createLayer, createPage } from '@/core/model/factory';
 import { type Id, newId } from '@/core/model/ids';
 import { mapObjs } from '@/core/model/tree';
-import type { Doc, Obj, Paint, ShapeStyle, Swatch } from '@/core/model/types';
+import type { Doc, Figure, Obj, Paint, ShapeStyle, Swatch } from '@/core/model/types';
 import { getKind } from '@/procedural/registry';
 
 import { type BuiltInPalette, isNeutral } from './palettes';
@@ -236,4 +236,37 @@ export const applyPalette = (p: BuiltInPalette): Edit => ({
     const linked = linkColours().apply(f);
     return { ...linked, doc: { ...linked.doc, palette: paletteApplied(linked.doc, p) } };
   },
+});
+
+/** The ink line-art icons are drawn in: the icon library's own outline colour. */
+export const LINE_ART_INK = '#1f2933';
+
+/** The icon's line-art slot overrides (fills white, outline ink), or null when it has no outline slot to keep. */
+function lineArtSlots(f: Figure, o: Obj): Record<string, Paint> | null {
+  if (o.type !== 'icon') return null;
+  const a = f.assets[o.asset];
+  if (a?.kind !== 'icon' || a.recolor !== 'slots') return null;
+  if (!a.slots.some((s) => s.id === 'outline')) return null;
+  const out: Record<string, Paint> = {};
+  for (const s of a.slots) out[s.id] = { hex: s.id === 'outline' ? LINE_ART_INK : '#ffffff' };
+  return out;
+}
+
+/** Whether any of these objects is an icon `iconLineArt` can turn into line art. */
+export const hasLineArtIcons = (f: Figure, objs: readonly Obj[]): boolean =>
+  objs.some((o) => lineArtSlots(f, o) !== null);
+
+/**
+ * Turns the selected icons into line art (note 58): every fill slot white and the
+ * outline slot ink, as plain hex (icon colours are never linked, note 07). Icons
+ * with no outline slot or a single whole-icon colour are left alone. The overrides
+ * make a CC BY / BY-SA icon's credit say "modified" (note 03); Reset colours undoes it.
+ */
+export const iconLineArt = (pageId: Id, ids: readonly Id[]): Edit => ({
+  label: 'Icons to line art',
+  apply: (f) =>
+    updateObjects(pageId, ids, 'Icons to line art', (o) => {
+      const slots = lineArtSlots(f, o);
+      return slots && o.type === 'icon' ? { ...o, slots } : o;
+    }).apply(f),
 });

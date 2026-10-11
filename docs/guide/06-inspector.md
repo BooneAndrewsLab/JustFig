@@ -70,7 +70,7 @@ For a numbered step badge: which step it is (read only, from the reading order o
 
 ### Icon colours
 
-For an icon from the library: one colour control for each recolourable part, named by the icon (for example Primary and Outline), and **Reset colours** to go back to the original. Below them are the icon's title, source, author and licence. A recoloured CC BY or CC BY-SA icon is credited as "modified". See [Icons](07-icons.md).
+For an icon from the library: one colour control for each recolourable part, named by the icon (for example Primary and Outline), **Reset colours** to go back to the original, and **Line art**, which turns the icon (or, with several icons selected, all of them) into line art: fills white and the Outline part dark ink, to sit next to line-art objects. Icons with no Outline part, and one-colour icons, are left as they are. Line art is one undo step. Below them are the icon's title, source, author and licence. A recoloured CC BY or CC BY-SA icon is credited as "modified". See [Icons](07-icons.md).
 
 ### Panel
 

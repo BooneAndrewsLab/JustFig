@@ -20,7 +20,7 @@ Icons are copied into your figure, so a saved `.jfig` file does not need the lib
 
 ## Recolouring
 
-Select an icon and use the **Icon colours** section of the Inspector. Most icons have a few colour parts, such as Primary and Outline; change each with its colour control, which also offers your palette swatches (see [Colours and palettes](09-colours.md)). Shades inside an icon move with the colour you choose, so a recoloured icon keeps its depth. **Reset colours** goes back to the original.
+Select an icon and use the **Icon colours** section of the Inspector. Most icons have a few colour parts, such as Primary and Outline; change each with its colour control, which also offers your palette swatches (see [Colours and palettes](09-colours.md)). Shades inside an icon move with the colour you choose, so a recoloured icon keeps its depth. **Reset colours** goes back to the original. **Line art** makes the icon (or every selected icon, when you select several) line art in one step: every fill white and the Outline dark ink, so it matches line-art cells and plates. It counts as recolouring, so a CC BY or CC BY-SA icon is credited as "modified"; **Reset colours** undoes it. Icons without an Outline part and one-colour icons are left unchanged.
 
 Some icons are drawn with many colours and can only be tinted as a whole; their section has a single colour control.
 

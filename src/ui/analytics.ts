@@ -93,8 +93,8 @@ export const EVENTS = {
   note: ['add', 'reply', 'resolve', 'delete', 'hide'],
   /** `open`: the entry id (app vocabulary) as the name. `source`: Save as template source. */
   gallery: ['open', 'source'],
-  /** The built-in palette id as the name. */
-  palette: ['apply', 'link'],
+  /** `apply`: the built-in palette id as the name. `line-art`: icons turned to line art (note 58). */
+  palette: ['apply', 'link', 'line-art'],
   keys: ['change', 'reset'],
   /** Several figures open (note 25): a second tab opened, a tab closed or dragged. */
   tabs: ['second', 'close', 'move'],

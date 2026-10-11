@@ -86,6 +86,19 @@ test('recolours a CC BY icon per slot and credits it as modified', async ({ page
   await expect(dialog.getByTestId('credit-line')).not.toContainText('modified');
 });
 
+test('turns a CC BY icon into line art by keyboard, credits it modified, and undoes', async ({
+  page,
+}) => {
+  await (await iconTile(page, 'bi-erythrocyte-5', 'erythrocyte 5')).click();
+  const inspector = page.getByRole('complementary', { name: 'Inspector' });
+  await page.getByRole('button', { name: 'Line art' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('canvas').locator('[stroke="#1f2933"]').first()).toBeAttached();
+  await expect(inspector).toContainText('modified');
+  await page.keyboard.press('Control+z');
+  await expect(inspector).not.toContainText('modified');
+});
+
 test('shows the library credits', async ({ page }) => {
   await page.getByRole('button', { name: 'Icon credits and licences' }).click();
   const dialog = page.getByRole('dialog', { name: 'Icon credits and licences' });

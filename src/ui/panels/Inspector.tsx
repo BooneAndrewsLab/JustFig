@@ -68,6 +68,7 @@ import { recipeFile } from '@/io/barelysig';
 import { bakeView } from '@/io/cropImage';
 import { bakeLevels, needsBake } from '@/io/levels';
 import { bakeSplit } from '@/io/split';
+import { hasLineArtIcons, iconLineArt } from '@/palette/recolor';
 import { drawnBoundsIn } from '@/procedural/bounds';
 import { addScaleBar, insetSourcePixelSize, labelGelImage } from '@/procedural/edits';
 import { formatLength, fromUnit, toUnit } from '@/core/units';
@@ -817,6 +818,7 @@ function SelectionInspector({
       {one && isStep(one) && <StepSection s={s} badge={one} />}
       {one?.type === 'text' && <TextSection s={s} text={one} />}
       {one?.type === 'icon' && <IconSection s={s} icon={one} />}
+      {one?.type !== 'icon' && <IconsSection s={s} sel={sel} />}
       {one?.type === 'panel' && <PanelSection s={s} panel={one} />}
       {one?.type === 'image' && <ImageSection s={s} image={one} />}
       <ChannelsSection s={s} sel={sel} onChannels={onChannels} />
@@ -1279,6 +1281,37 @@ function TextSection({ s, text }: { s: AppState; text: Extract<Obj, { type: 'tex
   );
 }
 
+function LineArtButton({ s, sel }: { s: AppState; sel: readonly Obj[] }) {
+  const ids = sel.map((o) => o.id);
+  const usable = hasLineArtIcons(figure(s), sel);
+  return (
+    <button
+      type="button"
+      disabled={!usable}
+      title="Fills white, outline ink, to match line-art objects (one undo step)"
+      onClick={() => {
+        store.edit(iconLineArt(currentPage(s).id, ids), { keepSelection: true });
+        analytics.track('palette', 'line-art');
+      }}
+    >
+      Line art
+    </button>
+  );
+}
+
+/** Several selected icons: the line-art recolour for all at once. */
+function IconsSection({ s, sel }: { s: AppState; sel: readonly Obj[] }) {
+  const icons = sel.filter((o) => o.type === 'icon');
+  if (icons.length < 2) return null;
+  return (
+    <Section title="Icon colours">
+      <div className="row">
+        <LineArtButton s={s} sel={icons} />
+      </div>
+    </Section>
+  );
+}
+
 function IconSection({ s, icon }: { s: AppState; icon: Extract<Obj, { type: 'icon' }> }) {
   const fig = figure(s);
   const asset = fig.assets[icon.asset];
@@ -1312,6 +1345,7 @@ function IconSection({ s, icon }: { s: AppState; icon: Extract<Obj, { type: 'ico
         >
           Reset colours
         </button>
+        <LineArtButton s={s} sel={[icon]} />
       </div>
       <p className="note">
         {asset.meta.title} · {asset.meta.source}
