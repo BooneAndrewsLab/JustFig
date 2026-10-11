@@ -30,6 +30,17 @@ profile put ~130 ms of the first render in the Objects shelf, which drew all 17 
   kinds are rendered. Anything else expensive that is not needed for the first frame should follow
   the same pattern rather than run inside the first render.
 
+## Loading screen
+
+Until the script has downloaded and evaluated, the fonts are in and the first render has committed,
+the page was blank: a few hundred milliseconds locally, seconds on a slow connection or a first visit.
+`index.html` now ships a static loading screen (the logo mark, the name, a sliding bar, "Loading…")
+as the initial content of `#root`, styled by an inline `<style>` since `theme.css` arrives with the
+script. It needs no code to remove: React clears the root container on its first commit, so the
+screen stays up exactly until the editor paints, and a failed start replaces it with the recovery
+page (`showStartFailure` replaces the root's children). The bar is indeterminate (nothing reports
+progress) and stops under `prefers-reduced-motion`. `e2e/loading.spec.ts` covers both exits.
+
 ## Result
 
 Warm first paint 550 → ~320 ms, cold 700 → ~570 ms (cold is now mostly the first-visit download
