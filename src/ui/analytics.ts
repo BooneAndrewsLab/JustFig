@@ -53,7 +53,7 @@ export function doNotTrack(nav: Partial<Navigator> = globalThis.navigator): bool
 export const EVENTS = {
   /** Once per visit: `start` (the version). */
   app: ['start'],
-  history: ['undo', 'redo'],
+  history: ['undo', 'redo', 'jump'],
   file: [
     'open',
     'open-recent',

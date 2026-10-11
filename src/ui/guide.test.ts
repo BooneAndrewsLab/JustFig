@@ -59,7 +59,7 @@ describe('the user guide', () => {
   });
 
   it('describes every top-bar button, File menu item, dialog and Inspector section', () => {
-    const app = src('./App.tsx') + src('./FileMenu.tsx');
+    const app = src('./App.tsx') + src('./FileMenu.tsx') + src('./HistoryMenu.tsx');
     for (const b of [
       'File',
       'New',
@@ -73,6 +73,8 @@ describe('the user guide', () => {
       'Export…',
       'Undo',
       'Redo',
+      'History',
+      'Opened figure',
       'Help',
     ]) {
       expect(app, b).toContain(b);

@@ -3,7 +3,7 @@ import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from 're
 /** The enabled items of an open menu, in order. */
 function items(list: HTMLElement | null): HTMLElement[] {
   if (list === null) return [];
-  return [...list.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)')];
+  return [...list.querySelectorAll<HTMLElement>('[role^="menuitem"]:not(:disabled)')];
 }
 
 /**

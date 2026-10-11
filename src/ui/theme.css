@@ -64,12 +64,15 @@
   height: 100%;
 }
 
+/* PlasmidPop's toolbar metrics (note 56): 48 px tall, 16 px at the sides,
+   the logo and title on the left and every action on the right. */
 .topbar {
   grid-area: top;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
+  gap: 16px;
+  min-height: 48px;
+  padding: 8px 16px;
   background: var(--panel);
   border-bottom: 1px solid var(--rule);
 }
@@ -77,7 +80,7 @@
 /* One row at 1280 px at the 14 px base (note 51): labels never wrap. */
 .topbar button:not(.icon, .help-button) {
   white-space: nowrap;
-  padding: 3px 7px;
+  padding: 5px 12px;
 }
 
 /* The open figures (note 25). */
@@ -160,7 +163,6 @@
 .topbar .brand {
   display: flex;
   align-items: center;
-  margin-right: 8px;
   color: var(--ink);
 }
 
@@ -219,9 +221,66 @@
 
 .toolbar-group {
   display: flex;
-  gap: 3px;
-  padding: 0 5px;
-  border-left: 1px solid var(--rule);
+  align-items: center;
+  gap: 6px;
+}
+
+/* Undo | Redo | ▾ as one control (note 56, PlasmidPop's .segmented). */
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.topbar .segmented button {
+  border: 0;
+  border-radius: 0;
+  padding: 4px 12px;
+}
+
+.topbar .segmented button + button {
+  border-left: 1px solid var(--rule-strong);
+}
+
+.topbar .segmented .segmented__caret {
+  padding: 4px 7px;
+  font-size: 11px;
+}
+
+.history__list {
+  min-width: 240px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+button.history__item {
+  display: grid;
+  grid-template-columns: 2.2em minmax(0, 1fr);
+  gap: 0 6px;
+  align-items: baseline;
+}
+
+button.history__item--current {
+  background: var(--ground);
+  font-weight: 600;
+}
+
+.history__item--undone {
+  color: var(--ink-3);
+}
+
+.history__step {
+  font-size: 12px;
+  color: var(--ink-3);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.history__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tools {

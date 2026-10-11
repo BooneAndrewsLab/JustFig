@@ -165,7 +165,7 @@ test('the guide opens from the top bar and from ?, and its pages link to each ot
   await expect(dialog).toContainText(`Version ${version}`);
 });
 
-test('the top bar is one row at 1280 × 720, with ? at its right end (note 52)', async ({
+test('the top bar is one 48 px row at 1280 × 720, actions right, ? at its end (notes 52, 56)', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
@@ -175,13 +175,19 @@ test('the top bar is one row at 1280 × 720, with ? at its right end (note 52)',
   const b = await bar.boundingBox();
   const h = await help.boundingBox();
   if (!b || !h) throw new Error('top bar not visible');
-  expect(b.height).toBeLessThanOrEqual(40);
+  // PlasmidPop's min-height 48; its buttons and border make it 49.3 in both apps.
+  expect(b.height).toBeGreaterThanOrEqual(48);
+  expect(b.height).toBeLessThanOrEqual(50);
   expect(b.width).toBeLessThanOrEqual(1280);
   expect(h.width).toBeCloseTo(28, 1);
   expect(h.height).toBeCloseTo(28, 1);
-  expect(b.x + b.width - (h.x + h.width)).toBeLessThanOrEqual(12);
+  expect(b.x + b.width - (h.x + h.width)).toBeCloseTo(16, 0);
   await page.getByRole('button', { name: 'Undo', exact: true }).waitFor();
   await page.getByRole('button', { name: 'Redo', exact: true }).waitFor();
+  // The actions sit on the right half, as in PlasmidPop's toolbar.
+  const file = await page.getByRole('button', { name: 'File', exact: true }).boundingBox();
+  if (!file) throw new Error('File button not visible');
+  expect(file.x).toBeGreaterThan(b.x + b.width / 2);
 });
 
 test('tool palette buttons are 34 × 34 with a 16 px line icon (DESIGN.md step 4)', async ({

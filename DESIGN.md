@@ -190,3 +190,6 @@ changes (the guide test enforces it), and a design note in `docs/design/`
   and BarelySig are pending with the user (`design/theme-base/README.md`).
 - 2026-10-11: a File menu in the top bar for the file-level actions (Save and Export… stay
   buttons), its rules added to the base sheet under PlasmidPop's class names; note 55.
+- 2026-10-11: the top bar takes PlasmidPop's toolbar metrics (48px, 16px sides, 16px between
+  clusters) with every action on the right, and Undo and Redo become PlasmidPop's History
+  control (Undo | Redo | ▾ list of changes to jump to); note 56.

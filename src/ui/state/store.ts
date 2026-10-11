@@ -341,6 +341,15 @@ export class AppStore {
     analytics.trackOnce('history', 'redo');
   }
 
+  /** Undoes or redoes to `position` applied changes (the History menu, note 56). */
+  jumpHistory(position: number): void {
+    const history = this.state.history.jumpTo(position);
+    if (history === this.state.history) return;
+    const t = this.front();
+    this.replaceTab(fix({ ...t, history }, history.present, t.selection));
+    analytics.trackOnce('history', 'jump');
+  }
+
   undoLabel(): string | null {
     const l = this.state.history.undoLabel;
     return l === undefined ? null : `Undo ${l}`;

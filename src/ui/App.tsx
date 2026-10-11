@@ -12,6 +12,7 @@ import { CreditsDialog } from './dialogs/CreditsDialog';
 import { ExportDialog } from './dialogs/ExportDialog';
 import { Icon } from './icons';
 import { FileMenu } from './FileMenu';
+import { HistoryMenu } from './HistoryMenu';
 import { Logo } from './Logo';
 import { GalleryDialog } from './dialogs/GalleryDialog';
 import { ChannelsDialog } from './dialogs/ChannelsDialog';
@@ -162,8 +163,6 @@ export function App() {
   }, [neverSaved]);
 
   const bound = resolveBindings(s.keyBindings);
-  const undo = store.undoLabel();
-  const redo = store.redoLabel();
   const saveTitle = inPlace
     ? savedAs
       ? `Save to ${savedAs}`
@@ -196,6 +195,7 @@ export function App() {
             );
           }}
         />
+        <span className="spacer" />
         <div className="toolbar-group">
           <FileMenu
             bound={bound}
@@ -227,28 +227,7 @@ export function App() {
             Save
           </button>
         </div>
-        <div className="toolbar-group">
-          <button
-            type="button"
-            disabled={!undo}
-            title={withKey(undo ?? 'Nothing to undo', 'undo', bound)}
-            onClick={() => {
-              store.undo();
-            }}
-          >
-            Undo
-          </button>
-          <button
-            type="button"
-            disabled={!redo}
-            title={withKey(redo ?? 'Nothing to redo', 'redo', bound)}
-            onClick={() => {
-              store.redo();
-            }}
-          >
-            Redo
-          </button>
-        </div>
+        <HistoryMenu history={s.history} bound={bound} />
         <div className="toolbar-group">
           <button
             type="button"
@@ -281,7 +260,6 @@ export function App() {
             <Icon name="zoom-in" />
           </button>
         </div>
-        <span className="spacer" />
         <button
           type="button"
           className="primary"
