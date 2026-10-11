@@ -1,7 +1,8 @@
 # 58 Kind presets: named starting points for procedural objects
 
 2026-10-11. Step 1 (the mechanism, issue #82), the cell types of step 2 (issue #87) and the
-well plate's wizard of step 3 (issue #90) are built; the rest is a plan. Every procedural kind (note 04) starts from its field
+well plate's wizard of step 3 (issue #90) and the line art and cartoon styles of step 4 (issue #92)
+are built; the rest is a plan. Every procedural kind (note 04) starts from its field
 defaults: an agar plate is always 60 scattered colonies on yellow agar, a cell always the same
 generic animal cell. A biologist wants "a tetrad dissection plate", "YPD", "a yeast cell", "a
 96-well plate with controls in column 12", and gets there today by setting six fields by hand,
@@ -125,6 +126,15 @@ How, keeping the rules:
 - **Shared helpers in `prims.ts`** do the work once: tone bands, outline weight per style, an
   organic wobble for edges, ink-only conversion for line art. A kind's render calls them
   instead of branching on the style everywhere.
+  As built (#92): a style is an entry in `STYLE_IDS` and a `LookSpec` in `LOOKS` (fills kept,
+  paper or vivid; edges kept, ink or dark; data colours kept, ink tints or vivid; outline and
+  line weights; wobble; fewer, bigger parts; highlight). `lookOf(p.style, lineWeight)` gives a
+  kind the per-part mappers: `body`, `detail`, `mark` (data colours), `marks` (a whole plate map,
+  spread over distinct ink tints in line art), `line`, `text`, plus `parts`, `bigger`, `organic`
+  (inward-only wobble, clamped to the exact shape's bounds so the bounded-render property holds)
+  and `highlight`. Flat maps every part to itself, so flat goldens never move. Textbook and
+  micrograph (#93) add tone bands and glow as new spec fields and mappers; data counts (wells,
+  colonies, bands) never change with the style, only decorative ones (organelles, ribosomes).
 - **The export subset holds.** No gradients or filters: shading is stacked tone bands, glow
   (fluorescence) is concentric strokes at falling `stroke-opacity`, sheen is a translucent arc.
   Each band is its own colour, so "one path per colour" still merges them. Photo and

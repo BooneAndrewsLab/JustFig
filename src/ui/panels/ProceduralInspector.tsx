@@ -7,8 +7,16 @@ import { useState } from 'react';
 
 import { updateObjects } from '@/core/edits/edits';
 import type { Id } from '@/core/model/ids';
-import type { Paint, PathObj, Procedural, Swatch } from '@/core/model/types';
-import { convertObjects, makeFromPath, setParams } from '@/procedural/edits';
+import type { Obj, Paint, PathObj, Procedural, Swatch } from '@/core/model/types';
+import {
+  applyStyle,
+  convertObjects,
+  makeFromPath,
+  setParams,
+  styledObjects,
+  stylesOf,
+} from '@/procedural/edits';
+import { LOOKS, STYLE_IDS, type StyleId } from '@/procedural/prims';
 import { visibleFields } from '@/procedural/params';
 import { applyPreset, groupedPresets } from '@/procedural/presets';
 import { allKinds, resolveProcedural } from '@/procedural/registry';
@@ -398,6 +406,55 @@ export function ProceduralSection({ s, obj }: { s: AppState; obj: Procedural }) 
 }
 
 /** For a drawn path: turn it into a membrane, helix or receptor row along it. */
+/**
+ * "Apply this style to all" (note 58), in the selection section: with two or more selected
+ * procedural objects that have styles, one edit gives each the chosen style (the first one's to
+ * start with). An object whose kind lacks that style keeps its own.
+ */
+export function ApplyStyleRow({ s, sel }: { s: AppState; sel: readonly Obj[] }) {
+  const [picked, setPicked] = useState<StyleId | null>(null);
+  const styled = styledObjects(sel);
+  if (styled.length < 2) return null;
+  const kinds = styled.flatMap((o) => {
+    const r = resolveProcedural(o);
+    return r ? [r] : [];
+  });
+  const offered = STYLE_IDS.filter((id) => kinds.some((r) => stylesOf(r.kind).includes(id)));
+  const firstStyle = kinds[0]?.params['style'];
+  const style =
+    picked !== null && offered.includes(picked)
+      ? picked
+      : (offered.find((id) => id === firstStyle) ?? 'flat');
+  return (
+    <div className="row">
+      <label htmlFor="apply-style">Style</label>
+      <select
+        id="apply-style"
+        value={style}
+        onChange={(e) => {
+          setPicked(e.target.value as StyleId);
+        }}
+      >
+        {offered.map((id) => (
+          <option key={id} value={id}>
+            {LOOKS[id].label}
+          </option>
+        ))}
+      </select>
+      <button
+        type="button"
+        title="Draw every selected object that has this style in it, as one undo step"
+        onClick={() => {
+          if (store.edit(applyStyle(currentPage(s).id, sel, style), { keepSelection: true }))
+            analytics.track('procedural', 'style', style);
+        }}
+      >
+        Apply this style to all
+      </button>
+    </div>
+  );
+}
+
 export function PathKindsSection({ s, path }: { s: AppState; path: PathObj }) {
   const kinds = allKinds().filter((k) => k.usesPath);
   if (kinds.length === 0) return null;

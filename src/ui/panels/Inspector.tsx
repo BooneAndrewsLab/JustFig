@@ -87,7 +87,7 @@ import { useAppState } from '../state/useAppState';
 import { resolveBindings, withKey } from '../keyBindings';
 import { ColorInput } from './ColorInput';
 import { PaletteSection } from './PaletteSection';
-import { PathKindsSection, ProceduralSection } from './ProceduralInspector';
+import { ApplyStyleRow, PathKindsSection, ProceduralSection } from './ProceduralInspector';
 
 const HEAD_LABEL: Record<HeadKind, string> = {
   none: 'None',
@@ -722,6 +722,7 @@ function SelectionInspector({
             Save as preset…
           </button>
         </div>
+        <ApplyStyleRow s={s} sel={sel} />
       </Section>
 
       {first && (

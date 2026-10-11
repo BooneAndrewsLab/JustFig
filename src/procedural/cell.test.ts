@@ -26,6 +26,8 @@ describe('cell version 2', () => {
     const r = resolveProcedural({ kind: 'cell', kindVersion: 1, params: V1 });
     expect(r?.params).toEqual({
       ...V1,
+      // Styles (note 58) need no version bump: an old cell reads as flat.
+      style: 'flat',
       wall: 0,
       vacuole: 0,
       chloroplasts: 0,

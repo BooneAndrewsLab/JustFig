@@ -47,6 +47,18 @@ Applying it to a dish already in the figure changes only those settings, not its
 
 For both wizards, a preview under the questions shows the object as it will be, and a note says when not every plate condition fits (or when colours start to repeat after 24 conditions). **Next** (or Enter) goes on, **Back** goes back, and **Add** or **Apply** on the last step finishes; Escape or **Cancel** leaves without changing anything. Applying it to a plate already in the figure is one step you can undo and changes only its number of wells and its well colours. The answers are not remembered: the wizard starts from the same questions every time, and the plate is then yours to edit in the well-map editor.
 
+## Styles
+
+A starting point says _what_ an object shows; its **Style** says _how_ it is drawn. The Cell, Bacterium, Well plate, Petri dish and Agarose gel have a **Style** choice at the top of their settings. Changing it never changes what the object shows: a tetrad plate stays the same tetrads, a plate map the same wells.
+
+- **Flat** — flat colours with a thin outline, as these objects have always been drawn. The default, and the closest match to most library icons.
+- **Line art** — outlines only, in one dark ink on white, for journals that want monochrome figures and for methods schematics. Colours that carry meaning become shades of grey: painted wells get shades from light to dark in the order of their colours' lightness (so neighbouring colours stay apart), gel bands are dark on a light gel, marker colonies are filled grey, and a stained gel is drawn light.
+- **Cartoon** — bold dark outlines, brighter flat colours, slightly hand-drawn edges, a small highlight, and fewer but bigger organelles (two or three mitochondria rather than a dozen), for talks, teaching and graphical abstracts. Colonies, wells and bands keep their number: they are your data.
+
+Every style exports like any other object, as plain shapes and colours.
+
+To match several objects, select them all: **Apply this style to all**, with a **Style** choice beside it, appears in the selection's section of the Inspector. It gives every selected object that has that style the same style in one step you can undo; objects without styles (or without that one) are left as they are.
+
 ## The objects
 
 | Object              | What it is                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |

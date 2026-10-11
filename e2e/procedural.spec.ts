@@ -205,6 +205,31 @@ test('the tetrad plate wizard, from the keyboard: placed from the shelf, applied
   await expect(section.getByLabel('Tetrads', { exact: true })).toHaveValue('12');
 });
 
+test('a style per object, and Apply this style to all over a selection (note 58)', async ({
+  page,
+}) => {
+  await page.getByRole('button', { name: 'Add Cell' }).click();
+  const cell = side(page).getByRole('region', { name: 'Cell options' });
+  await cell.getByLabel('Style', { exact: true }).selectOption('cartoon');
+  await page.getByRole('button', { name: 'Add Agarose gel' }).click();
+  // Line art is one ink colour: nothing in it is drawn in ink yet.
+  const ink = page.locator('.canvas path[stroke="#1a1a1a"]');
+  await expect(ink).toHaveCount(0);
+  await page.locator('.canvas').click({ position: { x: 5, y: 5 } });
+  await page.keyboard.press('Control+a');
+  const style = side(page).locator('#apply-style');
+  await expect(style).toHaveValue('cartoon');
+  await style.selectOption('line-art');
+  await side(page).getByRole('button', { name: 'Apply this style to all' }).click();
+  await expect(ink.first()).toBeVisible();
+  const inked = await ink.count();
+  // One step to undo, for both objects.
+  await page.keyboard.press('Control+z');
+  await expect(ink).toHaveCount(0);
+  await page.keyboard.press('Control+Shift+z');
+  await expect(ink).toHaveCount(inked);
+});
+
 test('a drawn line becomes a lipid bilayer that follows it', async ({ page }) => {
   await page.keyboard.press('l');
   const a = await at(page, 60, 200);

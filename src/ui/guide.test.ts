@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest';
 
 import { GALLERY } from '@/gallery/gallery';
 import { PALETTES } from '@/palette/palettes';
+import { LOOKS, STYLE_IDS } from '@/procedural/prims';
 import { allKinds } from '@/procedural/registry';
 
 import { guidePages } from './guide';
@@ -141,6 +142,21 @@ describe('the user guide', () => {
       expect(line, k.kind).toBeDefined();
       for (const p of k.presets ?? []) expect(line, `${k.kind}/${p.id}`).toContain(p.label);
     }
+  });
+
+  it('describes every style, the kinds that have them and Apply this style to all (note 58)', () => {
+    const objects = pages.find((p) => p.id === '08-objects')?.text ?? '';
+    const start = objects.indexOf('## Styles');
+    expect(start).toBeGreaterThan(-1);
+    const section = objects.slice(start, objects.indexOf('\n## ', start + 1));
+    const used = new Set(allKinds().flatMap((k) => k.styles ?? []));
+    for (const id of STYLE_IDS)
+      if (id === 'flat' || used.has(id))
+        expect(section, id).toContain(`- **${LOOKS[id].label}** —`);
+    for (const k of allKinds())
+      if ((k.styles ?? []).length > 0) expect(section, k.kind).toContain(k.title);
+    expect(section).toContain('Apply this style to all');
+    expect(src('./panels/ProceduralInspector.tsx')).toContain('Apply this style to all');
   });
 
   it('describes every kind wizard, its questions and answers under Wizards (note 58)', () => {

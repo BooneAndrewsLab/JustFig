@@ -98,10 +98,13 @@ A `procedural` object is drawn by JustFig from a short list of parameters, so a 
 
 `params` is read leniently: a missing, misspelt or wrong-typed value takes its default, a number outside its range is moved into it, lists are cut to their limit and colours are tidied. A procedural object with bad `params` therefore still pastes, with defaults where the values were wrong; the schema describes what to send. A kind this version does not know is kept and shown as its snapshot, if it has one.
 
+The drawn kinds (`cell`, `bacterium`, `wellPlate`, `petriDish`, `gel`) also take a `style`: `flat` (the default), `line-art` or `cartoon`. It changes only how the object is drawn, never what it shows, and an object without one is drawn flat. Later versions may add styles; an unknown one reads as `flat`.
+
 ### `cell`: Cell
 
 `kindVersion` 2. A eukaryotic cell (animal, plant, yeast, neuron, epithelial); switch organelles on and off and colour each one. Default size 220 x 160 pt. Version 1 cells are read as version 2 with the new parts off.
 
+- `style`: one of `flat`, `line-art`, `cartoon`, default `flat` (how it is drawn)
 - `shape`: one of `round`, `irregular`, `box`, `neuron`, default `round`
 - `wall`: number 0 to 12 pt, default 0 (no cell wall)
 - `nucleus`: true or false, default true
@@ -124,6 +127,7 @@ A `procedural` object is drawn by JustFig from a short list of parameters, so a 
 
 `kindVersion` 1. A bacterium: rod, coccus or curved rod, Gram-negative or Gram-positive, with nucleoid, plasmids, flagella and pili. Default size 240 x 110 pt.
 
+- `style`: one of `flat`, `line-art`, `cartoon`, default `flat` (how it is drawn)
 - `shape`: one of `rod`, `coccus`, `vibrio`, default `rod`
 - `envelope`: one of `negative`, `positive`, default `negative`
 - `capsule`: true or false, default false
@@ -201,6 +205,7 @@ A `procedural` object is drawn by JustFig from a short list of parameters, so a 
 
 `kindVersion` 1. A 6- to 1536-well plate; paint wells or paste a layout from a spreadsheet. Default size 240 x 160 pt.
 
+- `style`: one of `flat`, `line-art`, `cartoon`, default `flat` (how it is drawn)
 - `format`: one of `6`, `12`, `24`, `48`, `96`, `384`, `1536`, default `96`
 - `shape`: one of `circle`, `square`, default `circle`
 - `showLabels`: true or false, default true
@@ -211,6 +216,7 @@ A `procedural` object is drawn by JustFig from a short list of parameters, so a 
 
 `kindVersion` 5. An agar plate with colonies: random, streaked, spotted dilutions (strain rows by 10-fold columns), a pinned grid, a lawn (with antibiotic discs and plaques) or a tetrad dissection; colonies can mix two colours and take other shapes. Round dish or rectangular plate. Default size 150 x 150 pt.
 
+- `style`: one of `flat`, `line-art`, `cartoon`, default `flat` (how it is drawn)
 - `plate`: one of `round`, `rect`, default `round`
 - `pattern`: one of `random`, `streak`, `spots`, `grid`, `lawn`, `tetrads`, `none`, default `random`
 - `count`: whole number 0 to 1536, default 60
@@ -237,6 +243,7 @@ A `procedural` object is drawn by JustFig from a short list of parameters, so a 
 
 `kindVersion` 1. A gel with a ladder and lanes of bands; type band sizes in bp. Default size 220 x 170 pt.
 
+- `style`: one of `flat`, `line-art`, `cartoon`, default `flat` (how it is drawn)
 - `ladder`: one of `1kb`, `100bp`, `none`, default `1kb`
 - `lanes`: list of 1 to 30 items; each item: `label` (text up to 24 characters); `ladder` (true or false, default false); `bands` (text up to 300 characters)
 - `look`: one of `stained`, `inverted`, default `stained`

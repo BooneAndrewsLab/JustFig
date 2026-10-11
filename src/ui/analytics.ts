@@ -66,8 +66,19 @@ export const EVENTS = {
   ],
   tool: ['rect', 'ellipse', 'line', 'pen', 'arrow', 'text', 'panel', 'note'],
   icon: ['place'],
-  /** Kind names are app vocabulary, not figure content. */
-  procedural: ['place', 'convert', 'from-path', 'fragment-paste', 'gel-labels', 'scale-bar'],
+  /**
+   * Kind names are app vocabulary, not figure content. `style`: "Apply this style to all"
+   * (note 58), the style id as the name.
+   */
+  procedural: [
+    'place',
+    'convert',
+    'from-path',
+    'fragment-paste',
+    'gel-labels',
+    'scale-bar',
+    'style',
+  ],
   /** Copy as image (note 36): with the SVG as text beside the PNG, or the PNG alone. */
   export: [
     'svg',

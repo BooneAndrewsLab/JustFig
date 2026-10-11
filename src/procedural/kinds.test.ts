@@ -20,7 +20,7 @@ import { createFromPreset, presetSlots, presetsOf } from './presets';
 import { allKinds, slotHexes } from './registry';
 import { primObjects } from './shapes';
 import type { Params, ProceduralKind } from './types';
-import { GOLDEN_CASES } from './goldenCases';
+import { GOLDEN_CASES, STYLE_GOLDEN_CASES } from './goldenCases';
 
 const UPDATE = process.env['UPDATE_GOLDEN'] === '1';
 const here = (f: string) => new URL(`./__golden__/${f}`, import.meta.url);
@@ -115,6 +115,38 @@ describe.each(allKinds().map((k) => [k.kind, k] as const))('%s', (_name, k) => {
           expect(svgNumbersClean(prims)).toBe(true);
         }),
         { numRuns: 10 },
+      );
+    }
+  });
+
+  // Styles (note 58): a golden SVG per listed style (defaults, and the chosen golden cases in
+  // that style), and a finite render inside the frame at any size and params in each.
+  it.runIf((k.styles ?? []).length > 0)('draws each style, goldens and bounded', () => {
+    for (const style of k.styles ?? []) {
+      golden(`${k.kind}-style-${style}.svg`, renderSvg(k, { style }));
+      for (const name of STYLE_GOLDEN_CASES[k.kind] ?? []) {
+        const over = GOLDEN_CASES[k.kind]?.[name];
+        expect(over, `${k.kind} golden case ${name}`).toBeDefined();
+        golden(`${k.kind}-style-${style}-${name}.svg`, renderSvg(k, { ...over, style }));
+      }
+      fc.assert(
+        fc.property(sizeArb, paramsArb(k.fields), ({ w, h }, raw) => {
+          const p = fixed(k, decodeParams(k.fields, { ...(raw as object), style }));
+          expect(p['style']).toBe(style);
+          const prims = k.render(p, { w, h, slots: slotHexes(k, {}, []) });
+          expect(primsFinite(prims)).toBe(true);
+          expect(units(prims)).toBeLessThanOrEqual(50_000);
+          const pad = (k.overhang ? k.overhang(p) : 0) + 1e-4 * Math.max(w, h) + 1e-6;
+          for (const x of prims)
+            for (const q of primPoints(x)) {
+              expect(q.x).toBeGreaterThanOrEqual(-pad);
+              expect(q.y).toBeGreaterThanOrEqual(-pad);
+              expect(q.x).toBeLessThanOrEqual(w + pad);
+              expect(q.y).toBeLessThanOrEqual(h + pad);
+            }
+          expect(svgNumbersClean(prims)).toBe(true);
+        }),
+        { numRuns: Number(process.env['PROC_RUNS'] ?? 25) },
       );
     }
   });

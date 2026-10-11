@@ -4,7 +4,7 @@
  * `<path>`; intensity blends the band colour into the gel colour (no
  * opacity, so exports stay in the plain subset).
  */
-import { type Prim, type Sub, pathPrim, rect } from '../prims';
+import { type Prim, type StyleId, type Sub, lookOf, pathPrim, rect } from '../prims';
 import { type Item, defineKind } from '../types';
 import { byColour, clamp, fmtInt, mix, text } from './util';
 
@@ -21,6 +21,7 @@ export interface Lane {
 }
 
 export interface GelParams {
+  readonly style: StyleId;
   readonly ladder: '1kb' | '100bp' | 'none';
   readonly lanes: readonly Lane[];
   readonly look: 'stained' | 'inverted';
@@ -51,6 +52,7 @@ export const gel = defineKind<GelParams>({
   description: 'A gel with a ladder and lanes of bands; type band sizes in bp.',
   keywords: ['agarose', 'electrophoresis', 'ladder', 'band', 'lane', 'pcr', 'dna'],
   defaultSize: { w: 220, h: 170 },
+  styles: ['line-art', 'cartoon'],
   fields: [
     {
       key: 'ladder',
@@ -150,9 +152,12 @@ export const gel = defineKind<GelParams>({
     const out: Prim[] = [];
     const dark = slots['gel'] ?? '#2b2f36';
     const light = slots['band'] ?? '#f5f7fa';
-    const gelC = p.look === 'stained' ? dark : light;
-    const bandC = p.look === 'stained' ? light : dark;
-    const ink = slots['text'] ?? '#1f2933';
+    const look = lookOf(p.style, clamp(Math.min(w, h) * 0.005, 0.3, 1));
+    // On paper (line art) bands are always dark on a light gel.
+    const stained = p.look === 'stained' && !look.onPaper;
+    const gelC = stained ? dark : light;
+    const bandC = stained ? light : dark;
+    const ink = look.text(slots['text'] ?? '#1f2933');
     const ts = clamp(Math.min(w, h) * 0.05, 1, 8);
     const ladder = LADDERS[p.ladder] ?? [];
     const left = p.showSizes && ladder.length > 0 ? ts * 3.4 : 0;
@@ -161,7 +166,12 @@ export const gel = defineKind<GelParams>({
     const gy = Math.min(top, h * 0.3);
     const gw = Math.max(0, w - gx);
     const gh = Math.max(0, h - gy);
-    out.push(...pathPrim([rect(gx, gy, gw, gh, Math.min(3, gw * 0.02))], { fill: gelC }));
+    out.push(
+      ...pathPrim(
+        [look.organic(rect(gx, gy, gw, gh, Math.min(3, gw * 0.02) * look.bigger), 1)],
+        look.body({ fill: gelC }),
+      ),
+    );
     const n = p.lanes.length;
     const pitch = gw / Math.max(1, n);
     const bw = pitch * 0.72;
@@ -189,7 +199,7 @@ export const gel = defineKind<GelParams>({
             Math.min(bh * 1.6, gh * 0.04),
           ),
         );
-      out.push(...pathPrim(wellSubs, { fill: mix(gelC, '#000000', 0.35) }));
+      out.push(...pathPrim(wellSubs, look.detail({ fill: mix(gelC, '#000000', 0.35) })));
     }
     const bands: { colour: string; sub: Sub }[] = [];
     lanes.forEach((bs, k) => {
@@ -200,7 +210,7 @@ export const gel = defineKind<GelParams>({
         const shade = Math.round(clamp(b.i, 0, 1) * 10) / 10;
         bands.push({
           colour: mix(gelC, bandC, 0.15 + 0.85 * shade),
-          sub: rect(x, y - bh / 2, bw, bh, bh * 0.3),
+          sub: rect(x, y - bh / 2, bw, bh, bh * 0.3 * look.bigger),
         });
       }
     });
@@ -208,7 +218,7 @@ export const gel = defineKind<GelParams>({
       out.push(
         ...pathPrim(
           list.map((b) => b.sub),
-          { fill: colour },
+          look.mark({ fill: colour }),
         ),
       );
     if (p.showLabels)
