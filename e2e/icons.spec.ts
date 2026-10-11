@@ -113,7 +113,7 @@ test('a search lists matching scientific objects first, tagged, and places them'
 }) => {
   const search = page.getByLabel('Search icons');
   await search.fill('plate');
-  await expect(page.getByRole('status')).toContainText(/3 adjustable objects, \d+\+? icons/);
+  await expect(page.getByRole('status')).toContainText(/6 adjustable objects, \d+\+? icons/);
   const results = page.getByTestId('icon-results');
   // The objects come before every icon, the title match first, each tagged.
   const first = results.locator('button').first();
