@@ -43,6 +43,7 @@ import { drawnBoundsIn } from '@/procedural/bounds';
 import { convertObjects, createProcedural } from '@/procedural/edits';
 import { createFromPreset, findPreset } from '@/procedural/presets';
 import { getKind } from '@/procedural/registry';
+import { createFromWizard } from '@/procedural/wizard';
 import { figureWithSnapshots, withSnapshots } from '@/procedural/snapshot';
 import {
   MAX_PRESETS_FILE_CHARS,
@@ -645,6 +646,22 @@ export function placeProcedural(
   });
   analytics.track('procedural', 'place');
   if (p) analytics.track('preset', 'kind-place', `${k.kind}/${p.id}`);
+}
+
+/** A kind's wizard finished (note 58): a new object from the answers at the view centre. */
+export function placeFromWizard(kind: string, answers: unknown): void {
+  const k = getKind(kind);
+  if (!k?.wizard) return;
+  const obj = createFromWizard(k, answers, viewCenter());
+  if (
+    store.edit({
+      ...addObjects(currentPage(store.getState()).id, [obj]),
+      label: `Add ${k.title.toLowerCase()}: ${k.wizard.title}`,
+    })
+  ) {
+    analytics.track('procedural', 'place');
+    analytics.track('preset', 'wizard', `${k.kind}/place`);
+  }
 }
 
 /** "Convert to shapes" on every procedural object selected. */

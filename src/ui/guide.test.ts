@@ -143,6 +143,24 @@ describe('the user guide', () => {
     }
   });
 
+  it('describes every kind wizard, its questions and answers under Wizards (note 58)', () => {
+    const objects = pages.find((p) => p.id === '08-objects')?.text ?? '';
+    const start = objects.indexOf('## Wizards');
+    expect(start).toBeGreaterThan(-1);
+    const section = objects.slice(start, objects.indexOf('\n## ', start + 1));
+    for (const k of allKinds()) {
+      const w = k.wizard;
+      if (!w) continue;
+      expect(section, k.kind).toContain(`**${w.title}…**`);
+      for (const s of w.steps) {
+        expect(section, s.question).toContain(`**${s.question}**`);
+        for (const f of s.fields)
+          if (f.type !== 'bool')
+            expect(section.toLowerCase(), f.key).toContain(f.label.toLowerCase());
+      }
+    }
+  });
+
   it('covers files, imports, the sibling apps, exports and citing', () => {
     for (const s of [
       'SVG',

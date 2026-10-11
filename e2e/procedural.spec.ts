@@ -120,6 +120,48 @@ test('kind presets: placed from the shelf and search, applied from Start from…
   await expect(page.getByText('96 of 96 wells coloured')).toBeVisible();
 });
 
+test('the plate map wizard, from the keyboard: placed from the shelf, applied in the Inspector (note 58)', async ({
+  page,
+}) => {
+  // The shelf: the defaults, Enter on each step (8 conditions in triplicate, controls in 1 and 12).
+  await page.locator('.object-presets[data-kind="wellPlate"] > summary').click();
+  await page.locator('.object-presets').getByRole('button', { name: 'Plate map wizard…' }).click();
+  const wizard = page.getByRole('dialog', { name: 'Plate map wizard' });
+  await expect(wizard.getByLabel('Wells')).toBeFocused();
+  await expect(wizard.getByText('Step 1 of 3')).toBeVisible();
+  await page.keyboard.press('Enter');
+  await expect(wizard.getByLabel('Conditions')).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(wizard.getByText('Step 3 of 3')).toBeVisible();
+  await expect(wizard.getByRole('button', { name: 'Add' })).toBeVisible();
+  await page.keyboard.press('Enter');
+  await expect(wizard).toBeHidden();
+  const section = side(page).getByRole('region', { name: 'Well plate options' });
+  await expect(section).toBeVisible();
+  await expect(page.getByText('40 of 96 wells coloured')).toBeVisible();
+  // The Inspector: a 384-well plate, 10 conditions in duplicate, no controls; Back keeps answers.
+  await section.getByRole('button', { name: 'Plate map wizard…' }).click();
+  await wizard.getByLabel('Wells').selectOption('384');
+  await wizard.getByRole('button', { name: 'Next' }).click();
+  await wizard.getByLabel('Conditions').fill('10');
+  await wizard.getByLabel('Replicates', { exact: true }).fill('2');
+  await page.keyboard.press('Enter');
+  await wizard.getByRole('button', { name: 'Back' }).click();
+  await expect(wizard.getByLabel('Conditions')).toHaveValue('10');
+  await page.keyboard.press('Enter');
+  await wizard.getByLabel('Controls', { exact: true }).selectOption('none');
+  await expect(wizard.getByLabel('Controls fill')).toHaveCount(0);
+  await wizard.getByRole('button', { name: 'Apply' }).click();
+  await expect(wizard).toBeHidden();
+  await expect(page.getByText('20 of 384 wells coloured')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Undo', exact: true })).toHaveAttribute(
+    'title',
+    /Plate map wizard/,
+  );
+  await page.keyboard.press('Control+z');
+  await expect(page.getByText('40 of 96 wells coloured')).toBeVisible();
+});
+
 test('a drawn line becomes a lipid bilayer that follows it', async ({ page }) => {
   await page.keyboard.press('l');
   const a = await at(page, 60, 200);

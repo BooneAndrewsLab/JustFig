@@ -29,6 +29,16 @@ On an object already in the figure, **Start from…** at the top of its Inspecto
 - **Experiment timeline** — Time course (a stimulus, sampling ticks at 1, 4, 12 and 24 hours, harvest at 48) and Pooled CRISPR screen (transduction, puromycin selection, expansion, the screen and harvest over 28 days).
 - **Study design** — Mouse treatment schedule (vehicle, drug and drug plus anti-PD-1 arms, implant, sampling and endpoint, drug bars over days 7 to 21) and Dosing with timed sampling (two arms dosed at hour 0 and sampled across 24 hours).
 
+## Wizards
+
+Some objects can be set up by answering a few questions instead. The **Plate map wizard…** button sits under **Well plate starting points** on the shelf (it adds a new plate) and beside **Start from…** in a well plate's Inspector section (it lays out that plate). It asks, one step at a time:
+
+1. **Which plate?** The number of wells, 6 to 1536.
+2. **What goes on it?** How many **Conditions** (samples, treatments or strains; each gets a colour of its own), how many **Replicates** of each, and whether the replicates go side by side in a row or one under another in a column.
+3. **Where do the controls go?** **Controls**: none, negative only, or negative and positive. **Controls fill** the first and last columns or the first and last rows of the plate (negative grey, positive orange). And whether to leave the edge wells blank against edge effects; the controls then go just inside them.
+
+A preview under the questions shows the plate as it will be, and a note says when not every condition fits (or when colours start to repeat after 24 conditions). **Next** (or Enter) goes on, **Back** goes back, and **Add** or **Apply** on the last step finishes; Escape or **Cancel** leaves without changing anything. Applying it to a plate already in the figure is one step you can undo and changes only its number of wells and its well colours. The answers are not remembered: the wizard starts from the same questions every time, and the plate is then yours to edit in the well-map editor.
+
 ## The objects
 
 | Object              | What it is                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |

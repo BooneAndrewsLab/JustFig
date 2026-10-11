@@ -852,6 +852,41 @@ button.history__item--current {
   margin-bottom: 6px;
 }
 
+.start-from-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+
+.start-from-row .start-from {
+  margin-bottom: 0;
+}
+
+/* A kind's wizard (note 58): its button in the shelf, and the stepper's preview. */
+.object-presets .wizard-open {
+  margin: 4px 0;
+}
+
+.dialog .wizard__step {
+  margin: 0 0 4px;
+}
+
+.dialog .wizard__preview {
+  display: flex;
+  justify-content: center;
+  margin: 8px 0;
+}
+
+.dialog .wizard__preview svg {
+  display: block;
+  width: 240px;
+  max-width: 100%;
+  height: auto;
+  max-height: 180px;
+}
+
 .start-from__list {
   left: 0;
   max-height: 320px;
