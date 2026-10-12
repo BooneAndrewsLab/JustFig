@@ -283,19 +283,19 @@ export function NotesPanel() {
   const open1 = doc.notes.filter((n) => n.resolved !== true).length;
   return (
     <section className="section notes" aria-label="Notes">
-      <h2 style={{ display: 'flex', justifyContent: 'space-between' }}>
-        <span>
-          Notes{' '}
-          {doc.notes.length > 0 && (
-            <span className="count">
-              {open1} open / {doc.notes.length}
-            </span>
-          )}
-        </span>
+      <h2>
+        Notes{' '}
+        {doc.notes.length > 0 && (
+          <span className="count">
+            {open1} open / {doc.notes.length}
+          </span>
+        )}
+      </h2>
+      <div className="section__head">
         <button type="button" onClick={startNote} title="On the selected object, else the page">
           + Note
         </button>
-      </h2>
+      </div>
       <div className="row">
         <label>
           <input

@@ -34,6 +34,8 @@ export interface PathPrim {
    * `fill-opacity` / `stroke-opacity` presentation attributes, never as group opacity.
    */
   readonly alpha?: number;
+  /** The named part of the object this belongs to (a cell's "Nucleus"); see `part`. */
+  readonly part?: string;
 }
 
 export interface TextPrim {
@@ -53,9 +55,19 @@ export interface TextPrim {
   readonly mono?: boolean;
   /** Degrees about the anchor, clockwise. */
   readonly rotation?: number;
+  /** The named part of the object this belongs to; see `part`. */
+  readonly part?: string;
 }
 
 export type Prim = PathPrim | TextPrim;
+
+/**
+ * The primitives tagged as one named part of the object, named as its option is ("Nucleus",
+ * "Mitochondria"). Drawing ignores it; "Convert to shapes" keeps a run of one part together
+ * as a group of that name (or names the one shape), so the shapes say what they are.
+ */
+export const part = <T extends Prim>(name: string, prims: readonly T[]): T[] =>
+  prims.map((p) => ({ ...p, part: name }));
 
 export interface Style {
   readonly fill?: string | null;

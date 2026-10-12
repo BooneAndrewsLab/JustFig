@@ -101,11 +101,11 @@ function PresetTiles({ kind: k, drawn }: { kind: ProceduralKind; drawn: boolean 
       }}
     >
       <summary title={names.join(', ')}>
-        {k.title} starting points <span className="note">({String(names.length)})</span>
+        {k.title} presets <span className="note">({String(names.length)})</span>
       </summary>
       <KindWizardButton kind={k} />
       {groups.map((g) => (
-        <div key={g.group} role="group" aria-label={g.group || `${k.title} starting points`}>
+        <div key={g.group} role="group" aria-label={g.group || `${k.title} presets`}>
           {g.group !== '' && <p className="object-presets-group">{g.group}</p>}
           <div className="objects-grid">
             {g.presets.map((p) => (

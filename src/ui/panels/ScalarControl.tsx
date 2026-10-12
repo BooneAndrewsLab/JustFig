@@ -4,6 +4,7 @@ import { roundTo } from '@/procedural/params';
 import type { Scalar, ScalarField } from '@/procedural/types';
 
 import { ColorInput } from './ColorInput';
+import { NumBox } from './NumBox';
 
 export function ScalarControl({
   f,
@@ -25,19 +26,18 @@ export function ScalarControl({
       return (
         <div className="row">
           <label htmlFor={id}>{f.label}</label>
-          <input
+          <NumBox
             id={id}
-            type="number"
             value={typeof value === 'number' ? roundTo(value, f.step) : ''}
             min={f.min}
             max={f.max}
             step={f.step ?? (f.type === 'int' ? 1 : 0.5)}
-            onChange={(e) => {
-              const v = Number(e.target.value);
-              if (e.target.value !== '' && Number.isFinite(v)) onChange(v);
+            unit={f.unit}
+            onChange={(raw) => {
+              const v = Number(raw);
+              if (raw !== '' && Number.isFinite(v)) onChange(v);
             }}
           />
-          {f.unit && <span className="note">{f.unit}</span>}
         </div>
       );
     case 'enum':

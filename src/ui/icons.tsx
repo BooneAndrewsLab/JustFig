@@ -24,6 +24,21 @@ const CHROME_PATHS = {
   'zoom-out': 'M7 2.5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9zM10.2 10.2 14 14M5 7h4',
   close: 'M4.5 4.5l7 7M11.5 4.5l-7 7',
   add: 'M8 3v10M3 8h10',
+  // The Inspector's action strips (note 59): open lines and chevrons, since a closed shape
+  // under 4 units wide fills itself in at this stroke.
+  'flip-h': 'M8 2.5v11M5 5 2 8l3 3M11 5l3 3-3 3',
+  'flip-v': 'M2.5 8h11M5 5l3-3 3 3M5 11l3 3 3-3',
+  front: 'M3 2.5h10M8 13.5V6M5 9l3-3 3 3',
+  back: 'M3 13.5h10M8 2.5V10M5 7l3 3 3-3',
+  'align-left': 'M2.5 2v12M5.5 5h8M5.5 11h4.5',
+  'align-hcenter': 'M8 2v12M4 5h8M5.5 11h5',
+  'align-right': 'M13.5 2v12M2.5 5h8M6 11h4.5',
+  'align-top': 'M2 2.5h12M5 5.5v8M11 5.5v4.5',
+  'align-vcenter': 'M2 8h12M5 4v8M11 5.5v5',
+  'align-bottom': 'M2 13.5h12M5 2.5v8M11 6v4.5',
+  'distribute-h': 'M2.5 2.5v11M13.5 2.5v11M6 5v6M10 5v6',
+  'distribute-v': 'M2.5 2.5h11M2.5 13.5h11M5 6h6M5 10h6',
+  step: 'M8 2.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11zM6.5 6.5 8 5.5V11',
 } as const;
 
 export type IconName = ToolId | keyof typeof CHROME_PATHS;

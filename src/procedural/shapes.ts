@@ -121,6 +121,48 @@ export function primObjects(prims: readonly Prim[]): Obj[] {
   return out;
 }
 
+/**
+ * Primitives as plain objects, frame-local, with each run of one named part (`part` in
+ * prims.ts) kept together: a group of that name, or the one shape named so. Unnamed
+ * primitives stay loose. Runs, not parts, so the drawing order never changes.
+ */
+export function partObjects(prims: readonly Prim[]): Obj[] {
+  const out: Obj[] = [];
+  const run: { part: string | null; objs: Obj[] } = { part: null, objs: [] };
+  const close = () => {
+    const [one] = run.objs;
+    if (run.part !== null && run.objs.length === 1 && one) out.push({ ...one, name: run.part });
+    else if (run.part !== null && run.objs.length > 1) {
+      const b = boundsOf(run.objs);
+      out.push({
+        id: '' as Id,
+        type: 'group',
+        name: run.part,
+        frame: frame(b.x, b.y, b.w, b.h),
+        opacity: 1,
+        children: run.objs,
+      });
+    }
+    run.part = null;
+    run.objs = [];
+  };
+  for (const p of prims) {
+    const objs = primObjects([p]);
+    if (p.part === undefined) {
+      close();
+      out.push(...objs);
+      continue;
+    }
+    if (run.part !== p.part) {
+      close();
+      run.part = p.part;
+    }
+    run.objs.push(...objs);
+  }
+  close();
+  return out;
+}
+
 const withIds = (o: Obj): Obj =>
   o.type === 'group' || o.type === 'panel'
     ? { ...o, id: newId('o'), children: o.children.map(withIds) }
@@ -144,8 +186,8 @@ function snapshotFrame(f: Frame, a: Extract<Asset, { kind: 'svgImport' }>): Fram
 
 /**
  * The object as plain shapes in page coordinates: a Group (or, for a kind
- * this version does not know, an Image of its snapshot). Null when there is
- * nothing to convert.
+ * this version does not know, an Image of its snapshot), its named parts as
+ * named shapes and groups inside it. Null when there is nothing to convert.
  */
 export function convertToShapes(
   o: Procedural,
@@ -167,7 +209,7 @@ export function convertToShapes(
   }
   const f = o.frame;
   const c = center(f);
-  let objs = primObjects(prims).map((x) => translateObj(x, f.x, f.y));
+  let objs = partObjects(prims).map((x) => translateObj(x, f.x, f.y));
   if (f.flipX === true) objs = objs.map((x) => flipObj(x, 'x', c));
   if (f.flipY === true) objs = objs.map((x) => flipObj(x, 'y', c));
   if (f.rotation !== 0) objs = objs.map((x) => rotateObj(x, c, f.rotation));

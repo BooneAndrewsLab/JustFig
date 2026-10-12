@@ -3,6 +3,7 @@
 ## Selecting
 
 - **Click** an object to select it. Click empty space to select nothing.
+- **Click again** on a selected group to select the object inside it under the pointer (a click, not a drag: dragging still moves the whole group). Each further click goes one group deeper. While something inside a group is selected, clicks on that group pick its other objects too, so Shift+click adds them.
 - **Shift+click** adds an object to the selection, or removes it if it is already selected.
 - **Drag a box** on empty space with the Select tool to select everything it fully encloses. Hold Shift while you start the box to add to the current selection.
 - **Select everything on the page** with Ctrl+A. Hidden and locked objects are left out.

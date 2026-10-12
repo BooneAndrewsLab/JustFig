@@ -9,6 +9,11 @@ import { currentPage, store } from '../state/store';
 import { useAppState } from '../state/useAppState';
 import { objName } from './objName';
 
+const holdsSelected = (o: Obj, selected: ReadonlySet<Id>): boolean =>
+  selected.has(o.id) ||
+  ((o.type === 'group' || o.type === 'panel') &&
+    o.children.some((c) => holdsSelected(c, selected)));
+
 function ObjRow({
   o,
   depth,
@@ -22,6 +27,13 @@ function ObjRow({
 }) {
   const [open, setOpen] = useState(false);
   const kids = o.type === 'group' || o.type === 'panel' ? o.children : [];
+  // A row opens by itself when something inside it becomes selected (a click into a group).
+  const holds = kids.some((c) => holdsSelected(c, selected));
+  const [held, setHeld] = useState(holds);
+  if (holds !== held) {
+    setHeld(holds);
+    if (holds) setOpen(true);
+  }
   return (
     <li>
       <div
@@ -204,12 +216,12 @@ export function LayersPanel() {
   const selected = new Set(s.selection);
   return (
     <section className="section layers" aria-label="Layers">
-      <h2 style={{ display: 'flex', justifyContent: 'space-between' }}>
-        Layers
+      <h2>Layers</h2>
+      <div className="section__head">
         <button type="button" onClick={() => store.edit(addLayer(page.id))}>
           + Layer
         </button>
-      </h2>
+      </div>
       <ul>
         {[...page.layers].reverse().map((l) => (
           <LayerBlock

@@ -1735,12 +1735,12 @@
         "er": {
           "type": "boolean",
           "default": true,
-          "description": "Endoplasmic reticulum"
+          "description": "ER"
         },
         "golgi": {
           "type": "boolean",
           "default": true,
-          "description": "Golgi apparatus"
+          "description": "Golgi"
         },
         "mitochondria": {
           "type": "integer",
@@ -1763,19 +1763,19 @@
           "default": 8,
           "description": "Vesicles"
         },
-        "vacuole": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 0.8,
-          "default": 0,
-          "description": "Vacuole size. Share of the cell; a large one presses the nucleus to the side. 0 for none."
-        },
         "chloroplasts": {
           "type": "integer",
           "minimum": 0,
           "maximum": 30,
           "default": 0,
           "description": "Chloroplasts"
+        },
+        "vacuole": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.8,
+          "default": 0,
+          "description": "Vacuole size. Share of the cell; a large one presses the nucleus to the side. 0 for none."
         },
         "bud": {
           "type": "number",

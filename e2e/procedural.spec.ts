@@ -85,7 +85,7 @@ test('a well plate from the shelf: generated Inspector, painting, Convert to sha
   await expect(side(page).getByRole('region', { name: 'Well plate options' })).toBeVisible();
 });
 
-test('kind presets: placed from the shelf and search, applied from Start from… (note 58)', async ({
+test('kind presets: placed from the shelf and search, applied from Presets (note 58)', async ({
   page,
 }) => {
   // The shelf: a Media preset places a dish with the default pattern.
@@ -95,12 +95,17 @@ test('kind presets: placed from the shelf and search, applied from Start from…
   await expect(section).toBeVisible();
   const colonies = section.getByLabel('Colonies', { exact: true });
   await expect(colonies).toHaveValue('random');
-  // Start from… from the keyboard: Enter opens on the first item, one undo step per choice.
-  const trigger = section.getByRole('button', { name: 'Start from…' });
+  // Presets from the keyboard: Enter opens on the first item, one undo step per choice.
+  const trigger = section.getByRole('button', { name: 'Presets' });
   await trigger.focus();
   await page.keyboard.press('Enter');
-  const menu = page.getByRole('menu', { name: 'Petri dish starting points' });
+  const menu = page.getByRole('menu', { name: 'Petri dish presets' });
   await expect(menu.getByRole('menuitem').first()).toBeFocused();
+  // The list is wider than the panel: it must stay inside the panel, not run off the window.
+  const box = (await menu.boundingBox()) ?? { x: -1, width: 9999 };
+  const panel = (await side(page).boundingBox()) ?? { x: 0, width: 0 };
+  expect(box.x).toBeGreaterThanOrEqual(panel.x);
+  expect(box.x + box.width).toBeLessThanOrEqual(panel.x + panel.width);
   await menu.getByRole('menuitem', { name: 'Single-colony streak' }).click();
   await expect(menu).toBeHidden();
   await expect(colonies).toHaveValue('streak');
@@ -203,6 +208,38 @@ test('the tetrad plate wizard, from the keyboard: placed from the shelf, applied
   );
   await page.keyboard.press('Control+z');
   await expect(section.getByLabel('Tetrads', { exact: true })).toHaveValue('12');
+});
+
+test('a converted cell names its parts; a second click selects a part', async ({ page }) => {
+  await page.getByRole('button', { name: 'Add Cell' }).click();
+  await page.getByRole('button', { name: 'Convert to shapes' }).click();
+  const names = page.locator('.layers .item .name');
+  await expect(names.filter({ hasText: 'Cell' })).toHaveCount(1);
+  // Converting selects the group; a click on empty space drops it.
+  await page.locator('.canvas').click({ position: { x: 5, y: 5 } });
+  await expect(page.locator('.status')).toContainText('Nothing selected');
+  const group = page.locator('[data-layer] > g').last();
+  // First click: the group. Second click on the same spot: the part there, the nucleus.
+  await group.click();
+  await expect(page.locator('.layers .item.selected .name')).toHaveText('Cell');
+  await group.click();
+  await expect(page.locator('.layers .item.selected .name')).toHaveText('Nucleus');
+  // With a part selected the group is open: Shift+click adds another part.
+  const box = await group.boundingBox();
+  if (!box) throw new Error('no box');
+  await page.keyboard.down('Shift');
+  await page.mouse.click(box.x + box.width * 0.93, box.y + box.height * 0.5);
+  await page.keyboard.up('Shift');
+  await expect(page.locator('.status')).toContainText('2 selected');
+  // A drag on a selected group moves it whole, instead of picking inside.
+  await page.locator('.canvas').click({ position: { x: 5, y: 5 } });
+  await group.click();
+  const c = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  await page.mouse.move(c.x, c.y);
+  await page.mouse.down();
+  await page.mouse.move(c.x + 40, c.y + 30, { steps: 5 });
+  await page.mouse.up();
+  await expect(page.locator('.layers .item.selected .name')).toHaveText('Cell');
 });
 
 test('a style per object, and Apply this style to all over a selection (note 58)', async ({

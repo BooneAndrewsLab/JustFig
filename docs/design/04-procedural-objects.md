@@ -61,8 +61,11 @@ interface ProceduralKind<P> {
 - `shapes.ts` turns them into plain objects for **Convert to shapes**: a circle becomes an
   Ellipse, a rect a Rect, a poly a Path, a label a Text. The objects are moved by the procedural
   object's frame (flip, then rotation, about its centre, which is exact), and wrapped in a Group
-  named after the object. It is one undo step and one-way. An object of an unknown kind converts
-  to an Image of its snapshot.
+  named after the object. A kind tags its primitives with `part('Nucleus', …)`, the option's
+  name; each run of one part becomes a Group of that name inside (or the one shape, named), so
+  the Layers panel and the Inspector say what a shape is. Runs, not parts, so the drawing order
+  stays. It is one undo step and one-way. An object of an unknown kind converts to an Image of
+  its snapshot.
 
 **Kinds merge subpaths per colour.** All lipid heads are one `<path>`, all wells of one colour are
 one `<path>`; a full 1536-well plate is about ten DOM nodes, a 2,000-lipid bilayer three.

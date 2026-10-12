@@ -71,7 +71,7 @@ import { bakeSplit } from '@/io/split';
 import { hasLineArtIcons, iconLineArt } from '@/palette/recolor';
 import { drawnBoundsIn } from '@/procedural/bounds';
 import { addScaleBar, insetSourcePixelSize, labelGelImage } from '@/procedural/edits';
-import { formatLength, fromUnit, toUnit } from '@/core/units';
+import { fromUnit, toUnit } from '@/core/units';
 
 import { analytics } from '../analytics';
 import { objName } from './objName';
@@ -85,7 +85,9 @@ import {
 } from '../state/session';
 import { useAppState } from '../state/useAppState';
 import { resolveBindings, withKey } from '../keyBindings';
+import { Icon, type IconName } from '../icons';
 import { ColorInput } from './ColorInput';
+import { NumBox } from './NumBox';
 import { PaletteSection } from './PaletteSection';
 import { ApplyStyleRow, PathKindsSection, ProceduralSection } from './ProceduralInspector';
 
@@ -108,8 +110,36 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
+/** An icon button of the action strips (note 59): the word is its name and tooltip. */
+function Act({
+  icon,
+  name,
+  title,
+  onClick,
+}: {
+  icon: IconName;
+  name: string;
+  title?: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="icon"
+      aria-label={name}
+      title={title ?? name}
+      onClick={onClick}
+    >
+      <Icon name={icon} />
+    </button>
+  );
+}
+
+const Sep = () => <span className="actions__sep" aria-hidden="true" />;
+
 function Num({
   label,
+  name = label,
   value,
   onChange,
   step = 1,
@@ -118,6 +148,8 @@ function Num({
   suffix,
 }: {
   label: string;
+  /** The accessible name when it should say more than the visible label ("Rotate °"). */
+  name?: string;
   value: number;
   onChange: (v: number) => void;
   step?: number;
@@ -126,21 +158,21 @@ function Num({
   suffix?: string;
 }) {
   return (
-    <label>
-      {label}
-      <input
-        type="number"
-        aria-label={label}
+    <label className="field">
+      <span className="field__name">{label}</span>
+      <NumBox
+        className="field__ctl"
+        aria-label={name}
         value={Number.isFinite(value) ? Math.round(value * 100) / 100 : ''}
         step={step}
         {...(min === undefined ? {} : { min })}
         {...(max === undefined ? {} : { max })}
-        onChange={(e) => {
-          const v = Number(e.target.value);
-          if (e.target.value !== '' && Number.isFinite(v)) onChange(v);
+        unit={suffix}
+        onChange={(raw) => {
+          const v = Number(raw);
+          if (raw !== '' && Number.isFinite(v)) onChange(v);
         }}
       />
-      {suffix}
     </label>
   );
 }
@@ -420,9 +452,10 @@ function SelectionInspector({
   return (
     <>
       <Section title={one ? (one.name ?? cap(one.type)) : `${String(sel.length)} objects`}>
-        <div className="grid2">
+        <div className="geo">
           <Num
-            label={`X`}
+            label="X"
+            suffix={u}
             value={toUnit(box.x, u)}
             onChange={(v) => {
               setBox({ x: fromUnit(v, u) }, 'x');
@@ -430,7 +463,8 @@ function SelectionInspector({
             step={0.5}
           />
           <Num
-            label={`Y`}
+            label="Y"
+            suffix={u}
             value={toUnit(box.y, u)}
             onChange={(v) => {
               setBox({ y: fromUnit(v, u) }, 'y');
@@ -438,7 +472,8 @@ function SelectionInspector({
             step={0.5}
           />
           <Num
-            label={`W`}
+            label="W"
+            suffix={u}
             value={toUnit(box.w, u)}
             min={0.1}
             onChange={(v) => {
@@ -447,7 +482,8 @@ function SelectionInspector({
             step={0.5}
           />
           <Num
-            label={`H`}
+            label="H"
+            suffix={u}
             value={toUnit(box.h, u)}
             min={0.1}
             onChange={(v) => {
@@ -455,9 +491,13 @@ function SelectionInspector({
             }}
             step={0.5}
           />
+        </div>
+        <div className="geo-more">
           {one && one.type !== 'group' && one.type !== 'panel' && (
             <Num
-              label="Rotate °"
+              label="Rotate"
+              name="Rotate °"
+              suffix="°"
               value={one.frame.rotation}
               onChange={(v) => {
                 const c = center(boundsOf([one]));
@@ -468,7 +508,9 @@ function SelectionInspector({
             />
           )}
           <Num
-            label="Opacity %"
+            label="Opacity"
+            name="Opacity %"
+            suffix="%"
             value={Math.round((one?.opacity ?? 1) * 100)}
             min={0}
             max={100}
@@ -481,9 +523,6 @@ function SelectionInspector({
             }}
           />
         </div>
-        <p className="note" style={{ margin: '4px 0' }}>
-          {formatLength(box.w, u)} × {formatLength(box.h, u)} {u}
-        </p>
         {hasPlot && (
           <div className="row">
             <label title="Resizing an imported plot scales its axes and data only: its text, line widths and tick lengths stay as they are (remembered in this browser)">
@@ -498,229 +537,222 @@ function SelectionInspector({
             </label>
           </div>
         )}
-        <div className="row" style={{ flexWrap: 'wrap' }}>
-          <button
-            type="button"
+        <div className="actions" role="group" aria-label="Flip and order">
+          <Act
+            icon="flip-h"
+            name="Flip H"
             title="Flip horizontally"
             onClick={() => store.edit(flipObjects(page.id, ids, 'x', sel))}
-          >
-            ⇋ Flip H
-          </button>
-          <button
-            type="button"
+          />
+          <Act
+            icon="flip-v"
+            name="Flip V"
             title="Flip vertically"
             onClick={() => store.edit(flipObjects(page.id, ids, 'y', sel))}
-          >
-            ⇵ Flip V
-          </button>
-          <button
-            type="button"
+          />
+          <Sep />
+          <Act
+            icon="front"
+            name="Front"
             title="Bring to front (])"
             onClick={() => store.edit(reorderObjects(page.id, ids, 'front'))}
-          >
-            Front
-          </button>
-          <button
-            type="button"
+          />
+          <Act
+            icon="back"
+            name="Back"
             title="Send to back ([)"
             onClick={() => store.edit(reorderObjects(page.id, ids, 'back'))}
-          >
-            Back
-          </button>
-        </div>
-        {sel.length > 1 && refObj && (
-          <div className="row" style={{ flexWrap: 'wrap' }} aria-label="Match size">
-            {(
-              [
-                ['Same width', 'Match width to the first selected object', 'w'],
-                ['Same height', 'Match height to the first selected object', 'h'],
-                ['Same size', 'Match width and height to the first selected object', 'wh'],
-              ] as const
-            ).map(([text, title, dims]) => (
-              <button
-                key={dims}
-                type="button"
-                title={title}
+          />
+          {sel.some((o) => !isStep(o)) && (
+            <>
+              <Sep />
+              <Act
+                icon="step"
+                name={sel.length === 1 ? 'Add step' : 'Number steps'}
+                title={withKey(
+                  sel.length === 1
+                    ? 'Add step: a numbered step badge on this object; steps renumber in reading order'
+                    : 'Number steps: a numbered step badge on each selected object, numbered in reading order',
+                  'steps',
+                  resolveBindings(s.keyBindings),
+                )}
                 onClick={() => {
-                  const ref = objBounds(refObj);
-                  store.edit(
-                    matchSize(
-                      page.id,
-                      sel,
-                      {
-                        ...(dims.includes('w') ? { w: ref.w } : {}),
-                        ...(dims.includes('h') ? { h: ref.h } : {}),
-                      },
-                      s.plotSizing,
-                    ),
-                    { keepSelection: true },
-                  );
+                  store.edit(numberSteps(page.id, ids));
                 }}
-              >
-                {text}
-              </button>
-            ))}
-          </div>
-        )}
-        {sel.length > 1 && <SameLevels s={s} sel={sel} />}
-        {sel.length > 1 && (
-          <div className="row">
-            <button
-              type="button"
-              title={withKey(
-                'Lay the selection out in rows and columns, each in a lettered panel',
-                'grid',
-                resolveBindings(s.keyBindings),
-              )}
-              onClick={onArrangeGrid}
-            >
-              Arrange in grid…
-            </button>
-          </div>
-        )}
-        {sel.some((o) => !isStep(o)) && (
-          <div className="row">
-            <button
-              type="button"
-              title={withKey(
-                sel.length === 1
-                  ? 'Put a numbered step badge on this object; steps renumber in reading order'
-                  : 'Put a numbered step badge on each selected object, numbered in reading order',
-                'steps',
-                resolveBindings(s.keyBindings),
-              )}
-              onClick={() => {
-                store.edit(numberSteps(page.id, ids));
-              }}
-            >
-              {sel.length === 1 ? 'Add step' : 'Number steps'}
-            </button>
-          </div>
-        )}
-        <div className="row" style={{ flexWrap: 'wrap' }} aria-label="Align">
+              />
+            </>
+          )}
+        </div>
+        <div className="actions" role="group" aria-label="Align">
           {(
             [
-              ['left', '⇤', 'Align left'],
-              ['hcenter', '↔', 'Align centres'],
-              ['right', '⇥', 'Align right'],
-              ['top', '⤒', 'Align top'],
-              ['vcenter', '↕', 'Align middles'],
-              ['bottom', '⤓', 'Align bottom'],
+              ['left', 'align-left', 'Align left'],
+              ['hcenter', 'align-hcenter', 'Align centres'],
+              ['right', 'align-right', 'Align right'],
+              ['top', 'align-top', 'Align top'],
+              ['vcenter', 'align-vcenter', 'Align middles'],
+              ['bottom', 'align-bottom', 'Align bottom'],
             ] as const
-          ).map(([edge, glyph, title]) => (
-            <button
+          ).map(([edge, icon, title]) => (
+            <Act
               key={edge}
-              type="button"
-              className="icon"
+              icon={icon}
+              name={title}
               title={sel.length === 1 ? `${title} (to the page)` : title}
-              aria-label={title}
               onClick={() =>
                 store.edit(
                   alignObjects(page.id, sel, edge, pageBox, drawnBoundsIn(fig.doc.palette)),
                 )
               }
-            >
-              {glyph}
-            </button>
+            />
           ))}
           {sel.length > 2 && (
             <>
-              <button
-                type="button"
-                title="Distribute horizontally"
+              <Sep />
+              <Act
+                icon="distribute-h"
+                name="Distribute horizontally"
                 onClick={() =>
                   store.edit(distributeObjects(page.id, sel, 'x', drawnBoundsIn(fig.doc.palette)))
                 }
-              >
-                ⋯
-              </button>
-              <button
-                type="button"
-                title="Distribute vertically"
+              />
+              <Act
+                icon="distribute-v"
+                name="Distribute vertically"
                 onClick={() =>
                   store.edit(distributeObjects(page.id, sel, 'y', drawnBoundsIn(fig.doc.palette)))
                 }
-              >
-                ⋮
-              </button>
+              />
             </>
           )}
         </div>
-        {sel.length > 1 && (
-          <div className="row" style={{ flexWrap: 'wrap' }} aria-label="Spacing and swap">
-            {sel.length === 2 && (
-              <>
+        <div className="cmds">
+          {sel.length > 1 && refObj && (
+            <div className="row" style={{ flexWrap: 'wrap' }} aria-label="Match size">
+              {(
+                [
+                  ['Same width', 'Match width to the first selected object', 'w'],
+                  ['Same height', 'Match height to the first selected object', 'h'],
+                  ['Same size', 'Match width and height to the first selected object', 'wh'],
+                ] as const
+              ).map(([text, title, dims]) => (
                 <button
+                  key={dims}
                   type="button"
-                  title="Remember the gaps between these two objects"
+                  title={title}
                   onClick={() => {
-                    if (copySpacing()) store.notify('Spacing copied.');
+                    const ref = objBounds(refObj);
+                    store.edit(
+                      matchSize(
+                        page.id,
+                        sel,
+                        {
+                          ...(dims.includes('w') ? { w: ref.w } : {}),
+                          ...(dims.includes('h') ? { h: ref.h } : {}),
+                        },
+                        s.plotSizing,
+                      ),
+                      { keepSelection: true },
+                    );
                   }}
                 >
-                  Copy spacing
+                  {text}
                 </button>
-                <button
-                  type="button"
-                  title="Swap the positions of these two objects"
-                  onClick={swapSelection}
-                >
-                  Swap positions
-                </button>
-              </>
+              ))}
+            </div>
+          )}
+          {sel.length > 1 && <SameLevels s={s} sel={sel} />}
+          {sel.length > 1 && (
+            <div className="row">
+              <button
+                type="button"
+                title={withKey(
+                  'Lay the selection out in rows and columns, each in a lettered panel',
+                  'grid',
+                  resolveBindings(s.keyBindings),
+                )}
+                onClick={onArrangeGrid}
+              >
+                Arrange in grid…
+              </button>
+            </div>
+          )}
+          {sel.length > 1 && (
+            <div className="row" style={{ flexWrap: 'wrap' }} aria-label="Spacing and swap">
+              {sel.length === 2 && (
+                <>
+                  <button
+                    type="button"
+                    title="Remember the gaps between these two objects"
+                    onClick={() => {
+                      if (copySpacing()) store.notify('Spacing copied.');
+                    }}
+                  >
+                    Copy spacing
+                  </button>
+                  <button
+                    type="button"
+                    title="Swap the positions of these two objects"
+                    onClick={swapSelection}
+                  >
+                    Swap positions
+                  </button>
+                </>
+              )}
+              <button
+                type="button"
+                title="Space the selection horizontally by the copied gap"
+                onClick={() => {
+                  pasteSpacingOrExplain('x');
+                }}
+              >
+                Paste spacing ↔
+              </button>
+              <button
+                type="button"
+                title="Space the selection vertically by the copied gap"
+                onClick={() => {
+                  pasteSpacingOrExplain('y');
+                }}
+              >
+                Paste spacing ↕
+              </button>
+            </div>
+          )}
+          <div className="row">
+            {sel.length > 1 && (
+              <button type="button" onClick={() => store.edit(groupObjects(page.id, ids))}>
+                Group (Ctrl+G)
+              </button>
+            )}
+            {sel.some((o) => o.type === 'group') && (
+              <button type="button" onClick={() => store.edit(ungroupObjects(page.id, ids))}>
+                Ungroup
+              </button>
+            )}
+            {one && editableNodes(one) && (
+              <button
+                type="button"
+                aria-pressed={s.nodeEdit?.id === one.id}
+                title="Show its points to move, add or delete (or double-click it, or press Enter on the canvas)"
+                onClick={() => {
+                  if (s.nodeEdit?.id === one.id) store.editNodes(null);
+                  else store.editNodes({ id: one.id, index: 0, part: 'node' });
+                  // The keys of point editing work on the canvas (note 28).
+                  document.querySelector<HTMLElement>('.canvas')?.focus();
+                }}
+              >
+                Edit points
+              </button>
             )}
             <button
               type="button"
-              title="Space the selection horizontally by the copied gap"
-              onClick={() => {
-                pasteSpacingOrExplain('x');
-              }}
+              title="Keep the selection in this browser to place again in any figure (Templates…, My presets)"
+              onClick={onSavePreset}
             >
-              Paste spacing ↔
-            </button>
-            <button
-              type="button"
-              title="Space the selection vertically by the copied gap"
-              onClick={() => {
-                pasteSpacingOrExplain('y');
-              }}
-            >
-              Paste spacing ↕
+              Save as preset…
             </button>
           </div>
-        )}
-        <div className="row">
-          {sel.length > 1 && (
-            <button type="button" onClick={() => store.edit(groupObjects(page.id, ids))}>
-              Group (Ctrl+G)
-            </button>
-          )}
-          {sel.some((o) => o.type === 'group') && (
-            <button type="button" onClick={() => store.edit(ungroupObjects(page.id, ids))}>
-              Ungroup
-            </button>
-          )}
-          {one && editableNodes(one) && (
-            <button
-              type="button"
-              aria-pressed={s.nodeEdit?.id === one.id}
-              title="Show its points to move, add or delete (or double-click it, or press Enter on the canvas)"
-              onClick={() => {
-                if (s.nodeEdit?.id === one.id) store.editNodes(null);
-                else store.editNodes({ id: one.id, index: 0, part: 'node' });
-                // The keys of point editing work on the canvas (note 28).
-                document.querySelector<HTMLElement>('.canvas')?.focus();
-              }}
-            >
-              Edit points
-            </button>
-          )}
-          <button
-            type="button"
-            title="Keep the selection in this browser to place again in any figure (Templates…, My presets)"
-            onClick={onSavePreset}
-          >
-            Save as preset…
-          </button>
         </div>
         <ApplyStyleRow s={s} sel={sel} />
       </Section>

@@ -30,15 +30,16 @@ The figure's colour swatches, the built-in palettes and the colour-vision previe
 
 The first section is named after the object (for example "Rectangle", or "3 objects"). It holds:
 
-- **X**, **Y**, **W**, **H**: position and size of the selection, in the current units.
+- **X**, **Y**, **W**, **H**: position and size of the selection, in the current units (shown after each field).
 - **Rotate °** (one object, not a group or panel) and **Opacity %**.
 - With an imported plot in the selection (SVG or PDF, also inside a selected group or panel): **Keep plot text and line sizes** (on to start). On, resizing a plot (with W and H, the handles, Same width/height/size or Arrange in grid) stretches only its axes, grid and data: the text keeps its point size, lines keep their width, tick marks keep their length and markers their shape. Labels stay with what they label: tick labels with their ticks, axis titles centred on their axis, titles in place, and a legend moves as one block, keeping its corner. A plot with several panels (matplotlib subplots, ggplot2 facets) stretches each panel and keeps the gaps between them: every label stays with its own panel, facet strips keep their height on top of their panel, and a colour bar keeps its width beside its panel (a bar shared by a column of panels stays beside all of them, which stay aligned). Panels that touch stretch separately and keep touching, and a line drawn across panels keeps each end on its own panel. Off, the plot scales like a picture, text and all. The choice is remembered in this browser. A plot made smaller than its margins allow cannot shrink its axes further, so its text then shrinks too.
-- **Flip H**, **Flip V**, **Front** and **Back**.
+- A strip of icon buttons (hold the pointer over one for its name): **Flip H**, **Flip V**, **Front**, **Back** and **Add step** (or **Number steps**).
 - With two or more objects: **Same width**, **Same height** and **Same size**. They give each selected object the width and/or height of the first object you selected (W and H above still resize the selection as one box). Same width and Same height keep each object's proportions; Same size stretches each to exactly the first object's size. Each object keeps its top-left corner, locked objects are skipped, and it is one undo step. To make five micrographs 40 mm wide, set the first to 40 mm and press Same width.
 - With two or more pictures (PNG or JPEG) selected: **Same levels** gives every other selected picture the levels and inversion of the first one you selected, each made from its own original pixels, so compared panels share one display range. If the first picture has no levels, the others go back to their originals. Other objects in the selection are ignored, and it is one undo step.
 - With two or more objects: **Arrange in grid…** (Shift+G) lays them out in rows and columns, each in its own lettered panel. See [Arranging](05-arranging.md).
 - **Number steps** (Shift+N), or **Add step** with one object: a numbered step badge on each selected object. See [Arranging](05-arranging.md).
-- The align and distribute buttons, and **Group** and **Ungroup**. See [Arranging](05-arranging.md).
+- A second strip with the align buttons (left, centres, right, top, middles, bottom) and, with three or more objects, distribute horizontally and vertically. See [Arranging](05-arranging.md).
+- **Group** and **Ungroup**, **Edit points** for a path, and the other commands that need words, in one run of buttons under the strips.
 - **Save as preset…** keeps the selection in this browser under a name, to place again in any figure from the gallery's My presets tab. See [Templates and examples](10-templates.md).
 
 ### Style
@@ -120,7 +121,7 @@ For a graph imported from BarelySig with its data. It explains that the graph is
 
 ### Scientific objects
 
-A cell, plate, gel or other scientific object gets a section named after it (for example "Well plate"), with **Start from…** at its top when the object has ready-made starting points, then **Colours** with **Reset colours**, and **Convert to shapes**. A drawn path gets **Follow this path**. See [Scientific objects](08-objects.md).
+A cell, plate, gel or other scientific object gets a section named after it (for example "Well plate options"), with **Presets** in its heading when the object has ready-made presets, its settings (related ones side by side under a small heading, such as a cell's Organelles), then **Colours** with **Reset colours**, and **Convert to shapes**. A drawn path gets **Follow this path**. See [Scientific objects](08-objects.md).
 
 An object made by a newer version of JustFig shows a **Procedural object** section instead. It is drawn from its saved picture and kept as it is; **Convert to picture** turns it into a plain picture.
 

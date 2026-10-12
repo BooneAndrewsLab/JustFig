@@ -234,41 +234,94 @@ function FieldControl({
   return (
     <>
       {control}
-      {f.help && <p className="note">{f.help}</p>}
+      {f.help && <p className="field-help">{f.help}</p>}
     </>
   );
 }
 
 /**
- * "Start from…" (note 58): the kind's presets as a menu, by group. Choosing one is one named
- * edit that sets only the keys the preset names.
+ * The visible fields in order, consecutive ones of the same `group` gathered under its heading
+ * (note 59), so a kind's switches or counts sit side by side instead of one row each.
  */
-function StartFromMenu({ s, obj, kind }: { s: AppState; obj: Procedural; kind: ProceduralKind }) {
+interface FieldGroup {
+  readonly group: string;
+  readonly fields: readonly Field[];
+}
+
+function groupFields(fields: readonly Field[]): readonly (Field | FieldGroup)[] {
+  const out: (Field | { group: string; fields: Field[] })[] = [];
+  for (const f of fields) {
+    const last = out[out.length - 1];
+    if (f.group === undefined) out.push(f);
+    else if (last && 'fields' in last && last.group === f.group) last.fields.push(f);
+    else out.push({ group: f.group, fields: [f] });
+  }
+  return out;
+}
+
+function Fields({
+  s,
+  obj,
+  kind,
+  params,
+}: {
+  s: AppState;
+  obj: Procedural;
+  kind: ProceduralKind;
+  params: Params;
+}) {
+  const palette = figure(s).doc.palette;
+  return (
+    <>
+      {groupFields(visibleFields(kind.fields, params)).map((g) =>
+        'fields' in g ? (
+          <fieldset key={g.fields[0]?.key} className="field-group">
+            <legend>{g.group}</legend>
+            <div className="field-group__grid">
+              {g.fields.map((f) => (
+                <FieldControl key={f.key} s={s} o={obj} f={f} params={params} palette={palette} />
+              ))}
+            </div>
+          </fieldset>
+        ) : (
+          <FieldControl key={g.key} s={s} o={obj} f={g} params={params} palette={palette} />
+        ),
+      )}
+    </>
+  );
+}
+
+/**
+ * "Presets" (note 58): the kind's built-in presets as a menu, by group. Choosing one is one named
+ * edit that sets only the keys the preset names. The list hangs from the button's right edge,
+ * since the button sits at the right of the section and the panel is narrower than the list.
+ */
+function PresetsMenu({ s, obj, kind }: { s: AppState; obj: Procedural; kind: ProceduralKind }) {
   const { open, toggle, close, ref, trigger, list, onTriggerKeyDown, onListKeyDown } = useMenu();
   const groups = groupedPresets(kind);
   if (groups.length === 0) return null;
-  const listId = `start-from-${obj.id}`;
+  const listId = `presets-${obj.id}`;
   return (
-    <div className="menu start-from" ref={ref}>
+    <div className="menu presets-menu" ref={ref}>
       <button
         ref={trigger}
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
-        title={`Set this ${kind.title.toLowerCase()} to a built-in starting point`}
+        title={`Apply a built-in preset to this ${kind.title.toLowerCase()}: it sets only what the preset is about and keeps the rest`}
         onClick={toggle}
         onKeyDown={onTriggerKeyDown}
       >
-        Start from… <span aria-hidden="true">▾</span>
+        Presets <span aria-hidden="true">▾</span>
       </button>
       {open && (
         <div
           ref={list}
           id={listId}
-          className="menu__list start-from__list"
+          className="menu__list presets-menu__list"
           role="menu"
-          aria-label={`${kind.title} starting points`}
+          aria-label={`${kind.title} presets`}
           onKeyDown={onListKeyDown}
         >
           {groups.map((g) => (
@@ -336,16 +389,14 @@ export function ProceduralSection({ s, obj }: { s: AppState; obj: Procedural }) 
   return (
     <>
       <section className="section procedural" aria-label={`${kind.title} options`}>
-        <h2>{kind.title}</h2>
+        <h2>{kind.title} options</h2>
         {(kind.presets !== undefined || kind.wizard !== undefined) && (
-          <div className="start-from-row">
-            <StartFromMenu s={s} obj={obj} kind={kind} />
+          <div className="section__head">
+            <PresetsMenu s={s} obj={obj} kind={kind} />
             <KindWizardButton kind={kind} target={obj} />
           </div>
         )}
-        {visibleFields(kind.fields, params).map((f) => (
-          <FieldControl key={f.key} s={s} o={obj} f={f} params={params} palette={fig.doc.palette} />
-        ))}
+        <Fields s={s} obj={obj} kind={kind} params={params} />
         {(kind.problems?.(params) ?? []).map((msg) => (
           <p key={msg} className="note" role="alert">
             {msg}

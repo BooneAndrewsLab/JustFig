@@ -182,17 +182,39 @@ button.link {
   text-align: left;
 }
 
-/* Side-panel sections and their headers: 13px/600, sentence case. */
+/*
+ * Side-panel sections: a bordered, rounded box whose heading cuts the top border like a
+ * fieldset's legend (PlasmidPop's .panel__group; note 59). The heading is 13px/600, sentence
+ * case; the box keeps the section element, so it stays a named region.
+ */
 .section {
-  border-bottom: 1px solid var(--rule);
-  padding: 8px 10px 10px;
+  position: relative;
+  margin: 10px 8px 0;
+  padding: 10px 8px 8px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  min-width: 0;
+}
+
+.section:last-child {
+  margin-bottom: 10px;
 }
 
 .section > h2 {
+  position: absolute;
+  top: -9px;
+  left: 6px;
+  max-width: calc(100% - 12px);
+  margin: 0;
+  padding: 0 4px;
+  background: var(--panel);
   font-size: 13px;
   font-weight: 600;
+  line-height: 16px;
   color: var(--ink-2);
-  margin: 0 0 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Status bar (the app places it). */

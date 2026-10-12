@@ -57,10 +57,10 @@ test('the dialogs and the Inspector of each kind of selection have none either',
   }
   await page.getByRole('button', { name: 'Add Well plate' }).click();
   problems.push(...(await audit(page, '.side')).map((p) => `well plate: ${p}`));
-  // Its Start from… menu of kind presets (note 58), open.
-  await page.getByRole('button', { name: 'Start from…' }).click();
-  await expect(page.getByRole('menu', { name: 'Well plate starting points' })).toBeVisible();
-  problems.push(...(await audit(page, '.side')).map((p) => `Start from…: ${p}`));
+  // Its Presets menu of kind presets (note 58), open.
+  await page.getByRole('button', { name: 'Presets' }).click();
+  await expect(page.getByRole('menu', { name: 'Well plate presets' })).toBeVisible();
+  problems.push(...(await audit(page, '.side')).map((p) => `Presets: ${p}`));
   await page.keyboard.press('Escape');
   // Its plate map wizard (note 58), every step, with a problem note on the last.
   await page.locator('.side').getByRole('button', { name: 'Plate map wizard…' }).click();

@@ -1,11 +1,14 @@
 /** The cell kind's version 2 (note 58): old cells migrate unchanged; cell types replace each other. */
 import { describe, expect, it } from 'vitest';
 
+import { createProcedural } from './edits';
 import { bacterium } from './kinds/bacterium';
 import { cell } from './kinds/cell';
 import { defaultParams } from './params';
 import { presetsOf } from './presets';
+import { type PathPrim, circle, part, pathPrim } from './prims';
 import { resolveProcedural, slotHexes } from './registry';
+import { convertToShapes, partObjects } from './shapes';
 
 /** Version 1's params, as a saved figure holds them. */
 const V1 = {
@@ -58,5 +61,50 @@ describe.each([cell, bacterium].map((k) => [k.kind, k] as const))('%s types', (_
     const keys = presetsOf(k).map((p) => Object.keys(p.params ?? {}).sort());
     const all = [...new Set(keys.flat())].sort();
     for (const [i, ks] of keys.entries()) expect(ks, presetsOf(k)[i]?.id).toEqual(all);
+  });
+});
+
+describe('Convert to shapes names the parts', () => {
+  const names = (objs: readonly { name?: string }[]) => objs.map((o) => o.name ?? '');
+
+  it('keeps each run of one part together as a group of that name, or names the one shape', () => {
+    const dot = (x: number): PathPrim[] => pathPrim([circle(x, 0, 1)], { fill: '#000000' });
+    const prims = [
+      ...part('Nucleus', dot(0)),
+      ...part('Mitochondria', dot(1)),
+      ...part('Mitochondria', dot(2)),
+      ...dot(3),
+      ...part('Mitochondria', dot(4)),
+    ];
+    const objs = partObjects(prims);
+    expect(names(objs)).toEqual(['Nucleus', 'Mitochondria', '', 'Mitochondria']);
+    expect(objs.map((o) => o.type)).toEqual(['ellipse', 'group', 'ellipse', 'ellipse']);
+    const g = objs[1];
+    if (g?.type !== 'group') throw new Error('not a group');
+    expect(g.children).toHaveLength(2);
+    expect(g.frame).toMatchObject({ x: 0, y: -1, w: 3, h: 2 });
+  });
+
+  it('a converted cell holds its options by name, in drawing order', () => {
+    const o = createProcedural(cell, { x: 10, y: 20 }, { nucleolus: true, chloroplasts: 3 });
+    const g = convertToShapes(o, []);
+    if (g?.type !== 'group') throw new Error('not a group');
+    expect(g.name).toBe('Cell');
+    expect(names(g.children)).toEqual([
+      'Cytoplasm',
+      'ER',
+      'Nucleus',
+      'Nucleolus',
+      'Golgi',
+      'Mitochondria',
+      'Lysosomes',
+      'Vesicles',
+      'Chloroplasts',
+    ]);
+    // The parts sit where the cell drew them: inside its frame.
+    for (const c of g.children) {
+      expect(c.frame.x).toBeGreaterThanOrEqual(o.frame.x - 1);
+      expect(c.frame.y).toBeGreaterThanOrEqual(o.frame.y - 1);
+    }
   });
 });

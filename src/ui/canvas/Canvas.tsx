@@ -70,7 +70,17 @@ const HANDLES: readonly Handle[] = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
 
 type Gesture =
   | { kind: 'pan'; sx: number; sy: number; view: View }
-  | { kind: 'move'; start: Vec2; fig: Figure; ids: Id[]; box: Box; key: string; moved: boolean }
+  | {
+      kind: 'move';
+      start: Vec2;
+      fig: Figure;
+      ids: Id[];
+      box: Box;
+      key: string;
+      moved: boolean;
+      /** The object inside the selected group under the pointer: a click (no drag) selects it. */
+      drill: Id | null;
+    }
   | {
       kind: 'resize';
       handle: Handle;
@@ -153,8 +163,11 @@ function snapTargets(page: Page, exclude: ReadonlySet<Id>, palette: readonly Swa
   return out;
 }
 
-/** The object a click selects: the outermost non-panel object under it (panel children count as top level). */
-function pickTarget(target: EventTarget | null, page: Page): Id | null {
+/**
+ * The objects under an element, outermost first, leaving panels out (their children count
+ * as top level) unless a panel is all there is.
+ */
+function pickChain(target: EventTarget | null, page: Page): Obj[] {
   let el = target instanceof Element ? target.closest('[data-id]') : null;
   const chain: Id[] = [];
   while (el) {
@@ -164,8 +177,41 @@ function pickTarget(target: EventTarget | null, page: Page): Id | null {
   }
   const objs = chain.map((id) => findObj(page, id)).filter((o): o is Obj => o !== undefined);
   const nonPanel = objs.filter((o) => o.type !== 'panel');
-  const pick = nonPanel.length > 0 ? nonPanel[nonPanel.length - 1] : objs[objs.length - 1];
-  return pick?.id ?? null;
+  return (nonPanel.length > 0 ? nonPanel : objs.slice(-1)).reverse();
+}
+
+/** The object a click selects: the outermost non-panel object under it. */
+function pickTarget(target: EventTarget | null, page: Page): Id | null {
+  return pickChain(target, page)[0]?.id ?? null;
+}
+
+const holdsSelected = (o: Obj, sel: ReadonlySet<Id>): boolean =>
+  (o.type === 'group' || o.type === 'panel') &&
+  o.children.some((c) => sel.has(c.id) || holdsSelected(c, sel));
+
+/**
+ * What a click with the Select tool picks, given the selection: the outermost object under
+ * it, except that a group with something selected inside it is open, so the click picks
+ * inside it. `inner` is the object one level further in when the pick is itself selected:
+ * a click there (not a drag) selects it, so a second click on a group reaches its parts.
+ */
+function pickIn(
+  target: EventTarget | null,
+  page: Page,
+  selection: readonly Id[],
+): { id: Id; inner: Id | null } | null {
+  const chain = pickChain(target, page);
+  const sel = new Set(selection);
+  let i = 0;
+  while (i < chain.length - 1) {
+    const o = chain[i];
+    if (!o || sel.has(o.id) || !holdsSelected(o, sel)) break;
+    i += 1;
+  }
+  const o = chain[i];
+  if (!o) return null;
+  const next = chain[i + 1];
+  return { id: o.id, inner: sel.has(o.id) && next ? next.id : null };
 }
 
 /**
@@ -405,8 +451,9 @@ export function Canvas() {
         }
         return;
       }
-      const hit = pickTarget(e.target, page);
-      if (hit) {
+      const pick = pickIn(e.target, page, s.selection);
+      if (pick) {
+        const hit = pick.id;
         let ids = s.selection.includes(hit) ? [...s.selection] : [hit];
         if (e.shiftKey)
           ids = s.selection.includes(hit)
@@ -425,6 +472,7 @@ export function Canvas() {
             box: unionBoxes(objs.map(drawnBoundsIn(palette))),
             key: `g${String(++gestureSeq)}`,
             moved: false,
+            drill: e.shiftKey ? null : pick.inner,
           };
         return;
       }
@@ -594,6 +642,8 @@ export function Canvas() {
       });
     if (g.kind === 'move' || g.kind === 'resize' || g.kind === 'rotate' || g.kind === 'node')
       store.seal();
+    // A click on a selected group (no drag) selects the part of it under the pointer.
+    if (g.kind === 'move' && !g.moved && g.drill !== null) store.select([g.drill]);
     if (g.kind === 'marquee') {
       const box = normBox(g.start, p);
       const hits = objectsInBox(page, box, drawnBoundsIn(palette)).map((o) => o.id);
@@ -667,7 +717,7 @@ export function Canvas() {
     }
     // Pointer capture makes the canvas the click's target in some browsers: look under the pointer.
     const under = document.elementFromPoint(e.clientX, e.clientY);
-    const id = pickTarget(under?.closest('[data-id]') ? under : e.target, page);
+    const id = pickIn(under?.closest('[data-id]') ? under : e.target, page, s.selection)?.id;
     const o = id ? findObj(page, id) : undefined;
     if (o?.type === 'text') {
       store.select([o.id]);

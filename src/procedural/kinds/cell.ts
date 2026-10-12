@@ -18,6 +18,7 @@ import {
   ellipseNodes,
   line,
   lookOf,
+  part,
   pathPrim,
   poly,
   rect,
@@ -150,25 +151,60 @@ export const cell = defineKind<CellParams>({
       default: 0,
       showIf: notNeuron,
     },
-    { key: 'nucleus', label: 'Nucleus', type: 'bool', default: true },
+    { key: 'nucleus', label: 'Nucleus', type: 'bool', default: true, group: 'Organelles' },
     {
       key: 'nucleolus',
       label: 'Nucleolus',
       type: 'bool',
       default: true,
+      group: 'Organelles',
       showIf: (p) => p['nucleus'] === true,
     },
     {
       key: 'er',
-      label: 'Endoplasmic reticulum',
+      label: 'ER',
       type: 'bool',
       default: true,
+      group: 'Organelles',
       showIf: (p) => p['nucleus'] === true,
     },
-    { key: 'golgi', label: 'Golgi apparatus', type: 'bool', default: true },
-    { key: 'mitochondria', label: 'Mitochondria', type: 'int', min: 0, max: 30, default: 5 },
-    { key: 'lysosomes', label: 'Lysosomes', type: 'int', min: 0, max: 40, default: 4 },
-    { key: 'vesicles', label: 'Vesicles', type: 'int', min: 0, max: 60, default: 8 },
+    { key: 'golgi', label: 'Golgi', type: 'bool', default: true, group: 'Organelles' },
+    {
+      key: 'mitochondria',
+      label: 'Mitochondria',
+      type: 'int',
+      min: 0,
+      max: 30,
+      default: 5,
+      group: 'How many',
+    },
+    {
+      key: 'lysosomes',
+      label: 'Lysosomes',
+      type: 'int',
+      min: 0,
+      max: 40,
+      default: 4,
+      group: 'How many',
+    },
+    {
+      key: 'vesicles',
+      label: 'Vesicles',
+      type: 'int',
+      min: 0,
+      max: 60,
+      default: 8,
+      group: 'How many',
+    },
+    {
+      key: 'chloroplasts',
+      label: 'Chloroplasts',
+      type: 'int',
+      min: 0,
+      max: 30,
+      default: 0,
+      group: 'How many',
+    },
     {
       key: 'vacuole',
       label: 'Vacuole size',
@@ -179,7 +215,6 @@ export const cell = defineKind<CellParams>({
       step: 0.05,
       default: 0,
     },
-    { key: 'chloroplasts', label: 'Chloroplasts', type: 'int', min: 0, max: 30, default: 0 },
     {
       key: 'bud',
       label: 'Bud size',
@@ -335,7 +370,7 @@ export const cell = defineKind<CellParams>({
     const cs = look.body(cellStyle);
     const hand = (s: Sub): Sub => look.organic(s, p.seed);
     // A micrograph's ground (black, EM grey, brightfield) under the whole frame.
-    out.push(...look.ground(w, h));
+    out.push(...part('Background', look.ground(w, h)));
 
     // The box the cell (with its wall) fills: microvilli take a band at the top, blebs a margin.
     const vh = polar ? Math.min(h * 0.16, w * 0.2) : 0;
@@ -461,7 +496,12 @@ export const cell = defineKind<CellParams>({
         const top = edge - vh * 0.9;
         fingers.push(rect(x - fw / 2, top, fw, Math.max(0, deep + fw - top), fw / 2));
       }
-      out.push(...look.paint('body', fingers, { fill: cyto, stroke: memb, sw: m * 0.7 }));
+      out.push(
+        ...part(
+          'Microvilli',
+          look.paint('body', fingers, { fill: cyto, stroke: memb, sw: m * 0.7 }),
+        ),
+      );
     }
     if (p.apoptotic) {
       // Membrane blebs: bulges centred on the outline, the cell drawn over their inner halves.
@@ -472,10 +512,13 @@ export const cell = defineKind<CellParams>({
         blebs.push(circle(cx + Math.cos(a) * rxO * 0.95, cy + Math.sin(a) * ryO * 0.95, r));
       }
       out.push(
-        ...look.paint(
-          'body',
-          blebs.map((b, i) => look.organic(b, i)),
-          { fill: cyto, stroke: memb, sw: m * 0.8 },
+        ...part(
+          'Blebs',
+          look.paint(
+            'body',
+            blebs.map((b, i) => look.organic(b, i)),
+            { fill: cyto, stroke: memb, sw: m * 0.8 },
+          ),
         ),
       );
     }
@@ -490,9 +533,9 @@ export const cell = defineKind<CellParams>({
             stroke: shiftLightness(wc, -0.2),
             sw: Math.max(0.2, Math.min(m, wallW) * 0.5),
           };
-          out.push(...look.paint('body', [hand(joined(0))], ws));
+          out.push(...part('Cell wall', look.paint('body', [hand(joined(0))], ws)));
         }
-        out.push(...look.paint('body', [hand(joined(wallW))], cellStyle));
+        out.push(...part('Cytoplasm', look.paint('body', [hand(joined(wallW))], cellStyle)));
       } else if (wallW > 0) {
         const wc = slot('wall');
         const ws = {
@@ -501,12 +544,13 @@ export const cell = defineKind<CellParams>({
           sw: Math.max(0.2, Math.min(m, wallW) * 0.5),
         };
         // The bud first, so the mother covers the neck; the bud's wall, then its cytoplasm.
-        if (bud > 0) out.push(...look.paint('body', [hand(budAt(0))], ws));
-        if (bud > 0) out.push(...look.paint('body', [hand(budAt(wallW))], cellStyle));
-        out.push(...look.paint('body', [hand(outlineAt(rxO, ryO))], ws));
-      } else if (bud > 0) out.push(...look.paint('body', [hand(budAt(0))], cellStyle));
-      if (!isJoined) out.push(...look.paint('body', [hand(outlineAt(rx, ry))], cellStyle));
-      out.push(...look.highlight(cx, cy, rx, ry, cyto));
+        if (bud > 0) out.push(...part('Bud', look.paint('body', [hand(budAt(0))], ws)));
+        if (bud > 0) out.push(...part('Bud', look.paint('body', [hand(budAt(wallW))], cellStyle)));
+        out.push(...part('Cell wall', look.paint('body', [hand(outlineAt(rxO, ryO))], ws)));
+      } else if (bud > 0) out.push(...part('Bud', look.paint('body', [hand(budAt(0))], cellStyle)));
+      if (!isJoined)
+        out.push(...part('Cytoplasm', look.paint('body', [hand(outlineAt(rx, ry))], cellStyle)));
+      out.push(...part('Cytoplasm', look.highlight(cx, cy, rx, ry, cyto)));
     }
 
     function drawNeuron(): void {
@@ -576,28 +620,36 @@ export const cell = defineKind<CellParams>({
       const tube = (subs: Sub[], t: number, colour: string, extra: number) =>
         pathPrim(subs, { stroke: colour, sw: t + extra, cap: 'round', join: 'round' });
       out.push(
-        ...tube(primary, tP, rim, 2 * ow),
-        ...tube([...branches, ...terms], tB, rim, 2 * ow),
-        ...tube(axon, tA, rim, 2 * ow),
+        ...part('Dendrites (outline)', tube(primary, tP, rim, 2 * ow)),
+        ...part('Dendrites (outline)', tube(branches, tB, rim, 2 * ow)),
+        ...part('Axon terminals (outline)', tube(terms, tB, rim, 2 * ow)),
+        ...part('Axon (outline)', tube(axon, tA, rim, 2 * ow)),
       );
       out.push(
-        ...look.paint(
-          'body',
-          [hand({ t: 'poly', nodes: ellipseNodes(cx, cy, rs, rs), closed: true })],
-          cellStyle,
+        ...part(
+          'Cell body',
+          look.paint(
+            'body',
+            [hand({ t: 'poly', nodes: ellipseNodes(cx, cy, rs, rs), closed: true })],
+            cellStyle,
+          ),
         ),
       );
       out.push(
-        ...tube(primary, tP, inner, 0),
-        ...tube([...branches, ...terms], tB, inner, 0),
-        ...tube(axon, tA, inner, 0),
+        ...part('Dendrites', tube(primary, tP, inner, 0)),
+        ...part('Dendrites', tube(branches, tB, inner, 0)),
+        ...part('Axon terminals', tube(terms, tB, inner, 0)),
+        ...part('Axon', tube(axon, tA, inner, 0)),
       );
-      out.push(...look.paint('body', boutons, cellStyle));
+      out.push(...part('Axon terminals', look.paint('body', boutons, cellStyle)));
       const rf = Math.max(0, rs - ow / 2);
       out.push(
-        ...pathPrim([hand({ t: 'poly', nodes: ellipseNodes(cx, cy, rf, rf), closed: true })], {
-          fill: inner,
-        }),
+        ...part(
+          'Cell body',
+          pathPrim([hand({ t: 'poly', nodes: ellipseNodes(cx, cy, rf, rf), closed: true })], {
+            fill: inner,
+          }),
+        ),
       );
     }
 
@@ -692,50 +744,62 @@ export const cell = defineKind<CellParams>({
         er.push({ t: 'poly', nodes, closed: false });
       }
       out.push(
-        ...org.paint('line', er, {
-          stroke: slot('er'),
-          sw: Math.max(0.3, Math.min(rx, ry) * 0.04),
-          cap: 'round',
-        }),
+        ...part(
+          'ER',
+          org.paint('line', er, {
+            stroke: slot('er'),
+            sw: Math.max(0.3, Math.min(rx, ry) * 0.04),
+            cap: 'round',
+          }),
+        ),
       );
     }
     if (vac > 0) {
       const vc = slot('vacuole');
       out.push(
-        ...look.paint(
-          'body',
-          [hand({ t: 'poly', nodes: ellipseNodes(vx, cy, vrx, vry), closed: true })],
-          {
-            fill: vc,
-            stroke: shiftLightness(vc, -0.2),
-            sw: Math.max(0.2, m * 0.5),
-          },
+        ...part(
+          'Vacuole',
+          look.paint(
+            'body',
+            [hand({ t: 'poly', nodes: ellipseNodes(vx, cy, vrx, vry), closed: true })],
+            {
+              fill: vc,
+              stroke: shiftLightness(vc, -0.2),
+              sw: Math.max(0.2, m * 0.5),
+            },
+          ),
         ),
       );
     }
     const nc = slot('nucleus');
     if (intact) {
       out.push(
-        ...look.paint(
-          'body',
-          [hand({ t: 'poly', nodes: ellipseNodes(nx, ny, nrx, nry), closed: true })],
-          {
-            fill: nc,
-            stroke: shiftLightness(nc, -0.2),
-            sw: Math.max(0.3, m * 0.6),
-          },
-          true,
+        ...part(
+          'Nucleus',
+          look.paint(
+            'body',
+            [hand({ t: 'poly', nodes: ellipseNodes(nx, ny, nrx, nry), closed: true })],
+            {
+              fill: nc,
+              stroke: shiftLightness(nc, -0.2),
+              sw: Math.max(0.3, m * 0.6),
+            },
+            true,
+          ),
         ),
       );
       if (p.nucleolus)
         out.push(
-          ...look.paint(
-            'detail',
-            [circle(nx + nrx * 0.2, ny - nry * 0.15, Math.min(nrx, nry) * 0.32)],
-            { fill: slot('nucleolus') },
+          ...part(
+            'Nucleolus',
+            look.paint(
+              'detail',
+              [circle(nx + nrx * 0.2, ny - nry * 0.15, Math.min(nrx, nry) * 0.32)],
+              { fill: slot('nucleolus') },
+            ),
           ),
         );
-      out.push(...look.highlight(nx, ny, nrx, nry, nc));
+      out.push(...part('Nucleus (highlight)', look.highlight(nx, ny, nrx, nry, nc)));
     } else if (p.nucleus && p.apoptotic && !dividing) {
       // Karyorrhexis: the condensed nucleus breaks into dense fragments.
       const frags: Sub[] = [];
@@ -750,7 +814,9 @@ export const cell = defineKind<CellParams>({
           ),
         );
       }
-      out.push(...look.paint('mark', frags, { fill: shiftLightness(nc, -0.25) }, true));
+      out.push(
+        ...part('Nucleus', look.paint('mark', frags, { fill: shiftLightness(nc, -0.25) }, true)),
+      );
     }
     if (division === 'metaphase') drawMetaphase();
     if (division === 'telophase') drawTelophase();
@@ -773,13 +839,19 @@ export const cell = defineKind<CellParams>({
         }
       }
       out.push(
-        ...look.paint('line', fibres, { stroke: sp, sw: Math.max(0.2, Math.min(rx, ry) * 0.012) }),
+        ...part(
+          'Spindle',
+          look.paint('line', fibres, { stroke: sp, sw: Math.max(0.2, Math.min(rx, ry) * 0.012) }),
+        ),
       );
       out.push(
-        ...look.paint(
-          'mark',
-          poles.map((q) => circle(q.x, q.y, cs * 0.7)),
-          { fill: shiftLightness(sp, -0.25) },
+        ...part(
+          'Spindle',
+          look.paint(
+            'mark',
+            poles.map((q) => circle(q.x, q.y, cs * 0.7)),
+            { fill: shiftLightness(sp, -0.25) },
+          ),
         ),
       );
       const xs: Sub[] = [];
@@ -788,11 +860,14 @@ export const cell = defineKind<CellParams>({
         xs.push(line({ x: c.x - cs, y: c.y + cs * 0.6 }, { x: c.x + cs, y: c.y - cs * 0.6 }));
       }
       out.push(
-        ...look.paint(
-          'line',
-          xs,
-          { stroke: slot('chromosome'), sw: Math.max(0.2, cs * 0.55), cap: 'round' },
-          true,
+        ...part(
+          'Chromosomes',
+          look.paint(
+            'line',
+            xs,
+            { stroke: slot('chromosome'), sw: Math.max(0.2, cs * 0.55), cap: 'round' },
+            true,
+          ),
         ),
       );
     }
@@ -804,10 +879,13 @@ export const cell = defineKind<CellParams>({
         mid.push(line({ x: cx - rx * 0.24, y }, { x: cx + rx * 0.24, y }));
       }
       out.push(
-        ...look.paint('line', mid, {
-          stroke: slot('spindle'),
-          sw: Math.max(0.2, Math.min(rx, ry) * 0.015),
-        }),
+        ...part(
+          'Spindle',
+          look.paint('line', mid, {
+            stroke: slot('spindle'),
+            sw: Math.max(0.2, Math.min(rx, ry) * 0.015),
+          }),
+        ),
       );
       const subs = nuclei.map((n, i): Sub =>
         look.organic(
@@ -816,15 +894,18 @@ export const cell = defineKind<CellParams>({
         ),
       );
       out.push(
-        ...look.paint(
-          'body',
-          subs,
-          {
-            fill: nc,
-            stroke: shiftLightness(nc, -0.2),
-            sw: Math.max(0.3, m * 0.6),
-          },
-          true,
+        ...part(
+          'Nuclei',
+          look.paint(
+            'body',
+            subs,
+            {
+              fill: nc,
+              stroke: shiftLightness(nc, -0.2),
+              sw: Math.max(0.3, m * 0.6),
+            },
+            true,
+          ),
         ),
       );
     }
@@ -853,12 +934,15 @@ export const cell = defineKind<CellParams>({
         );
       }
       out.push(
-        ...org.paint('line', g, {
-          stroke: slot('golgi'),
-          sw: Math.max(0.3, Math.min(rx, ry) * 0.045),
-          cap: 'round',
-          join: 'round',
-        }),
+        ...part(
+          'Golgi',
+          org.paint('line', g, {
+            stroke: slot('golgi'),
+            sw: Math.max(0.3, Math.min(rx, ry) * 0.045),
+            cap: 'round',
+            join: 'round',
+          }),
+        ),
       );
     }
     const mito: Sub[] = [];
@@ -886,36 +970,43 @@ export const cell = defineKind<CellParams>({
     }
     const mc = slot('mitochondria');
     out.push(
-      ...org.paint('organelle', mito, {
-        fill: mc,
-        stroke: shiftLightness(mc, -0.2),
-        sw: Math.max(0.2, ml * 0.08),
-      }),
+      ...part(
+        'Mitochondria',
+        org.paint('organelle', mito, {
+          fill: mc,
+          stroke: shiftLightness(mc, -0.2),
+          sw: Math.max(0.2, ml * 0.08),
+        }),
+      ),
+      ...part(
+        'Mitochondria',
+        org.paint('line', cristae, {
+          stroke: shiftLightness(mc, -0.25),
+          sw: Math.max(0.15, ml * 0.07),
+          join: 'round',
+        }),
+      ),
     );
-    out.push(
-      ...org.paint('line', cristae, {
-        stroke: shiftLightness(mc, -0.25),
-        sw: Math.max(0.15, ml * 0.07),
-        join: 'round',
-      }),
-    );
-    const dots = (n: number, r: number, colour: string) => {
+    const dots = (name: string, n: number, r: number, colour: string) => {
       const subs: Sub[] = [];
       for (let i = 0; i < n; i += 1) {
         const q = spot(r);
         if (q) subs.push(circle(q.x, q.y, r));
       }
       out.push(
-        ...org.paint('detail', subs, {
-          fill: colour,
-          stroke: shiftLightness(colour, -0.2),
-          sw: Math.max(0.15, r * 0.15),
-        }),
+        ...part(
+          name,
+          org.paint('detail', subs, {
+            fill: colour,
+            stroke: shiftLightness(colour, -0.2),
+            sw: Math.max(0.15, r * 0.15),
+          }),
+        ),
       );
     };
     const u0 = Math.min(rx, ry) * look.bigger;
-    dots(look.parts(p.lysosomes), u0 * 0.06, slot('lysosome'));
-    dots(look.parts(p.vesicles), u0 * 0.035, slot('vesicle'));
+    dots('Lysosomes', look.parts(p.lysosomes), u0 * 0.06, slot('lysosome'));
+    dots('Vesicles', look.parts(p.vesicles), u0 * 0.035, slot('vesicle'));
     if (p.chloroplasts > 0) {
       // Lens-shaped chloroplasts with a few grana stacks across them.
       const cl = u0 * 0.13;
@@ -946,18 +1037,22 @@ export const cell = defineKind<CellParams>({
       }
       const cc = slot('chloroplast');
       out.push(
-        ...org.paint('organelle', lens, {
-          fill: cc,
-          stroke: shiftLightness(cc, -0.2),
-          sw: Math.max(0.2, cl * 0.08),
-        }),
-      );
-      out.push(
-        ...org.paint('line', grana, {
-          stroke: shiftLightness(cc, -0.3),
-          sw: Math.max(0.2, cl * 0.12),
-          cap: 'round',
-        }),
+        ...part(
+          'Chloroplasts',
+          org.paint('organelle', lens, {
+            fill: cc,
+            stroke: shiftLightness(cc, -0.2),
+            sw: Math.max(0.2, cl * 0.08),
+          }),
+        ),
+        ...part(
+          'Chloroplasts',
+          org.paint('line', grana, {
+            stroke: shiftLightness(cc, -0.3),
+            sw: Math.max(0.2, cl * 0.12),
+            cap: 'round',
+          }),
+        ),
       );
     }
     return out;

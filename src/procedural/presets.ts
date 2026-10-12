@@ -44,7 +44,7 @@ export function groupedPresets(
 }
 
 /**
- * "Start from…" (note 58): one named edit that sets only the keys the preset names, its slot
+ * "Presets" (note 58): one named edit that sets only the keys the preset names, its slot
  * colours, and its frame size when it has one and the object still has the kind's default size
  * (resized about its centre). Path-following kinds keep their frame.
  */

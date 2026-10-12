@@ -48,7 +48,7 @@ All generic, driven by `presets`:
   a tile per preset drawn by the kind's own `render` (same `thumb` cache, keyed by kind and
   preset id; drawn only once the disclosure is opened). Click places, drag drops, as for the
   kind (the drag carries `kind/preset-id`).
-- **Inspector:** a **Start from…** menu above the fields. Choosing one is one named edit
+- **Inspector:** a **Presets** menu above the fields. Choosing one is one named edit
   (`Apply preset <label>`), one undo step, setting only the keys the preset names (and its
   frame size when it has one and the object still has the default size).
 - **Icon search:** `matchPresets` (beside `matchKinds`): every query word must match the

@@ -19,6 +19,11 @@ interface FieldBase {
   readonly label: string;
   /** One line shown under the control. */
   readonly help?: string;
+  /**
+   * Consecutive fields with the same group are laid out side by side in the Inspector under
+   * this heading (note 59): a block of on/off switches or of counts, not one row each.
+   */
+  readonly group?: string;
   /** Hide the control (the value is kept) unless this holds. */
   readonly showIf?: (p: Params) => boolean;
 }
