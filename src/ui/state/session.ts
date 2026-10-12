@@ -708,7 +708,8 @@ export function copySelection(cut = false): string | null {
   const text = fragmentOf(objs, figure(s).assets, figure(s).doc.palette);
   internalClipboard = text;
   // `navigator.clipboard` is missing outside a secure context (plain http); the copy event still sets the text.
-  void navigator.clipboard?.writeText(text).catch(() => undefined);
+  const clip = navigator.clipboard as Clipboard | undefined;
+  void clip?.writeText(text).catch(() => undefined);
   if (cut)
     store.edit({
       ...deleteObjects(
