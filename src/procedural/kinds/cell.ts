@@ -357,8 +357,11 @@ export const cell = defineKind<CellParams>({
       rxO = rs;
       ryO = rs;
     } else {
-      ryO = Math.max(0, (by1 - by0) / 2 - m);
-      rxO = Math.max(0, ((bx1 - bx0) / 2 - m) / (1 + 0.85 * bud));
+      // The mother and bud together fill the box's width; both radii shrink by the same factor,
+      // so the mother keeps the oval the box without a bud would give it.
+      const fit = 1 / (1 + 0.85 * bud);
+      ryO = Math.max(0, ((by1 - by0) / 2 - m) * fit);
+      rxO = Math.max(0, ((bx1 - bx0) / 2 - m) * fit);
       cx = bx0 + m + rxO;
       cy = (by0 + by1) / 2;
     }
@@ -404,6 +407,45 @@ export const cell = defineKind<CellParams>({
       };
     };
 
+    // A round mother and its bud are one cell: one outline round both, no wall or membrane at the neck.
+    const joined = (e: number): Sub => {
+      const sample = (
+        x: number,
+        y: number,
+        a: number,
+        b: number,
+        inOther: (u: number, v: number) => boolean,
+      ): Vec2[] => {
+        const n = 96;
+        const all = Array.from({ length: n }, (_, i) => {
+          const t = (i / n) * 2 * Math.PI;
+          const q = { x: x + Math.cos(t) * a, y: y + Math.sin(t) * b };
+          return { q, out: !inOther(q.x, q.y) };
+        });
+        const start = Math.max(
+          0,
+          all.findIndex((v, i) => v.out && !all[(i + n - 1) % n]?.out),
+        );
+        const run: Vec2[] = [];
+        for (let i = 0; i < n; i += 1) {
+          const v = all[(start + i) % n];
+          if (!v?.out) break;
+          run.push(v.q);
+        }
+        return run;
+      };
+      const ma = Math.max(0.01, rxO - e);
+      const mb = Math.max(0.01, ryO - e);
+      const ba = Math.max(0.01, rxO * bud - e);
+      const bb = Math.max(0.01, ryO * bud - e);
+      const bx = cx + rxO + rxO * bud * 0.7;
+      const inBud = (u: number, v: number) => ((u - bx) / ba) ** 2 + ((v - cy) / bb) ** 2 < 1;
+      const inMother = (u: number, v: number) => ((u - cx) / ma) ** 2 + ((v - cy) / mb) ** 2 < 1;
+      const pts = [...sample(cx, cy, ma, mb, inBud), ...sample(bx, cy, ba, bb, inMother)];
+      return { t: 'poly', nodes: pts.map((q) => ({ x: q.x, y: q.y })), closed: true };
+    };
+    const isJoined = bud > 0 && p.shape === 'round';
+
     if (polar) {
       // Microvilli: fingers up from the apical edge, their bases hidden under the cell.
       const span = p.shape === 'box' ? Math.max(0, rxO - Math.min(rxO, ryO) * 0.3) : rxO * 0.75;
@@ -440,7 +482,18 @@ export const cell = defineKind<CellParams>({
 
     if (neuron) drawNeuron();
     else {
-      if (wallW > 0) {
+      if (isJoined) {
+        if (wallW > 0) {
+          const wc = slot('wall');
+          const ws = {
+            fill: wc,
+            stroke: shiftLightness(wc, -0.2),
+            sw: Math.max(0.2, Math.min(m, wallW) * 0.5),
+          };
+          out.push(...look.paint('body', [hand(joined(0))], ws));
+        }
+        out.push(...look.paint('body', [hand(joined(wallW))], cellStyle));
+      } else if (wallW > 0) {
         const wc = slot('wall');
         const ws = {
           fill: wc,
@@ -452,7 +505,7 @@ export const cell = defineKind<CellParams>({
         if (bud > 0) out.push(...look.paint('body', [hand(budAt(wallW))], cellStyle));
         out.push(...look.paint('body', [hand(outlineAt(rxO, ryO))], ws));
       } else if (bud > 0) out.push(...look.paint('body', [hand(budAt(0))], cellStyle));
-      out.push(...look.paint('body', [hand(outlineAt(rx, ry))], cellStyle));
+      if (!isJoined) out.push(...look.paint('body', [hand(outlineAt(rx, ry))], cellStyle));
       out.push(...look.highlight(cx, cy, rx, ry, cyto));
     }
 
