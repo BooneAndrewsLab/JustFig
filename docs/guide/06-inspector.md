@@ -1,6 +1,8 @@
 # The Inspector
 
-The Inspector is the panel on the right. It shows the properties of what is selected. With nothing selected it shows the page and the figure. Every change is one step you can undo, and typing in one field is one step however many keys you press.
+The Inspector is the first of the three tabs on the right (**Inspector**, **Layers**, **Notes**; see [Arranging](05-arranging.md) and [Review notes](16-review-notes.md)). It shows the properties of what is selected. With nothing selected it shows the page and the figure. Every change is one step you can undo, and typing in one field is one step however many keys you press.
+
+One tab shows at a time, so the Layers list stays still while you click from one object to the next. Selecting an object never switches the tab; choose a tab with a click, with the arrow keys when a tab has the focus, or with Alt+I, Alt+L and Alt+N. The tab you leave open is remembered in this browser.
 
 ## With nothing selected
 

@@ -49,7 +49,7 @@ Objects stack in the order they were made. **Front** and **Back** in the Inspect
 
 ## The Layers panel
 
-The Layers panel under the Inspector lists the page's layers, top layer first, with the objects in each.
+The **Layers** tab on the right (Alt+L; the Inspector is the tab before it) lists the page's layers, top layer first, with the objects in each. Clicking an object here selects it and keeps the tab, so the list does not move; switch to the Inspector (Alt+I) to edit it.
 
 - Click the small triangle next to a group or panel to open it.
 - The dot button **hides** an object or layer; the lock button **locks** it. A hidden object is not drawn on the canvas or exported. A locked object cannot be dragged, and a locked layer cannot be clicked on the canvas.

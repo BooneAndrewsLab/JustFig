@@ -307,6 +307,15 @@ export function onKeyDown(e: KeyboardEvent, open: ShortcutTargets): void {
     'zoom-out': () => {
       zoom(1 / 1.25);
     },
+    'side-inspector': () => {
+      store.setSideTab('inspector');
+    },
+    'side-layers': () => {
+      store.setSideTab('layers');
+    },
+    'side-notes': () => {
+      store.setSideTab('notes');
+    },
     'tab-close': () => {
       closeTab(s.front);
     },

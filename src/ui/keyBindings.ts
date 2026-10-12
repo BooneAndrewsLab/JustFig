@@ -91,6 +91,14 @@ export const KEY_ACTIONS: readonly KeyAction[] = [
   { id: 'fit', label: 'Fit the page in the window', group: 'View', defaultBinding: 'shift+Digit1' },
   { id: 'zoom-in', label: 'Zoom in', group: 'View', defaultBinding: 'shift+Equal' },
   { id: 'zoom-out', label: 'Zoom out', group: 'View', defaultBinding: 'Minus' },
+  {
+    id: 'side-inspector',
+    label: 'Show the Inspector tab',
+    group: 'View',
+    defaultBinding: 'alt+KeyI',
+  },
+  { id: 'side-layers', label: 'Show the Layers tab', group: 'View', defaultBinding: 'alt+KeyL' },
+  { id: 'side-notes', label: 'Show the Notes tab', group: 'View', defaultBinding: 'alt+KeyN' },
   ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n): KeyAction => ({
     id: `tab-${String(n)}`,
     label: `Show figure tab ${String(n)}`,

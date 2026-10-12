@@ -1,6 +1,6 @@
 /** Accessibility (note 09): axe finds no serious or critical problems in the main screen and the dialogs. */
 import { expect, test } from '@playwright/test';
-import { audit, fileMenu } from './helpers';
+import { audit, fileMenu, sideTab } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('./?editor');
@@ -129,6 +129,7 @@ test('the Notes panel, with a draft, an open note and a reply, has none (note 24
   page,
 }) => {
   const notes = page.getByRole('region', { name: 'Notes' });
+  await sideTab(page, 'Notes');
   await notes.getByRole('button', { name: '+ Note' }).click();
   await expect(notes.getByLabel('Note text')).toBeFocused();
   expect(await audit(page, '.notes')).toEqual([]);
@@ -160,6 +161,7 @@ test('the well map, the layers, the pages and the dialogs work from the keyboard
   await page.keyboard.press('Delete');
   await expect(page.locator('.wellmap .note').first()).toContainText('2 of 96');
   // One undo step per run of keys.
+  await sideTab(page, 'Layers');
   await page.locator('.layers button.name').first().focus();
   await page.keyboard.press('Control+z');
   await expect(page.locator('.wellmap .note').first()).toContainText('0 of 96');

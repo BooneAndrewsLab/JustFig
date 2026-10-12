@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 
 import { type Page, expect, test } from '@playwright/test';
 
-import { fileMenu, pageBox } from './helpers';
+import { fileMenu, pageBox, sideTab } from './helpers';
 
 const { version } = JSON.parse(
   readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
@@ -56,9 +56,11 @@ test('an arrow drawn between two objects follows them, and detaches when dragged
   const x0 = Number(await field(page, 'X').inputValue());
   const w0 = Number(await field(page, 'W').inputValue());
   // Move the second rectangle down: the arrow's end follows.
+  await sideTab(page, 'Layers');
   await page.locator('.layers .item .name', { hasText: 'Rect' }).first().click();
   for (let i = 0; i < 4; i += 1) await page.keyboard.press('Shift+ArrowDown');
   await page.locator('.layers .item .name', { hasText: 'Arrow' }).click();
+  await sideTab(page, 'Inspector');
   expect(Number(await field(page, 'H').inputValue())).toBeGreaterThan(5);
   expect(Number(await field(page, 'X').inputValue())).toBeCloseTo(x0, 0);
   expect(Number(await field(page, 'W').inputValue())).toBeCloseTo(w0, 0);
@@ -134,7 +136,9 @@ test('a BarelySig SVG imports as its graph, at its size, with its recipe', async
     .getByTestId('import-input')
     .setInputFiles(new URL('../src/io/fixtures/barelysig-figure2.svg', import.meta.url).pathname);
   await expect(page.locator('.side').getByRole('region', { name: 'From BarelySig' })).toBeVisible();
+  await sideTab(page, 'Layers');
   await expect(page.locator('.layers .item .name', { hasText: 'Figure 2' })).toBeVisible();
+  await sideTab(page, 'Inspector');
   // 70 mm × 60 mm, as BarelySig drew it.
   expect(Number(await field(page, 'W').inputValue())).toBeCloseTo(70, 0);
   expect(Number(await field(page, 'H').inputValue())).toBeCloseTo(60, 0);

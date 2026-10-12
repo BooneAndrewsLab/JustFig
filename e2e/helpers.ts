@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module';
 import AxeBuilder from '@axe-core/playwright';
-import { type Download, type Page, expect } from '@playwright/test';
+import { type Download, type Locator, type Page, expect } from '@playwright/test';
 import type * as Utif from 'utif';
 
 /** UTIF is CommonJS; Playwright's ESM loader needs require for it. */
@@ -86,4 +86,24 @@ export async function audit(page: Page, include?: string) {
         .slice(0, 5)
         .join(' | ')}`,
   );
+}
+
+/** Brings one of the right column's tabs (note 59) to the front: Inspector, Layers or Notes. */
+export async function sideTab(page: Page, name: 'Inspector' | 'Layers' | 'Notes') {
+  const tab = page.getByRole('tab', { name: new RegExp(`^${name}`) });
+  if ((await tab.getAttribute('aria-selected')) !== 'true') await tab.click();
+  // Focus leaves the tab, so the arrow keys that follow nudge the selection, not the tabs.
+  await tab.evaluate((el) => {
+    el.blur();
+  });
+}
+
+/**
+ * Selects by a row of the Layers tab and comes back to the Inspector, as a user who picks
+ * an object by name and then edits it does (note 59).
+ */
+export async function pick(page: Page, row: Locator, options?: Parameters<Locator['click']>[0]) {
+  await sideTab(page, 'Layers');
+  await row.click(options);
+  await sideTab(page, 'Inspector');
 }

@@ -32,6 +32,9 @@ Every shortcut in JustFig is in this table. **Ctrl** means **⌘** on a Mac. Sho
 | Fit the page in the window                                                             | `Shift+1`             |                                                                           |
 | Zoom in                                                                                | `Shift+=`             | The plus key.                                                             |
 | Zoom out                                                                               | `−`                   | The minus key.                                                            |
+| Show the Inspector tab                                                                 | `Alt+I`               | The tabs on the right.                                                    |
+| Show the Layers tab                                                                    | `Alt+L`               |                                                                           |
+| Show the Notes tab                                                                     | `Alt+N`               |                                                                           |
 | Show figure tab 1                                                                      | `Alt+1`               | Brings the first tab forward.                                             |
 | Show figure tab 2                                                                      | `Alt+2`               |                                                                           |
 | Show figure tab 3                                                                      | `Alt+3`               |                                                                           |

@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { type Page, expect, test } from '@playwright/test';
 
-import { exportVia } from './helpers';
+import { exportVia, sideTab } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('./?editor');
@@ -172,6 +172,7 @@ test('splits a merge into a labelled row of channels (#67)', async ({ page }) =>
   const svg = readFileSync(await (await exportVia(page, 'SVG')).path(), 'utf8');
   expect(images(svg)).toHaveLength(5);
   // Three pictures and three labels in the row group.
+  await sideTab(page, 'Layers');
   await page.getByRole('button', { name: 'Expand' }).first().click();
   const names = await page.locator('.layers .item .name').allTextContents();
   expect(names.filter((n) => ['dapi', 'gfp', 'Merge'].includes(n))).toHaveLength(3);

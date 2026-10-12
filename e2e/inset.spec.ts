@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { type Page, expect, test } from '@playwright/test';
 
-import { exportVia } from './helpers';
+import { exportVia, pick } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('./?editor');
@@ -43,7 +43,7 @@ const pngSizes = (svg: string) =>
 
 /** The X field of the object selected in the Layers panel. */
 async function xOf(page: Page, name: RegExp, nth = 0): Promise<number> {
-  await layer(page, name).nth(nth).click();
+  await pick(page, layer(page, name).nth(nth));
   return Number(await side(page).getByLabel('X', { exact: true }).inputValue());
 }
 
@@ -104,7 +104,7 @@ test('makes a linked inset whose box and lines follow the picture (#66)', async 
   expect(await xOf(page, /^Inset$/)).toBeCloseTo(inset, 1);
 
   // Typing a magnification resizes the inset.
-  await layer(page, /^Inset$/).click();
+  await pick(page, layer(page, /^Inset$/));
   const w = Number(await side(page).getByLabel('W', { exact: true }).inputValue());
   await section.getByLabel('Magnification').fill('3');
   await section.getByLabel('Magnification').press('Tab');
@@ -120,12 +120,12 @@ test('makes a linked inset whose box and lines follow the picture (#66)', async 
   expect(await xOf(page, /^Inset line$/)).toBeCloseTo(line, 1);
 
   // Moving the box shows another region: the inset is re-cut from the picture's pixels.
-  await layer(page, /^Inset box$/).click();
+  await pick(page, layer(page, /^Inset box$/));
   await side(page)
     .getByLabel('X', { exact: true })
     .fill(String(box + 10));
   await side(page).getByLabel('X', { exact: true }).press('Tab');
-  await layer(page, /^Inset$/).click();
+  await pick(page, layer(page, /^Inset$/));
   await expect(section).not.toContainText('pixels 10, 10');
   await expect(section).not.toContainText('Updating');
   const recut = readFileSync(await (await exportVia(page, 'SVG')).path(), 'utf8');

@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { type Page, expect, test } from '@playwright/test';
 
-import { exportVia } from './helpers';
+import { exportVia, sideTab } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('./?editor');
@@ -107,8 +107,10 @@ test('crops and turns two channels together, keeping the scale bar calibrated (#
   expect(svg).not.toMatch(/clipPath|<mask|<svg[^>]*>[\s\S]*<svg/);
 
   // The bar's calibration followed the crop.
+  await sideTab(page, 'Layers');
   await page.locator('.layers').getByRole('button', { name: 'Expand' }).first().click();
   await page.locator('.layers .item .name', { hasText: 'Scale bar' }).click();
+  await sideTab(page, 'Inspector');
   await expect(side(page).getByLabel('Image width')).toHaveValue('60');
 
   // One undo step brings both whole pictures back, unturned.

@@ -17,7 +17,7 @@ import { deflateSync } from 'node:zlib';
 
 import { type Page, expect, test } from '@playwright/test';
 
-import { downloadFallback, exportVia, pageBox } from './helpers';
+import { downloadFallback, exportVia, pageBox, pick } from './helpers';
 
 const here = (p: string) => new URL(p, import.meta.url);
 const plot = (name: string) => fileURLToPath(here(`../src/io/svg/fixtures/${name}.svg`));
@@ -301,10 +301,8 @@ test('a large figure: first render, drag frames, export times', async ({ page },
   // PNG at 600 dpi with the micrograph drawn large enough to keep all its
   // pixels (note 32): the whole picture goes in, as strips.
   await page.keyboard.press('Escape');
-  await names
-    .filter({ hasText: /^Image$/ })
-    .first()
-    .click(); // the micrograph: added last, listed first
+  // The micrograph: added last, listed first.
+  await pick(page, names.filter({ hasText: /^Image$/ }).first());
   await side(page).getByLabel('W', { exact: true }).fill('215');
   await side(page).getByLabel('W', { exact: true }).press('Enter');
   await side(page).getByLabel('H', { exact: true }).fill('172');

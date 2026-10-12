@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { type Page, expect, test } from '@playwright/test';
 
-import { exportVia } from './helpers';
+import { exportVia, pick } from './helpers';
 
 const fixture = (name: string) =>
   fileURLToPath(new URL(`../src/io/svg/fixtures/${name}.svg`, import.meta.url));
@@ -51,7 +51,7 @@ test('tick labels of two plots to 7 pt Tinos from the keyboard, one undo step ea
 
   // Each plot on its own shows 7 pt Tinos tick labels; titles kept their size.
   for (const n of [0, 1]) {
-    await images(page).nth(n).click();
+    await pick(page, images(page).nth(n));
     await section(page).getByLabel('Text', { exact: true }).selectOption('tick');
     await expect(section(page).getByLabel('Text size (pt)')).toHaveValue('7');
     await expect(section(page).getByLabel('Font of the text')).toHaveValue('tinos');
@@ -80,15 +80,13 @@ test('Same text and lines copies the first plot’s styles, and the section pass
   await importPlot(page, 'r-svglite', 1);
   await importPlot(page, 'matplotlib-text', 2);
   // Layers list the top-most first: the ggplot plot (imported first) is the second.
-  await images(page).nth(1).click();
+  await pick(page, images(page).nth(1));
   const tick = section(page).getByLabel('Text', { exact: true });
   await tick.selectOption('tick');
   const refSize = await section(page).getByLabel('Text size (pt)').inputValue();
   await section(page).getByLabel('Lines', { exact: true }).selectOption('tick');
   const refWidth = await section(page).getByLabel('Line width (pt)').inputValue();
-  await images(page)
-    .nth(0)
-    .click({ modifiers: ['Shift'] });
+  await pick(page, images(page).nth(0), { modifiers: ['Shift'] });
   await expect(page.locator('.status')).toContainText('2 selected');
 
   const results = await new AxeBuilder({ page })
@@ -104,7 +102,7 @@ test('Same text and lines copies the first plot’s styles, and the section pass
   const match = side(page).getByRole('button', { name: 'Same text and lines' });
   await match.focus();
   await page.keyboard.press('Enter');
-  await images(page).nth(0).click();
+  await pick(page, images(page).nth(0));
   await section(page).getByLabel('Text', { exact: true }).selectOption('tick');
   await expect(section(page).getByLabel('Text size (pt)')).toHaveValue(refSize);
   await section(page).getByLabel('Lines', { exact: true }).selectOption('tick');

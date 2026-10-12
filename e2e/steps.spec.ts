@@ -2,7 +2,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { type Page, expect, test } from '@playwright/test';
 
-import { pageBox } from './helpers';
+import { pageBox, pick } from './helpers';
 
 const PAGE_W = (183 / 25.4) * 72;
 
@@ -31,7 +31,7 @@ async function badgesLeftToRight(page: Page): Promise<{ x: number; n: string }[]
   await expect(items).toHaveCount(3);
   const found: { x: number; n: string }[] = [];
   for (let i = 0; i < 3; i += 1) {
-    await items.nth(i).click();
+    await pick(page, items.nth(i));
     const note = page.locator('.side section[aria-label="Step"] .note');
     await expect(note).toBeVisible();
     const n = /Step (\d+)/.exec((await note.textContent()) ?? '')?.[1] ?? '?';

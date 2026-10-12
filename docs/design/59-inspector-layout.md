@@ -59,6 +59,23 @@ wrapping into the 72px column and help text set as large as the controls.
 - **Help** under a field is `.field-help`: 11px, `--ink-3`, under the
   control it explains. `.row` labels are 92px and may wrap; procedural
   selects and text inputs fill the row.
+- **Tabs** (`SideTabs.tsx`, 2026-10-12). The column was one scroll stack,
+  so the Layers panel's top edge was wherever the Inspector ended, and that
+  changed with every selection (Rotate and Style for a shape, Ungroup for a
+  group, a whole options block for a kind): clicking through the Layers
+  rows made the rows jump under the pointer. Now the column is a tablist,
+  Inspector | Layers | Notes, one panel at a time, remembered in
+  localStorage `sideTab`, with Alt+I/L/N in `KEY_ACTIONS`. Selection never
+  switches the tab; opening a note from its marker or starting one does
+  (store `setActiveNote`, `setNoteDraft`), since the note is read and typed
+  there. The Notes tab carries the count of open notes. The panels stay
+  mounted, hidden with `hidden`, so Layers keeps its open groups and scroll
+  across a switch and the e2e counts over `.layers` still hold; clicks there
+  first choose the tab. Two panes with a draggable split were built and
+  dropped: two scrollbars, and the top pane went empty when the lower one
+  overflowed. Reserving space for the controls a selection lacks cannot
+  absorb a kind's options; Layers above the Inspector moves the Inspector
+  instead.
 
 ## Not changed
 

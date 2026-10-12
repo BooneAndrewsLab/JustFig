@@ -99,6 +99,9 @@ export interface TabState {
   readonly fresh: boolean;
 }
 
+export type SideTab = 'inspector' | 'layers' | 'notes';
+export const SIDE_TABS: readonly SideTab[] = ['inspector', 'layers', 'notes'];
+
 /** What the whole app shares, whichever tab is in front. */
 export interface SharedState {
   readonly tool: ToolId;
@@ -113,6 +116,8 @@ export interface SharedState {
   readonly notice: Notice | null;
   /** Review note markers on the canvas (note 24); remembered per browser. Never exported either way. */
   readonly showNotes: boolean;
+  /** Which of the right column's tabs is open (note 59); remembered per browser. */
+  readonly sideTab: SideTab;
   /** Document ids of open figures whose last autosave failed (note 02); empty when all is kept. */
   readonly unsaved: readonly string[];
   /** The front page shows instead of the editor (note 57); every figure change leaves it. */
@@ -198,6 +203,15 @@ function initialUnits(): Unit {
   }
 }
 
+function initialSideTab(): SideTab {
+  try {
+    const v = globalThis.localStorage.getItem('sideTab');
+    return SIDE_TABS.find((t) => t === v) ?? 'inspector';
+  } catch {
+    return 'inspector';
+  }
+}
+
 function initialShowNotes(): boolean {
   try {
     return globalThis.localStorage.getItem('showNotes') !== 'off';
@@ -257,6 +271,7 @@ export class AppStore {
       keyBindings: loadCustomBindings(),
       notice: null,
       showNotes: initialShowNotes(),
+      sideTab: initialSideTab(),
       unsaved: [],
       home: false,
     };
@@ -568,16 +583,31 @@ export class AppStore {
     this.set({ showNotes });
   }
 
-  /** Opens a note in the Notes panel (null closes it); a note on another page shows that page. */
+  setSideTab(sideTab: SideTab): void {
+    try {
+      globalThis.localStorage.setItem('sideTab', sideTab);
+    } catch {
+      // A remembered preference only.
+    }
+    this.set({ sideTab });
+  }
+
+  /**
+   * Opens a note in the Notes panel (null closes it); a note on another page shows that page,
+   * and the Notes tab comes to the front, since the note is read there.
+   */
   setActiveNote(id: Id | null): void {
     const n =
       id === null ? undefined : this.state.history.present.doc.notes.find((x) => x.id === id);
     if (n && n.page !== this.state.pageId) this.setPage(n.page);
     this.set({ activeNote: n ? n.id : null, noteDraft: null });
+    if (n) this.setSideTab('notes');
   }
 
+  /** Starts (or drops) a note; a draft brings the Notes tab to the front, where it is typed. */
   setNoteDraft(noteDraft: NoteDraft | null): void {
     this.set({ noteDraft, ...(noteDraft ? { activeNote: null } : {}) });
+    if (noteDraft) this.setSideTab('notes');
   }
 
   setVision(vision: Vision): void {

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 
 import { type Page, expect, test } from '@playwright/test';
 
-import { downloadFallback, exportVia, pageBox } from './helpers';
+import { downloadFallback, exportVia, pageBox, sideTab } from './helpers';
 
 const PAGE_W = (183 / 25.4) * 72;
 
@@ -40,6 +40,7 @@ test('notes on an object and on a point: write, follow, edit, resolve, reply, de
   page,
 }) => {
   await rect(page, 30, 30, 60, 40);
+  await sideTab(page, 'Notes');
   await notes(page).getByLabel('Your name').fill('PI');
   await notes(page).getByLabel('Your name').blur();
 
@@ -59,11 +60,13 @@ test('notes on an object and on a point: write, follow, edit, resolve, reply, de
 
   // Its marker follows the rectangle when it moves.
   const before = await markers(page).first().boundingBox();
+  await sideTab(page, 'Layers');
   await page.locator('.layers .item .name', { hasText: 'Rect' }).click();
   await page.keyboard.press('Shift+ArrowRight');
   await page.keyboard.press('Shift+ArrowRight');
   const after = await markers(page).first().boundingBox();
   expect((after?.x ?? 0) - (before?.x ?? 0)).toBeGreaterThan(5);
+  await sideTab(page, 'Notes');
 
   // The tool on an empty spot pins a note to that point; Escape and Cancel leave no note.
   await page.keyboard.press('n');
@@ -107,8 +110,10 @@ test('notes on an object and on a point: write, follow, edit, resolve, reply, de
   // Deleting the rectangle leaves its note on the page, where it was; undo brings both back.
   await heads(page).first().click();
   await expect(notes(page)).toContainText('on Rect');
+  await sideTab(page, 'Layers');
   await page.locator('.layers .item .name', { hasText: 'Rect' }).click();
   await page.keyboard.press('Delete');
+  await sideTab(page, 'Notes');
   await expect(markers(page)).toHaveCount(2);
   await expect(notes(page)).not.toContainText('on Rect');
   await page.keyboard.press('Control+z');
@@ -135,6 +140,7 @@ test('notes survive saving and reopening the file, and no export carries them', 
   await page.goto('./?editor');
   await rect(page, 30, 30, 60, 40);
   await page.keyboard.press('Escape');
+  await sideTab(page, 'Notes');
   await notes(page).getByRole('button', { name: '+ Note' }).click();
   await expect(notes(page).getByLabel('Note text')).toBeFocused();
   await page.keyboard.type('SECRET-REVIEW-NOTE');

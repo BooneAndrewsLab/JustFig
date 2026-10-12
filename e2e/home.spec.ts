@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 
 import { type Page, expect, test } from '@playwright/test';
 
-import { audit, downloadFallback } from './helpers';
+import { audit, downloadFallback, sideTab } from './helpers';
 
 const heading = (page: Page) =>
   page.getByRole('heading', { name: 'Figures for papers, posters and grants.' });
@@ -51,6 +51,7 @@ test('a template card and the example each start a figure', async ({ page }) => 
   await card.click();
   await expect(heading(page)).toBeHidden();
   await expect(tabs(page)).toHaveCount(1);
+  await sideTab(page, 'Layers');
   await expect(page.locator('.layers .item').first()).toBeVisible();
   expect(name).not.toBe('');
 

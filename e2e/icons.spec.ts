@@ -71,7 +71,7 @@ test('recolours a CC BY icon per slot and credits it as modified', async ({ page
   await expect(recoloured).toHaveCount(0);
   await page.getByRole('button', { name: 'Primary #0072b2' }).click();
   await expect(recoloured.first()).toBeAttached();
-  await expect(page.getByRole('complementary', { name: 'Inspector' })).toContainText('modified');
+  await expect(page.getByRole('complementary', { name: 'Panels' })).toContainText('modified');
 
   await fileMenu(page, 'Attribution…');
   const dialog = page.getByRole('dialog', { name: 'Attribution and licences' });
@@ -90,7 +90,7 @@ test('turns a CC BY icon into line art by keyboard, credits it modified, and und
   page,
 }) => {
   await (await iconTile(page, 'bi-erythrocyte-5', 'erythrocyte 5')).click();
-  const inspector = page.getByRole('complementary', { name: 'Inspector' });
+  const inspector = page.getByRole('complementary', { name: 'Panels' });
   await page.getByRole('button', { name: 'Line art' }).focus();
   await page.keyboard.press('Enter');
   await expect(page.getByTestId('canvas').locator('[stroke="#1f2933"]').first()).toBeAttached();

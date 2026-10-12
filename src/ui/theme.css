@@ -494,8 +494,82 @@ button.history__item--current {
   grid-area: side;
   background: var(--panel);
   border-left: 1px solid var(--rule);
-  overflow: auto;
+  overflow: hidden;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/*
+ * The right column's tabs (note 59): Inspector, Layers, Notes. One panel at a time, so the
+ * Layers list never moves when the Inspector's height changes with the selection. The tab
+ * row stays put; the open panel scrolls under it.
+ */
+.sidetabs {
+  display: flex;
+  flex: none;
+  gap: 2px;
+  padding: 6px 8px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.sidetab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 1 1 0;
+  justify-content: center;
+  margin-bottom: -1px;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-bottom: 1px solid var(--rule);
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.sidetab:hover {
+  color: var(--ink);
+}
+
+.sidetab[aria-selected='true'] {
+  border-color: var(--rule);
+  border-bottom-color: var(--panel);
+  background: var(--panel);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.sidetab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.sidetab-count {
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+}
+
+.side__panel {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.side__panel[hidden] {
+  display: none;
 }
 
 .row {

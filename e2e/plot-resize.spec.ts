@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { type Page, expect, test } from '@playwright/test';
 
-import { exportVia } from './helpers';
+import { exportVia, sideTab } from './helpers';
 
 const fixture = (name: string) =>
   fileURLToPath(new URL(`../src/io/svg/fixtures/${name}.svg`, import.meta.url));
@@ -104,7 +104,9 @@ test('W and H from the keyboard keep text and line sizes; off, they scale; axe',
   // The choice is remembered (after the autosave, so the reload finds the figure).
   await page.waitForTimeout(1500);
   await page.reload();
+  await sideTab(page, 'Layers');
   await page.locator('.layers .item .name', { hasText: 'Image' }).first().click();
+  await sideTab(page, 'Inspector');
   await expect(keep(page)).not.toBeChecked();
 });
 

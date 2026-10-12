@@ -7,7 +7,7 @@
 import { readFileSync } from 'node:fs';
 import { type Page, expect, test } from '@playwright/test';
 
-import { exportVia, pageBox } from './helpers';
+import { exportVia, pageBox, sideTab } from './helpers';
 
 const PAGE_W = (183 / 25.4) * 72;
 const FRAGMENT = readFileSync(
@@ -81,7 +81,9 @@ test('a well plate from the shelf: generated Inspector, painting, Convert to sha
   await expect(page.locator('.layers .item .name', { hasText: 'Well plate' })).toHaveCount(1);
   // Undo brings the plate back (as a plate, not shapes).
   await page.keyboard.press('Control+z');
+  await sideTab(page, 'Layers');
   await page.locator('.layers .item .name', { hasText: 'Well plate' }).click();
+  await sideTab(page, 'Inspector');
   await expect(side(page).getByRole('region', { name: 'Well plate options' })).toBeVisible();
 });
 

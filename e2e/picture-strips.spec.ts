@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import { type Page, expect, test } from '@playwright/test';
 import { PNG } from 'pngjs';
 
-import { exportVia } from './helpers';
+import { exportVia, pick } from './helpers';
 
 const field = (page: Page, name: string) => page.locator('.side').getByLabel(name, { exact: true });
 
@@ -73,7 +73,7 @@ test('a big picture in strips shows no seam, placed off the pixel grid or turned
   });
   const picture = names.filter({ hasText: /^Image$/ });
   await expect(picture).toHaveCount(1);
-  await picture.click();
+  await pick(page, picture);
   for (const [name, v] of [
     ['W', BOX.w],
     ['H', BOX.h],

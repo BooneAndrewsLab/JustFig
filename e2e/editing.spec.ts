@@ -2,7 +2,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { type Page, expect, test } from '@playwright/test';
 
-import { exportVia, fileMenu, iconTile, pageBox } from './helpers';
+import { exportVia, fileMenu, iconTile, pageBox, pick, sideTab } from './helpers';
 
 const PAGE_W = (183 / 25.4) * 72;
 const OUT = process.env['E2E_OUT'];
@@ -38,16 +38,16 @@ test('Same width gives each selected object the first width in one step', async 
   await rect(page, 20, 120, 40, 40);
   const layer = (n: number) => page.locator('.layers .item .name', { hasText: 'Rect' }).nth(n);
   // Layers list the top-most first: the second rect is first in the list.
-  await layer(1).click();
+  await pick(page, layer(1));
   const w = await field(page, 'W').inputValue();
-  await layer(0).click();
+  await pick(page, layer(0));
   const w0 = await field(page, 'W').inputValue();
   expect(w0).not.toBe(w);
-  await layer(1).click();
-  await layer(0).click({ modifiers: ['Shift'] });
+  await pick(page, layer(1));
+  await pick(page, layer(0), { modifiers: ['Shift'] });
   await expect(page.locator('.status')).toContainText('2 selected');
   await page.getByRole('button', { name: 'Same width' }).click();
-  await layer(0).click();
+  await pick(page, layer(0));
   expect(await field(page, 'W').inputValue()).toBe(w);
   await page.keyboard.press('Control+z');
   expect(await field(page, 'W').inputValue()).toBe(w0);
@@ -81,7 +81,7 @@ test('Arrange in grid from the keyboard: lettered panels in reading order, one u
   // wide, the first at 0.7 mm, the second at 93 mm.
   // Layers list the top-most first; each panel took its rect's place in the stack.
   const xOf = async (n: number) => {
-    await panels.nth(n).click();
+    await pick(page, panels.nth(n));
     return Number(await field(page, 'X').inputValue());
   };
   expect(await xOf(1)).toBeCloseTo(0.7, 1); // the top-left rect
@@ -138,7 +138,9 @@ test('moving snaps to another object and shows a guide; group and ungroup', asyn
   await page.mouse.up();
   const xMoved = await field(page, 'X').inputValue();
   // Snapped: the moved rect's X equals the first rect's X (the bottom one in the layer list).
+  await sideTab(page, 'Layers');
   await page.locator('.layers .item .name', { hasText: 'Rect' }).last().click();
+  await sideTab(page, 'Inspector');
   expect(await field(page, 'X').inputValue()).toBe(xMoved);
   await page.keyboard.press('Control+a');
   await expect(page.locator('.status')).toContainText('2 selected');

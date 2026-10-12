@@ -31,6 +31,7 @@ import { Inspector } from './panels/Inspector';
 import { LayersPanel } from './panels/LayersPanel';
 import { NotesPanel } from './panels/NotesPanel';
 import { SaveFailureBanner } from './panels/SaveFailureBanner';
+import { SideTabs } from './panels/SideTabs';
 import { TabStrip } from './panels/TabStrip';
 import { ToolPalette } from './panels/ToolPalette';
 import { startInsetBaker } from './insetBaker';
@@ -491,26 +492,30 @@ export function App() {
       <ToolPalette />
       <CrashProbe />
       <Canvas key={s.front} />
-      <aside className="side" aria-label="Inspector">
-        <Inspector
-          onArrangeGrid={() => {
-            setDialog('grid');
-          }}
-          onCrop={() => {
-            setDialog('crop');
-          }}
-          onInset={() => {
-            setDialog('inset');
-          }}
-          onChannels={() => {
-            setDialog('channels');
-          }}
-          onSavePreset={() => {
-            setDialog('save-preset');
-          }}
+      <aside className="side" aria-label="Panels">
+        <SideTabs
+          inspector={
+            <Inspector
+              onArrangeGrid={() => {
+                setDialog('grid');
+              }}
+              onCrop={() => {
+                setDialog('crop');
+              }}
+              onInset={() => {
+                setDialog('inset');
+              }}
+              onChannels={() => {
+                setDialog('channels');
+              }}
+              onSavePreset={() => {
+                setDialog('save-preset');
+              }}
+            />
+          }
+          layers={<LayersPanel />}
+          notes={<NotesPanel />}
         />
-        <LayersPanel />
-        <NotesPanel />
       </aside>
       <footer className="status" aria-live="polite">
         <span>
