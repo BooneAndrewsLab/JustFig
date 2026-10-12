@@ -18,6 +18,7 @@ import { analytics } from '../analytics';
 import { currentPage, figure, selectedObjects, store } from '../state/store';
 import { useAppState } from '../state/useAppState';
 import { Dialog } from './Dialog';
+import { NumBox } from '../panels/NumBox';
 
 const clampInt = (v: number, max: number): number =>
   Math.min(Math.max(1, Math.floor(Number.isFinite(v) ? v : 1)), Math.max(1, max));
@@ -64,40 +65,38 @@ export function GridDialog({ onClose }: { onClose: () => void }) {
           <legend>Grid</legend>
           <div className="row">
             <label htmlFor="grid-cols">Columns</label>
-            <input
+            <NumBox
               id="grid-cols"
-              type="number"
               min={1}
               max={n}
               value={shape.cols}
-              onChange={(e) => {
-                const cols = clampInt(Number(e.target.value), n);
+              onChange={(raw) => {
+                const cols = clampInt(Number(raw), n);
                 setShape({ cols, rows: Math.ceil(n / cols) });
               }}
             />
             <label htmlFor="grid-rows">Rows</label>
-            <input
+            <NumBox
               id="grid-rows"
-              type="number"
               min={1}
               max={n}
               value={shape.rows}
-              onChange={(e) => {
-                const rows = clampInt(Number(e.target.value), n);
+              onChange={(raw) => {
+                const rows = clampInt(Number(raw), n);
                 setShape({ rows, cols: Math.ceil(n / rows) });
               }}
             />
           </div>
           <div className="row">
-            <label htmlFor="grid-gutter">Gutter ({u})</label>
-            <input
+            <label htmlFor="grid-gutter">Gutter</label>
+            <NumBox
               id="grid-gutter"
-              type="number"
+              unit={u}
               min={0}
               step={u === 'in' ? 0.01 : 0.5}
               value={gutter}
-              onChange={(e) => {
-                setGutter(e.target.value);
+              onChange={(raw) => {
+                setGutter(raw);
               }}
             />
           </div>

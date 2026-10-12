@@ -264,9 +264,11 @@ function PageInspector({ s }: { s: AppState }) {
             ))}
           </select>
         </div>
-        <div className="grid2">
+        <div className="geo">
           <Num
-            label={`W (${u})`}
+            label="W"
+            name={`W (${u})`}
+            suffix={u}
             value={toUnit(page.size.w, u)}
             min={1}
             onChange={(v) => {
@@ -280,7 +282,9 @@ function PageInspector({ s }: { s: AppState }) {
             }}
           />
           <Num
-            label={`H (${u})`}
+            label="H"
+            name={`H (${u})`}
+            suffix={u}
             value={toUnit(page.size.h, u)}
             min={1}
             onChange={(v) => {
@@ -336,7 +340,9 @@ function PageInspector({ s }: { s: AppState }) {
         </div>
         <div className="grid2">
           <Num
-            label="Size (pt)"
+            label="Size"
+            name="Size (pt)"
+            suffix="pt"
             value={ls.size}
             min={4}
             max={72}
@@ -783,7 +789,9 @@ function SelectionInspector({
           />
           <div className="grid2">
             <Num
-              label="Width (pt)"
+              label="Width"
+              name="Width (pt)"
+              suffix="pt"
               value={first.style.strokeWidth}
               min={0}
               step={0.25}
@@ -831,7 +839,9 @@ function SelectionInspector({
             </label>
             {one?.type === 'rect' && (
               <Num
-                label="Corner (pt)"
+                label="Corner"
+                name="Corner (pt)"
+                suffix="pt"
                 value={one.rx}
                 min={0}
                 onChange={(v) => {
@@ -946,7 +956,9 @@ function TextAndLinesSection({ s, sel }: { s: AppState; sel: readonly Obj[] }) {
             </select>
           </label>
           <Num
-            label="Text size (pt)"
+            label="Text size"
+            name="Text size (pt)"
+            suffix="pt"
             value={cur.text.size}
             min={1}
             step={0.5}
@@ -977,7 +989,9 @@ function TextAndLinesSection({ s, sel }: { s: AppState; sel: readonly Obj[] }) {
       {cur.line !== undefined && (
         <div className="grid2">
           <Num
-            label="Line width (pt)"
+            label="Line width"
+            name="Line width (pt)"
+            suffix="pt"
             value={cur.line}
             min={0}
             step={0.25}
@@ -1253,7 +1267,9 @@ function TextSection({ s, text }: { s: AppState; text: Extract<Obj, { type: 'tex
       </div>
       <div className="grid2">
         <Num
-          label="Size (pt)"
+          label="Size"
+          name="Size (pt)"
+          suffix="pt"
           value={firstRun?.size ?? 10}
           min={2}
           step={0.5}

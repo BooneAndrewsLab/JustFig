@@ -30,6 +30,7 @@ import { plainText } from '@/core/text/layout';
 import { findObj } from '@/core/model/tree';
 
 import { type View, store } from '../state/store';
+import { NumBox } from '../panels/NumBox';
 
 const FALLBACK: RunStyle = { font: 'arimo', size: 10, color: { hex: INK } };
 const FONT_LABEL: Record<FontId, string> = {
@@ -215,16 +216,16 @@ export function TextEditor({ text, page, view }: { text: Text; page: Page; view:
             </option>
           ))}
         </select>
-        <input
-          type="number"
+        <NumBox
           aria-label="Font size (pt)"
+          unit="pt"
           title="Font size (pt)"
           min={2}
           max={200}
           step={0.5}
           value={caretStyle.size}
-          onChange={(e) => {
-            const v = Number(e.target.value);
+          onChange={(raw) => {
+            const v = Number(raw);
             if (v > 0) patch({ size: v });
           }}
           style={{ width: 56 }}

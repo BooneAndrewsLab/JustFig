@@ -17,6 +17,7 @@ import { analytics } from '../analytics';
 import { currentPage, figure, selectedObjects, store } from '../state/store';
 import { useAppState } from '../state/useAppState';
 import { Dialog } from './Dialog';
+import { NumBox } from '../panels/NumBox';
 
 type Fields = Record<'x' | 'y' | 'w' | 'h' | 'mag', string>;
 
@@ -148,63 +149,63 @@ export function InsetDialog({ onClose }: { onClose: () => void }) {
           <legend>Region (pixels)</legend>
           <div className="row">
             <label htmlFor="inset-x">Left</label>
-            <input
+            <NumBox
               id="inset-x"
-              type="number"
+              unit="px"
               min={0}
               max={VW - 1}
               value={fields.x}
-              onChange={(e) => {
-                set({ x: e.target.value });
+              onChange={(raw) => {
+                set({ x: raw });
               }}
             />
             <label htmlFor="inset-y">Top</label>
-            <input
+            <NumBox
               id="inset-y"
-              type="number"
+              unit="px"
               min={0}
               max={VH - 1}
               value={fields.y}
-              onChange={(e) => {
-                set({ y: e.target.value });
+              onChange={(raw) => {
+                set({ y: raw });
               }}
             />
           </div>
           <div className="row">
             <label htmlFor="inset-w">Width</label>
-            <input
+            <NumBox
               id="inset-w"
-              type="number"
+              unit="px"
               min={1}
               max={VW}
               value={fields.w}
-              onChange={(e) => {
-                set({ w: e.target.value });
+              onChange={(raw) => {
+                set({ w: raw });
               }}
             />
             <label htmlFor="inset-h">Height</label>
-            <input
+            <NumBox
               id="inset-h"
-              type="number"
+              unit="px"
               min={1}
               max={VH}
               value={fields.h}
-              onChange={(e) => {
-                set({ h: e.target.value });
+              onChange={(raw) => {
+                set({ h: raw });
               }}
             />
           </div>
         </fieldset>
         <div className="row">
-          <label htmlFor="inset-mag">Magnification (×)</label>
-          <input
+          <label htmlFor="inset-mag">Magnification</label>
+          <NumBox
             id="inset-mag"
-            type="number"
+            unit="×"
             min={0.1}
             step="any"
             value={fields.mag}
-            onChange={(e) => {
-              set({ mag: e.target.value });
+            onChange={(raw) => {
+              set({ mag: raw });
             }}
           />
         </div>

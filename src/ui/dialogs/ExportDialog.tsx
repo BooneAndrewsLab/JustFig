@@ -29,6 +29,7 @@ import { type ExportFormat, runExport } from '../state/session';
 import { currentPage, figure, store } from '../state/store';
 import { useAppState } from '../state/useAppState';
 import { Dialog } from './Dialog';
+import { NumBox } from '../panels/NumBox';
 
 const FORMATS: readonly { id: ExportFormat; label: string; note: string }[] = [
   { id: 'pdf', label: 'PDF', note: 'Vector, fonts embedded. Best for journals and printing.' },
@@ -316,14 +317,14 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                 <option value="custom">Custom</option>
               </select>
               {![150, 300, 600].includes(dpi) && (
-                <input
-                  type="number"
+                <NumBox
                   aria-label="Custom dpi"
+                  unit="dpi"
                   min={36}
                   max={2400}
                   value={dpi}
-                  onChange={(e) => {
-                    setDpi(Number(e.target.value) || 300);
+                  onChange={(raw) => {
+                    setDpi(Number(raw) || 300);
                   }}
                 />
               )}

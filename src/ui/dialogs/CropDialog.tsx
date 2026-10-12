@@ -30,6 +30,7 @@ import { analytics } from '../analytics';
 import { currentPage, figure, selectedObjects, store } from '../state/store';
 import { useAppState } from '../state/useAppState';
 import { Dialog } from './Dialog';
+import { NumBox } from '../panels/NumBox';
 
 type Fields = Record<'x' | 'y' | 'w' | 'h' | 'rotation', string>;
 
@@ -210,49 +211,49 @@ export function CropDialog({ onClose }: { onClose: () => void }) {
           <legend>Crop (pixels)</legend>
           <div className="row">
             <label htmlFor="crop-x">Left</label>
-            <input
+            <NumBox
               id="crop-x"
-              type="number"
+              unit="px"
               min={0}
               max={VW - 1}
               value={fields.x}
-              onChange={(e) => {
-                set({ x: e.target.value });
+              onChange={(raw) => {
+                set({ x: raw });
               }}
             />
             <label htmlFor="crop-y">Top</label>
-            <input
+            <NumBox
               id="crop-y"
-              type="number"
+              unit="px"
               min={0}
               max={VH - 1}
               value={fields.y}
-              onChange={(e) => {
-                set({ y: e.target.value });
+              onChange={(raw) => {
+                set({ y: raw });
               }}
             />
           </div>
           <div className="row">
             <label htmlFor="crop-w">Width</label>
-            <input
+            <NumBox
               id="crop-w"
-              type="number"
+              unit="px"
               min={1}
               max={VW}
               value={fields.w}
-              onChange={(e) => {
-                set({ w: e.target.value });
+              onChange={(raw) => {
+                set({ w: raw });
               }}
             />
             <label htmlFor="crop-h">Height</label>
-            <input
+            <NumBox
               id="crop-h"
-              type="number"
+              unit="px"
               min={1}
               max={VH}
               value={fields.h}
-              onChange={(e) => {
-                set({ h: e.target.value });
+              onChange={(raw) => {
+                set({ h: raw });
               }}
             />
           </div>
@@ -270,14 +271,15 @@ export function CropDialog({ onClose }: { onClose: () => void }) {
         <fieldset>
           <legend>Rotation</legend>
           <div className="row">
-            <label htmlFor="crop-rotation">Angle (°)</label>
-            <input
+            <label htmlFor="crop-rotation">Angle</label>
+            <NumBox
               id="crop-rotation"
-              type="number"
+              aria-label="Angle (°)"
+              unit="°"
               step={1}
               value={fields.rotation}
-              onChange={(e) => {
-                set({ rotation: e.target.value });
+              onChange={(raw) => {
+                set({ rotation: raw });
               }}
             />
           </div>

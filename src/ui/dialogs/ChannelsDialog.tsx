@@ -19,6 +19,7 @@ import { analytics } from '../analytics';
 import { currentPage, figure, selectedObjects, store } from '../state/store';
 import { useAppState } from '../state/useAppState';
 import { Dialog } from './Dialog';
+import { NumBox } from '../panels/NumBox';
 
 const PREVIEW_SIDE = 320;
 
@@ -211,26 +212,24 @@ export function ChannelsDialog({ onClose }: { onClose: () => void }) {
               </div>
               <div className="row">
                 <label htmlFor={`${id}-min`}>Black at</label>
-                <input
+                <NumBox
                   id={`${id}-min`}
-                  type="number"
                   min={0}
                   max={254}
                   value={c.min}
-                  onChange={(e) => {
-                    const v = Math.round(Number(e.target.value));
+                  onChange={(raw) => {
+                    const v = Math.round(Number(raw));
                     if (Number.isFinite(v)) set(i, { min: Math.min(254, Math.max(0, v)) });
                   }}
                 />
                 <label htmlFor={`${id}-max`}>Full at</label>
-                <input
+                <NumBox
                   id={`${id}-max`}
-                  type="number"
                   min={1}
                   max={255}
                   value={c.max}
-                  onChange={(e) => {
-                    const v = Math.round(Number(e.target.value));
+                  onChange={(raw) => {
+                    const v = Math.round(Number(raw));
                     if (Number.isFinite(v)) set(i, { max: Math.min(255, Math.max(1, v)) });
                   }}
                 />
