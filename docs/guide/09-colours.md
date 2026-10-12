@@ -20,15 +20,15 @@ A figure can have a palette of named swatches. When an object's colour is linked
 The palette is in the Palette section of the Inspector (click an empty part of the page).
 
 - **Swatches** lists the swatches. Click the colour box to change one, type in the name field to rename it, and click **×** to remove it. A removed swatch's uses keep their colour.
-- **Add swatch** adds a new one.
+- **+ Swatch** adds a new one.
 - **Link colours** turns each colour the figure uses into a swatch, one per distinct colour, and links the objects to it. This includes the default colours of scientific objects. Do this on a finished figure, and you can then recolour it by editing the swatches.
 - **Unlink** fixes every colour as it is now. The swatches stay in the palette for later use, but nothing follows them any more.
 
-Choosing a plain colour with the picker, the hex field or a quick colour makes that one use unlinked.
+Choosing a plain colour with the picker, the hex field or a quick colour makes that one use unlinked, so a figure can be partly linked. **Link colours** is greyed out once every colour is linked, and **Unlink** when nothing is.
 
 ## Built-in palettes
 
-Choose a palette in the **Palette** list and choose **Apply to figure**. A small strip previews the colours first. Applying links the figure's colours to swatches, if they are not already, and gives the swatches the palette's colours in turn, so the whole figure is recoloured in one undo step. Black, white and greys are left alone, and so are the original colours of library icons (recolour those in the Inspector's Icon colours section).
+Choose a palette in the **Built-in palette** list and choose **Apply to figure**. The dots beside the button preview its colours first. Applying links the figure's colours to swatches, if they are not already, and gives the swatches the palette's colours in turn, so the whole figure is recoloured in one undo step. Black, white and greys are left alone, and so are the original colours of library icons (recolour those in the Inspector's Icon colours section).
 
 | Palette                        | Kind                 | Colourblind-safe |
 | ------------------------------ | -------------------- | ---------------- |

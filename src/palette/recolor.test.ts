@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { resolvePaint } from '@/core/color/color';
-import { addObjects } from '@/core/edits/edits';
+import { addObjects, updateObjects } from '@/core/edits/edits';
 import { createDoc, createRect, defaultRun, createText, frame, hex } from '@/core/model/factory';
 import { asId } from '@/core/model/ids';
 import { pageObjects } from '@/core/model/tree';
@@ -16,6 +16,7 @@ import {
   bakedSwatches,
   docColours,
   linkColours,
+  linkState,
   removeSwatch,
   setSwatch,
   unlinkColours,
@@ -88,6 +89,25 @@ describe('palettes and swatch-linked recolouring (note 07)', () => {
     );
     expect(plate?.type === 'procedural' && Object.keys(plate.slots).length).toBeGreaterThan(0);
     expect(docColours(linked.doc)).toEqual(docColours(f.doc));
+  });
+
+  it('counts fixed colours and linked uses, which can both be present', () => {
+    const f = figure();
+    const before = linkState(f.doc);
+    expect(before.linked).toBe(0);
+    expect(before.fixed).toBeGreaterThan(0);
+    const linked = linkColours().apply(f);
+    expect(linkState(linked.doc).fixed).toBe(0);
+    const page = linked.doc.pages[0];
+    const rect = page && [...pageObjects(page)].find((o) => o.type === 'rect');
+    if (!rect) throw new Error('no rect');
+    const mixed = updateObjects(page.id, [rect.id], 'Fill', (o) =>
+      o.type === 'rect' ? { ...o, style: { ...o.style, fill: hex('#123456') } } : o,
+    ).apply(linked);
+    const state = linkState(mixed.doc);
+    expect(state.fixed).toBe(1);
+    expect(state.linked).toBeGreaterThan(0);
+    expect(linkState(unlinkColours().apply(mixed).doc).linked).toBe(0);
   });
 
   it('changing a swatch recolours every linked use', () => {

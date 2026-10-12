@@ -121,6 +121,26 @@ export function docColours(doc: Doc): string[] {
   return [...count.entries()].sort((a, b) => b[1] - a[1]).map(([h]) => h);
 }
 
+/**
+ * How much of a document is linked: the distinct fixed colours `linkColours`
+ * would link (procedural defaults included) and the uses linked to a swatch,
+ * which `unlinkColours` would fix. A figure can have both at once.
+ */
+export function linkState(doc: Doc): { fixed: number; linked: number } {
+  const fixed = new Set<string>();
+  let linked = 0;
+  mapDocPaints(
+    doc,
+    (p) => {
+      if ('swatch' in p) linked += 1;
+      else fixed.add(p.hex.toLowerCase());
+      return p;
+    },
+    true,
+  );
+  return { fixed: fixed.size, linked };
+}
+
 const neutralName = (hex: string): string => {
   if (hex === '#ffffff') return 'White';
   if (hex === '#000000') return 'Black';

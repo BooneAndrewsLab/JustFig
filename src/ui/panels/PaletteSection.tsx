@@ -9,8 +9,8 @@ import { PALETTES, paletteById } from '@/palette/palettes';
 import {
   addSwatch,
   applyPalette,
-  docColours,
   linkColours,
+  linkState,
   removeSwatch,
   renameSwatch,
   setSwatch,
@@ -32,9 +32,9 @@ export function PaletteSection({ s }: { s: AppState }) {
   const doc = figure(s).doc;
   const [choice, setChoice] = useState('okabe-ito');
   const chosen = paletteById(choice);
-  const fixedColours = docColours(doc).length;
+  const { fixed, linked } = linkState(doc);
   return (
-    <section className="section" aria-label="Palette">
+    <section className="section palette" aria-label="Palette">
       <h2>Palette</h2>
       {doc.palette.length === 0 ? (
         <p className="note">
@@ -44,7 +44,7 @@ export function PaletteSection({ s }: { s: AppState }) {
       ) : (
         <ul className="swatch-list" aria-label="Swatches">
           {doc.palette.map((sw) => (
-            <li key={sw.id} className="row">
+            <li key={sw.id}>
               <input
                 type="color"
                 className="swatch"
@@ -79,41 +79,75 @@ export function PaletteSection({ s }: { s: AppState }) {
           ))}
         </ul>
       )}
-      <div className="row">
-        <label htmlFor="palette-choice">Palette</label>
-        <select
-          id="palette-choice"
-          value={choice}
-          onChange={(e) => {
-            setChoice(e.target.value);
+      <div className="cmds">
+        <button
+          type="button"
+          onClick={() => {
+            store.edit(addSwatch('#0072b2'));
           }}
         >
-          {(['qualitative', 'sequential'] as const).map((k) => (
-            <optgroup key={k} label={k === 'qualitative' ? 'Categories' : 'Ordered (sequential)'}>
-              {PALETTES.filter((p) => p.kind === k).map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                  {p.colourblindSafe ? ' ✓ colourblind-safe' : ''}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+          + Swatch
+        </button>
+        <button
+          type="button"
+          disabled={fixed === 0}
+          title={
+            fixed === 0
+              ? 'Every colour is already linked'
+              : `Make each of the figure’s ${String(fixed)} fixed colours a swatch`
+          }
+          onClick={() => {
+            store.edit(linkColours());
+            analytics.track('palette', 'link');
+          }}
+        >
+          Link colours
+        </button>
+        <button
+          type="button"
+          disabled={linked === 0}
+          title={
+            linked === 0
+              ? 'No colour is linked to a swatch'
+              : 'Fix every colour as it is now; swatches stay for later use'
+          }
+          onClick={() => {
+            store.edit(unlinkColours());
+          }}
+        >
+          Unlink
+        </button>
       </div>
-      {chosen && (
-        <div className="row palette-preview" aria-hidden="true">
-          {chosen.colours.map((c) => (
-            <span key={c} className="swatch" style={{ background: c, width: 16, height: 16 }} />
-          ))}
-        </div>
-      )}
-      {chosen && !chosen.colourblindSafe && (
-        <p className="note warn" role="note">
-          {chosen.name} is not colourblind-safe: some of its colours look alike to about 1 in 12
-          men. Check with the colour-vision preview below.
-        </p>
-      )}
-      <div className="row">
+      <label className="palette__sub" htmlFor="palette-choice">
+        Built-in palette
+      </label>
+      <select
+        id="palette-choice"
+        className="palette__select"
+        value={choice}
+        onChange={(e) => {
+          setChoice(e.target.value);
+        }}
+      >
+        {(['qualitative', 'sequential'] as const).map((k) => (
+          <optgroup key={k} label={k === 'qualitative' ? 'Categories' : 'Ordered (sequential)'}>
+            {PALETTES.filter((p) => p.kind === k).map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+                {p.colourblindSafe ? ' ✓ colourblind-safe' : ''}
+              </option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+      <div className="palette__apply">
+        {chosen && (
+          <span className="palette-preview" aria-hidden="true">
+            {chosen.colours.map((c) => (
+              <span key={c} className="swatch" style={{ background: c }} />
+            ))}
+          </span>
+        )}
         <button
           type="button"
           disabled={!chosen}
@@ -125,53 +159,30 @@ export function PaletteSection({ s }: { s: AppState }) {
         >
           Apply to figure
         </button>
-        <button
-          type="button"
-          onClick={() => {
-            store.edit(addSwatch('#0072b2'));
-          }}
-        >
-          Add swatch
-        </button>
       </div>
-      <div className="row">
-        <button
-          type="button"
-          title={`Make each of the figure’s ${String(fixedColours)} colours a swatch`}
-          onClick={() => {
-            store.edit(linkColours());
-            analytics.track('palette', 'link');
-          }}
-        >
-          Link colours
-        </button>
-        <button
-          type="button"
-          disabled={doc.palette.length === 0}
-          title="Fix every colour as it is now; swatches stay for later use"
-          onClick={() => {
-            store.edit(unlinkColours());
-          }}
-        >
-          Unlink
-        </button>
-      </div>
-      <div className="row">
-        <label htmlFor="vision">Preview as</label>
-        <select
-          id="vision"
-          value={s.vision}
-          onChange={(e) => {
-            store.setVision(e.target.value as Vision);
-          }}
-        >
-          {VISIONS.map((v) => (
-            <option key={v.id} value={v.id}>
-              {v.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      {chosen && !chosen.colourblindSafe && (
+        <p className="note warn" role="note">
+          {chosen.name} is not colourblind-safe: some of its colours look alike to about 1 in 12
+          men. Check with the colour-vision preview below.
+        </p>
+      )}
+      <label className="palette__sub" htmlFor="vision">
+        Preview as
+      </label>
+      <select
+        id="vision"
+        className="palette__select"
+        value={s.vision}
+        onChange={(e) => {
+          store.setVision(e.target.value as Vision);
+        }}
+      >
+        {VISIONS.map((v) => (
+          <option key={v.id} value={v.id}>
+            {v.label}
+          </option>
+        ))}
+      </select>
     </section>
   );
 }
