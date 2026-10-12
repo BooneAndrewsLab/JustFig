@@ -104,4 +104,4 @@ Press **Arrange** (or Enter). Each object goes into its own panel, the panels ar
 
 Lines, paths and arrows scale like the resize handles do (their points move, line widths stay); text keeps its size and re-wraps to the new width. Imported plots keep their text and line sizes too while **Keep plot text and line sizes** is on in the Inspector, so plots fitted into a grid all keep the label sizes you gave them.
 
-Set the look of all panel labels in the Inspector's Figure section (click an empty part of the page to see it): **Panel labels** chooses the style (A, a, (a), (A) or a)), **Size (pt)** the size and **Bold** the weight.
+Set the look of all panel labels in the Inspector's Figure section (click an empty part of the page to see it): **Panel labels** chooses the style (A, a, (a), (A) or a)), **Label size** the size and **Bold labels** the weight.

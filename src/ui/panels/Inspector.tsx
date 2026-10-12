@@ -323,6 +323,21 @@ function PageInspector({ s }: { s: AppState }) {
       </Section>
       <Section title="Figure">
         <div className="row">
+          <label htmlFor="doc-title">Title</label>
+          <input
+            id="doc-title"
+            type="text"
+            value={fig.doc.title}
+            onChange={(e) => {
+              const title = e.target.value;
+              store.edit(
+                updateDoc('Rename figure', (d) => ({ ...d, title })),
+                { coalesce: 'title' },
+              );
+            }}
+          />
+        </div>
+        <div className="row">
           <label htmlFor="label-format">Panel labels</label>
           <select
             id="label-format"
@@ -338,18 +353,23 @@ function PageInspector({ s }: { s: AppState }) {
             ))}
           </select>
         </div>
-        <div className="grid2">
-          <Num
-            label="Size"
-            name="Size (pt)"
-            suffix="pt"
+        <div className="row">
+          <label htmlFor="label-size">Label size</label>
+          <NumBox
+            id="label-size"
+            aria-label="Label size (pt)"
+            unit="pt"
             value={ls.size}
             min={4}
             max={72}
-            onChange={(v) => {
+            onChange={(raw) => {
+              const v = Number(raw);
+              if (raw === '' || !Number.isFinite(v)) return;
               store.edit(setLabelStyle({ ...ls, size: v }), { coalesce: 'label-size' });
             }}
           />
+        </div>
+        <div className="row">
           <label>
             <input
               type="checkbox"
@@ -357,8 +377,8 @@ function PageInspector({ s }: { s: AppState }) {
               onChange={(e) => {
                 store.edit(setLabelStyle({ ...ls, bold: e.target.checked }));
               }}
-            />
-            Bold
+            />{' '}
+            Bold labels
           </label>
         </div>
         <div className="row">
@@ -384,21 +404,6 @@ function PageInspector({ s }: { s: AppState }) {
             />{' '}
             Snap to objects and page
           </label>
-        </div>
-        <div className="row">
-          <label htmlFor="doc-title">Title</label>
-          <input
-            id="doc-title"
-            type="text"
-            value={fig.doc.title}
-            onChange={(e) => {
-              const title = e.target.value;
-              store.edit(
-                updateDoc('Rename figure', (d) => ({ ...d, title })),
-                { coalesce: 'title' },
-              );
-            }}
-          />
         </div>
       </Section>
       <PaletteSection s={s} />

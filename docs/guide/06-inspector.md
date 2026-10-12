@@ -17,10 +17,10 @@ Click an empty part of the canvas to see these sections.
 
 ### Figure
 
-- **Panel labels**, **Size (pt)** and **Bold** style the letters on all panels (see [Arranging](05-arranging.md)).
+- **Title** names the figure. It is also the file name when you save or export.
+- **Panel labels**, **Label size** and **Bold labels** style the letters on all panels (see [Arranging](05-arranging.md)).
 - **Credit line in exports** adds the icon credit line under the exported figure (see [Exporting](12-export.md)).
 - **Snap to objects and page** turns snapping on or off.
-- **Title** names the figure. It is also the file name when you save or export.
 
 ### Palette
 
@@ -65,7 +65,7 @@ Sizes are in points on the page, so "7 pt" means 7 pt whatever size the plot is 
 
 ### Text
 
-**Edit text**, **Font**, **Size (pt)**, **Align**, **Auto width**, **Line height** and **Colour**. See [Text](04-text.md).
+**Edit text**, **Font**, **Label size**, **Align**, **Auto width**, **Line height** and **Colour**. See [Text](04-text.md).
 
 ### Step
 
