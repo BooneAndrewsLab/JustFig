@@ -87,13 +87,14 @@ function style(p: PathPrim): ShapeStyle {
 /** Primitives as plain objects, frame-local (ids left empty). */
 export function primObjects(prims: readonly Prim[]): Obj[] {
   const out: Obj[] = [];
-  const base = { id: '' as Id, opacity: 1 };
   for (const p of prims) {
     if (p.kind === 'text') {
       if (p.text.trim() !== '') out.push(textPrimObj(p));
       continue;
     }
     const st = style(p);
+    // A translucent primitive (glow, sheen) becomes translucent objects.
+    const base = { id: '' as Id, opacity: p.alpha ?? 1 };
     for (const s of p.subs) {
       if (s.t === 'circle')
         out.push({

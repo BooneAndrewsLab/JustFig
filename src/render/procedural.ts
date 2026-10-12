@@ -40,6 +40,8 @@ export function primNodes(
           'stroke-width': stroked ? p.sw : undefined,
           'stroke-linecap': stroked && p.cap ? p.cap : undefined,
           'stroke-linejoin': stroked && p.join ? p.join : undefined,
+          'fill-opacity': p.fill !== null && p.alpha !== undefined ? p.alpha : undefined,
+          'stroke-opacity': stroked && p.alpha !== undefined ? p.alpha : undefined,
         }),
       );
       continue;

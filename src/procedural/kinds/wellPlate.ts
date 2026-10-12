@@ -334,7 +334,7 @@ export const wellPlate = defineKind<WellPlateParams>({
   description: 'A 6- to 1536-well plate; paint wells or paste a layout from a spreadsheet.',
   keywords: ['well', '96', '384', 'microplate', 'microtiter', 'multiwell', 'elisa', 'layout'],
   defaultSize: { w: 240, h: 160 },
-  styles: ['line-art', 'cartoon'],
+  styles: ['line-art', 'cartoon', 'textbook'],
   fields: [
     {
       key: 'format',
@@ -413,15 +413,12 @@ export const wellPlate = defineKind<WellPlateParams>({
     const wellW = Math.min(0.5, L.pitch * 0.06);
     const look = lookOf(p.style, wellW);
     out.push(
-      ...pathPrim(
-        [look.organic(body, 1)],
-        look.body({
-          fill: slots['plate'] ?? null,
-          stroke: slots['rim'] ?? null,
-          sw: 0.75,
-          join: 'round',
-        }),
-      ),
+      ...look.paint('body', [look.organic(body, 1)], {
+        fill: slots['plate'] ?? null,
+        stroke: slots['rim'] ?? null,
+        sw: 0.75,
+        join: 'round',
+      }),
     );
     const r = L.pitch * 0.4;
     // Hand-drawn wells only where they stay few enough to see (and to draw quickly).
@@ -451,12 +448,11 @@ export const wellPlate = defineKind<WellPlateParams>({
       for (const list of byColour(cells, (c) => `${c.painted ? 'p' : 'e'}${c.colour}`).values()) {
         const first = list[0];
         if (!first) continue;
-        out.push(
-          ...pathPrim(
-            list.map((c) => c.sub),
-            { fill: first.painted ? tone(first.colour) : look.fill(first.colour) },
-          ),
-        );
+        const fill = first.painted ? tone(first.colour) : look.fill(first.colour);
+        const subs = list.map((c) => c.sub);
+        // Textbook shades each well (a shade, the colour, a light band): its hue stays its data.
+        const shaded = look.tones(subs, fill);
+        out.push(...(shaded.length > 0 ? shaded : pathPrim(subs, { fill })));
       }
       if (p.outline || look.outlines)
         out.push(

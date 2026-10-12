@@ -16,7 +16,6 @@ import {
   joinNodes,
   line,
   lookOf,
-  pathPrim,
   poly,
   rect,
 } from '../prims';
@@ -114,7 +113,7 @@ export const bacterium = defineKind<BacteriumParams>({
     'plasmid',
   ],
   defaultSize: { w: 240, h: 110 },
-  styles: ['line-art', 'cartoon'],
+  styles: ['line-art', 'cartoon', 'textbook', 'fluorescence', 'em', 'brightfield'],
   fields: [
     {
       key: 'shape',
@@ -267,6 +266,7 @@ export const bacterium = defineKind<BacteriumParams>({
     const look = lookOf(p.style, Math.max(0.3, m));
     // The envelope's layers share one wobble, so they stay concentric.
     const layer = (half: number): Sub => look.organic(shapeAt(half), p.seed);
+    out.push(...look.ground(w, h));
     const first = centre[0] ?? { x: mx, y: my };
     const last = centre[centre.length - 1] ?? first;
     const mid = centre[Math.floor(centre.length / 2)] ?? first;
@@ -331,15 +331,12 @@ export const bacterium = defineKind<BacteriumParams>({
       }
     }
     out.push(
-      ...pathPrim(
-        flag,
-        look.line({
-          stroke: slot('flagellum'),
-          sw: Math.max(0.3, H * 0.06),
-          cap: 'round',
-          join: 'round',
-        }),
-      ),
+      ...look.paint('line', flag, {
+        stroke: slot('flagellum'),
+        sw: Math.max(0.3, H * 0.06),
+        cap: 'round',
+        join: 'round',
+      }),
     );
     const pili: Sub[] = [];
     for (let i = 0; i < p.pili; i += 1) {
@@ -348,52 +345,44 @@ export const bacterium = defineKind<BacteriumParams>({
       pili.push(line(q, inFrame({ x: q.x + Math.cos(a) * len, y: q.y + Math.sin(a) * len })));
     }
     out.push(
-      ...pathPrim(
-        pili,
-        look.line({ stroke: slot('pilus'), sw: Math.max(0.2, H * 0.025), cap: 'round' }),
-      ),
+      ...look.paint('line', pili, {
+        stroke: slot('pilus'),
+        sw: Math.max(0.2, H * 0.025),
+        cap: 'round',
+      }),
     );
 
     // The envelope, outside in.
     if (p.capsule) {
       const cc = slot('capsule');
       out.push(
-        ...pathPrim(
-          [layer(hOut)],
-          look.body({
-            fill: cc,
-            stroke: shiftLightness(cc, -0.12),
-            sw: Math.max(0.2, m * 0.5),
-          }),
-        ),
+        ...look.paint('body', [layer(hOut)], {
+          fill: cc,
+          stroke: shiftLightness(cc, -0.12),
+          sw: Math.max(0.2, m * 0.5),
+        }),
       );
     }
     const wc = slot('wall');
     const memb = slot('membrane');
     if (p.envelope === 'negative') {
-      out.push(...pathPrim([layer(hs)], look.body({ fill: wc, stroke: memb, sw: m })));
+      out.push(...look.paint('body', [layer(hs)], { fill: wc, stroke: memb, sw: m }));
       out.push(
-        ...pathPrim(
-          [layer(H * (1 + envF / 2))],
-          look.line({
-            stroke: shiftLightness(wc, -0.25),
-            sw: Math.max(0.2, m * 0.5),
-          }),
-        ),
+        ...look.paint('line', [layer(H * (1 + envF / 2))], {
+          stroke: shiftLightness(wc, -0.25),
+          sw: Math.max(0.2, m * 0.5),
+        }),
       );
     } else
       out.push(
-        ...pathPrim(
-          [layer(hs)],
-          look.body({
-            fill: wc,
-            stroke: shiftLightness(wc, -0.25),
-            sw: Math.max(0.2, m * 0.6),
-          }),
-        ),
+        ...look.paint('body', [layer(hs)], {
+          fill: wc,
+          stroke: shiftLightness(wc, -0.25),
+          sw: Math.max(0.2, m * 0.6),
+        }),
       );
     const cyto = slot('cytoplasm');
-    out.push(...pathPrim([layer(H)], look.body({ fill: cyto, stroke: memb, sw: m })));
+    out.push(...look.paint('body', [layer(H)], { fill: cyto, stroke: memb, sw: m }));
     if (p.shape !== 'vibrio')
       out.push(
         ...look.highlight(
@@ -430,9 +419,11 @@ export const bacterium = defineKind<BacteriumParams>({
         region.push({ x: midPt.x + Math.cos(a) * lx * k, y: midPt.y + Math.sin(a) * ly * k });
       }
       out.push(
-        ...pathPrim(
+        ...look.paint(
+          'detail',
           [poly(region, true)],
-          look.detail({ fill: mix(nc, cyto, 0.75), join: 'round' }),
+          { fill: mix(nc, cyto, 0.75), join: 'round' },
+          true,
         ),
       );
       const dna: Vec2[] = [];
@@ -442,14 +433,11 @@ export const bacterium = defineKind<BacteriumParams>({
         dna.push({ x: midPt.x + Math.cos(a) * lx * d, y: midPt.y + Math.sin(a) * ly * d });
       }
       out.push(
-        ...pathPrim(
+        ...look.paint(
+          'line',
           [poly(dna)],
-          look.line({
-            stroke: nc,
-            sw: Math.max(0.2, H * 0.03),
-            cap: 'round',
-            join: 'round',
-          }),
+          { stroke: nc, sw: Math.max(0.2, H * 0.03), cap: 'round', join: 'round' },
+          true,
         ),
       );
     }
@@ -460,7 +448,7 @@ export const bacterium = defineKind<BacteriumParams>({
       if (q) rings.push(circle(q.x, q.y, pr));
     }
     out.push(
-      ...pathPrim(rings, look.line({ stroke: slot('plasmid'), sw: Math.max(0.2, pr * 0.3) })),
+      ...look.paint('line', rings, { stroke: slot('plasmid'), sw: Math.max(0.2, pr * 0.3) }),
     );
     const rr = H * 0.035 * look.bigger;
     const ribo: Sub[] = [];
@@ -468,7 +456,7 @@ export const bacterium = defineKind<BacteriumParams>({
       const q = spot(rr);
       if (q) ribo.push(circle(q.x, q.y, rr));
     }
-    out.push(...pathPrim(ribo, look.mark({ fill: slot('ribosome') })));
+    out.push(...look.paint('mark', ribo, { fill: slot('ribosome') }));
     return out;
   },
 });

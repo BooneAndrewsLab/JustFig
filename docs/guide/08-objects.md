@@ -54,8 +54,13 @@ A starting point says _what_ an object shows; its **Style** says _how_ it is dra
 - **Flat** — flat colours with a thin outline, as these objects have always been drawn. The default, and the closest match to most library icons.
 - **Line art** — outlines only, in one dark ink on white, for journals that want monochrome figures and for methods schematics. Colours that carry meaning become shades of grey: painted wells get shades from light to dark in the order of their colours' lightness (so neighbouring colours stay apart), gel bands are dark on a light gel, marker colonies are filled grey, and a stained gel is drawn light.
 - **Cartoon** — bold dark outlines, brighter flat colours, slightly hand-drawn edges, a small highlight, and fewer but bigger organelles (two or three mitochondria rather than a dozen), for talks, teaching and graphical abstracts. Colonies, wells and bands keep their number: they are your data.
+- **Textbook** — shaded, like a review-article illustration: each rounded part has a darker shade and a light band in its own colour, membranes and rims are double lines, and edges are slightly organic. Cell, Bacterium, Well plate, Petri dish and Agarose gel.
+- **Fluorescence micrograph** — the cell as an immunofluorescence image: a black ground, each part's colour turned into a bright channel of the same hue, membranes and organelles glowing, the cytoplasm only faintly there, and DNA (the nucleus, a bacterium's nucleoid) in DAPI blue. Cell and Bacterium.
+- **EM micrograph** — the cell as an electron micrograph: greys on a light grey ground, dark double membranes, a darker nucleus, dark ribosomes. Cell and Bacterium.
+- **Brightfield micrograph** — the cell as seen unstained under a light microscope: nearly the colour of the warm grey ground, thin dark edges with a bright halo, the nucleus a little darker. Cell and Bacterium.
+- **Photo** — the dish or gel as photographed. A Petri dish gets clear plastic, a darker meniscus at the agar's edge, a light sheen off the lid and translucent colonies with a small glint; an Agarose gel is lit from below by UV, violet-black with glowing pink-orange bands (or, as Inverted, a scanned gel with soft grey bands). Petri dish and Agarose gel.
 
-Every style exports like any other object, as plain shapes and colours.
+A style an object cannot be drawn in is simply not in its **Style** list. Every style exports like any other object, as plain shapes and colours; the glow, sheen and translucent colonies are shapes drawn partly transparent, never blur or gradient effects, so they open the same in Illustrator, Inkscape or a journal's figure tool.
 
 To match several objects, select them all: **Apply this style to all**, with a **Style** choice beside it, appears in the selection's section of the Inspector. It gives every selected object that has that style the same style in one step you can undo; objects without styles (or without that one) are left as they are.
 

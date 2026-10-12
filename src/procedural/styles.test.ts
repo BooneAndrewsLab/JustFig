@@ -7,7 +7,24 @@ import { docObjects } from '@/core/model/tree';
 import type { Procedural } from '@/core/model/types';
 
 import { applyStyle, createProcedural, stylesOf } from './edits';
-import { INK, LOOKS, PAPER, STYLE_IDS, circle, lookOf, primPoints, rect, wobble } from './prims';
+import { nodeToSvgString } from '@/render/svgNode';
+import { primNodes } from '@/render/procedural';
+
+import {
+  INK,
+  LOOKS,
+  PAPER,
+  STYLE_IDS,
+  circle,
+  glowRings,
+  lookOf,
+  pathPrim,
+  primPoints,
+  rect,
+  shrink,
+  wobble,
+} from './prims';
+import { primObjects } from './shapes';
 import { allKinds, getKind, resolveProcedural } from './registry';
 import { STYLE_KEY } from './types';
 
@@ -31,9 +48,14 @@ describe('the style param', () => {
     }
   });
 
-  it('gives cell, bacterium, petri dish, well plate and gel line art and cartoon', () => {
-    for (const k of ['cell', 'bacterium', 'petriDish', 'wellPlate', 'gel'])
-      expect(stylesOf(kind(k))).toEqual(['flat', 'line-art', 'cartoon']);
+  it('gives each drawn kind the styles that suit it, in menu order', () => {
+    const micro = ['fluorescence', 'em', 'brightfield'];
+    const base = ['flat', 'line-art', 'cartoon', 'textbook'];
+    expect(stylesOf(kind('cell'))).toEqual([...base, ...micro]);
+    expect(stylesOf(kind('bacterium'))).toEqual([...base, ...micro]);
+    expect(stylesOf(kind('wellPlate'))).toEqual(base);
+    expect(stylesOf(kind('petriDish'))).toEqual([...base, 'photo']);
+    expect(stylesOf(kind('gel'))).toEqual([...base, 'photo']);
   });
 
   it('decodes an object saved before styles as flat, with no version bump', () => {
@@ -100,6 +122,78 @@ describe('lookOf', () => {
     expect(look.parts(0)).toBe(0);
     expect(look.bigger).toBeGreaterThan(1);
     expect(look.highlight(50, 50, 20, 10, '#fdebd3')).toHaveLength(1);
+  });
+});
+
+describe('textbook, micrographs and photo (#93)', () => {
+  const part = { fill: '#c3b1e1', stroke: '#8a6fb0', sw: 0.5 };
+  const cellBody = [circle(50, 50, 30)];
+
+  it('draws exactly one primitive per part in flat, line art and cartoon', () => {
+    for (const id of ['flat', 'line-art', 'cartoon', 'photo']) {
+      const look = lookOf(id, 1);
+      expect(look.paint('body', cellBody, part)).toEqual(pathPrim(cellBody, look.body(part)));
+      expect(look.ground(100, 100)).toEqual([]);
+      expect(look.tones(cellBody, '#ffffff')).toEqual([]);
+    }
+  });
+
+  it('shades textbook parts with tone bands under a double outline', () => {
+    const prims = lookOf('textbook', 1).paint('body', cellBody, part);
+    const fills = prims.filter((p) => p.fill !== null).map((p) => p.fill);
+    expect(new Set(fills).size).toBe(3);
+    const strokes = prims.filter((p) => p.stroke !== null);
+    expect(strokes).toHaveLength(2);
+    expect(strokes[1]?.sw).toBeLessThan(strokes[0]?.sw ?? 0);
+    // A square-cornered box gets no bands (they would read as a patch).
+    const box = lookOf('textbook', 1).paint('body', [rect(0, 0, 80, 40)], part);
+    expect(box.filter((p) => p.fill !== null)).toHaveLength(1);
+  });
+
+  it('draws fluorescence on black: a glowing stained edge, DNA in DAPI blue', () => {
+    const look = lookOf('fluorescence', 1);
+    expect(look.ground(100, 80)[0]?.fill).toBe(LOOKS.fluorescence.ground);
+    const cell = look.paint('body', cellBody, part);
+    const glow = cell.filter((p) => p.alpha !== undefined);
+    expect(glow.length).toBe(3);
+    // Widest and faintest first.
+    expect(glow[0]?.sw).toBeGreaterThan(glow[2]?.sw ?? 0);
+    expect(glow[0]?.alpha).toBeLessThan(glow[2]?.alpha ?? 1);
+    const nucleus = look.paint('body', cellBody, part, true);
+    expect(nucleus.at(-1)?.fill).toBe(LOOKS.fluorescence.dna);
+    expect(look.text('#000000')).not.toBe('#000000');
+  });
+
+  it('draws EM in greys and brightfield nearly the ground', () => {
+    const grey = lookOf('em', 1).paint('body', cellBody, part);
+    for (const p of grey)
+      for (const c of [p.fill, p.stroke]) if (c) expect(c.slice(1, 3)).toBe(c.slice(3, 5));
+    const bf = lookOf('brightfield', 1).paint('organelle', cellBody, part);
+    expect(bf.some((p) => p.alpha !== undefined && p.stroke === PAPER)).toBe(true);
+  });
+
+  it('keeps glow and bands bounded on thousands of parts', () => {
+    const many = Array.from({ length: 1000 }, (_, i) => circle(i, 5, 1));
+    for (const id of ['textbook', 'fluorescence', 'brightfield'])
+      expect(lookOf(id, 1).paint('body', many, part)).toHaveLength(1);
+  });
+
+  it('shrinks a part inside itself', () => {
+    const s = circle(50, 40, 30);
+    const k = shrink(s, 0.5, -0.6, -0.6);
+    expect(k.t === 'circle' && k.r).toBe(15);
+    if (k.t === 'circle')
+      expect(Math.hypot(k.cx - 50, k.cy - 40) + k.r).toBeLessThanOrEqual(30 + 1e-9);
+  });
+
+  it('exports translucency as plain fill/stroke opacity, and converts it to object opacity', () => {
+    const rings = glowRings([circle(5, 5, 3)], '#ff0000', 1, 2, 1);
+    const svg = primNodes(rings, 'text', [])
+      .map((n) => nodeToSvgString(n))
+      .join('');
+    expect(svg).toContain('stroke-opacity=');
+    expect(svg).not.toMatch(/ opacity=|filter|gradient/);
+    expect(primObjects(rings).every((o) => o.opacity < 1)).toBe(true);
   });
 });
 

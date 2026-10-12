@@ -1695,7 +1695,11 @@
           "enum": [
             "flat",
             "line-art",
-            "cartoon"
+            "cartoon",
+            "textbook",
+            "fluorescence",
+            "em",
+            "brightfield"
           ],
           "default": "flat",
           "description": "Style. How it is drawn; what it shows stays the same."
@@ -1827,7 +1831,11 @@
           "enum": [
             "flat",
             "line-art",
-            "cartoon"
+            "cartoon",
+            "textbook",
+            "fluorescence",
+            "em",
+            "brightfield"
           ],
           "default": "flat",
           "description": "Style. How it is drawn; what it shows stays the same."
@@ -2298,7 +2306,8 @@
           "enum": [
             "flat",
             "line-art",
-            "cartoon"
+            "cartoon",
+            "textbook"
           ],
           "default": "flat",
           "description": "Style. How it is drawn; what it shows stays the same."
@@ -2356,7 +2365,9 @@
           "enum": [
             "flat",
             "line-art",
-            "cartoon"
+            "cartoon",
+            "textbook",
+            "photo"
           ],
           "default": "flat",
           "description": "Style. How it is drawn; what it shows stays the same."
@@ -2535,7 +2546,9 @@
           "enum": [
             "flat",
             "line-art",
-            "cartoon"
+            "cartoon",
+            "textbook",
+            "photo"
           ],
           "default": "flat",
           "description": "Style. How it is drawn; what it shows stays the same."

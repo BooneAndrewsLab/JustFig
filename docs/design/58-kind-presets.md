@@ -132,11 +132,40 @@ How, keeping the rules:
   kind the per-part mappers: `body`, `detail`, `mark` (data colours), `marks` (a whole plate map,
   spread over distinct ink tints in line art), `line`, `text`, plus `parts`, `bigger`, `organic`
   (inward-only wobble, clamped to the exact shape's bounds so the bounded-render property holds)
-  and `highlight`. Flat maps every part to itself, so flat goldens never move. Textbook and
-  micrograph (#93) add tone bands and glow as new spec fields and mappers; data counts (wells,
+  and `highlight`. Flat maps every part to itself, so flat goldens never move. Data counts (wells,
   colonies, bands) never change with the style, only decorative ones (organelles, ribosomes).
+  As built (#93): textbook, the micrographs and photo are more `LookSpec` fields (`tones`,
+  `double`, `glow`, `halo`, `ground`, `dna`, `photo`, and fill/edge/mark modes `dim`, `grey`,
+  `pale`, `channel`, `shade`). A kind draws a part with `look.paint(role, subs, style, dna?)`,
+  the role saying what the part is (`body` an envelope, `organelle` a stained structure,
+  `detail`, `mark`, `line`); paint adds what the style puts round it: glow rings or a halo
+  before, tone bands between fill and outline, the light middle line of a double membrane
+  after. In flat, line art, cartoon and photo it is exactly `pathPrim(subs, look[role](s))`, so
+  their goldens did not move. `look.ground` is a micrograph's backdrop, `look.tones` bands parts
+  a kind fills itself (wells). Bands are two shrunken copies of the part towards its upper left
+  (its own colour, then +0.10 over the part at −0.08), only on rounded parts (a square box would
+  show a patch) and only up to 400 parts, as is glow; so the 50,000-unit bound holds.
+- **The micrograph is three styles, not one with a sub-mode.** `fluorescence`, `em` and
+  `brightfield` are separate entries (labels "… micrograph"). A sub-mode would be a second
+  generic field shown only for one style, and "Apply this style to all" would have to carry it;
+  three ids keep the style one enum value with nothing else to match. Fluorescence: black ground,
+  each slot's hue as a bright channel colour (OKLCH l 0.8, c 0.19), envelopes faint with a
+  glowing edge, organelles bright, DNA DAPI blue. EM: greys squeezed into the stained range on a
+  light grey ground, dark double membranes, darker nucleus. Brightfield: parts mixed into a
+  warm grey ground with thin dark edges and a white halo.
+- **Which kinds have which.** Cell and bacterium: textbook and the three micrographs (they are
+  what microscopes image). Well plate: textbook only (a micrograph of a plate is not a thing; a
+  plate-reader image would be a different kind). Petri dish and gel: textbook and photo. A kind
+  that does not suit a style does not list it, so its menu never offers it.
+- **Photo** is drawn by the kind (`look.photo`): the dish's clear rim, a meniscus as two
+  translucent strokes, a lid sheen of translucent arcs, translucent colonies with a denser
+  middle and a glint (only up to 600 colonies); the gel violet-black under UV with lighter
+  nested rounded patches for uneven light, bands pink-orange with glow rings (inverted: near-white,
+  grey bands with a soft edge).
 - **The export subset holds.** No gradients or filters: shading is stacked tone bands, glow
   (fluorescence) is concentric strokes at falling `stroke-opacity`, sheen is a translucent arc.
+  A primitive's `alpha` is written as plain `fill-opacity`/`stroke-opacity` attributes, and
+  "Convert to shapes" turns it into the objects' opacity.
   Each band is its own colour, so "one path per colour" still merges them. Photo and
   micrograph are imitations built from these, not raster effects.
 - **Matching a figure.** "Apply this style to all" in the Inspector's selection section is one

@@ -1,10 +1,10 @@
 /**
  * Agarose gel (note 04): lanes with bands placed by size on a log scale,
  * a ladder, lane labels and ladder sizes. Bands of one shade are one
- * `<path>`; intensity blends the band colour into the gel colour (no
- * opacity, so exports stay in the plain subset).
+ * `<path>`; intensity blends the band colour into the gel colour. Only the
+ * photo style's glow and uneven light use plain fill/stroke opacity.
  */
-import { type Prim, type StyleId, type Sub, lookOf, pathPrim, rect } from '../prims';
+import { type Prim, type StyleId, type Sub, glowRings, lookOf, pathPrim, rect } from '../prims';
 import { type Item, defineKind } from '../types';
 import { byColour, clamp, fmtInt, mix, text } from './util';
 
@@ -52,7 +52,7 @@ export const gel = defineKind<GelParams>({
   description: 'A gel with a ladder and lanes of bands; type band sizes in bp.',
   keywords: ['agarose', 'electrophoresis', 'ladder', 'band', 'lane', 'pcr', 'dna'],
   defaultSize: { w: 220, h: 170 },
-  styles: ['line-art', 'cartoon'],
+  styles: ['line-art', 'cartoon', 'textbook', 'photo'],
   fields: [
     {
       key: 'ladder',
@@ -155,8 +155,11 @@ export const gel = defineKind<GelParams>({
     const look = lookOf(p.style, clamp(Math.min(w, h) * 0.005, 0.3, 1));
     // On paper (line art) bands are always dark on a light gel.
     const stained = p.look === 'stained' && !look.onPaper;
-    const gelC = stained ? dark : light;
-    const bandC = stained ? light : dark;
+    // A photo: a UV-lit stained gel (violet-black, glowing pink-orange bands) or a scanned
+    // inverted one (grey bands with a soft edge on near-white).
+    const photo = look.photo;
+    const gelC = photo ? (stained ? '#1c1226' : '#eceaee') : stained ? dark : light;
+    const bandC = photo ? (stained ? '#ffd9c4' : '#2a2730') : stained ? light : dark;
     const ink = look.text(slots['text'] ?? '#1f2933');
     const ts = clamp(Math.min(w, h) * 0.05, 1, 8);
     const ladder = LADDERS[p.ladder] ?? [];
@@ -166,12 +169,29 @@ export const gel = defineKind<GelParams>({
     const gy = Math.min(top, h * 0.3);
     const gw = Math.max(0, w - gx);
     const gh = Math.max(0, h - gy);
-    out.push(
-      ...pathPrim(
-        [look.organic(rect(gx, gy, gw, gh, Math.min(3, gw * 0.02) * look.bigger), 1)],
-        look.body({ fill: gelC }),
-      ),
-    );
+    const slab = look.organic(rect(gx, gy, gw, gh, Math.min(3, gw * 0.02) * look.bigger), 1);
+    // A plain slab in every style: tone bands in a rectangle read as a patch, not shading.
+    out.push(...pathPrim([slab], look.body({ fill: gelC })));
+    // The transilluminator lights the middle of the gel more than its edges.
+    if (photo)
+      for (const k of [0.92, 0.8, 0.68, 0.56, 0.44])
+        out.push(
+          ...pathPrim(
+            [
+              rect(
+                gx + (gw * (1 - k)) / 2,
+                gy + gh * (1 - k) * 0.6,
+                gw * k,
+                gh * k,
+                Math.min(gw, gh) * k * 0.45,
+              ),
+            ],
+            {
+              fill: stained ? '#7a44a8' : '#ffffff',
+              alpha: stained ? 0.07 : 0.22,
+            },
+          ),
+        );
     const n = p.lanes.length;
     const pitch = gw / Math.max(1, n);
     const bw = pitch * 0.72;
@@ -199,7 +219,14 @@ export const gel = defineKind<GelParams>({
             Math.min(bh * 1.6, gh * 0.04),
           ),
         );
-      out.push(...pathPrim(wellSubs, look.detail({ fill: mix(gelC, '#000000', 0.35) })));
+      out.push(
+        ...pathPrim(
+          wellSubs,
+          look.detail({
+            fill: photo && stained ? mix(gelC, '#ffffff', 0.1) : mix(gelC, '#000000', 0.35),
+          }),
+        ),
+      );
     }
     const bands: { colour: string; sub: Sub }[] = [];
     lanes.forEach((bs, k) => {
@@ -214,7 +241,21 @@ export const gel = defineKind<GelParams>({
         });
       }
     });
-    for (const [colour, list] of byColour(bands, (b) => b.colour))
+    const groups = [...byColour(bands, (b) => b.colour)];
+    // Photo: each band glows (stained) or blurs (inverted) as far as half its height.
+    if (photo)
+      for (const [colour, list] of groups)
+        out.push(
+          ...glowRings(
+            list.map((b) => b.sub),
+            stained ? mix(colour, '#ff6a3d', 0.5) : colour,
+            0,
+            3,
+            bh * 0.3,
+            stained ? 1 : 0.5,
+          ),
+        );
+    for (const [colour, list] of groups)
       out.push(
         ...pathPrim(
           list.map((b) => b.sub),

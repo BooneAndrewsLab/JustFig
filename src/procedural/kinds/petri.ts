@@ -2,7 +2,18 @@
 import { shiftLightness } from '@/core/color/color';
 import type { Vec2 } from '@/core/model/types';
 
-import { type Prim, type StyleId, type Sub, circle, lookOf, pathPrim, poly, rect } from '../prims';
+import {
+  type Prim,
+  type StyleId,
+  type Sub,
+  circle,
+  ellipseArc,
+  lookOf,
+  pathPrim,
+  poly,
+  rect,
+  shrink,
+} from '../prims';
 import { defineKind } from '../types';
 import { tetradWizard } from './petriTetradWizard';
 import { mix, rng, text } from './util';
@@ -65,7 +76,7 @@ export const petriDish = defineKind<PetriParams>({
     'spores',
   ],
   defaultSize: { w: 150, h: 150 },
-  styles: ['line-art', 'cartoon'],
+  styles: ['line-art', 'cartoon', 'textbook', 'photo'],
   fields: [
     {
       key: 'plate',
@@ -447,35 +458,43 @@ export const petriDish = defineKind<PetriParams>({
     const look = lookOf(p.style, Math.max(0.3, R * 0.012));
     // The rim, the agar and the lid's edge, as insets of the dish.
     const part = (k: number): Sub => look.organic(isRect ? box(k) : circle(cx, cy, R * (1 - k)), 1);
+    // A photo: clear plastic over the agar, a darker meniscus where the agar meets the wall,
+    // a translucent sheen and translucent colonies.
+    const photo = look.photo;
     out.push(
-      ...pathPrim(
-        [part(0)],
-        look.body({
-          fill: mix(agar, '#ffffff', 0.5),
-          stroke: dish,
-          sw: Math.max(0.3, R * 0.025),
-        }),
-      ),
+      ...look.paint('body', [part(0)], {
+        fill: mix(agar, '#ffffff', photo ? 0.35 : 0.5),
+        stroke: photo ? mix(dish, '#ffffff', 0.45) : dish,
+        sw: Math.max(0.3, R * (photo ? 0.018 : 0.025)),
+      }),
     );
+    const agarSub = part(isRect ? 0.05 : 0.07);
     out.push(
-      ...pathPrim(
-        [part(isRect ? 0.05 : 0.07)],
-        look.body({
-          fill: agar,
-          stroke: shiftLightness(agar, -0.08),
-          sw: Math.max(0.2, R * 0.008),
-        }),
-      ),
+      ...look.paint('body', [agarSub], {
+        fill: agar,
+        stroke: shiftLightness(agar, -0.08),
+        sw: Math.max(0.2, R * 0.008),
+      }),
     );
+    if (photo)
+      out.push(
+        ...pathPrim([agarSub], {
+          stroke: shiftLightness(agar, -0.2),
+          sw: Math.max(0.3, R * 0.05),
+          alpha: 0.3,
+        }),
+        ...pathPrim([agarSub], {
+          stroke: shiftLightness(agar, -0.14),
+          sw: Math.max(0.2, R * 0.02),
+          alpha: 0.45,
+        }),
+      );
     if (p.lid)
       out.push(
-        ...pathPrim(
-          [part(isRect ? 0.02 : 0.025)],
-          look.line({
-            stroke: shiftLightness(dish, 0.15),
-            sw: Math.max(0.2, R * 0.01),
-          }),
-        ),
+        ...look.paint('line', [part(isRect ? 0.02 : 0.025)], {
+          stroke: shiftLightness(dish, 0.15),
+          sw: Math.max(0.2, R * 0.01),
+        }),
       );
     if (!isRect) out.push(...look.highlight(cx, cy, R * 0.93, R * 0.93, agar));
     // Where colonies may go: half-extents of the usable area (a rectangle, or the circle of radius Ra).
@@ -504,13 +523,14 @@ export const petriDish = defineKind<PetriParams>({
       }
       out.push(
         // Clear zones: paper with an ink edge in line art.
-        ...pathPrim(halos, look.body({ fill: agar, stroke: clear, sw: Math.max(0.15, R * 0.006) })),
+        ...look.paint('body', halos, { fill: agar, stroke: clear, sw: Math.max(0.15, R * 0.006) }),
       );
       out.push(
-        ...pathPrim(
-          discs,
-          look.body({ fill: '#f7f4ec', stroke: '#b9b4a6', sw: Math.max(0.2, R * 0.008) }),
-        ),
+        ...look.paint('body', discs, {
+          fill: '#f7f4ec',
+          stroke: '#b9b4a6',
+          sw: Math.max(0.2, R * 0.008),
+        }),
       );
       const pl: Sub[] = [];
       for (let i = 0, tries = 0; i < p.plaques && tries < p.plaques * 8; tries += 1) {
@@ -525,14 +545,11 @@ export const petriDish = defineKind<PetriParams>({
         i += 1;
       }
       out.push(
-        ...pathPrim(
-          pl,
-          lookOf(p.style, Math.max(0.1, p.plaqueSize * 0.12)).body({
-            fill: agar,
-            stroke: clear,
-            sw: Math.max(0.1, p.plaqueSize * 0.12),
-          }),
-        ),
+        ...lookOf(p.style, Math.max(0.1, p.plaqueSize * 0.12)).paint('body', pl, {
+          fill: agar,
+          stroke: clear,
+          sw: Math.max(0.1, p.plaqueSize * 0.12),
+        }),
       );
     };
     const inside = (q: Vec2, r: number) =>
@@ -568,7 +585,7 @@ export const petriDish = defineKind<PetriParams>({
                 2,
               ),
             ],
-            look.mark({ fill: mix(agar, colony, 0.75) }),
+            look.mark({ fill: mix(agar, colony, 0.75), ...(photo ? { alpha: 0.75 } : {}) }),
           ),
         );
         lawnFeatures();
@@ -706,6 +723,7 @@ export const petriDish = defineKind<PetriParams>({
                   sw: Math.max(0.3, size * 1.6),
                   cap: 'round',
                   join: 'round',
+                  ...(photo ? { alpha: 0.8 } : {}),
                 }),
               ),
             );
@@ -806,25 +824,49 @@ export const petriDish = defineKind<PetriParams>({
     const few = subs.length + markerSubs.length <= 600;
     const hand = (list: readonly Sub[], seed: number) =>
       few ? list.map((s, i) => cl.organic(s, seed + i)) : list;
-    out.push(...pathPrim(hand(subs, 10), cl.body(stroke)));
+    // Photo colonies are translucent, denser in the middle, with a small wet glint.
+    const glass = (list: readonly Sub[], colour: string): Prim[] =>
+      !photo || list.length === 0
+        ? []
+        : [
+            ...pathPrim(
+              list.map((s) => shrink(s, 0.62, 0, 0)),
+              { fill: colour, alpha: 0.55 },
+            ),
+            ...(few
+              ? pathPrim(
+                  list.filter((s) => s.t === 'circle').map((s) => shrink(s, 0.22, -0.55, -0.55)),
+                  { fill: '#ffffff', alpha: 0.5 },
+                )
+              : []),
+          ];
+    const translucent = photo ? { alpha: 0.78 } : {};
+    const plain = hand(subs, 10);
+    out.push(...cl.paint('body', plain, { ...stroke, ...translucent }));
+    out.push(...glass(plain, colony));
     if (wedges.length > 0)
       out.push(
         ...pathPrim(
           wedges,
-          cl.mark({ fill: marker, stroke: shiftLightness(marker, -0.12), sw: stroke.sw }),
-        ),
-      );
-    if (markerSubs.length > 0) {
-      out.push(
-        ...pathPrim(
-          hand(markerSubs, 5000),
           cl.mark({
             fill: marker,
             stroke: shiftLightness(marker, -0.12),
             sw: stroke.sw,
+            ...translucent,
           }),
         ),
       );
+    if (markerSubs.length > 0) {
+      const marked = hand(markerSubs, 5000);
+      const ms = cl.mark({
+        fill: marker,
+        stroke: shiftLightness(marker, -0.12),
+        sw: stroke.sw,
+        ...translucent,
+      });
+      out.push(...pathPrim(marked, ms));
+      out.push(...cl.tones(marked, ms.fill ?? marker, true));
+      out.push(...glass(marked, ms.fill ?? marker));
     }
     if (lines.length > 0)
       out.push(
@@ -837,7 +879,42 @@ export const petriDish = defineKind<PetriParams>({
           }),
         ),
       );
+    if (photo) out.push(...sheen());
     return out;
+
+    /** Light off the lid: a soft wide arc and a sharp narrow one, and a faint one opposite. */
+    function sheen(): Prim[] {
+      if (!(R > 1)) return [];
+      if (isRect) {
+        const band = rect(cx - hw * 0.86, cy - R * 0.84, hw * 1.72, R * 0.16, R * 0.08);
+        return pathPrim([band], { fill: '#ffffff', alpha: 0.16 });
+      }
+      const arc = (r: number, a0: number, a1: number): Sub => ({
+        t: 'poly',
+        nodes: ellipseArc(cx, cy, r, r, a0, a1),
+        closed: false,
+      });
+      return [
+        ...pathPrim([arc(R * 0.8, Math.PI * 1.08, Math.PI * 1.42)], {
+          stroke: '#ffffff',
+          sw: R * 0.09,
+          cap: 'round',
+          alpha: 0.22,
+        }),
+        ...pathPrim([arc(R * 0.83, Math.PI * 1.12, Math.PI * 1.36)], {
+          stroke: '#ffffff',
+          sw: R * 0.022,
+          cap: 'round',
+          alpha: 0.6,
+        }),
+        ...pathPrim([arc(R * 0.86, Math.PI * 0.1, Math.PI * 0.3)], {
+          stroke: '#ffffff',
+          sw: R * 0.035,
+          cap: 'round',
+          alpha: 0.18,
+        }),
+      ];
+    }
   },
   overhang: () => 0,
 });
