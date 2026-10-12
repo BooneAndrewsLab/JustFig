@@ -264,6 +264,19 @@ function PageInspector({ s }: { s: AppState }) {
             ))}
           </select>
         </div>
+        <div className="row">
+          <label htmlFor="units">Units</label>
+          <select
+            id="units"
+            value={u}
+            onChange={(e) => {
+              store.setUnits(e.target.value === 'in' ? 'in' : 'mm');
+            }}
+          >
+            <option value="mm">Millimetres</option>
+            <option value="in">Inches</option>
+          </select>
+        </div>
         <div className="geo">
           <Num
             label="W"
@@ -307,19 +320,6 @@ function PageInspector({ s }: { s: AppState }) {
             store.edit(setBackground(page.id, p), { coalesce: `bg:${page.id}` });
           }}
         />
-        <div className="row">
-          <label htmlFor="units">Units</label>
-          <select
-            id="units"
-            value={u}
-            onChange={(e) => {
-              store.setUnits(e.target.value === 'in' ? 'in' : 'mm');
-            }}
-          >
-            <option value="mm">Millimetres</option>
-            <option value="in">Inches</option>
-          </select>
-        </div>
       </Section>
       <Section title="Figure">
         <div className="row">

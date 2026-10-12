@@ -2,12 +2,16 @@
 
 ## Choosing a colour
 
-Every colour control in the Inspector (Fill, Stroke, Background, Colour, icon colours and object colours) has the same parts, from left to right:
+Every colour control in the Inspector (Fill, Stroke, Background, Colour, icon colours and object colours) works the same way: one box showing the colour and its hex code (or the name of the palette swatch it is linked to, or "None"). Click it, or press Enter or Space on it, to open the picker:
 
-1. The **colour box**. Click it for your computer's colour picker.
-2. The figure's **palette swatches**, if it has any. Choosing one _links_ the colour to that swatch.
-3. A set of **quick colours**: the colourblind-safe Okabe-Ito colours and white.
-4. A **none** box, where "no colour" makes sense (a transparent fill, for instance).
+- A **square** for saturation and brightness and a **hue** slider under it. Drag them, or use the arrow keys (Shift for bigger steps).
+- A **hex field**: type or paste a code such as `#0072b2` and press Enter.
+- **Eyedropper**, where your browser has one (Chrome and Edge), picks a colour from anywhere on the screen.
+- The figure's **Palette** swatches, if it has any. Choosing one _links_ the colour to that swatch.
+- **Quick** colours: the colourblind-safe Okabe-Ito colours, white and, where "no colour" makes sense (a transparent fill, for instance), **none**.
+- Your **Recent** colours.
+
+Escape or a click outside closes the picker.
 
 ## Linked colours and the palette
 
@@ -20,7 +24,7 @@ The palette is in the Palette section of the Inspector (click an empty part of t
 - **Link colours** turns each colour the figure uses into a swatch, one per distinct colour, and links the objects to it. This includes the default colours of scientific objects. Do this on a finished figure, and you can then recolour it by editing the swatches.
 - **Unlink** fixes every colour as it is now. The swatches stay in the palette for later use, but nothing follows them any more.
 
-Choosing a plain colour with the colour box or a quick colour makes that one use unlinked.
+Choosing a plain colour with the picker, the hex field or a quick colour makes that one use unlinked.
 
 ## Built-in palettes
 

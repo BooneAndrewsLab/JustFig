@@ -69,6 +69,7 @@ test('recolours a CC BY icon per slot and credits it as modified', async ({ page
   await expect(page.getByLabel('Outline', { exact: true })).toBeVisible();
   const recoloured = page.getByTestId('canvas').locator('path[fill="#0072b2"]');
   await expect(recoloured).toHaveCount(0);
+  await page.getByRole('button', { name: 'Primary', exact: true }).click();
   await page.getByRole('button', { name: 'Primary #0072b2' }).click();
   await expect(recoloured.first()).toBeAttached();
   await expect(page.getByRole('complementary', { name: 'Panels' })).toContainText('modified');
