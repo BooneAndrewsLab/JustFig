@@ -1,6 +1,6 @@
 {
   "name": "justfig",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Browser-based scientific figure editor for wet-lab biologists",
   "private": true,
   "license": "MIT",

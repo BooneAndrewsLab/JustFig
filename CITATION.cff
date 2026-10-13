@@ -14,7 +14,8 @@ repository-code: 'https://github.com/BooneAndrewsLab/JustFig'
 # Placeholder until the first release is archived on Zenodo (docs/releasing.md): replace
 # with the concept DOI Zenodo assigns, 10.5281/zenodo.<number>.
 doi: 10.5281/zenodo.0000000
-version: 0.1.0
+version: 1.0.0
+date-released: 2026-10-13
 keywords:
   - scientific figures
   - illustration

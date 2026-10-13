@@ -3,7 +3,7 @@
 This file is loaded into every session, so it holds only what changes how the code is worked
 on: decisions, rules, lessons, pointers — not status. What a release did goes in its Release
 notes, why in a design note, what is left in an issue. `src/claudeMd.test.ts` fails the build
-if it regains a Status section or names a version other than `package.json`'s (current is 0.1.0).
+if it regains a Status section or names a version other than `package.json`'s (current is 1.0.0).
 
 ## What this is
 

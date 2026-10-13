@@ -1,7 +1,7 @@
 # JustFig design plan: one family with PlasmidPop and BarelySig
 
 Written 2026-10-10 from a side-by-side of the three apps' code and builds
-(PlasmidPop 1.13.0, BarelySig, JustFig 0.1.0). It records what the family
+(PlasmidPop 1.13.0, BarelySig, JustFig 1.0.0). It records what the family
 already agrees on, where JustFig diverges, what it adopts, what it keeps,
 and in which order. Decisions marked **open** need a call before the step
 that depends on them. The logo and icon work is briefed separately in
@@ -44,7 +44,7 @@ Where the two siblings still differ (so the family has not decided):
 | Dark mode  | yes, `color-scheme: light dark` + media query | no                                                |
 | Side panel | right, 330px, 30px vertical rail of tabs      | left, 250px, sections                             |
 
-## 2. Where JustFig stands (0.1.0)
+## 2. Where JustFig stands (1.0.0)
 
 |                 | Family                                             | JustFig                                                                                            |
 | --------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
@@ -56,7 +56,7 @@ Where the two siblings still differ (so the family has not decided):
 | Radius          | 6 / 4                                              | 5px, dialogs 8px                                                                                   |
 | Help            | round "?"                                          | "Guide" and "Shortcuts…" text buttons                                                              |
 | Undo / Redo     | text                                               | ↶ ↷ glyphs                                                                                         |
-| Version         | guide header                                       | status bar, `v0.1.0`                                                                               |
+| Version         | guide header                                       | status bar, `v1.0.0`                                                                               |
 | Dialog          | 20/22px padding, 26rem, title 16/600               | 16/18px, 560px, title 16                                                                           |
 | Section headers | 13px/600 sentence case (PP), 11px uppercase (BS)   | 11px uppercase                                                                                     |
 | Tool icons      | PP: own 16px line SVGs, stroke 1.4, `currentColor` | Unicode glyphs `↖ ⇄ ▭ ◯ ╱ ✒ → T ⊞ ✎`                                                               |
