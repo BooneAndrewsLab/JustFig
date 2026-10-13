@@ -421,6 +421,18 @@
           },
           "additionalProperties": false,
           "description": "Ends attached to objects (note 06): they follow their target."
+        },
+        "route": {
+          "$ref": "#/$defs/ArrowRoute",
+          "description": "How the arrow is routed (issue 99, note 06): absent or `straight` keeps its nodes as drawn; `elbow` (90° corners) and `curve` regenerate them from the ends after every edit."
+        },
+        "mid": {
+          "type": "number",
+          "description": "An elbow's middle segment, set by its handle: a fraction of the span between the ends (0 to 1), or for a U how far the loop reaches beyond its clearance, as a fraction of the distance between the ends. Absent: the router's default (centred for a Z)."
+        },
+        "firstLeg": {
+          "$ref": "#/$defs/ElbowLeg",
+          "description": "An elbow whose ends both lack an exit direction starts along this axis (absent: the longer one)."
         }
       },
       "required": [
@@ -490,6 +502,21 @@
         "center"
       ],
       "description": "A named connection point on an object (note 06): the midpoint of an edge of its frame (top, right, bottom, left, turning and flipping with the object) or its centre."
+    },
+    "ArrowRoute": {
+      "type": "string",
+      "enum": [
+        "straight",
+        "elbow",
+        "curve"
+      ]
+    },
+    "ElbowLeg": {
+      "type": "string",
+      "enum": [
+        "horizontal",
+        "vertical"
+      ]
     },
     "Text": {
       "type": "object",

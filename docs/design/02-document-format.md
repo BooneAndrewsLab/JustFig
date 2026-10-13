@@ -108,6 +108,9 @@ files (no document, objects unchanged) as they were. Frozen as `src/io/fixtures/
 Schema 3 turns each arrow `bind` end from an object id into `{ id, site? }`, connection sites
 (note 06, issue 98); its migration rewrites every arrow in a figure, fragment or presets file
 (`{ id }`, a sliding end, as before). Frozen as `src/io/fixtures/v3.jfig`.
+Schema 4 adds the optional arrow fields `route` (`straight`/`elbow`/`curve`), `mid` and
+`firstLeg`, arrow routing (note 06, issue 99); its migration is the identity (an arrow without
+them is straight, as before). Frozen as `src/io/fixtures/v4.jfig`.
 
 ## Fragments (clipboard and sibling interchange)
 

@@ -203,7 +203,7 @@ test('save, open, import an SVG, attribution, and autosave survive a reload', as
   await download.saveAs(file);
   expect(JSON.parse(readFileSync(file, 'utf8'))).toMatchObject({
     format: 'justfig',
-    schemaVersion: 3,
+    schemaVersion: 4,
   });
   page.once('dialog', (d) => void d.accept());
   // Close the figure (Alt+W), so opening the file really reads it back rather than bringing its tab forward.

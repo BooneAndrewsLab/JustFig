@@ -3,7 +3,7 @@
 An arrow whose end is dropped on an object stays attached to it: move, resize or rotate the
 object and the arrow follows. This is the most-asked-for diagram feature after icons, and the
 model has carried `Arrow.bind` since Phase 1 (note 02). Connection sites (issue 98) made each end
-an object: `.jfig` schema 3.
+an object: `.jfig` schema 3. Routing (issue 99, below) added elbow and curve arrows: schema 4.
 
 ## Model
 
@@ -95,6 +95,64 @@ that end is fixed (else its target's centre, else its position). A two-node arro
 on a polyline only the end node moves (its handles with it). As before, the result depends only on
 the inputs, so re-solving is a no-op.
 
+## Routing: elbow and curve (issue 99)
+
+```ts
+interface Arrow { …; route?: 'straight' | 'elbow' | 'curve'; mid?: number; firstLeg?: 'horizontal' | 'vertical' }
+```
+
+`route` absent or `straight` is the arrow as drawn, solved as above. `elbow` and `curve` are
+**routed**: `reconcilePage` regenerates their nodes in `solveArrow` (→ `solveRouted`) whenever the
+arrow changed in the edit (route, `mid`, an end, a restyle), it is new, or a bound target changed
+— bound or not, since a free routed arrow is routed too. The nodes are still stored in full
+(frame-local, plain polyline for an elbow, one cubic for a curve), so exports, the export
+subset (arrowheads stay path geometry on the last segment) and old readers are unaffected.
+Schema 3 → 4 is the identity migration; frozen as `src/io/fixtures/v4.jfig`.
+
+**Ends** (`routeEnds`): a fixed edge site gives its `sitePoint`, its `siteExit` and its target's
+bounds box (to keep clear); a centre site the centre, no direction, no box; a **sliding** end
+on a routed arrow takes the edge site facing the other end (`facingSite`: the edge the ray from
+its centre to the aim leaves through — the same aim as a straight sliding end), so it has an
+exit direction; a free end is where it is, with no direction.
+
+**Elbow** (`routeElbow` in `src/core/model/route.ts`, pure). Exit directions snap to the nearest
+page axis (a rotated target's site still leaves along an axis). A missing one is inferred from the
+other end's (`elbowExits`): across it towards the other end when this end is ahead of it (an L),
+along it when behind (a U), straight back when dead ahead; with neither, the first leg is
+`firstLeg` or the longer axis, and the other end is inferred from it. Then the cheapest of a few
+candidates wins: the direct L (perpendicular exits), Z (facing, middle at the midpoint) and U
+(same way, loop `ELBOW_STUB` = 12 pt past the further end), then routes through 12 pt stubs out
+of each end with one corner, or a middle line at the stubs' midpoint, 12 pt outside either box,
+or in the gap between the boxes. Cost = length + 24 pt per bend + a huge penalty per segment that
+crosses an end box (the first segment is exempt for the source box, the last for the target's);
+a candidate that is not orthogonal, doubles back or leaves/arrives the wrong way is out. Ties keep
+the earlier candidate, so the result is a pure function of the ends, boxes, `mid` and `firstLeg`.
+No obstacle avoidance beyond the two end boxes.
+
+**Middle handle.** A route with an odd number of segments (3, 5) has a middle segment; one with
+1, 2 or 4 (an L, the one-corner stub routes) has none. Its kind comes from the default route,
+before `mid` is applied, so `mid` never changes the shape: a **span** middle lies between the
+ends' coordinates on its normal axis, at `a + mid·(b − a)` (`mid` 0–1; absent = the router's own
+spot, the centre for a Z); a **reach** middle lies beyond both (a U), at
+`base + sign·mid·max(|q − p|, 12)` (`mid` ≥ 0; absent = 0, the minimum clearance). Both are
+proportional, so the setting survives moving and resizing the targets. The canvas draws a
+diamond at the segment's middle (`elbowRoute(page, arrow).handle`); dragging it is
+`setArrowMid` with a `coalesce` key (one undo step per drag, `midAt` inverts the mapping);
+double-clicking it, or Inspector **Reset middle**, removes `mid`. The Inspector's **Middle %**
+sets it from the keyboard.
+
+**Curve** (`routeCurve`): one cubic whose handles leave each end along its exit direction (not
+axis-snapped), 0.4 of the end-to-end distance long; an end without a direction aims at the other
+end's control point; two such ends give a straight line. The Inspector's Curve % is hidden for
+routed arrows.
+
+**Hand-made polylines.** Routing owns a routed arrow's nodes: setting `elbow` or `curve` on a
+click-placed polyline (issue 96) replaces its nodes, a selected routed arrow shows point handles on
+its two ends only (dragging one detaches and re-routes from the free end, as above; releasing on
+an object attaches it), and double-click does not start point editing. Setting the route back
+to `straight` keeps the current nodes and drops `mid`/`firstLeg`, so the elbow becomes an
+ordinary polyline to edit by hand.
+
 ## Making and breaking a binding
 
 - **Arrow tool:** pressing on an object starts the arrow bound to it; releasing on an object
@@ -136,5 +194,11 @@ within `BIND_GAP` ± 0.5 pt of the target's outline. Sites: site points and exit
 attaching and switching sites, clones keeping the site, and a property test: for random rects
 and ellipses, sites, moves, resizes, rotations and flips, a fixed end is within 0.5 pt of the
 site computed independently from the frame's corners. `fixtures.test.ts`/`jfig.test.ts`: the
-frozen schema 3 file and the 2 → 3 migration. E2E: draw two rectangles, draw an arrow
+frozen schema 3 file and the 2 → 3 migration, the schema 4 file (routing fields) and refused
+bad routes. `route.test.ts`: elbows for perpendicular (L), facing (Z, straight when aligned),
+same-way (U, its reach handle) exits, clearing a target box, free ends (inferred, first-leg
+toggle), a property test (any ends and directions: orthogonal, ends kept, deterministic); curves;
+through `reconcileBindings`: following a target, re-solving is a no-op (`solveArrow` returns the
+same arrow), `mid` surviving moves and resizes, sliding ends taking the facing side, back to
+straight keeping the nodes. E2E: draw two rectangles, draw an arrow
 between them, move one, the arrow follows; drag the arrow away, it detaches.

@@ -19,6 +19,8 @@ import {
   neighbourOf,
   pagePoints,
   pointDragTarget,
+  pointHandleIndices,
+  setArrowMid,
   snap45,
   usesPointHandles,
 } from '@/core/edits/arrowEnds';
@@ -44,7 +46,15 @@ import {
   frame,
 } from '@/core/model/factory';
 import { asId, type Id } from '@/core/model/ids';
-import { bindable, nearestSite, sitePoint, sitesOf } from '@/core/model/binding';
+import {
+  bindable,
+  elbowRoute,
+  isRouted,
+  nearestSite,
+  sitePoint,
+  sitesOf,
+} from '@/core/model/binding';
+import { type MidHandle, midAt } from '@/core/model/route';
 import { noteAnchor } from '@/core/model/notes';
 import { findObj, pageObjects } from '@/core/model/tree';
 import type {
@@ -114,6 +124,8 @@ type Gesture =
       to?: Box;
     }
   | { kind: 'rotate'; c: Vec2; a0: number; fig: Figure; ids: Id[]; key: string }
+  /** The middle-segment handle of a selected elbow arrow (issue 99). */
+  | { kind: 'mid'; id: Id; handle: MidHandle; fig: Figure; key: string }
   | { kind: 'marquee'; start: Vec2; add: boolean }
   | { kind: 'create'; start: Vec2; bindStart?: ArrowBinding }
   | {
@@ -543,6 +555,19 @@ export function Canvas() {
       const sel = selectedObjects(s);
       const pi = target.getAttribute('data-point-handle');
       const only = sel.length === 1 ? sel[0] : undefined;
+      if (target.hasAttribute('data-mid-handle') && only?.type === 'arrow') {
+        const handle = elbowRoute(page, only)?.handle;
+        if (handle) {
+          gesture.current = {
+            kind: 'mid',
+            id: only.id,
+            handle,
+            fig,
+            key: `g${String(++gestureSeq)}`,
+          };
+          return;
+        }
+      }
       if (pi !== null && only && usesPointHandles(only)) {
         // A point of a selected line or arrow drags directly, without point editing.
         const index = Number(pi);
@@ -747,6 +772,13 @@ export function Canvas() {
       case 'marquee':
         setOverlay({ marquee: normBox(g.start, p) });
         return;
+      case 'mid':
+        store.edit(setArrowMid(page.id, [g.id], midAt(g.handle, p)), {
+          coalesce: g.key,
+          from: g.fig,
+          keepSelection: true,
+        });
+        return;
       case 'node': {
         const dx = p.x - g.start.x;
         const dy = p.y - g.start.y;
@@ -838,7 +870,13 @@ export function Canvas() {
           keepSelection: true,
         });
     }
-    if (g.kind === 'move' || g.kind === 'resize' || g.kind === 'rotate' || g.kind === 'node')
+    if (
+      g.kind === 'move' ||
+      g.kind === 'resize' ||
+      g.kind === 'rotate' ||
+      g.kind === 'node' ||
+      g.kind === 'mid'
+    )
       store.seal();
     // A click on a selected group (no drag) selects the part of it under the pointer.
     if (g.kind === 'move' && !g.moved && g.drill !== null) store.select([g.drill]);
@@ -937,6 +975,15 @@ export function Canvas() {
     const under = document.elementFromPoint(e.clientX, e.clientY);
     const id = pickIn(under?.closest('[data-id]') ? under : e.target, page, s.selection)?.id;
     const o = id ? findObj(page, id) : undefined;
+    if (under?.hasAttribute('data-mid-handle') === true && s.selection.length === 1) {
+      // Double-clicking an elbow's middle handle puts it back where the router wants it.
+      const sid = s.selection[0];
+      if (sid !== undefined)
+        store.edit(setArrowMid(page.id, [sid], undefined), { keepSelection: true });
+      return;
+    }
+    // A routed arrow's points are the router's: it has no point editing (issue 99).
+    if (o?.type === 'arrow' && isRouted(o)) return;
     if (o?.type === 'text') {
       store.select([o.id]);
       store.editText(o.id);
@@ -1053,6 +1100,16 @@ export function Canvas() {
   const editing = s.editingText !== null ? findObj(page, s.editingText) : undefined;
   const nodeObj = s.nodeEdit !== null ? findObj(page, s.nodeEdit.id) : undefined;
   const pointObj = sel.length === 1 && sel[0] && usesPointHandles(sel[0]) ? sel[0] : undefined;
+  const midHandle = (() => {
+    if (pointObj?.type !== 'arrow') return undefined;
+    const r = elbowRoute(page, pointObj);
+    const h = r?.handle;
+    const a = h ? r.points[h.index] : undefined;
+    const b = h ? r.points[h.index + 1] : undefined;
+    return h && a && b
+      ? { axis: h.axis, at: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } }
+      : undefined;
+  })();
   const panning = space;
 
   return (
@@ -1244,6 +1301,7 @@ export function Canvas() {
           {pointObj && s.tool === 'select' && s.editingText === null && !nodeObj && (
             <g data-testid="point-handles">
               {pagePoints(pointObj).map((q, i) => {
+                if (!pointHandleIndices(pointObj).includes(i)) return null;
                 const a = scr(q);
                 return (
                   <circle
@@ -1258,6 +1316,24 @@ export function Canvas() {
                   </circle>
                 );
               })}
+              {midHandle && (
+                <rect
+                  data-mid-handle=""
+                  data-testid="mid-handle"
+                  x={scr(midHandle.at).x - HANDLE / 2 - 1}
+                  y={scr(midHandle.at).y - HANDLE / 2 - 1}
+                  width={HANDLE + 2}
+                  height={HANDLE + 2}
+                  transform={`rotate(45 ${String(scr(midHandle.at).x)} ${String(scr(midHandle.at).y)})`}
+                  style={{
+                    fill: OVERLAY.handle,
+                    stroke: OVERLAY.select,
+                    cursor: midHandle.axis === 'x' ? 'ew-resize' : 'ns-resize',
+                  }}
+                >
+                  <title>Drag to move the middle segment; double-click to reset it</title>
+                </rect>
+              )}
             </g>
           )}
           {selBox && !pointObj && s.tool === 'select' && s.editingText === null && !nodeObj && (

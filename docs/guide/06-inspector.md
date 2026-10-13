@@ -61,7 +61,7 @@ Sizes are in points on the page, so "7 pt" means 7 pt whatever size the plot is 
 
 ### Arrow
 
-**Start** and **End** heads, **Head size**, **Curve %**, and "attached to" lines with **Detach** buttons. See [Arrows](03-arrows.md).
+**Start** and **End** heads, **Route** (straight, elbow or curve, with **First leg**, **Middle %** and **Reset middle** for an elbow), **Head size**, **Curve %**, and "attached to" lines with **Detach** buttons. See [Arrows](03-arrows.md).
 
 ### Text
 

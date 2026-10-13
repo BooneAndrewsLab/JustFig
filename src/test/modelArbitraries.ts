@@ -6,7 +6,9 @@ import fc from 'fast-check';
 
 import { asId } from '@/core/model/ids';
 import {
+  ARROW_ROUTES,
   BIND_SITES,
+  ELBOW_LEGS,
   FONT_IDS,
   STEP_ANCHORS,
   STEP_VARIANTS,
@@ -104,6 +106,15 @@ const endBindArb = fc.record(
   { requiredKeys: ['id'] },
 );
 const bindArb = fc.record({ start: endBindArb, end: endBindArb }, { requiredKeys: [] });
+/** An arrow's routing (issue 99): route, elbow middle, first leg, each optional. */
+const routeArb = fc.record(
+  {
+    route: fc.constantFrom(...ARROW_ROUTES),
+    mid: pos(3),
+    firstLeg: fc.constantFrom(...ELBOW_LEGS),
+  },
+  { requiredKeys: [] },
+);
 
 const leafArb: fc.Arbitrary<Obj> = fc.oneof(
   fc
@@ -121,8 +132,9 @@ const leafArb: fc.Arbitrary<Obj> = fc.oneof(
       headArb,
       styleArb,
       fc.option(bindArb, { nil: undefined }),
+      routeArb,
     )
-    .map(([b, nodes, start, end, style, bind]): Obj => ({
+    .map(([b, nodes, start, end, style, bind, route]): Obj => ({
       ...b,
       type: 'arrow',
       nodes,
@@ -130,6 +142,7 @@ const leafArb: fc.Arbitrary<Obj> = fc.oneof(
       end,
       style,
       ...(bind ? { bind } : {}),
+      ...route,
     })),
   fc
     .tuple(

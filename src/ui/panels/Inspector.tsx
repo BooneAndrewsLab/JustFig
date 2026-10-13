@@ -50,13 +50,21 @@ import { center } from '@/core/geometry/matrix';
 import { boundsOf, normAngle, objBounds, rebase, rotateObj } from '@/core/geometry/transform';
 import type { Id } from '@/core/model/ids';
 import { type StepBadge, isStep, stepNumbers } from '@/core/model/steps';
-import { BIND_SITES, SITE_LABEL } from '@/core/model/binding';
+import { BIND_SITES, SITE_LABEL, elbowRoute } from '@/core/model/binding';
 import { findObj } from '@/core/model/tree';
-import { attachArrowEnd } from '@/core/edits/arrowEnds';
+import {
+  attachArrowEnd,
+  setArrowFirstLeg,
+  setArrowMid,
+  setArrowRoute,
+} from '@/core/edits/arrowEnds';
 import {
   HEAD_KINDS,
   FONT_IDS,
+  ARROW_ROUTES,
+  type ArrowRoute,
   type BindSite,
+  type ElbowLeg,
   STEP_ANCHORS,
   type FontId,
   type HeadKind,
@@ -1051,8 +1059,17 @@ function EmbeddedSection({ obj }: { obj: Extract<Obj, { type: 'embedded' }> }) {
   );
 }
 
+const ROUTE_LABEL: Readonly<Record<ArrowRoute, string>> = {
+  straight: 'Straight',
+  elbow: 'Elbow',
+  curve: 'Curve',
+};
+
 function ArrowSection({ s, arrow }: { s: AppState; arrow: Extract<Obj, { type: 'arrow' }> }) {
   const ids = [arrow.id];
+  const page = currentPage(s);
+  const route = arrow.route ?? 'straight';
+  const handle = elbowRoute(page, arrow)?.handle;
   const [a, b] = [arrow.nodes[0], arrow.nodes[arrow.nodes.length - 1]];
   const bend = (() => {
     if (arrow.nodes.length !== 2 || !a || !b || !a.out) return 0;
@@ -1147,6 +1164,69 @@ function ArrowSection({ s, arrow }: { s: AppState; arrow: Extract<Obj, { type: '
           </div>
         );
       })}
+      <div className="row">
+        <label htmlFor="arrow-route">Route</label>
+        <select
+          id="arrow-route"
+          value={route}
+          onChange={(e) => {
+            store.edit(setArrowRoute(page.id, ids, e.target.value as ArrowRoute), {
+              keepSelection: true,
+            });
+          }}
+        >
+          {ARROW_ROUTES.map((r) => (
+            <option key={r} value={r}>
+              {ROUTE_LABEL[r]}
+            </option>
+          ))}
+        </select>
+      </div>
+      {route === 'elbow' && (
+        <div className="row">
+          <label htmlFor="arrow-first-leg">First leg</label>
+          <select
+            id="arrow-first-leg"
+            value={arrow.firstLeg ?? ''}
+            onChange={(e) => {
+              const v = e.target.value;
+              store.edit(setArrowFirstLeg(page.id, ids, v === '' ? undefined : (v as ElbowLeg)), {
+                keepSelection: true,
+              });
+            }}
+          >
+            <option value="">automatic</option>
+            <option value="horizontal">horizontal</option>
+            <option value="vertical">vertical</option>
+          </select>
+        </div>
+      )}
+      {handle && (
+        <div className="row">
+          <Num
+            label="Middle %"
+            value={Math.round((arrow.mid ?? handle.dflt) * 100)}
+            min={0}
+            {...(handle.kind === 'span' ? { max: 100 } : {})}
+            step={5}
+            onChange={(v) => {
+              store.edit(setArrowMid(page.id, ids, v / 100), {
+                coalesce: key('arrow-mid', ids),
+                keepSelection: true,
+              });
+            }}
+          />
+          <button
+            type="button"
+            disabled={arrow.mid === undefined}
+            onClick={() => {
+              store.edit(setArrowMid(page.id, ids, undefined), { keepSelection: true });
+            }}
+          >
+            Reset middle
+          </button>
+        </div>
+      )}
       <div className="grid2">
         <Num
           label="Head size"
@@ -1162,7 +1242,7 @@ function ArrowSection({ s, arrow }: { s: AppState; arrow: Extract<Obj, { type: '
             );
           }}
         />
-        {arrow.nodes.length === 2 && (
+        {arrow.nodes.length === 2 && route === 'straight' && (
           <Num
             label="Curve %"
             value={bend}

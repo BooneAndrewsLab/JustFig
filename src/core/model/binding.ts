@@ -11,6 +11,7 @@ import { objBounds } from '../geometry/transform';
 import { localise } from './factory';
 import { remapInset, reconcileInsets } from './inset';
 import type { Id } from './ids';
+import { type ElbowRoute, type RouteEnd, routeCurve, routeElbow } from './route';
 import { remapStep, reconcileSteps } from './steps';
 import { hasChildren, mapPageObjs, pageObjects } from './tree';
 import {
@@ -246,6 +247,7 @@ export function solveArrow(
   a: Arrow,
   targets: { readonly start?: EndTarget | undefined; readonly end?: EndTarget | undefined },
 ): Arrow {
+  if (isRouted(a)) return solveRouted(a, targets);
   const nodes = pageNodes(a);
   const first = nodes[0];
   const last = nodes[nodes.length - 1];
@@ -298,6 +300,117 @@ export function solveArrow(
   return { ...a, frame: f, nodes: local };
 }
 
+// --- routed arrows (issue 99) ------------------------------------------------------
+
+/** An arrow whose nodes the router regenerates (elbow or curve). */
+export const isRouted = (a: Arrow): boolean => a.route === 'elbow' || a.route === 'curve';
+
+const EDGE_SITES = ['top', 'right', 'bottom', 'left'] as const;
+
+/**
+ * The edge site of `o` facing `aim`: the one whose edge the ray from the centre to `aim`
+ * leaves through (a sliding end on a routed arrow uses it, so it has an exit direction).
+ */
+export function facingSite(o: Obj, aim: Vec2): BindSite | undefined {
+  const c = targetCentre(o);
+  const v = sub(aim, c);
+  let best: BindSite | undefined;
+  let bestK = -Infinity;
+  for (const site of EDGE_SITES) {
+    const half = len(sub(siteOnFrame(o, site), c));
+    const exit = siteExit(o, site);
+    if (!exit || half < 1e-9) continue;
+    const k = (exit.x * v.x + exit.y * v.y) / half;
+    if (k > bestK + 1e-9) {
+      best = site;
+      bestK = k;
+    }
+  }
+  return best;
+}
+
+/**
+ * What the router takes for each end of `a`: a fixed end its site point and exit direction
+ * (a centre site: the centre, no direction, no box); a sliding end the edge site facing the
+ * other end; a free end where it is, with no direction.
+ */
+export function routeEnds(
+  a: Arrow,
+  targets: { readonly start?: EndTarget | undefined; readonly end?: EndTarget | undefined },
+): { start: RouteEnd; end: RouteEnd } | undefined {
+  const first = endPoint(a, 'start');
+  const last = endPoint(a, 'end');
+  if (!first || !last || a.nodes.length < 2) return undefined;
+  const anchor = (t: EndTarget | undefined, cur: Vec2): Vec2 | undefined =>
+    t === undefined ? cur : t.site === undefined ? undefined : sitePoint(t.obj, t.site);
+  const pa = anchor(targets.start, first);
+  const qa = anchor(targets.end, last);
+  const one = (t: EndTarget | undefined, cur: Vec2, aim: Vec2): RouteEnd => {
+    if (t === undefined) return { at: cur };
+    const site = t.site ?? facingSite(t.obj, aim);
+    if (site === undefined || site === 'center') return { at: targetCentre(t.obj) };
+    return { at: sitePoint(t.obj, site), exit: siteExit(t.obj, site), box: objBounds(t.obj) };
+  };
+  const aimOf = (other: EndTarget | undefined, at: Vec2 | undefined, cur: Vec2): Vec2 =>
+    at ?? (other ? targetCentre(other.obj) : cur);
+  return {
+    start: one(targets.start, first, aimOf(targets.end, qa, last)),
+    end: one(targets.end, last, aimOf(targets.start, pa, first)),
+  };
+}
+
+/** The elbow route of an arrow on its page (its handle is the middle-segment drag handle). */
+export function elbowRoute(page: Page, a: Arrow): ElbowRoute | undefined {
+  if (a.route !== 'elbow') return undefined;
+  const ends = routeEnds(a, endTargets(page, a));
+  return ends ? routeElbow(ends.start, ends.end, { mid: a.mid, firstLeg: a.firstLeg }) : undefined;
+}
+
+/** The arrow's bound ends' targets on the page (bindings to missing or unbindable objects skipped). */
+export function endTargets(page: Page, a: Arrow): { start?: EndTarget; end?: EndTarget } {
+  const now = index(page);
+  const out: { start?: EndTarget; end?: EndTarget } = {};
+  for (const end of ['start', 'end'] as const) {
+    const b = a.bind?.[end];
+    const t = b ? now.get(b.id) : undefined;
+    if (b && t && bindable(t, a.id)) out[end] = { obj: t, site: b.site };
+  }
+  return out;
+}
+
+function solveRouted(
+  a: Arrow,
+  targets: { readonly start?: EndTarget | undefined; readonly end?: EndTarget | undefined },
+): Arrow {
+  const ends = routeEnds(a, targets);
+  if (!ends) return a;
+  const out: PathNode[] =
+    a.route === 'curve'
+      ? routeCurve(ends.start, ends.end)
+      : routeElbow(ends.start, ends.end, { mid: a.mid, firstLeg: a.firstLeg }).points.map((p) => ({
+          x: p.x,
+          y: p.y,
+        }));
+  const now = pageNodes(a);
+  if (
+    now.length === out.length &&
+    now.every((n, i) => {
+      const o = out[i];
+      return (
+        o !== undefined &&
+        close(n, o) &&
+        (n.in === undefined) === (o.in === undefined) &&
+        (n.out === undefined) === (o.out === undefined) &&
+        (n.in === undefined || close(n.in, o.in)) &&
+        (n.out === undefined || close(n.out, o.out))
+      );
+    })
+  )
+    return a;
+  const { f, local } = localise(out);
+  return { ...a, frame: f, nodes: local };
+}
+
 // --- reconciling after an edit ---------------------------------------------------
 
 function index(page: Page | undefined): Map<Id, Obj> {
@@ -309,7 +422,7 @@ function index(page: Page | undefined): Map<Id, Obj> {
 function reconcilePage(before: Page | undefined, page: Page): Page {
   let any = false;
   for (const o of pageObjects(page))
-    if (o.type === 'arrow' && o.bind) {
+    if (o.type === 'arrow' && (o.bind || isRouted(o))) {
       any = true;
       break;
     }
@@ -322,14 +435,16 @@ function reconcilePage(before: Page | undefined, page: Page): Page {
       const b = objBounds(o);
       return { ...o, frame: { x: b.x, y: b.y, w: b.w, h: b.h, rotation: 0 } };
     }
-    if (o.type !== 'arrow' || !o.bind) return o;
+    if (o.type !== 'arrow' || (!o.bind && !isRouted(o))) return o;
     const old = was.get(o.id);
     const oldArrow = old?.type === 'arrow' ? old : undefined;
     const bind: { start?: ArrowBinding; end?: ArrowBinding } = {};
     const targets: { start?: EndTarget; end?: EndTarget } = {};
-    let resolve = oldArrow === undefined;
+    const routed = isRouted(o);
+    // A routed arrow is re-routed whenever it changed (its route, mid, an end); else as below.
+    let resolve = oldArrow === undefined || (routed && oldArrow !== o);
     for (const end of ['start', 'end'] as const) {
-      const b = o.bind[end];
+      const b = o.bind?.[end];
       if (b === undefined) continue;
       const t = now.get(b.id);
       if (!t || !bindable(t, o.id)) continue;
@@ -348,19 +463,24 @@ function reconcilePage(before: Page | undefined, page: Page): Page {
         continue; // the user moved this end away from an unchanged target
       if (tWas !== t) resolve = true;
       // A new curve aims the ends along its new tangents.
-      if (oldArrow && oldArrow !== o && Math.abs(bendOf(oldArrow.nodes) - bendOf(o.nodes)) > 1e-9)
+      if (
+        !routed &&
+        oldArrow &&
+        oldArrow !== o &&
+        Math.abs(bendOf(oldArrow.nodes) - bendOf(o.nodes)) > 1e-9
+      )
         resolve = true;
       bind[end] = b;
       targets[end] = { obj: t, site: b.site };
     }
     const kept = Object.keys(bind).length > 0;
-    const sameBind = o.bind.start === bind.start && o.bind.end === bind.end;
+    const sameBind = o.bind?.start === bind.start && o.bind?.end === bind.end;
     let r: Arrow = o;
     if (!sameBind) {
       const { bind: _drop, ...rest } = o;
       r = kept ? { ...rest, bind } : rest;
     }
-    if (kept && resolve) r = solveArrow(r, targets);
+    if ((kept || routed) && resolve) r = solveArrow(r, targets);
     if (r !== o) changed.add(r);
     return r;
   });

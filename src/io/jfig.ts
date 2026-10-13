@@ -8,7 +8,9 @@ import { asId } from '@/core/model/ids';
 import { NOTE_LIMITS } from '@/core/model/notes';
 import {
   FONT_IDS,
+  ARROW_ROUTES,
   BIND_SITES,
+  ELBOW_LEGS,
   HEAD_KINDS,
   STEP_ANCHORS,
   STEP_VARIANTS,
@@ -79,6 +81,9 @@ export const MIGRATIONS: readonly Migration[] = [
   // they become `{ id }` (no site: the end slides on the outline, as before). Arrows sit
   // in documents, fragments and presets files alike, so every object in the file is visited.
   (file) => bindingsToObjects(file) as JsonObject,
+  // 3 → 4: arrow routing (issue 99, note 06). `route`, `mid` and `firstLeg` are new and
+  // optional; an arrow without them is straight, as before, so files pass through.
+  (file) => file,
 ];
 
 /** Every arrow's `bind` ends turned from an id into `{ id }` (migration 2 → 3). */
@@ -366,6 +371,9 @@ export function object(v: unknown, p: Path): Obj {
             ...opt(b, 'end', q, arrowBinding),
           };
         }),
+        ...opt(o, 'route', p, (x, q) => oneOf(x, q, ARROW_ROUTES)),
+        ...opt(o, 'mid', p, nonNeg),
+        ...opt(o, 'firstLeg', p, (x, q) => oneOf(x, q, ELBOW_LEGS)),
       };
     case 'text':
       return {

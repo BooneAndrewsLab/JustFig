@@ -233,6 +233,20 @@ describe('.jfig codec', () => {
         }),
       ),
     ).toThrow(/site/);
+    // Schema 4 routing (issue 99): a route that is not one of the three, or a negative mid, is refused.
+    const routed = (extra: Record<string, unknown>) => () =>
+      readFragment(
+        JSON.stringify({
+          format: 'justfig-fragment',
+          schemaVersion: 4,
+          objects: [{ ...arrow({}), ...extra }],
+          assets: {},
+        }),
+      );
+    expect(routed({ route: 'zigzag' })).toThrow(/route/);
+    expect(routed({ route: 'elbow', mid: -1 })).toThrow(/mid/);
+    const ok = routed({ route: 'elbow', mid: 0.5, firstLeg: 'vertical' })()?.objects[0];
+    expect(ok).toMatchObject({ route: 'elbow', mid: 0.5, firstLeg: 'vertical' });
   });
 
   it('round-trips fragments and ignores clipboard text that is not one', () => {

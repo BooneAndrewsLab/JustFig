@@ -7,7 +7,7 @@ import { SCHEMA_VERSION, readJfig, writeJfig } from './jfig';
 
 // Every schema version ships a frozen file (note 02). These are never
 // regenerated: a newer app must keep opening them through MIGRATIONS.
-const FROZEN = [1, 2, 3];
+const FROZEN = [1, 2, 3, 4];
 
 describe('frozen figure files', () => {
   it('has one for every schema version', () => {
@@ -36,6 +36,22 @@ describe('frozen figure files', () => {
     expect(arrows.map((a) => (a.type === 'arrow' ? a.bind : undefined))).toEqual([
       { start: { id: 'o_0000000000000000', site: 'right' }, end: { id: 'o_0000000000000003' } },
       { end: { id: 'o_0000000000000002', site: 'center' } },
+    ]);
+  });
+
+  it('keeps schema 4 arrow routing (issue 99, note 06), and schema 3 arrows stay straight', () => {
+    const routes = (v: number) =>
+      readJfig(readFileSync(new URL(`./fixtures/v${String(v)}.jfig`, import.meta.url), 'utf8'))
+        .doc.pages.flatMap((p) => [...pageObjects(p)])
+        .flatMap((o) =>
+          o.type === 'arrow' && o.route !== undefined
+            ? [{ route: o.route, mid: o.mid, firstLeg: o.firstLeg }]
+            : [],
+        );
+    expect(routes(3)).toEqual([]);
+    expect(routes(4)).toEqual([
+      { route: 'curve', mid: undefined, firstLeg: undefined },
+      { route: 'elbow', mid: 0.25, firstLeg: 'vertical' },
     ]);
   });
 

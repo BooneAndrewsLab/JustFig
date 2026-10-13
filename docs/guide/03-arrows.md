@@ -24,7 +24,21 @@ Select the arrow and open the Inspector's **Arrow** section. **Start** and **End
 
 ## Curved arrows
 
-An arrow with two end points has a **Curve %** field in the Arrow section. A positive number bends it one way, a negative number the other, and 0 makes it straight again.
+A straight arrow with two end points has a **Curve %** field in the Arrow section. A positive number bends it one way, a negative number the other, and 0 makes it straight again.
+
+## Elbow and curved routes
+
+The Arrow section's **Route** list sets how the arrow runs between its ends:
+
+- **Straight**: the arrow keeps the points you drew (the default).
+- **Elbow**: right-angle corners only, like a flowchart connector. The arrow leaves each attached end straight out of the side it is attached to, turns once when the two sides are at right angles, makes a Z when they face each other, and loops round in a U when both face the same way. It keeps clear of the two objects it joins (not of other objects).
+- **Curve**: one smooth curve that leaves and enters each end straight out of its side.
+
+An elbow or curved arrow redraws itself whenever an end or an attached object moves, so its middle points are not dragged by hand: a selected one shows handles on its two ends only. An end on an object's outline (not on a connection point) uses the side facing the other end. A free end, or one on the centre point, has no side; the arrow picks a direction from where the other end is. When neither end has a side, **First leg** chooses whether the elbow starts **horizontal** or **vertical** (**automatic** takes the longer direction).
+
+An elbow with a middle segment (a Z, a U, or a longer route) shows a diamond handle in the middle of it. Drag it to slide the segment sideways; for a U it sets how far out the loop goes. The position is kept as a fraction of the distance between the ends, so it stays in proportion when you move the objects. Double-click the handle, or press **Reset middle**, to put it back. The **Middle %** field sets the same thing from the keyboard. An elbow with a single corner has no handle.
+
+Setting the route back to **Straight** keeps the points as they are now, so an elbow becomes an ordinary arrow with corners that you can edit point by point.
 
 ## Attaching arrows to objects
 

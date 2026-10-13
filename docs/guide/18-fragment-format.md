@@ -18,7 +18,7 @@ A **fragment** is a piece of figure as plain JSON: a list of objects. JustFig ad
 ```
 
 - `format` is always `justfig-fragment`.
-- `schemaVersion` is the version of the figure file format the objects follow. Write the current one, 3; an older number is migrated (in schema 1 and 2 an arrow's `bind` ends were plain ids).
+- `schemaVersion` is the version of the figure file format the objects follow. Write the current one, 4; an older number is migrated (in schema 1 and 2 an arrow's `bind` ends were plain ids; schema 4 added arrow routing).
 - `objects` is the list of objects, back to front (the first is at the bottom).
 - `assets` maps an asset key to the picture or icon an object uses (the object's `asset` or `snapshot` holds the key). It is `{}` when no object uses one.
 
@@ -74,23 +74,25 @@ This pastes as one rectangle and one line of text. Every property shown is requi
 
 Every object has `id` (any string, unique within the fragment), `type`, `frame` and `opacity`, plus these.
 
-| `type`       | Properties besides the common ones                                                                                                                                                                                        |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `rect`       | `rx` (corner radius), `style`                                                                                                                                                                                             |
-| `ellipse`    | `style`                                                                                                                                                                                                                   |
-| `path`       | `nodes` (list of `{x, y}` in the frame's own coordinates, with optional `in` and `out` handle offsets `{x, y}` for curves), `closed`, `style`                                                                             |
-| `arrow`      | `nodes` as for a path, `start` and `end` heads (`{kind, size}`: `kind` is `none`, `triangle`, `open`, `stealth`, `bar`, `circle` or `diamond`, `size` a multiple of the line width), `style`; optional `bind` (see below) |
-| `text`       | `runs` (paragraphs, each a list of `{text, font, size, color}` with optional `bold`, `italic` and `script` of `sub` or `sup`), `align` (`left`, `center`, `right`), `lineHeight` (a multiple of the size), `autoWidth`    |
-| `icon`       | `asset` (key in `assets`), `slots` (colour overrides by slot id, `{}` for the icon's own colours), `lockAspect` (`true`)                                                                                                  |
-| `image`      | `asset` (key of an `image` asset: a base64 PNG or JPEG)                                                                                                                                                                   |
-| `procedural` | `kind`, `kindVersion`, `params`, `slots`, and `path` for the kinds that follow one (see below)                                                                                                                            |
-| `group`      | `children` (objects, in page coordinates)                                                                                                                                                                                 |
-| `panel`      | `label`, `autoLabel`, `showLabel`, `showBorder`, `children` (objects, in page coordinates)                                                                                                                                |
-| `embedded`   | `source` (`{app, format, payload}`) and `snapshot` (key of an `svgImport` asset): a drawing made by another app, kept with its data                                                                                       |
+| `type`       | Properties besides the common ones                                                                                                                                                                                                                    |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `rect`       | `rx` (corner radius), `style`                                                                                                                                                                                                                         |
+| `ellipse`    | `style`                                                                                                                                                                                                                                               |
+| `path`       | `nodes` (list of `{x, y}` in the frame's own coordinates, with optional `in` and `out` handle offsets `{x, y}` for curves), `closed`, `style`                                                                                                         |
+| `arrow`      | `nodes` as for a path, `start` and `end` heads (`{kind, size}`: `kind` is `none`, `triangle`, `open`, `stealth`, `bar`, `circle` or `diamond`, `size` a multiple of the line width), `style`; optional `bind`, `route`, `mid`, `firstLeg` (see below) |
+| `text`       | `runs` (paragraphs, each a list of `{text, font, size, color}` with optional `bold`, `italic` and `script` of `sub` or `sup`), `align` (`left`, `center`, `right`), `lineHeight` (a multiple of the size), `autoWidth`                                |
+| `icon`       | `asset` (key in `assets`), `slots` (colour overrides by slot id, `{}` for the icon's own colours), `lockAspect` (`true`)                                                                                                                              |
+| `image`      | `asset` (key of an `image` asset: a base64 PNG or JPEG)                                                                                                                                                                                               |
+| `procedural` | `kind`, `kindVersion`, `params`, `slots`, and `path` for the kinds that follow one (see below)                                                                                                                                                        |
+| `group`      | `children` (objects, in page coordinates)                                                                                                                                                                                                             |
+| `panel`      | `label`, `autoLabel`, `showLabel`, `showBorder`, `children` (objects, in page coordinates)                                                                                                                                                            |
+| `embedded`   | `source` (`{app, format, payload}`) and `snapshot` (key of an `svgImport` asset): a drawing made by another app, kept with its data                                                                                                                   |
 
 `style` is `{fill, stroke, strokeWidth, cap, join}` with an optional `dash` list of lengths. `cap` is `butt`, `round` or `square`; `join` is `miter`, `round` or `bevel`.
 
 An arrow's optional `bind` attaches its ends to other objects in the same fragment: `{"start": {"id": "box1", "site": "right"}, "end": {"id": "box2"}}`. `id` names the object; `site` is `top`, `right`, `bottom`, `left` (an edge's midpoint, 2 pt outside it) or `center`, and without it the end sits on the object's outline facing the other end. The arrow's `nodes` are still required and drawn as given until something moves; a binding to an object that is not pasted with the arrow is dropped.
+
+An arrow's optional `route` is `straight` (the default), `elbow` (right-angle corners) or `curve`; an elbow or curve has its `nodes` regenerated from its ends once it is pasted. For an elbow, `mid` (a number, 0 or more) places its middle segment: a fraction of the way between the ends, or for a U-shaped loop how far it reaches out, as a fraction of the distance between the ends; `firstLeg` (`horizontal` or `vertical`) is the direction an elbow starts in when neither end has a direction of its own.
 
 An asset is `{"kind": "image", "mime": "image/png", "dataBase64": "…", "meta": {"name", "width", "height"}}` (`image/jpeg` also works), `{"kind": "svgImport", "svg": "…", "meta": {…}}`, or an `icon` with its SVG, slots and licence information as the icon library writes it. A generator that needs a picture should use an `image` or `svgImport` asset; an `svgImport` is cleaned of anything that is not plain drawing.
 

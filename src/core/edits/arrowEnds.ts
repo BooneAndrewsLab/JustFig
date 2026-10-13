@@ -5,17 +5,29 @@
  */
 import { apply, frameMatrix } from '../geometry/matrix';
 import type { Id } from '../model/ids';
-import { bindable } from '../model/binding';
-import type { BindSite, Obj, Vec2 } from '../model/types';
+import { bindable, isRouted } from '../model/binding';
+import type { Arrow, ArrowRoute, BindSite, ElbowLeg, Obj, Vec2 } from '../model/types';
 import { type Edit, updateObjects } from './edits';
 import { editableNodes } from './nodes';
 
 /** An open path or arrow without curve handles: it shows a handle on every point. */
 export function usesPointHandles(o: Obj): boolean {
+  if (o.type === 'arrow' && isRouted(o)) return o.nodes.length >= 2;
   if (o.type !== 'path' && o.type !== 'arrow') return false;
   const e = editableNodes(o);
   if (!e || e.closed || e.nodes.length < 2) return false;
   return e.nodes.every((n) => !n.in && !n.out);
+}
+
+/**
+ * Which points get a handle: every one, except on a routed arrow (issue 99), whose middle
+ * points the router owns: only its two ends (the elbow's middle segment has its own handle).
+ */
+export function pointHandleIndices(o: Obj): number[] {
+  const e = editableNodes(o);
+  if (!e) return [];
+  if (o.type === 'arrow' && isRouted(o)) return [0, e.nodes.length - 1];
+  return e.nodes.map((_, i) => i);
 }
 
 /** The object's points on the page. */
@@ -80,5 +92,37 @@ export function attachArrowEnd(
     if (o.type !== 'arrow' || !bindable(target, o.id)) return o;
     // reconcileBindings places the freshly attached end on the target's outline or site.
     return { ...o, bind: { ...o.bind, [end]: { id: targetId, ...(site ? { site } : {}) } } };
+  });
+}
+
+/**
+ * Sets how arrows are routed (issue 99, note 06): elbow or curve, which `reconcileBindings`
+ * then regenerates, or straight, which keeps the nodes as they are now (and forgets the
+ * elbow's middle and first leg).
+ */
+export function setArrowRoute(pageId: Id, ids: readonly Id[], route: ArrowRoute): Edit {
+  return updateObjects(pageId, ids, 'Arrow route', (o) => {
+    if (o.type !== 'arrow') return o;
+    const { route: _r, mid: _m, firstLeg: _f, ...rest } = o;
+    if (route === 'straight') return rest;
+    return { ...o, route };
+  });
+}
+
+/** Moves an elbow's middle segment (its handle; absent resets it to the default). */
+export function setArrowMid(pageId: Id, ids: readonly Id[], mid: number | undefined): Edit {
+  return updateObjects(pageId, ids, mid === undefined ? 'Reset elbow' : 'Move elbow', (o) => {
+    if (o.type !== 'arrow' || o.route !== 'elbow') return o;
+    const { mid: _m, ...rest }: Arrow = o;
+    return mid === undefined ? rest : { ...rest, mid: Math.max(0, mid) };
+  });
+}
+
+/** Which axis an elbow with no exit directions starts along (absent: automatic). */
+export function setArrowFirstLeg(pageId: Id, ids: readonly Id[], leg: ElbowLeg | undefined): Edit {
+  return updateObjects(pageId, ids, 'Elbow first leg', (o) => {
+    if (o.type !== 'arrow') return o;
+    const { firstLeg: _f, ...rest }: Arrow = o;
+    return leg === undefined ? rest : { ...rest, firstLeg: leg };
   });
 }

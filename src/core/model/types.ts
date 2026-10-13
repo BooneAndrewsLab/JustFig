@@ -121,7 +121,25 @@ export interface Arrow extends Base {
   readonly style: ShapeStyle;
   /** Ends attached to objects (note 06): they follow their target. */
   readonly bind?: { readonly start?: ArrowBinding; readonly end?: ArrowBinding };
+  /**
+   * How the arrow is routed (issue 99, note 06): absent or `straight` keeps its nodes as
+   * drawn; `elbow` (90° corners) and `curve` regenerate them from the ends after every edit.
+   */
+  readonly route?: ArrowRoute;
+  /**
+   * An elbow's middle segment, set by its handle: a fraction of the span between the ends
+   * (0 to 1), or for a U how far the loop reaches beyond its clearance, as a fraction of the
+   * distance between the ends. Absent: the router's default (centred for a Z).
+   */
+  readonly mid?: number;
+  /** An elbow whose ends both lack an exit direction starts along this axis (absent: the longer one). */
+  readonly firstLeg?: ElbowLeg;
 }
+
+export const ARROW_ROUTES = ['straight', 'elbow', 'curve'] as const;
+export type ArrowRoute = (typeof ARROW_ROUTES)[number];
+export const ELBOW_LEGS = ['horizontal', 'vertical'] as const;
+export type ElbowLeg = (typeof ELBOW_LEGS)[number];
 
 export const BIND_SITES = ['top', 'right', 'bottom', 'left', 'center'] as const;
 /**
