@@ -119,8 +119,21 @@ export interface Arrow extends Base {
   readonly start: Head;
   readonly end: Head;
   readonly style: ShapeStyle;
-  /** Binding to objects: Phase 4; kept losslessly now. */
-  readonly bind?: { readonly start?: Id; readonly end?: Id };
+  /** Ends attached to objects (note 06): they follow their target. */
+  readonly bind?: { readonly start?: ArrowBinding; readonly end?: ArrowBinding };
+}
+
+export const BIND_SITES = ['top', 'right', 'bottom', 'left', 'center'] as const;
+/**
+ * A named connection point on an object (note 06): the midpoint of an edge of its
+ * frame (top, right, bottom, left, turning and flipping with the object) or its centre.
+ */
+export type BindSite = (typeof BIND_SITES)[number];
+
+/** What an arrow end is attached to: an object, and a site on it, or none to slide on its outline. */
+export interface ArrowBinding {
+  readonly id: Id;
+  readonly site?: BindSite;
 }
 
 export interface Text extends Base {

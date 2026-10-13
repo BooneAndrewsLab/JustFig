@@ -35,16 +35,18 @@ To attach:
 - **Press** the Arrow tool on an object to attach the tail to it.
 - **Release** on an object to attach the head to it.
 
-While you drag, the object under the pointer is outlined to show where the end will attach. The end then sits just outside the object's outline, on the line towards the other end.
+While you drag, the object under the pointer is outlined to show where the end will attach, and its **connection points** appear as small dots: the middle of each side (top, right, bottom, left) and the centre. Bring the pointer within a few pixels of a dot and it fills in; the end snaps to it and stays fixed there. Anywhere else on the object, the end slides: it sits just outside the object's outline, on the line towards the other end, and moves round the outline as things move.
 
-To see or remove an attachment, select the arrow. The Arrow section shows "Start attached to …" and "End attached to …" with a **Detach** button for each end. After detaching, the arrow stays where it is but no longer follows.
+An end on a connection point keeps to that point when you move, resize, rotate or flip the object: the "right" point turns with the object, so a rotated box still has the arrow leaving the same side. A connection point is a little outside its side (or exactly at the centre).
 
-**Dragging an end point** of a selected arrow moves just that end. While you drag, the object under the pointer is outlined; release on it to attach the end there, release in empty space and the end stays detached.
+To see or remove an attachment, select the arrow. The Arrow section shows "Start attached to …" and "End attached to …", a list of where on the object that end attaches (**outline** for a sliding end, or **top**, **right**, **bottom**, **left**, **centre**) and a **Detach** button for each end. Choosing another entry in the list moves the end there. After detaching, the arrow stays where it is but no longer follows.
+
+**Dragging an end point** of a selected arrow moves just that end. While you drag, the object under the pointer is outlined with its connection points; release on a point to attach the end there, elsewhere on the object to attach it sliding, and in empty space the end stays detached.
 
 **Dragging the arrow itself** detaches any end that you move away. Moving the arrow together with the objects it is attached to (select them all and drag) keeps it attached.
 
 Other things to know:
 
 - If you delete the object or convert it to shapes, the arrow stays but is detached.
-- Copying an arrow along with its objects keeps the copy attached to the copies. Copying the arrow alone gives a free arrow.
+- Copying an arrow along with its objects keeps the copy attached to the copies, at the same connection points. Copying the arrow alone gives a free arrow.
 - Undo restores the arrow and its attachment together.

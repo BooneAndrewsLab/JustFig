@@ -413,14 +413,14 @@
           "type": "object",
           "properties": {
             "start": {
-              "$ref": "#/$defs/Id"
+              "$ref": "#/$defs/ArrowBinding"
             },
             "end": {
-              "$ref": "#/$defs/Id"
+              "$ref": "#/$defs/ArrowBinding"
             }
           },
           "additionalProperties": false,
-          "description": "Binding to objects: Phase 4; kept losslessly now."
+          "description": "Ends attached to objects (note 06): they follow their target."
         }
       },
       "required": [
@@ -463,6 +463,33 @@
         "circle",
         "diamond"
       ]
+    },
+    "ArrowBinding": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "site": {
+          "$ref": "#/$defs/BindSite"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "description": "What an arrow end is attached to: an object, and a site on it, or none to slide on its outline."
+    },
+    "BindSite": {
+      "type": "string",
+      "enum": [
+        "top",
+        "right",
+        "bottom",
+        "left",
+        "center"
+      ],
+      "description": "A named connection point on an object (note 06): the midpoint of an edge of its frame (top, right, bottom, left, turning and flipping with the object) or its centre."
     },
     "Text": {
       "type": "object",

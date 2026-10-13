@@ -6,6 +6,7 @@ import { newId } from '@/core/model/ids';
 import type { Obj } from '@/core/model/types';
 import { ASSETS, docArb, objArb } from '@/test/modelArbitraries';
 
+import type { JsonObject } from './decode';
 import {
   FORMAT,
   JfigError,
@@ -178,6 +179,60 @@ describe('.jfig codec', () => {
     ];
     expect(migrate({ schemaVersion: 1 }, steps)).toEqual({ schemaVersion: 3, a: 1, b: 2 });
     expect(migrate({ schemaVersion: 2 }, steps)).toEqual({ schemaVersion: 3, b: 2 });
+  });
+
+  it('migrates schema 2 arrow bindings to { id } in figures and fragments (issue 98)', () => {
+    const arrow = (bind: JsonObject) => ({
+      id: 'o_0000000000000009',
+      type: 'arrow',
+      frame: { x: 0, y: 0, w: 10, h: 0, rotation: 0 },
+      opacity: 1,
+      nodes: [
+        { x: 0, y: 0 },
+        { x: 10, y: 0 },
+      ],
+      start: { kind: 'none', size: 4 },
+      end: { kind: 'triangle', size: 4 },
+      style: {
+        fill: null,
+        stroke: { hex: '#000000' },
+        strokeWidth: 1,
+        cap: 'round',
+        join: 'round',
+      },
+      bind,
+    });
+    const frag = readFragment(
+      JSON.stringify({
+        format: 'justfig-fragment',
+        schemaVersion: 2,
+        objects: [arrow({ start: 'o_0000000000000001', end: 'o_0000000000000002' })],
+        assets: {},
+      }),
+    );
+    const a = frag?.objects[0];
+    expect(a?.type === 'arrow' ? a.bind : null).toEqual({
+      start: { id: 'o_0000000000000001' },
+      end: { id: 'o_0000000000000002' },
+    });
+    const v2 = migrate({
+      format: FORMAT,
+      schemaVersion: 2,
+      document: { pages: [{ layers: [{ children: [arrow({ end: 'o_0000000000000002' })] }] }] },
+    });
+    expect(v2['schemaVersion']).toBe(SCHEMA_VERSION);
+    expect(JSON.stringify(v2)).toContain('"bind":{"end":{"id":"o_0000000000000002"}}');
+    // A schema 3 site that is not one of the five is refused.
+    expect(() =>
+      readFragment(
+        JSON.stringify({
+          format: 'justfig-fragment',
+          schemaVersion: 3,
+          objects: [arrow({ end: { id: 'o_0000000000000002', site: 'corner' } })],
+          assets: {},
+        }),
+      ),
+    ).toThrow(/site/);
   });
 
   it('round-trips fragments and ignores clipboard text that is not one', () => {

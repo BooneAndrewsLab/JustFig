@@ -13,7 +13,17 @@ import { remapInset, reconcileInsets } from './inset';
 import type { Id } from './ids';
 import { remapStep, reconcileSteps } from './steps';
 import { hasChildren, mapPageObjs, pageObjects } from './tree';
-import type { Arrow, Figure, Obj, Page, PathNode, Vec2 } from './types';
+import {
+  BIND_SITES,
+  type Arrow,
+  type ArrowBinding,
+  type BindSite,
+  type Figure,
+  type Obj,
+  type Page,
+  type PathNode,
+  type Vec2,
+} from './types';
 
 /** How far outside its target's outline a bound end sits, points. */
 export const BIND_GAP = 2;
@@ -99,6 +109,87 @@ export function clipToOutline(target: Obj, dir: Vec2, reach = Infinity): Vec2 | 
   return t === null ? null : add(c, mulv(d, t + BIND_GAP));
 }
 
+// --- connection sites -----------------------------------------------------------
+
+/** Every connection site (note 06); corners are left out. */
+export { BIND_SITES } from './types';
+
+/** How a site is named in the Inspector. */
+export const SITE_LABEL: Readonly<Record<BindSite, string>> = {
+  top: 'top',
+  right: 'right',
+  bottom: 'bottom',
+  left: 'left',
+  center: 'centre',
+};
+
+/** A site's spot in the object's own frame, as a fraction of its width and height. */
+const SITE_UV: Readonly<Record<BindSite, Vec2>> = {
+  top: { x: 0.5, y: 0 },
+  right: { x: 1, y: 0.5 },
+  bottom: { x: 0.5, y: 1 },
+  left: { x: 0, y: 0.5 },
+  center: { x: 0.5, y: 0.5 },
+};
+
+/** The site on the object's frame, page coordinates (rotation and flips applied). */
+function siteOnFrame(o: Obj, site: BindSite): Vec2 {
+  const uv = SITE_UV[site];
+  if (o.type === 'group') {
+    const b = objBounds(o);
+    return { x: b.x + b.w * uv.x, y: b.y + b.h * uv.y };
+  }
+  return apply(frameMatrix(o.frame), { x: o.frame.w * uv.x, y: o.frame.h * uv.y });
+}
+
+/**
+ * The direction an arrow leaves a site in, a unit vector in page coordinates: straight
+ * out of the object through that edge's midpoint (it turns and flips with the object).
+ * Undefined for the centre, or a frame too thin to have a direction; routing (issue 99)
+ * then infers one from the other end.
+ */
+export function siteExit(o: Obj, site: BindSite): Vec2 | undefined {
+  if (site === 'center') return undefined;
+  const d = sub(siteOnFrame(o, site), targetCentre(o));
+  const l = len(d);
+  return l < 1e-9 ? undefined : mulv(d, 1 / l);
+}
+
+/**
+ * Where an end attached to `site` goes, page coordinates: the centre itself, or where the
+ * ray from the centre through the edge midpoint leaves the outline (the midpoint itself
+ * for a rectangle or an ellipse), plus `BIND_GAP`.
+ */
+export function sitePoint(o: Obj, site: BindSite): Vec2 {
+  const c = targetCentre(o);
+  const exit = siteExit(o, site);
+  if (!exit) return c;
+  return clipToOutline(o, exit) ?? add(siteOnFrame(o, site), mulv(exit, BIND_GAP));
+}
+
+/** The sites an end can snap to on `o`, with where the end would go. */
+export function sitesOf(o: Obj): { site: BindSite; at: Vec2 }[] {
+  return BIND_SITES.map((site: BindSite) => ({ site, at: sitePoint(o, site) }));
+}
+
+/** The site whose point is within `radius` of `p` (the nearest), if any. */
+export function nearestSite(o: Obj, p: Vec2, radius: number): BindSite | undefined {
+  let best: BindSite | undefined;
+  let bestD = radius;
+  for (const { site, at } of sitesOf(o)) {
+    const d = Math.hypot(at.x - p.x, at.y - p.y);
+    if (d <= bestD) {
+      best = site;
+      bestD = d;
+    }
+  }
+  return best;
+}
+
+/** Two bindings to the same object and site. */
+export const sameBinding = (a: ArrowBinding | undefined, b: ArrowBinding | undefined): boolean =>
+  a?.id === b?.id && a?.site === b?.site;
+
 // --- arrows in page space --------------------------------------------------------
 
 function pageNodes(a: Arrow): PathNode[] {
@@ -140,30 +231,44 @@ export function bentNodes(p: Vec2, q: Vec2, b: number): PathNode[] {
 const close = (a: Vec2 | undefined, b: Vec2 | undefined): boolean =>
   a !== undefined && b !== undefined && Math.abs(a.x - b.x) < 1e-6 && Math.abs(a.y - b.y) < 1e-6;
 
-/** The arrow with its bound ends placed on their targets. */
+/** A bound end's target and, when it is attached to a site, which one. */
+export interface EndTarget {
+  readonly obj: Obj;
+  readonly site?: BindSite | undefined;
+}
+
+/**
+ * The arrow with its bound ends placed on their targets: an end attached to a site goes
+ * to that site's point; a sliding end goes on the outline, aimed at the other end (its
+ * site point, its target's centre, or where it is when free).
+ */
 export function solveArrow(
   a: Arrow,
-  targets: { readonly start?: Obj | undefined; readonly end?: Obj | undefined },
+  targets: { readonly start?: EndTarget | undefined; readonly end?: EndTarget | undefined },
 ): Arrow {
   const nodes = pageNodes(a);
   const first = nodes[0];
   const last = nodes[nodes.length - 1];
   if (!first || !last || nodes.length < 2) return a;
-  const ts = targets.start;
-  const te = targets.end;
+  const ts = targets.start?.obj;
+  const te = targets.end?.obj;
+  const at = (t: EndTarget | undefined): Vec2 | null =>
+    t?.site === undefined ? null : sitePoint(t.obj, t.site);
+  const ss = at(targets.start);
+  const se = at(targets.end);
   let out: PathNode[];
   if (nodes.length === 2) {
     const b = bendOf(nodes);
     const theta = Math.atan(3 * b);
-    let p: Vec2 = first;
-    let q: Vec2 = last;
-    if (ts) {
-      const aim = te ? targetCentre(te) : q;
+    let p: Vec2 = ss ?? first;
+    let q: Vec2 = se ?? last;
+    if (ts && !ss) {
+      const aim = se ?? (te ? targetCentre(te) : q);
       const c = targetCentre(ts);
       p = clipToOutline(ts, rot(sub(aim, c), theta), len(sub(aim, c))) ?? p;
     }
-    if (te) {
-      const aim = ts ? targetCentre(ts) : p;
+    if (te && !se) {
+      const aim = ss ?? (ts ? targetCentre(ts) : p);
       const c = targetCentre(te);
       q = clipToOutline(te, rot(sub(aim, c), -theta), len(sub(aim, c))) ?? q;
     }
@@ -171,11 +276,11 @@ export function solveArrow(
     out = bentNodes(p, q, b);
   } else {
     out = [...nodes];
-    const move = (i: number, target: Obj, neighbour: PathNode | undefined) => {
+    const move = (i: number, target: Obj, at: Vec2 | null, neighbour: PathNode | undefined) => {
       const n = out[i];
       if (!n || !neighbour) return;
       const c = targetCentre(target);
-      const to = clipToOutline(target, sub(neighbour, c), len(sub(neighbour, c)));
+      const to = at ?? clipToOutline(target, sub(neighbour, c), len(sub(neighbour, c)));
       if (!to) return;
       const dd = sub(to, n);
       out[i] = {
@@ -185,8 +290,8 @@ export function solveArrow(
         ...(n.out ? { out: add(n.out, dd) } : {}),
       };
     };
-    if (ts) move(0, ts, nodes[1]);
-    if (te) move(out.length - 1, te, nodes[nodes.length - 2]);
+    if (ts) move(0, ts, ss, nodes[1]);
+    if (te) move(out.length - 1, te, se, nodes[nodes.length - 2]);
     if (close(out[0], first) && close(out[out.length - 1], last)) return a;
   }
   const { f, local } = localise(out);
@@ -220,17 +325,18 @@ function reconcilePage(before: Page | undefined, page: Page): Page {
     if (o.type !== 'arrow' || !o.bind) return o;
     const old = was.get(o.id);
     const oldArrow = old?.type === 'arrow' ? old : undefined;
-    const bind: { start?: Id; end?: Id } = {};
-    const targets: { start?: Obj; end?: Obj } = {};
+    const bind: { start?: ArrowBinding; end?: ArrowBinding } = {};
+    const targets: { start?: EndTarget; end?: EndTarget } = {};
     let resolve = oldArrow === undefined;
     for (const end of ['start', 'end'] as const) {
-      const id = o.bind[end];
-      if (id === undefined) continue;
-      const t = now.get(id);
+      const b = o.bind[end];
+      if (b === undefined) continue;
+      const t = now.get(b.id);
       if (!t || !bindable(t, o.id)) continue;
-      const tWas = was.get(id);
-      // An end newly attached by this edit (released on an object) is placed on it.
-      const fresh = oldArrow !== undefined && oldArrow !== o && oldArrow.bind?.[end] !== id;
+      const tWas = was.get(b.id);
+      // An end newly attached by this edit (released on an object or a site) is placed on it.
+      const fresh =
+        oldArrow !== undefined && oldArrow !== o && !sameBinding(oldArrow.bind?.[end], b);
       if (fresh) resolve = true;
       if (
         !fresh &&
@@ -244,8 +350,8 @@ function reconcilePage(before: Page | undefined, page: Page): Page {
       // A new curve aims the ends along its new tangents.
       if (oldArrow && oldArrow !== o && Math.abs(bendOf(oldArrow.nodes) - bendOf(o.nodes)) > 1e-9)
         resolve = true;
-      bind[end] = id;
-      targets[end] = t;
+      bind[end] = b;
+      targets[end] = { obj: t, site: b.site };
     }
     const kept = Object.keys(bind).length > 0;
     const sameBind = o.bind.start === bind.start && o.bind.end === bind.end;
@@ -289,11 +395,11 @@ export function remapBindings(objs: readonly Obj[], ids: ReadonlyMap<Id, Id>): O
     if (o.type === 'image') return remapInset(o, ids);
     if (o.type === 'text') return remapStep(o, ids);
     if (o.type !== 'arrow' || !o.bind) return o;
-    const bind: { start?: Id; end?: Id } = {};
+    const bind: { start?: ArrowBinding; end?: ArrowBinding } = {};
     for (const end of ['start', 'end'] as const) {
-      const id = o.bind[end];
-      const to = id === undefined ? undefined : ids.get(id);
-      if (to !== undefined) bind[end] = to;
+      const b = o.bind[end];
+      const to = b === undefined ? undefined : ids.get(b.id);
+      if (b !== undefined && to !== undefined) bind[end] = { ...b, id: to };
     }
     const { bind: _drop, ...rest } = o;
     return Object.keys(bind).length > 0 ? { ...rest, bind } : rest;

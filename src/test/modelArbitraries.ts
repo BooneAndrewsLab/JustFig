@@ -6,6 +6,7 @@ import fc from 'fast-check';
 
 import { asId } from '@/core/model/ids';
 import {
+  BIND_SITES,
   FONT_IDS,
   STEP_ANCHORS,
   STEP_VARIANTS,
@@ -97,6 +98,13 @@ const asset = fc.constantFrom('h0001', 'h0002');
 
 const json = fc.jsonValue().map((v) => JSON.parse(JSON.stringify(v)) as unknown);
 
+/** An arrow end's binding (note 06): an object, with or without a connection site. */
+const endBindArb = fc.record(
+  { id, site: fc.constantFrom(...BIND_SITES) },
+  { requiredKeys: ['id'] },
+);
+const bindArb = fc.record({ start: endBindArb, end: endBindArb }, { requiredKeys: [] });
+
 const leafArb: fc.Arbitrary<Obj> = fc.oneof(
   fc
     .tuple(baseArb, pos(50), styleArb)
@@ -106,14 +114,22 @@ const leafArb: fc.Arbitrary<Obj> = fc.oneof(
     .tuple(baseArb, fc.array(nodeArb, { minLength: 2, maxLength: 5 }), fc.boolean(), styleArb)
     .map(([b, nodes, closed, style]): Obj => ({ ...b, type: 'path', nodes, closed, style })),
   fc
-    .tuple(baseArb, fc.array(nodeArb, { minLength: 2, maxLength: 4 }), headArb, headArb, styleArb)
-    .map(([b, nodes, start, end, style]): Obj => ({
+    .tuple(
+      baseArb,
+      fc.array(nodeArb, { minLength: 2, maxLength: 4 }),
+      headArb,
+      headArb,
+      styleArb,
+      fc.option(bindArb, { nil: undefined }),
+    )
+    .map(([b, nodes, start, end, style, bind]): Obj => ({
       ...b,
       type: 'arrow',
       nodes,
       start,
       end,
       style,
+      ...(bind ? { bind } : {}),
     })),
   fc
     .tuple(

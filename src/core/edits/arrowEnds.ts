@@ -6,7 +6,7 @@
 import { apply, frameMatrix } from '../geometry/matrix';
 import type { Id } from '../model/ids';
 import { bindable } from '../model/binding';
-import type { Obj, Vec2 } from '../model/types';
+import type { BindSite, Obj, Vec2 } from '../model/types';
 import { type Edit, updateObjects } from './edits';
 import { editableNodes } from './nodes';
 
@@ -63,17 +63,22 @@ export function arrowEndAt(o: Obj, index: number): 'start' | 'end' | undefined {
   return index === o.nodes.length - 1 ? 'end' : undefined;
 }
 
-/** Attaches an arrow's end to `targetId` and places it on the target's outline. */
+/**
+ * Attaches an arrow's end to `targetId`, at `site` when given (note 06), else sliding on
+ * its outline; `reconcileBindings` places the end. Re-attaching to another site of the same
+ * target is how the Inspector moves an end between sites.
+ */
 export function attachArrowEnd(
   pageId: Id,
   arrowId: Id,
   end: 'start' | 'end',
   targetId: Id,
   target: Obj,
+  site?: BindSite,
 ): Edit {
   return updateObjects(pageId, [arrowId], 'Attach arrow end', (o) => {
     if (o.type !== 'arrow' || !bindable(target, o.id)) return o;
-    // reconcileBindings places the freshly attached end on the target's outline.
-    return { ...o, bind: { ...o.bind, [end]: targetId } };
+    // reconcileBindings places the freshly attached end on the target's outline or site.
+    return { ...o, bind: { ...o.bind, [end]: { id: targetId, ...(site ? { site } : {}) } } };
   });
 }

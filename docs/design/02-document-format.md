@@ -105,6 +105,9 @@ own `migrate` (note 04), so kinds evolve without a schema bump. Every schema bum
 test. Schema 1 is frozen as `src/io/fixtures/v1.jfig`. Schema 2 adds `Doc.notes`, review notes
 (note 24); its migration gives a schema 1 document `notes: []` and leaves fragments and presets
 files (no document, objects unchanged) as they were. Frozen as `src/io/fixtures/v2.jfig`.
+Schema 3 turns each arrow `bind` end from an object id into `{ id, site? }`, connection sites
+(note 06, issue 98); its migration rewrites every arrow in a figure, fragment or presets file
+(`{ id }`, a sliding end, as before). Frozen as `src/io/fixtures/v3.jfig`.
 
 ## Fragments (clipboard and sibling interchange)
 

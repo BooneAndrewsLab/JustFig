@@ -44,10 +44,19 @@ import {
   frame,
 } from '@/core/model/factory';
 import { asId, type Id } from '@/core/model/ids';
-import { bindable } from '@/core/model/binding';
+import { bindable, nearestSite, sitePoint, sitesOf } from '@/core/model/binding';
 import { noteAnchor } from '@/core/model/notes';
-import { findObj } from '@/core/model/tree';
-import type { Figure, Obj, Page, PathNode, Swatch, Vec2 } from '@/core/model/types';
+import { findObj, pageObjects } from '@/core/model/tree';
+import type {
+  ArrowBinding,
+  BindSite,
+  Figure,
+  Obj,
+  Page,
+  PathNode,
+  Swatch,
+  Vec2,
+} from '@/core/model/types';
 import { type Guide, snapBox, snapPoint } from '@/core/snapping/snap';
 import { fitText } from '@/core/text/layout';
 import { drawnBounds, drawnBoundsIn } from '@/procedural/bounds';
@@ -106,7 +115,7 @@ type Gesture =
     }
   | { kind: 'rotate'; c: Vec2; a0: number; fig: Figure; ids: Id[]; key: string }
   | { kind: 'marquee'; start: Vec2; add: boolean }
-  | { kind: 'create'; start: Vec2; bindStart?: Id }
+  | { kind: 'create'; start: Vec2; bindStart?: ArrowBinding }
   | {
       kind: 'node';
       id: Id;
@@ -125,6 +134,8 @@ interface Overlay {
   readonly guides?: readonly Guide[];
   /** The object an arrow end would attach to (note 06). */
   readonly bindBox?: Box;
+  /** Its connection sites; `hot` is the one the end snaps to. */
+  readonly sites?: readonly { readonly at: Vec2; readonly hot: boolean }[];
 }
 
 let gestureSeq = 0;
@@ -254,15 +265,61 @@ function VisionFilters() {
   );
 }
 
-/** The object under a screen point an arrow end may attach to (note 06). */
-function bindTargetAt(x: number, y: number, page: Page): Obj | undefined {
+/** How near a connection site, screen pixels, an arrow end snaps to it (note 06). */
+const SITE_SNAP_PX = 8;
+
+/** What an arrow end would attach to: an object, and the site it snaps to (and that site's point). */
+interface BindHit {
+  readonly obj: Obj;
+  readonly site?: BindSite;
+  readonly at?: Vec2;
+}
+
+/**
+ * What an arrow end at screen point (x, y), page point `p`, may attach to (note 06): the
+ * object under the pointer, or one with a site within `radius` points (a site sits just
+ * outside its outline), with the nearest site within `radius`.
+ */
+function bindHitAt(x: number, y: number, p: Vec2, page: Page, radius: number): BindHit | undefined {
+  let obj: Obj | undefined;
   for (const el of document.elementsFromPoint(x, y)) {
     if (!el.closest('[data-id]')) continue;
     const id = pickTarget(el, page);
     const o = id ? findObj(page, id) : undefined;
-    if (o && bindable(o)) return o;
+    if (o && bindable(o)) {
+      obj = o;
+      break;
+    }
   }
-  return undefined;
+  if (!obj) {
+    let best = radius;
+    for (const o of pageObjects(page)) {
+      if (!bindable(o) || o.locked === true) continue;
+      const site = nearestSite(o, p, best);
+      if (!site) continue;
+      const at = sitePoint(o, site);
+      best = Math.hypot(at.x - p.x, at.y - p.y);
+      obj = o;
+    }
+  }
+  if (!obj) return undefined;
+  const site = nearestSite(obj, p, radius);
+  return site ? { obj, site, at: sitePoint(obj, site) } : { obj };
+}
+
+/** The binding a hit makes. */
+const bindingOf = (h: BindHit): ArrowBinding => ({
+  id: h.obj.id,
+  ...(h.site ? { site: h.site } : {}),
+});
+
+/** The overlay showing what an arrow end would attach to: its outline box and site dots. */
+function bindOverlay(h: BindHit | undefined): Pick<Overlay, 'bindBox' | 'sites'> {
+  if (!h) return {};
+  return {
+    bindBox: objBounds(h.obj),
+    sites: sitesOf(h.obj).map((x) => ({ at: x.at, hot: x.site === h.site })),
+  };
 }
 
 /**
@@ -286,13 +343,13 @@ export function Canvas() {
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [pen, setPen] = useState<PathNode[]>([]);
   /** Line/Arrow click-to-place points (issue 96); `ids` is the object bound at each point. */
-  const [poly, setPolyState] = useState<{ nodes: PathNode[]; ids: (Id | undefined)[] }>({
+  const [poly, setPolyState] = useState<{ nodes: PathNode[]; ids: (ArrowBinding | undefined)[] }>({
     nodes: [],
     ids: [],
   });
   const polyRef = useRef(poly);
   const polyTool = useRef<'line' | 'arrow'>('line');
-  const setPoly = (next: { nodes: PathNode[]; ids: (Id | undefined)[] }) => {
+  const setPoly = (next: { nodes: PathNode[]; ids: (ArrowBinding | undefined)[] }) => {
     polyRef.current = next;
     setPolyState(next);
   };
@@ -376,6 +433,8 @@ export function Canvas() {
   );
 
   const threshold = SNAP_PX / v.zoom;
+  const bindHere = (e: { clientX: number; clientY: number }, p: Vec2) =>
+    bindHitAt(e.clientX, e.clientY, p, page, SITE_SNAP_PX / v.zoom);
   const snapP = (
     p: Vec2,
     exclude: ReadonlySet<Id> = new Set(),
@@ -405,7 +464,7 @@ export function Canvas() {
     if (obj.type === 'arrow' && (start ?? end) !== undefined)
       obj = {
         ...obj,
-        bind: { ...(start ? { start } : {}), ...(end && end !== start ? { end } : {}) },
+        bind: { ...(start ? { start } : {}), ...(end && end.id !== start?.id ? { end } : {}) },
       };
     if (store.edit(addObjects(page.id, [obj])) && store.getState().tool === tool)
       store.setTool('select');
@@ -419,8 +478,8 @@ export function Canvas() {
   const polyPoint = (e: { clientX: number; clientY: number; shiftKey: boolean }, p: Vec2) => {
     const q = snapP(p);
     const last = polyRef.current.nodes[polyRef.current.nodes.length - 1];
-    const end = e.shiftKey && last ? snap45(last, q.p) : q.p;
-    const over = s.tool === 'arrow' ? bindTargetAt(e.clientX, e.clientY, page) : undefined;
+    const over = s.tool === 'arrow' ? bindHere(e, p) : undefined;
+    const end = over?.at ?? (e.shiftKey && last ? snap45(last, q.p) : q.p);
     return { end, guides: q.guides, over };
   };
 
@@ -591,14 +650,18 @@ export function Canvas() {
         const { end, over } = polyPoint(e, p);
         setPoly({
           nodes: [...poly.nodes, { x: end.x, y: end.y }],
-          ids: [...poly.ids, over?.id],
+          ids: [...poly.ids, over ? bindingOf(over) : undefined],
         });
         return;
       }
     }
-    const start = snapP(p).p;
-    const bindStart = s.tool === 'arrow' ? bindTargetAt(e.clientX, e.clientY, page) : undefined;
-    gesture.current = { kind: 'create', start, ...(bindStart ? { bindStart: bindStart.id } : {}) };
+    const bindStart = s.tool === 'arrow' ? bindHere(e, p) : undefined;
+    const start = bindStart?.at ?? snapP(p).p;
+    gesture.current = {
+      kind: 'create',
+      start,
+      ...(bindStart ? { bindStart: bindingOf(bindStart) } : {}),
+    };
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -614,7 +677,7 @@ export function Canvas() {
         setOverlay({
           preview: { d: pathData([...poly.nodes, { x: end.x, y: end.y }], false) },
           guides,
-          ...(over ? { bindBox: objBounds(over) } : {}),
+          ...bindOverlay(over),
         });
       }
       return;
@@ -690,20 +753,23 @@ export function Canvas() {
         if (!g.moved && Math.hypot(dx, dy) * v.zoom < 2) return;
         gesture.current = { ...g, moved: true };
         if (g.pt) {
-          const t = pointDragTarget(
-            g.pt.origin,
-            { x: dx, y: dy },
-            g.pt.neighbour,
-            e.shiftKey,
-            s.snap ? (q) => snapP(q, new Set([g.id])).p : undefined,
-          );
+          // An end over a connection site snaps to it (note 06).
+          const over = g.pt.end ? bindHere(e, p) : undefined;
+          const t =
+            over?.at ??
+            pointDragTarget(
+              g.pt.origin,
+              { x: dx, y: dy },
+              g.pt.neighbour,
+              e.shiftKey,
+              s.snap ? (q) => snapP(q, new Set([g.id])).p : undefined,
+            );
           store.edit(moveNodePart(page.id, g.id, g.ref, t.x - g.pt.origin.x, t.y - g.pt.origin.y), {
             coalesce: g.key,
             from: g.fig,
             keepSelection: true,
           });
-          const over = g.pt.end ? bindTargetAt(e.clientX, e.clientY, page) : undefined;
-          setOverlay(over ? { bindBox: objBounds(over) } : {});
+          setOverlay(bindOverlay(over));
           return;
         }
         store.edit(moveNodePart(page.id, g.id, g.ref, dx, dy), {
@@ -729,13 +795,14 @@ export function Canvas() {
         let end = q.p;
         if (e.shiftKey && (s.tool === 'line' || s.tool === 'arrow')) end = snap45(g.start, end);
         if (s.tool === 'line' || s.tool === 'arrow') {
-          const over = s.tool === 'arrow' ? bindTargetAt(e.clientX, e.clientY, page) : undefined;
+          const over = s.tool === 'arrow' ? bindHere(e, p) : undefined;
+          if (over?.at) end = over.at;
           setOverlay({
             preview: {
               d: `M${String(g.start.x)} ${String(g.start.y)}L${String(end.x)} ${String(end.y)}`,
             },
             guides: q.guides,
-            ...(over ? { bindBox: objBounds(over) } : {}),
+            ...bindOverlay(over),
           });
         } else {
           let box = normBox(g.start, end);
@@ -762,10 +829,10 @@ export function Canvas() {
     if (g.kind === 'node' && g.pt?.end && g.moved) {
       // An arrow end released on an object attaches to it; in empty space it stays detached (note 06).
       const arrow = findObj(page, g.id);
-      const t = bindTargetAt(e.clientX, e.clientY, page);
+      const t = bindHere(e, p);
       const otherEnd = g.pt.end === 'start' ? 'end' : 'start';
-      if (arrow?.type === 'arrow' && t && t.id !== arrow.bind?.[otherEnd])
-        store.edit(attachArrowEnd(page.id, g.id, g.pt.end, t.id, t), {
+      if (arrow?.type === 'arrow' && t && t.obj.id !== arrow.bind?.[otherEnd]?.id)
+        store.edit(attachArrowEnd(page.id, g.id, g.pt.end, t.obj.id, t.obj, t.site), {
           coalesce: g.key,
           from: g.fig,
           keepSelection: true,
@@ -791,16 +858,21 @@ export function Canvas() {
       }
     }
     if (g.kind === 'create' && s.tool !== 'pen') {
-      const bindEnd = s.tool === 'arrow' ? bindTargetAt(e.clientX, e.clientY, page) : undefined;
-      create(g.start, snapP(p).p, e.shiftKey, {
+      const bindEnd = s.tool === 'arrow' ? bindHere(e, p) : undefined;
+      create(g.start, bindEnd?.at ?? snapP(p).p, e.shiftKey, {
         ...(g.bindStart ? { start: g.bindStart } : {}),
-        ...(bindEnd && bindEnd.id !== g.bindStart ? { end: bindEnd.id } : {}),
+        ...(bindEnd && bindEnd.obj.id !== g.bindStart?.id ? { end: bindingOf(bindEnd) } : {}),
       });
     }
     if (s.tool !== 'pen') setOverlay({});
   };
 
-  const create = (a: Vec2, b0: Vec2, shift: boolean, bind: { start?: Id; end?: Id } = {}) => {
+  const create = (
+    a: Vec2,
+    b0: Vec2,
+    shift: boolean,
+    bind: { start?: ArrowBinding; end?: ArrowBinding } = {},
+  ) => {
     const b = shift && (s.tool === 'line' || s.tool === 'arrow') ? snap45(a, b0) : b0;
     const dragged = Math.hypot(b.x - a.x, b.y - a.y) * v.zoom > 4;
     let box = shift ? square(a, b) : normBox(a, b);
@@ -1090,6 +1162,21 @@ export function Canvas() {
                 strokeWidth={2}
               />
             )}
+            {overlay.sites?.map((st, i) => (
+              <circle
+                key={`site-${String(i)}`}
+                data-testid="bind-site"
+                data-hot={st.hot ? 'true' : undefined}
+                cx={scr(st.at).x}
+                cy={scr(st.at).y}
+                r={st.hot ? 5 : 3.5}
+                style={{
+                  stroke: OVERLAY.bindTarget,
+                  fill: st.hot ? OVERLAY.bindTarget : OVERLAY.wellGround,
+                }}
+                strokeWidth={1.5}
+              />
+            ))}
             {overlay.marquee && (
               <rect
                 x={scr(overlay.marquee).x}

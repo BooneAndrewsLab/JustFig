@@ -50,10 +50,13 @@ import { center } from '@/core/geometry/matrix';
 import { boundsOf, normAngle, objBounds, rebase, rotateObj } from '@/core/geometry/transform';
 import type { Id } from '@/core/model/ids';
 import { type StepBadge, isStep, stepNumbers } from '@/core/model/steps';
+import { BIND_SITES, SITE_LABEL } from '@/core/model/binding';
 import { findObj } from '@/core/model/tree';
+import { attachArrowEnd } from '@/core/edits/arrowEnds';
 import {
   HEAD_KINDS,
   FONT_IDS,
+  type BindSite,
   STEP_ANCHORS,
   type FontId,
   type HeadKind,
@@ -1086,14 +1089,44 @@ function ArrowSection({ s, arrow }: { s: AppState; arrow: Extract<Obj, { type: '
         </div>
       ))}
       {(['start', 'end'] as const).map((end) => {
-        const id = arrow.bind?.[end];
-        if (id === undefined) return null;
-        const t = findObj(currentPage(s), id);
+        const b = arrow.bind?.[end];
+        if (b === undefined) return null;
+        const page = currentPage(s);
+        const t = findObj(page, b.id);
+        const which = end === 'start' ? 'start' : 'end';
         return (
           <div className="row" key={`bind-${end}`}>
             <span className="muted" data-testid={`bound-${end}`}>
               {end === 'start' ? 'Start' : 'End'} attached to {t?.name ?? cap(t?.type ?? 'object')}
             </span>
+            {t && (
+              <select
+                aria-label={`Where the ${which} of the arrow attaches`}
+                data-testid={`bound-${end}-site`}
+                value={b.site ?? ''}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  store.edit(
+                    attachArrowEnd(
+                      page.id,
+                      arrow.id,
+                      end,
+                      t.id,
+                      t,
+                      v === '' ? undefined : (v as BindSite),
+                    ),
+                    { keepSelection: true },
+                  );
+                }}
+              >
+                <option value="">outline</option>
+                {BIND_SITES.map((x) => (
+                  <option key={x} value={x}>
+                    {SITE_LABEL[x]}
+                  </option>
+                ))}
+              </select>
+            )}
             <button
               type="button"
               aria-label={`Detach the ${end === 'start' ? 'start' : 'end'} of the arrow`}

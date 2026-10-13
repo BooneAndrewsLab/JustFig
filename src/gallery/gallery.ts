@@ -87,7 +87,7 @@ function link(a: Obj, b: Obj, paint: Paint, end: Head = { kind: 'triangle', size
   const c = (o: Obj) => ({ x: o.frame.x + o.frame.w / 2, y: o.frame.y + o.frame.h / 2 });
   return {
     ...createArrow([c(a), c(b)], end, { kind: 'none', size: 4 }, style(null, paint, 1.25)),
-    bind: { start: a.id, end: b.id },
+    bind: { start: { id: a.id }, end: { id: b.id } },
   };
 }
 

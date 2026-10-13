@@ -110,7 +110,7 @@ describe('swap positions (note 35)', () => {
         { x: 0, y: 0 },
         { x: 10, y: 10 },
       ]),
-      bind: { start: a.id, end: b.id },
+      bind: { start: { id: a.id }, end: { id: b.id } },
     };
     const { s, page } = setup([a, b, arrow]);
     const before = s.getState().history.present;

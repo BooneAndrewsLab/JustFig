@@ -86,7 +86,7 @@ describe('the gallery (note 08)', () => {
           for (const end of ['start', 'end'] as const) {
             const id = o.bind?.[end];
             expect(id, `${o.id} ${end}`).toBeDefined();
-            const t = id ? findObj(page, id) : undefined;
+            const t = id ? findObj(page, id.id) : undefined;
             if (!t) throw new Error('missing target');
             expect(onOutline(endPoint(o, end), t), `${o.id} ${end}`).toBe(true);
           }

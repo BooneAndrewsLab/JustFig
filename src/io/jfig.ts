@@ -8,9 +8,11 @@ import { asId } from '@/core/model/ids';
 import { NOTE_LIMITS } from '@/core/model/notes';
 import {
   FONT_IDS,
+  BIND_SITES,
   HEAD_KINDS,
   STEP_ANCHORS,
   STEP_VARIANTS,
+  type ArrowBinding,
   type Asset,
   type Assets,
   type Channel,
@@ -73,7 +75,28 @@ export const MIGRATIONS: readonly Migration[] = [
     if (doc === null || typeof doc !== 'object' || Array.isArray(doc)) return file;
     return { ...file, document: { ...(doc as JsonObject), notes: [] } };
   },
+  // 2 → 3: arrow connection sites (note 06). `bind.start` / `bind.end` were an object id;
+  // they become `{ id }` (no site: the end slides on the outline, as before). Arrows sit
+  // in documents, fragments and presets files alike, so every object in the file is visited.
+  (file) => bindingsToObjects(file) as JsonObject,
 ];
+
+/** Every arrow's `bind` ends turned from an id into `{ id }` (migration 2 → 3). */
+function bindingsToObjects(v: Json): Json {
+  if (Array.isArray(v)) return v.map(bindingsToObjects);
+  if (v === null || typeof v !== 'object') return v;
+  const o = v as JsonObject;
+  const out: Record<string, Json> = {};
+  for (const [k, x] of Object.entries(o)) out[k] = bindingsToObjects(x);
+  const bind = o['bind'];
+  if (o['type'] === 'arrow' && bind !== null && typeof bind === 'object' && !Array.isArray(bind)) {
+    const b: Record<string, Json> = {};
+    for (const [k, x] of Object.entries(bind as JsonObject))
+      b[k] = typeof x === 'string' ? { id: x } : x;
+    out['bind'] = b;
+  }
+  return out;
+}
 
 export const SCHEMA_VERSION = MIGRATIONS.length + 1;
 
@@ -195,6 +218,14 @@ function node(v: unknown, p: Path): PathNode {
     y: num(o['y'], p.key('y')),
     ...opt(o, 'in', p, vec),
     ...opt(o, 'out', p, vec),
+  };
+}
+
+function arrowBinding(v: unknown, p: Path): ArrowBinding {
+  const o = obj(v, p);
+  return {
+    id: asId(str(o['id'], p.key('id'))),
+    ...opt(o, 'site', p, (x, q) => oneOf(x, q, BIND_SITES)),
   };
 }
 
@@ -331,8 +362,8 @@ export function object(v: unknown, p: Path): Obj {
         ...opt(o, 'bind', p, (x, q) => {
           const b = obj(x, q);
           return {
-            ...opt(b, 'start', q, (y, r) => asId(str(y, r))),
-            ...opt(b, 'end', q, (y, r) => asId(str(y, r))),
+            ...opt(b, 'start', q, arrowBinding),
+            ...opt(b, 'end', q, arrowBinding),
           };
         }),
       };

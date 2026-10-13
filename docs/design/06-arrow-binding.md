@@ -2,15 +2,21 @@
 
 An arrow whose end is dropped on an object stays attached to it: move, resize or rotate the
 object and the arrow follows. This is the most-asked-for diagram feature after icons, and the
-model has carried `Arrow.bind` since Phase 1 (note 02), so no schema change is needed.
+model has carried `Arrow.bind` since Phase 1 (note 02). Connection sites (issue 98) made each end
+an object: `.jfig` schema 3.
 
 ## Model
 
 ```ts
-interface Arrow { …; bind?: { start?: Id; end?: Id } }
+type BindSite = 'top' | 'right' | 'bottom' | 'left' | 'center';
+interface ArrowBinding { id: Id; site?: BindSite }
+interface Arrow { …; bind?: { start?: ArrowBinding; end?: ArrowBinding } }
 ```
 
 - `bind.start` / `bind.end` name the object that end is attached to. Either, both or neither.
+- `site` absent: the end **slides** on the outline (below). `site` set: the end is **fixed** at
+  that connection site (Dia-style). Schema 2 stored a bare id; migration 2 → 3 rewrites it to
+  `{ id }` in every arrow of a figure, fragment or presets file.
 - The arrow's nodes are still stored, in full, in frame-local coordinates. Binding never makes
   geometry implicit: a file read by an app that ignores `bind` draws the arrow where it was last
   saved, and every export is unaffected.
@@ -36,6 +42,7 @@ For each arrow with a `bind` in `after`, per bound end:
 | Target no longer on the page (deleted, converted to shapes)     | Binding dropped, arrow stays    |
 | Target is a panel, an arrow or the arrow itself (bad file)      | Binding dropped                 |
 | Arrow is new, or its target changed (different object identity) | End re-solved onto the target   |
+| The binding's id or site changed in this edit ("fresh")         | End re-solved onto the target   |
 | Arrow changed, target did not, and that end moved on the page   | Binding dropped (user moved it) |
 | Nothing relevant changed                                        | Left alone                      |
 
@@ -68,10 +75,34 @@ is the one nearest the aim along the ray, so a concave outline still takes its o
 the aim lies inside the target, the end goes to the centre ray's outline crossing in the aim's
 direction anyway; if aim and centre coincide, the end is left where it is.
 
+## Connection sites
+
+Five per object, in its own frame: the midpoints of the frame's top, right, bottom and left
+edges, and the centre (corners are deliberately left out for now). A group uses its bounds box.
+`sitePoint(o, site)` (`binding.ts`) is where a fixed end goes: for an edge site, the ray from the
+target's centre through the edge midpoint (after `frameMatrix`, so the site turns with rotation
+and swaps sides with a flip) is clipped to the outline exactly as a sliding end is, plus
+`BIND_GAP`. For a rectangle or an ellipse that is the edge midpoint itself, a gap out; for a
+closed path it is where that ray leaves the shape. The centre site is the centre, no gap.
+
+`siteExit(o, site)` is the unit direction an arrow leaves an edge site in, page space: centre →
+edge midpoint, i.e. the edge's outward normal for a rectangle. It is `undefined` for the centre
+(and for a degenerate frame). **Routing (issue 99) takes its exit directions from here**; a free
+end, a sliding end or a centre site has none, so routing infers one from the other end.
+
+Solving: a fixed end goes to its site point; a sliding end aims at the other end's site point when
+that end is fixed (else its target's centre, else its position). A two-node arrow keeps its bend;
+on a polyline only the end node moves (its handles with it). As before, the result depends only on
+the inputs, so re-solving is a no-op.
+
 ## Making and breaking a binding
 
 - **Arrow tool:** pressing on an object starts the arrow bound to it; releasing on an object
-  binds the end. While dragging, the object under the pointer is outlined. A drag that starts
+  binds the end. While dragging, the object under the pointer is outlined and its sites drawn
+  as dots (canvas overlay only). Within `SITE_SNAP_PX` = 8 screen pixels of a site the end
+  snaps to it (the dot fills) and binds with that `site`; elsewhere on the object it binds
+  sliding. Because edge sites sit a gap outside the outline, an object whose site is within
+  the radius counts as under the pointer even when the pointer is just off it. A drag that starts
   and ends on the same object binds only the start.
   Click-to-place (issue 96): a click without a drag places a point; more clicks add points
   (Shift snaps 45° off the previous one), double-click or Enter finishes (the double click's
@@ -80,14 +111,16 @@ direction anyway; if aim and centre coincide, the end is left where it is.
   under the pointer when it was clicked.
 - **Dragging an end point** (issue 97): a selected arrow shows a handle per point. Dragging the
   first or last one moves it by the existing rule (the end detaches); the object under the
-  pointer is outlined, and on release over one (not the arrow's other end's target)
-  `attachArrowEnd` binds the end in the same undo step (same `coalesce` key). A binding newly
+  pointer is outlined with its sites, and on release over one (not the arrow's other end's
+  target) `attachArrowEnd(page, arrow, end, target, obj, site?)` binds the end, at the snapped
+  site if any, in the same undo step (same `coalesce` key). A binding newly
   added by an edit is "fresh": `reconcileBindings` skips the moved-away check and places the end
   on the outline. Release in empty space leaves it detached. Middle points never bind.
-- **Inspector:** the Arrow section shows "Start: attached to ‹name›" / "End: …" with a
-  **Detach** button for each.
-- **Copy, duplicate, paste:** `cloneObjects` remaps a binding to the copy of its target when
-  the target is copied too, and drops it otherwise, so a duplicated arrow never jumps back onto
+- **Inspector:** the Arrow section shows "Start: attached to ‹name›" / "End: …", a site list
+  (outline, top, right, bottom, left, centre; choosing one is `attachArrowEnd` again, so a fresh
+  binding that re-solves) and a **Detach** button for each.
+- **Copy, duplicate, paste:** `cloneObjects` remaps a binding (keeping its site) to the copy of
+  its target when the target is copied too, and drops it otherwise, so a duplicated arrow never jumps back onto
   the original.
 
 Numbered step badges (note 48) are the second binding solved here: `reconcileSteps` runs first
@@ -98,5 +131,10 @@ inside `reconcileBindings`, so arrows bound to a badge follow it.
 `binding.test.ts`: each row of the table; ends on rect, rotated rect, ellipse and closed path
 outlines (distance from the outline = gap); curved arrows keep their bend; re-solving twice is a
 no-op; clone remapping. A property test: for random targets and moves, a bound end is always
-within `BIND_GAP` ± 0.5 pt of the target's outline. E2E: draw two rectangles, draw an arrow
+within `BIND_GAP` ± 0.5 pt of the target's outline. Sites: site points and exit directions
+(rotated, flipped), nearest-site snapping, fixed ends following move/resize/rotate/flip,
+attaching and switching sites, clones keeping the site, and a property test: for random rects
+and ellipses, sites, moves, resizes, rotations and flips, a fixed end is within 0.5 pt of the
+site computed independently from the frame's corners. `fixtures.test.ts`/`jfig.test.ts`: the
+frozen schema 3 file and the 2 → 3 migration. E2E: draw two rectangles, draw an arrow
 between them, move one, the arrow follows; drag the arrow away, it detaches.

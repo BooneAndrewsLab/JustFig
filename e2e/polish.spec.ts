@@ -43,8 +43,9 @@ test('an arrow drawn between two objects follows them, and detaches when dragged
   await rect(page, 40, 60, 60, 40);
   await rect(page, 240, 60, 60, 40);
   await page.keyboard.press('a');
-  const a = await at(page, 70, 80);
-  const b = await at(page, 270, 80);
+  // Off the centres, so the ends slide on the outlines rather than snap to the centre sites.
+  const a = await at(page, 55, 70);
+  const b = await at(page, 255, 70);
   await page.mouse.move(a.x, a.y);
   await page.mouse.down();
   await page.mouse.move(b.x, b.y, { steps: 8 });

@@ -1,6 +1,6 @@
 {
  "format": "justfig",
- "schemaVersion": 2,
+ "schemaVersion": 3,
  "app": {
   "name": "fixture",
   "version": "0.0.0"

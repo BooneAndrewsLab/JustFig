@@ -106,7 +106,7 @@ describe('AppStore tabs (note 25)', () => {
         { x: 0, y: 0 },
         { x: 10, y: 10 },
       ]),
-      bind: { start: p.id, end: q.id },
+      bind: { start: { id: p.id }, end: { id: q.id } },
     };
     s.edit(addObjects(page, [p, q]));
     s.edit(addObjects(page, [arrow]));

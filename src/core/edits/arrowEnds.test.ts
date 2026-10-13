@@ -119,7 +119,7 @@ describe('dragging an arrow end', () => {
     const t = get(moved, box.id);
     const bound = run(moved, attachArrowEnd(pid, arrow.id, 'end', box.id, t));
     const a = get(bound, arrow.id) as Arrow;
-    expect(a.bind?.end).toBe(box.id);
+    expect(a.bind?.end?.id).toBe(box.id);
     const end = pagePoints(a)[1];
     expect(end?.x).toBeCloseTo(100 - BIND_GAP, 3);
   });

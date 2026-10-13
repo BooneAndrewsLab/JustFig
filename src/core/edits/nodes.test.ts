@@ -253,7 +253,7 @@ describe('arrows and path-following objects', () => {
         { x: 300, y: 50 },
         { x: 102, y: 50 },
       ]),
-      bind: { end: box.id },
+      bind: { end: { id: box.id } },
     };
     const f0 = reconcileBindings(figWith(box), figWith(box, a));
     const end0 = pageNodes(get(f0, a.id))[1];
@@ -266,7 +266,7 @@ describe('arrows and path-following objects', () => {
       moveNodePart(id, box.id, { index: 2, part: 'node' }, 40, 0).apply(moved),
     );
     const arrow = get<Arrow>(f1, a.id);
-    expect(arrow.bind?.end).toBe(box.id);
+    expect(arrow.bind?.end?.id).toBe(box.id);
     near(pageNodes(arrow)[1], { x: 142, y: 50 }, 1e-3);
   });
 
@@ -285,7 +285,7 @@ describe('arrows and path-following objects', () => {
         { x: 250, y: 80 },
         { x: 102, y: 50 },
       ]),
-      bind: { end: box.id },
+      bind: { end: { id: box.id } },
     };
     const f0 = reconcileBindings(figWith(box), figWith(box, a));
     const id = pageId(f0);
@@ -293,7 +293,7 @@ describe('arrows and path-following objects', () => {
       f0,
       moveNodePart(id, a.id, { index: 1, part: 'node' }, 0, 30).apply(f0),
     );
-    expect(get<Arrow>(mid, a.id).bind?.end).toBe(box.id);
+    expect(get<Arrow>(mid, a.id).bind?.end?.id).toBe(box.id);
     const end = reconcileBindings(
       f0,
       moveNodePart(id, a.id, { index: 2, part: 'node' }, 0, 30).apply(f0),
