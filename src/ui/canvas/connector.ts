@@ -31,6 +31,17 @@ export interface BindQuery {
   readonly exclude?: Id | undefined;
 }
 
+/** Whether page point `p` is inside the object's (rotated) frame, drawn or not at that spot. */
+function inFrame(o: Obj, p: Vec2): boolean {
+  const { x, y, w, h, rotation } = o.frame;
+  const a = (-rotation * Math.PI) / 180;
+  const dx = p.x - (x + w / 2);
+  const dy = p.y - (y + h / 2);
+  const lx = dx * Math.cos(a) - dy * Math.sin(a);
+  const ly = dx * Math.sin(a) + dy * Math.cos(a);
+  return Math.abs(lx) <= w / 2 && Math.abs(ly) <= h / 2;
+}
+
 /**
  * What an end at page point `p` may attach to: `under` (the bindable object under the
  * pointer), else the object with an edge site within the snap radius (a site sits just
@@ -58,6 +69,11 @@ export function bindHit(
       best = Math.hypot(at.x - p.x, at.y - p.y);
       obj = o;
     }
+  }
+  if (!obj) {
+    // Transparent parts of an icon or image, or the hollow of an outline, are not "under" the
+    // pointer for the browser, but inside the object's frame still counts: topmost wins.
+    for (const o of pageObjects(page)) if (ok(o) && o.locked !== true && inFrame(o, p)) obj = o;
   }
   if (!obj) return undefined;
   if (q.alt === true) return { obj };
