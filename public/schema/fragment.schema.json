@@ -1637,6 +1637,11 @@
         },
         "shareAlike": {
           "type": "boolean"
+        },
+        "adapted": {
+          "type": "boolean",
+          "const": true,
+          "description": "The icon library changed how the artwork looks (a gradient flattened, a stroke rescaled): a CC BY / BY-SA credit always says \"modified\"."
         }
       },
       "required": [

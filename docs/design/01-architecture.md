@@ -123,9 +123,8 @@ tarball). `npm run icons` (`scripts/icons/fetch-library.ts`; `predev`/`prebuild`
 `--if-missing`) puts it in `public/lib/<version>/` (gitignored): from `--from DIR` or
 `$JUSTFIG_ICONS_DIST`, else `../justfig-icons/dist` when its version matches, else by
 downloading the URL and checking the hash, which is what CI and `deploy.yml` do. A `v*` tag in
-justfig-icons builds and attaches the tarball. The repository is private, so the download goes
-through the GitHub API with `$JUSTFIG_ICONS_TOKEN` (a fine-grained token that can read it; a
-repository secret of the same name in CI).
+justfig-icons builds and attaches the tarball. The repository is public, so the download needs no
+token.
 `BRAND.iconLibraryPath` is `lib/<version>/`; a unit test keeps it equal to the lock file.
 
 **Layout** (`src/icons/manifest.ts` decodes it; fields marked * are optional v1 extensions):

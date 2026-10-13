@@ -4,7 +4,7 @@
  * SvgNode in the export subset.
  */
 import { BRAND } from '@/brand';
-import { creditLine, pageCreditItems } from '@/core/attribution/attribution';
+import { creditLine, licenceLinks, pageCreditItems } from '@/core/attribution/attribution';
 import { createText, defaultRun } from '@/core/model/factory';
 import type { Figure, FontId, Page } from '@/core/model/types';
 import { FAMILY_FALLBACK, FAMILY_NAME } from '@/core/text/fonts';
@@ -47,6 +47,13 @@ export interface ExportRoot {
 
 export function pageCredit(figure: Figure, page: Page): string {
   return creditLine(pageCreditItems(page, figure.assets), BRAND.name);
+}
+
+/** The page's credit line plus its licence links, for metadata and credits.txt. */
+export function pageCreditWithLinks(figure: Figure, page: Page): string {
+  const items = pageCreditItems(page, figure.assets);
+  const credit = creditLine(items, BRAND.name);
+  return credit === '' ? '' : [credit, licenceLinks(items)].filter((s) => s !== '').join(' ');
 }
 
 function footerNode(
@@ -121,7 +128,8 @@ export function exportSvg(
   version: string,
 ): string {
   const root = exportRoot(figure, page, opts);
-  const meta = `${BRAND.name} ${version}${root.credit ? `. ${root.credit}` : ''}`;
+  const credit = root.credit ? pageCreditWithLinks(figure, page) : '';
+  const meta = `${BRAND.name} ${version}${credit ? `. ${credit}` : ''}`;
   const svg = el(
     'svg',
     {

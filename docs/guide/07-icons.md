@@ -30,7 +30,7 @@ Every icon has an open licence, and the library lists them all. Most just ask fo
 
 **Share-alike** icons (CC BY-SA) are different: a figure that adapts one must be shared under the same licence. Because that matters for publishing, JustFig hides them by default. They are marked **SA** in the grid and appear only after you tick **Show share-alike (CC BY-SA) icons** at the foot of the panel. JustFig remembers your choice in this browser. If a figure uses a share-alike icon, the Attribution dialog warns you.
 
-Icons under CC BY and CC BY-SA that you recolour are credited as "modified", as their licences require.
+Icons under CC BY and CC BY-SA that you recolour are credited as "modified", as their licences require. So are the few the icon library had to change from their originals (for example a colour gradient made one flat colour); the Credits list marks them "(modified)".
 
 ## Icon credits and licences
 

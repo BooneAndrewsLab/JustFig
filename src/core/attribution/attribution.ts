@@ -17,8 +17,9 @@ export interface CreditItem {
   readonly originalUrl?: string;
   readonly shareAlike: boolean;
   /**
-   * Recoloured in this figure. CC BY and CC BY-SA require saying so, so the
-   * credit line adds "modified" for those licences.
+   * Recoloured in this figure, or adapted by the icon library ('all'). CC BY
+   * and CC BY-SA require saying so, so the credit line adds "modified" for
+   * those licences.
    */
   readonly modified?: 'all' | 'some';
 }
@@ -84,7 +85,7 @@ export function creditItems(
         licenseUrl: m.licenseUrl,
         originalUrl: m.originalUrl,
         shareAlike: m.shareAlike,
-        ...modifiedOf(recoloured.get(h)),
+        ...modifiedOf(m.adapted ? 'all' : recoloured.get(h)),
       });
     } else if (a.meta.credit !== undefined && a.meta.credit.trim() !== '') {
       out.push({
@@ -155,6 +156,21 @@ export function creditLine(items: readonly CreditItem[], appName: string): strin
   }
   if (user.length > 0) parts.push(`Images: ${[...new Set(user.map((u) => u.source))].join('; ')}.`);
   return `Created with ${appName}. ${parts.join(' ')}`;
+}
+
+/**
+ * "Licences: CC BY 4.0 https://…; CC0 https://…." for the icons' licences,
+ * each once: the link CC BY asks for next to the credit, kept out of the
+ * visible footer (it goes in file metadata and credits.txt). Empty when no
+ * icon has a licence URL.
+ */
+export function licenceLinks(items: readonly CreditItem[]): string {
+  const urls = new Map<string, string>();
+  for (const i of items)
+    if (i.kind === 'icon' && i.licenseUrl) urls.set(licenseLabel(i.license), i.licenseUrl);
+  if (urls.size === 0) return '';
+  const list = [...urls.entries()].sort(([a], [b]) => a.localeCompare(b));
+  return `Licences: ${list.map(([l, u]) => `${l} ${u}`).join('; ')}.`;
 }
 
 export const docCreditItems = (doc: Doc, assets: Assets): CreditItem[] =>

@@ -11,7 +11,7 @@ import { pageObjects } from '@/core/model/tree';
 import type { Figure, Page, Panel } from '@/core/model/types';
 
 import { type RasterOptions, exportPng, exportTiff } from './raster';
-import { type ExportOptions, pageCredit, exportSvg } from './svg';
+import { type ExportOptions, pageCreditWithLinks, exportSvg } from './svg';
 
 export type PanelFormat = 'svg' | 'pdf' | 'png' | 'tiff';
 
@@ -108,7 +108,7 @@ export async function exportPanelsZip(
         break;
     }
   }
-  const credit = pageCredit(figure, page);
+  const credit = pageCreditWithLinks(figure, page);
   if (opts.footer && credit !== '') files['credits.txt'] = enc.encode(`${credit}\n`);
   // The files are already compressed or small text: store, do not deflate again.
   return zipSync(files, { level: 0 });

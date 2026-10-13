@@ -6,9 +6,7 @@
  *   1. --from DIR, or $JUSTFIG_ICONS_DIST: a built justfig-icons dist/;
  *   2. ../justfig-icons/dist, a sibling checkout built with `npm run build`;
  *   3. the release tarball at the lock file's URL, checked against its SHA-256
- *      (what deploy.yml and CI do). The icons repository is private, so with
- *      $JUSTFIG_ICONS_TOKEN set the asset is fetched through the GitHub API
- *      with that token (a fine-grained token that can read justfig-icons).
+ *      (what deploy.yml and CI do).
  * A local dist/ must carry the pinned version, so a stale build is never used.
  */
 import { execFileSync } from 'node:child_process';
@@ -62,31 +60,12 @@ for (const c of candidates) {
   process.exit(0);
 }
 
-// A private repository's release asset is only reachable through the API.
-const download = async (url: string, token: string | undefined): Promise<Response> => {
-  if (token === undefined || token === '') return fetch(url);
-  const m = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/releases\/download\/([^/]+)\/([^/]+)$/.exec(
-    url,
-  );
-  if (m === null) throw new Error(`icons: ${url} is not a GitHub release asset URL`);
-  const [, owner, repo, tag, name] = m as unknown as [string, string, string, string, string];
-  const auth = { Authorization: `Bearer ${token}`, 'X-GitHub-Api-Version': '2022-11-28' };
-  const rel = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases/tags/${tag}`, {
-    headers: { ...auth, Accept: 'application/vnd.github+json' },
-  });
-  if (!rel.ok) return rel;
-  const { assets } = (await rel.json()) as { assets: { name: string; url: string }[] };
-  const asset = assets.find((a) => a.name === name);
-  if (asset === undefined) throw new Error(`icons: release ${tag} has no asset ${name}`);
-  return fetch(asset.url, { headers: { ...auth, Accept: 'application/octet-stream' } });
-};
-
 console.warn(`icons: downloading ${lock.url}`);
-const res = await download(lock.url, process.env['JUSTFIG_ICONS_TOKEN']);
+const res = await fetch(lock.url);
 if (!res.ok)
   throw new Error(
-    `icons: ${lock.url} → ${String(res.status)}. The justfig-icons repository is private: set ` +
-      'JUSTFIG_ICONS_TOKEN, build ../justfig-icons (npm run fetch && npm run build) or pass --from <dist>.',
+    `icons: ${lock.url} → ${String(res.status)}. Build ../justfig-icons ` +
+      '(npm run fetch && npm run build) or pass --from <dist>.',
   );
 const body = Buffer.from(await res.arrayBuffer());
 const sha = createHash('sha256').update(body).digest('hex');

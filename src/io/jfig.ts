@@ -555,6 +555,9 @@ export function iconMeta(v: unknown, p: Path): IconMeta {
     licenseUrl: str(o['licenseUrl'], p.key('licenseUrl')),
     originalUrl: str(o['originalUrl'], p.key('originalUrl')),
     shareAlike: bool(o['shareAlike'], p.key('shareAlike')),
+    ...(o['adapted'] !== undefined && bool(o['adapted'], p.key('adapted'))
+      ? { adapted: true as const }
+      : {}),
   };
 }
 

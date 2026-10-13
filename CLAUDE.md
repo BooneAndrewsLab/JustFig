@@ -1,17 +1,15 @@
 # JustFig
 
-This file is loaded into every session, so it holds only what changes how
-the code is worked on: decisions, rules, lessons, pointers — not status.
-What a release did goes in its Release notes, why in a design note, what
-is left in an issue. `src/claudeMd.test.ts` fails the build if it regains
-a Status section or names a version other than `package.json`'s (current is 0.1.0).
+This file is loaded into every session, so it holds only what changes how the code is worked
+on: decisions, rules, lessons, pointers — not status. What a release did goes in its Release
+notes, why in a design note, what is left in an issue. `src/claudeMd.test.ts` fails the build
+if it regains a Status section or names a version other than `package.json`'s (current is 0.1.0).
 
 ## What this is
 
-Free, static, browser-only scientific figure editor for wet-lab biologists
-(a BioRender alternative). Third sibling of PlasmidPop and BarelySig
-(`../PlasmidPop`, `../BarelySig`), built the same way: no backend, no
-account, figures never leave the computer. Design notes: `docs/design/`.
+Free, static, browser-only scientific figure editor for wet-lab biologists (a BioRender
+alternative). Third sibling of PlasmidPop and BarelySig (`../PlasmidPop`, `../BarelySig`), built
+the same way: no backend, no account, figures never leave the computer. Design notes: `docs/design/`.
 
 ## Rules
 
@@ -22,13 +20,12 @@ account, figures never leave the computer. Design notes: `docs/design/`.
   locally and let CI cover WebKit. `UPDATE_GOLDEN=1` rewrites goldens (Chromium for e2e).
 - The icon library is not in this repo: `npm run icons` puts the release pinned in
   `icons.lock.json` into `public/lib/<version>/` (from `../justfig-icons/dist` when built, else the
-  private repo's release, which needs `JUSTFIG_ICONS_TOKEN`; CI has it as a secret). Bumping it: tag `v<version>` in justfig-icons,
+  public release). Bumping it: tag `v<version>` in justfig-icons,
   copy the release's version and `.sha256` into the lock, update `BRAND.iconLibraryPath`, then
   `npm run icons:fixture`.
   Unit tests use the committed `src/icons/fixtures/lib/`, never `public/lib/`.
-- **Branding:** the display name lives only in `src/brand.ts`
-  (`src/brand.test.ts` enforces it). The format id `justfig` in saved files
-  and the IndexedDB name are permanent and separate.
+- **Branding:** the display name lives only in `src/brand.ts` (`src/brand.test.ts` enforces
+  it). The format id `justfig` in saved files and the IndexedDB name are permanent and separate.
 - **One renderer:** `objectToNode` (pure) → `SvgNode` → React on screen,
   `nodeToSvgString` for every export. Never draw an object any other way.
 - **Export subset:** plain SVG 1.1 presentation attributes only. No `<marker>`, filters, masks,
@@ -38,8 +35,7 @@ account, figures never leave the computer. Design notes: `docs/design/`.
 - **Text layout** is ours (opentype.js on `public/fonts/*.ttf`), never the
   browser's: every run is placed with explicit x/y, kerning off; imported SVG text too (note 14).
 - **Units:** the model is in points (1/72 in); the UI shows mm or inches.
-- **Resizing paths/arrows bakes the scale into the points**; icons and
-  images scale by transform.
+- **Resizing paths/arrows bakes the scale into the points**; icons and images scale by transform.
 - **Every document change is a named edit** in `src/core/edits/` and one
   undo step; continuous drags coalesce via `coalesceKey` (history.ts).
 - **Storage** (note 02): IndexedDB holds one row per `doc.id`, capped (30 figures / ~150 M chars,
@@ -75,5 +71,8 @@ account, figures never leave the computer. Design notes: `docs/design/`.
   shortcut, panel, dialog, kind, palette or template lacks an entry: document new UI there.
 - **Accessibility:** `e2e/a11y.spec.ts` (axe, no serious/critical) and keyboard e2e; every
   control must work from the keyboard. Dialogs use `ui/dialogs/Dialog.tsx` (focus trap).
-- Analytics: `src/ui/analytics.ts` `EVENTS` allow-list only, never figure
-  content; no-op when the Matomo env is unset.
+- Analytics: `src/ui/analytics.ts` `EVENTS` allow-list only, never figure content; no-op when the Matomo env is unset.
+- **Icon licences:** what may ship is decided in `justfig-icons` (its CLAUDE.md). Credits say "modified" for a
+  recoloured or library-`adapted` CC BY/BY-SA icon; licence links go in export metadata and `credits.txt`.
+- **Releasing** (`docs/releasing.md`): bump `package.json`, `CITATION.cff` and the version above together; the
+  site deploys only when a GitHub Release is published, and its Release notes are the changelog.

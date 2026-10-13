@@ -62,7 +62,7 @@ Set the page size before you draw, with the **Size** list in the Page section of
 
 ## The credit line
 
-Icons and credited pictures need acknowledgement under their licences. JustFig writes the line for you, such as "Created with JustFig. Icons: Health Icons (CC0); Bioicons: A. Author (CC BY 4.0)." It names each source and author with their licences, and says "modified" for CC BY and CC BY-SA icons that you recoloured.
+Icons and credited pictures need acknowledgement under their licences. JustFig writes the line for you, such as "Created with JustFig. Icons: Health Icons (CC0); Bioicons: A. Author (CC BY 4.0)." It names each source and author with their licences, and says "modified" for CC BY and CC BY-SA icons that you recoloured or that the icon library adapted. SVG and PDF files also carry the line in their metadata, followed by a link to each licence; `credits.txt` has both too.
 
 By default the line is added in small type as a strip under the exported figure, and never overlaps the figure. It is only added when the page uses something that needs a credit. You can switch it off:
 

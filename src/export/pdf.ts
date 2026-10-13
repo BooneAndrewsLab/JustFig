@@ -17,7 +17,7 @@ import type { ImageHref } from '@/render/objectToNode';
 import { type SvgNode, el, nodeToSvgString } from '@/render/svgNode';
 
 import { decodeParms, type PdfImage, pdfImage } from './pdfImages';
-import { type ExportOptions, exportRoot } from './svg';
+import { type ExportOptions, exportRoot, pageCreditWithLinks } from './svg';
 
 function base64(buf: ArrayBuffer): string {
   const bytes = new Uint8Array(buf);
@@ -209,7 +209,7 @@ export async function exportPdf(
         pdf.setProperties({
           title: figure.doc.title,
           creator: `${BRAND.name} ${version}`,
-          ...(root.credit ? { subject: root.credit } : {}),
+          ...(root.credit ? { subject: pageCreditWithLinks(figure, page) } : {}),
         });
       } else {
         pdf.addPage([w, h], orientation);

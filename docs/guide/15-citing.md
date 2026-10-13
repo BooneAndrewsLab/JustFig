@@ -16,7 +16,7 @@ The icons in the library are the work of other people, shared under open licence
 
 - JustFig writes the credit line for you. By default it is added under the exported figure (see [Exporting](12-export.md)).
 - If you remove it from the picture, copy it from the **Attribution** dialog and put it in your figure legend or methods. **Add as text object** places it on the page instead.
-- Icons you recolour from CC BY or CC BY-SA collections are credited as "modified", as their licences require.
+- Icons you recolour from CC BY or CC BY-SA collections are credited as "modified", as their licences require, and so are the ones the icon library adapted from their originals.
 - If a figure uses a share-alike (CC BY-SA) icon, the dialog warns you. Check what your journal and the licence allow before using one.
 - Pictures you import are credited only if you type a credit for them in the Credit field of the Inspector's Image section.
 

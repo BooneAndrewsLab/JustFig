@@ -414,6 +414,11 @@ export interface IconMeta {
   readonly licenseUrl: string;
   readonly originalUrl: string;
   readonly shareAlike: boolean;
+  /**
+   * The icon library changed how the artwork looks (a gradient flattened, a
+   * stroke rescaled): a CC BY / BY-SA credit always says "modified".
+   */
+  readonly adapted?: true;
 }
 
 export interface UserAssetMeta {

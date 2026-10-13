@@ -17,6 +17,7 @@ import type { Id } from '../model/ids';
 import type { Asset, Assets, Doc, Icon, Paint } from '../model/types';
 import {
   creditLine,
+  licenceLinks,
   docCreditItems,
   needsModifiedNote,
   pageCreditItems,
@@ -106,6 +107,27 @@ describe('attribution for a figure mixing three sources', () => {
     const items = docCreditItems(fig.doc, fig.assets);
     expect(items[0]?.shareAlike).toBe(true);
     expect(creditLine(items, 'App')).toContain('(CC BY-SA 4.0)');
+  });
+
+  it('credits an icon the library adapted as modified, even when not recoloured', async () => {
+    const fig = await figure([{ id: 'bi-erythrocyte-5' }]);
+    const assets = Object.fromEntries(
+      Object.entries(fig.assets).map(([h, a]) => [
+        h,
+        a.kind === 'icon' ? { ...a, meta: { ...a.meta, adapted: true as const } } : a,
+      ]),
+    );
+    expect(creditLine(docCreditItems(fig.doc, assets), 'App')).toBe(
+      'Created with App. Icons: Bioicons: Servier (CC BY 3.0, modified).',
+    );
+  });
+
+  it('lists each icon licence once with its URL', async () => {
+    const fig = await figure([{ id: 'bi-erythrocyte-5' }, { id: 'bi-amplicons' }]);
+    expect(licenceLinks(docCreditItems(fig.doc, fig.assets))).toBe(
+      'Licences: CC BY 3.0 https://creativecommons.org/licenses/by/3.0/; MIT https://opensource.org/license/mit.',
+    );
+    expect(licenceLinks([])).toBe('');
   });
 });
 
