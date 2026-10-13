@@ -56,8 +56,8 @@ downloads the pinned release. The site deploys when a GitHub Release is publishe
 
 ## Citing
 
-See [CITATION.cff](CITATION.cff). DOI: 10.5281/zenodo.0000000 (placeholder until the first
-release is archived on Zenodo; see [docs/releasing.md](docs/releasing.md)).
+See [CITATION.cff](CITATION.cff). DOI: [10.5281/zenodo.23350861](https://doi.org/10.5281/zenodo.23350861) (all versions; see
+[docs/releasing.md](docs/releasing.md)).
 
 ## Licence
 
