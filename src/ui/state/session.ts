@@ -342,8 +342,12 @@ export async function renameRecent(id: string, title: string): Promise<void> {
 }
 
 export async function deleteRecent(id: string): Promise<void> {
-  // A figure open in a tab is not deleted: autosave would only write it back.
-  if (store.tabOf(id) !== undefined) return;
+  // A figure open in a tab is closed first, after its pending writes, so autosave cannot write it back.
+  const key = store.tabOf(id);
+  if (key !== undefined) {
+    await flushCurrent();
+    store.close(key);
+  }
   await getStorage().remove(id);
   liveHandles.delete(id);
 }

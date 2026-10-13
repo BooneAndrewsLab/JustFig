@@ -143,7 +143,8 @@ becomes one entry of the list (tested). Writes keep the row's thumbnail until a 
   loses nothing; the old "not saved to a file" confirm boxes are gone. The last open id is kept
   in `localStorage` so a reload restores the figure last opened, not just the last changed.
 - **Rename** rewrites the row's title and the `.jfig` text and keeps the modified time.
-  **Delete** is confirmed in an in-app dialog and is not offered for the open figure.
+  **Delete** is confirmed in an in-app dialog. For a figure open in a tab it
+  flushes autosave, closes the tab, then removes the row, so nothing writes it back.
 
 ### Durable storage and failed saves
 

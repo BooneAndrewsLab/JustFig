@@ -151,8 +151,8 @@ test('closing an unsaved tab keeps the figure; opening it again brings its tab f
   await page.getByRole('button', { name: 'Recent…' }).click();
   const dialog = page.getByRole('dialog', { name: 'Recent figures' });
   await expect(dialog.locator('.recent-row')).toHaveCount(2);
-  // Figure A is open, so it can't be deleted; B is closed, so it can.
-  await expect(dialog.getByRole('button', { name: 'Delete Figure A' })).toHaveCount(0);
+  // Both can be deleted: Figure A from its open tab (which closes), B as it is closed.
+  await expect(dialog.getByRole('button', { name: 'Delete Figure A' })).toBeVisible();
   await expect(dialog.getByRole('button', { name: 'Delete Figure B' })).toBeVisible();
   await dialog.getByRole('button', { name: 'Open Figure B' }).click();
   await expect(dialog).toBeHidden();

@@ -46,7 +46,6 @@ test('make A, start B, reopen A from Recent figures; rename, download, delete', 
   const dialog = page.getByRole('dialog', { name: 'Recent figures' });
   await expect(dialog).toBeVisible();
   await expect(dialog.locator('.recent-row')).toHaveCount(2);
-  await expect(dialog.getByRole('button', { name: 'Delete Figure B' })).toHaveCount(0);
 
   // Rename A, then open it.
   await dialog.getByRole('button', { name: 'Rename Figure A' }).click();
@@ -65,18 +64,16 @@ test('make A, start B, reopen A from Recent figures; rename, download, delete', 
   await expect(page.getByLabel('Figure title')).toHaveValue('Figure A renamed');
   await expect(rects(page)).toHaveCount(2);
 
-  // B is still open in its tab (note 25); close it, then delete it through the in-app confirmation.
-  await page
-    .getByRole('tab', { name: /^Figure B/ })
-    .locator('.tabstrip-close')
-    .click();
-  await expect(page.getByRole('tablist', { name: 'Open figures' }).getByRole('tab')).toHaveCount(1);
+  // B is still open in its tab (note 25); deleting it, through the in-app confirmation, closes the tab.
+  const tabs = page.getByRole('tablist', { name: 'Open figures' }).getByRole('tab');
+  await expect(tabs).toHaveCount(2);
   await page.getByRole('button', { name: 'Recent…' }).click();
   // The first page was drawn into a small thumbnail by now.
   await expect(dialog.locator('.recent-row img').first()).toBeVisible();
   await dialog.getByRole('button', { name: 'Delete Figure B' }).click();
   const sure = page.getByRole('dialog', { name: 'Delete this figure?' });
   await expect(sure).toBeVisible();
+  await expect(sure).toContainText('Its tab is closed.');
   await sure.getByRole('button', { name: 'Cancel' }).click();
   await expect(dialog.locator('.recent-row')).toHaveCount(2);
   await dialog.getByRole('button', { name: 'Delete Figure B' }).click();
@@ -85,6 +82,7 @@ test('make A, start B, reopen A from Recent figures; rename, download, delete', 
     .getByRole('button', { name: 'Delete' })
     .click();
   await expect(dialog.locator('.recent-row')).toHaveCount(1);
+  await expect(tabs).toHaveCount(1);
 
   // A reload restores the figure last opened.
   await page.keyboard.press('Escape');

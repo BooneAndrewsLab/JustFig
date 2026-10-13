@@ -19,7 +19,7 @@ Click a tab to bring its figure forward. Each tab keeps its own undo history, se
 
 ## Closing tabs
 
-Closing a tab never asks and never loses work: the figure is written to the browser first and stays in Recent figures, where **Open** brings it back. Closing the last tab leaves an empty new figure. A figure open in a tab cannot be deleted from Recent figures; close its tab first.
+Closing a tab never asks and never loses work: the figure is written to the browser first and stays in Recent figures, where **Open** brings it back. Closing the last tab leaves an empty new figure. Deleting a figure that is open in a tab, in Recent figures, closes the tab as well.
 
 ## Copy and paste between figures
 

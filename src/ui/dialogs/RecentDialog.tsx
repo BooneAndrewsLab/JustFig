@@ -1,7 +1,7 @@
 /**
  * Recent figures (note 02): every figure autosaved in this browser, newest
  * first, with a thumbnail. Open, rename, download as .jfig and delete (asked
- * in this dialog, never with the browser's confirm box).
+ * in this dialog, never with the browser's confirm box; an open figure's tab closes).
  */
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
 
@@ -99,6 +99,7 @@ export function RecentList({
       <p>
         Delete <strong>{deleting.title}</strong> and its saved versions from this browser? It cannot
         be brought back unless you have saved it as a file.
+        {open.has(deleting.id) ? ' Its tab is closed.' : ''}
       </p>
       <div className="actions">
         <button
@@ -233,17 +234,15 @@ export function RecentList({
                   >
                     Download .jfig
                   </button>
-                  {!open.has(r.id) && (
-                    <button
-                      type="button"
-                      aria-label={`Delete ${r.title}`}
-                      onClick={() => {
-                        setDeleting(r);
-                      }}
-                    >
-                      Delete
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    aria-label={`Delete ${r.title}`}
+                    onClick={() => {
+                      setDeleting(r);
+                    }}
+                  >
+                    Delete
+                  </button>
                 </>
               )}
             </div>
