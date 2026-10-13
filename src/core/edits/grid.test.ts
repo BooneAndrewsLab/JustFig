@@ -356,3 +356,45 @@ describe('arrangeInGrid', () => {
     expect(s.getState().history.present).toBe(before);
   });
 });
+
+describe('fit to page width with a tall narrow object', () => {
+  it('keeps every drawn box inside its cell frame, whatever the shapes', () => {
+    let seed = 7;
+    const rnd = (): number => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let t = 0; t < 200; t++) {
+      const { fig, page } = start();
+      const n = 1 + Math.floor(rnd() * 7);
+      const objs = Array.from({ length: n }, (_, i) =>
+        createRect({
+          ...frame(i * 50, rnd() * 100, 5 + rnd() * 300, 5 + rnd() * 400),
+          rotation: rnd() < 0.3 ? 90 : 0,
+        }),
+      );
+      const f0 = addObjects(page.id, objs).apply(fig);
+      const cols = 1 + Math.floor(rnd() * 3);
+      const o = opts({
+        cols,
+        rows: Math.ceil(n / cols),
+        fitWidth: true,
+        letterRoom: rnd() < 0.5,
+        hAlign: (['left', 'center', 'right'] as const)[Math.floor(rnd() * 3)] ?? 'left',
+        vAlign: (['top', 'middle', 'bottom'] as const)[Math.floor(rnd() * 3)] ?? 'top',
+      });
+      const f = arrangeInGrid(
+        page.id,
+        objs.map((x) => x.id),
+        o,
+      ).apply(f0);
+      for (const x of objs) {
+        const b = objBounds(findObj(pg(f), x.id)!);
+        const fr = panelOf(f, x.id)!.frame;
+        const msg = JSON.stringify({ t, o, x: x.frame, b, fr });
+        expect(b.x, msg).toBeGreaterThanOrEqual(fr.x - 1e-6);
+        expect(b.y, msg).toBeGreaterThanOrEqual(fr.y - 1e-6);
+        expect(b.x + b.w, msg).toBeLessThanOrEqual(fr.x + fr.w + 1e-6);
+        expect(b.y + b.h, msg).toBeLessThanOrEqual(fr.y + fr.h + 1e-6);
+        expect(fr.y + fr.h, msg).toBeLessThanOrEqual(pg(f).size.h + 1e-6);
+      }
+    }
+  });
+});
