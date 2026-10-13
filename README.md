@@ -23,7 +23,8 @@ The user guide is in the app (**Guide**) and in [docs/guide](docs/guide).
 
 Figures are kept in the browser (IndexedDB) and in the files you save; nothing is uploaded.
 Usage statistics: `src/ui/analytics.ts` talks to a self-hosted Matomo instance only when
-`VITE_MATOMO_URL` and `VITE_MATOMO_SITE_ID` are set at build time; otherwise it is a no-op.
+`VITE_MATOMO_URL` and `VITE_MATOMO_SITE_ID` are set at build time; otherwise it is a no-op. The deployed site (`.github/workflows/deploy.yml`) reports to site 8 on
+the lab's Matomo (`https://boonelab.ccbr.utoronto.ca/matomo/`); local and CI builds do not.
 It honours Do-Not-Track, sets no cookies, and sends only coarse feature events, never figure
 content.
 

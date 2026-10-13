@@ -204,3 +204,5 @@ library is in `public/lib/`, a test also checks the budgets on it.
 `ui/analytics.ts` is ported from BarelySig: Matomo, cookieless, a no-op unless
 `VITE_MATOMO_URL` and `VITE_MATOMO_SITE_ID` are set at build time, honours Do-Not-Track, and
 sends only categories and actions from the `EVENTS` allow-list. It never sends figure content.
+The release build in `deploy.yml` sets the lab's instance and site id 8 (PlasmidPop 6,
+BarelySig 7); local and CI builds leave them unset.
