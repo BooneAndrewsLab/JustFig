@@ -217,6 +217,17 @@ button.link {
   text-overflow: ellipsis;
 }
 
+/* A section's one command (+ Layer, + Note): on the top border at the right, across from the
+   heading, so it takes no row of its own. */
+.section > .section__action {
+  position: absolute;
+  top: -10px;
+  right: 6px;
+  padding: 0 6px;
+  font-size: 12px;
+  line-height: 16px;
+}
+
 /* Status bar (the app places it). */
 .status {
   display: flex;

@@ -291,11 +291,14 @@ export function NotesPanel() {
           </span>
         )}
       </h2>
-      <div className="section__head">
-        <button type="button" onClick={startNote} title="On the selected object, else the page">
-          + Note
-        </button>
-      </div>
+      <button
+        type="button"
+        className="section__action"
+        onClick={startNote}
+        title="On the selected object, else the page"
+      >
+        + Note
+      </button>
       <div className="row">
         <label>
           <input

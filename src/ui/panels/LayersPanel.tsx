@@ -217,11 +217,13 @@ export function LayersPanel() {
   return (
     <section className="section layers" aria-label="Layers">
       <h2>Layers</h2>
-      <div className="section__head">
-        <button type="button" onClick={() => store.edit(addLayer(page.id))}>
-          + Layer
-        </button>
-      </div>
+      <button
+        type="button"
+        className="section__action"
+        onClick={() => store.edit(addLayer(page.id))}
+      >
+        + Layer
+      </button>
       <ul>
         {[...page.layers].reverse().map((l) => (
           <LayerBlock
