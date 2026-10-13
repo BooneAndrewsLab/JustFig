@@ -94,6 +94,8 @@ type Gesture =
       box: Box;
       key: string;
       moved: boolean;
+      /** What the move snaps to, measured once at the first step: re-measuring every step is slow. */
+      targets?: Box[] | undefined;
       /** The object inside the selected group under the pointer: a click (no drag) selects it. */
       drill: Id | null;
     }
@@ -698,17 +700,15 @@ export function Canvas() {
           else dx = 0;
         }
         let guides: readonly Guide[] = [];
+        let targets = g.targets;
         if (s.snap) {
-          const r = snapBox(
-            { ...g.box, x: g.box.x + dx, y: g.box.y + dy },
-            snapTargets(page, new Set(g.ids), palette),
-            threshold,
-          );
+          targets ??= snapTargets(page, new Set(g.ids), palette);
+          const r = snapBox({ ...g.box, x: g.box.x + dx, y: g.box.y + dy }, targets, threshold);
           dx += r.dx;
           dy += r.dy;
           guides = r.guides;
         }
-        gesture.current = { ...g, moved: true };
+        gesture.current = { ...g, moved: true, targets };
         store.edit(moveObjects(page.id, g.ids, dx, dy), {
           coalesce: g.key,
           from: g.fig,
