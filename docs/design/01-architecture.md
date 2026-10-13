@@ -15,7 +15,8 @@ through each engine's own SVG rasteriser.
 
 `npm run check` = typecheck, lint, format check and unit tests. CI (`ci.yml`) runs it plus e2e in
 all three engines. `deploy.yml` deploys to Pages only from a published GitHub Release, or from a
-manual dispatch.
+manual dispatch, after the check and e2e in Chromium at the site's base path (CI covers the
+other engines on the same commit).
 
 ## Module layout
 

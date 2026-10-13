@@ -42,11 +42,12 @@ jobs:
       - name: Icon library (pinned release)
         run: npm run icons
       - run: npm run check
-      - name: Install browsers
-        run: npx playwright install --with-deps chromium firefox webkit
-      # The release build, served under the Pages base, before anything is published.
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      # The release build, served under the Pages base, before anything is published. Chromium
+      # only: ci.yml already ran all three browsers on this commit; this checks the base path.
       - name: End-to-end tests at the site's base
-        run: npm run e2e
+        run: npm run e2e -- --project=chromium
       - name: Build
         run: npm run build
         env:
