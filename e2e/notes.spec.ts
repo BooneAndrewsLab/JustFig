@@ -157,7 +157,7 @@ test('notes survive saving and reopening the file, and no export carries them', 
     schemaVersion: number;
     document: { notes: { text: string }[] };
   };
-  expect(saved.schemaVersion).toBe(2);
+  expect(saved.schemaVersion).toBe(3);
   expect(saved.document.notes.map((n) => n.text)).toEqual(['SECRET-REVIEW-NOTE']);
 
   for (const format of ['SVG', 'PDF'] as const) {
