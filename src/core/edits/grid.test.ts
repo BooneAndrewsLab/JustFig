@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import { objBounds } from '../geometry/transform';
 import {
+  createArrow,
   createDoc,
   createPanel,
   createPath,
@@ -186,6 +187,24 @@ describe('arrangeInGrid', () => {
     expect(e.select).toEqual([b, a, c].map((o) => panelOf(f, o.id)?.id));
     // Pure: the figure before is untouched (the undo state).
     expect(top(f0).map((o) => o.type)).toEqual(['rect', 'rect', 'rect']);
+  });
+
+  it('leaves arrows bound at both ends out of the cells', () => {
+    const { fig, page } = start();
+    const a = createRect(frame(0, 0, 50, 40));
+    const b = createRect(frame(100, 0, 50, 40));
+    const n = [
+      { x: 50, y: 20 },
+      { x: 100, y: 20 },
+    ];
+    const link = {
+      ...createArrow(n),
+      bind: { start: { id: a.id }, end: { id: b.id } },
+    };
+    const f0 = addObjects(page.id, [a, b, link]).apply(fig);
+    const f = arrangeInGrid(page.id, [a.id, b.id, link.id], opts({ cols: 2, rows: 1 })).apply(f0);
+    expect(panels(f)).toHaveLength(2);
+    expect(top(f).filter((o) => o.type === 'arrow')).toHaveLength(1);
   });
 
   it('keeps room above each object for its letter', () => {

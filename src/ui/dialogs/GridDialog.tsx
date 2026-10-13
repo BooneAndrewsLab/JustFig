@@ -9,6 +9,7 @@ import {
   type GridHAlign,
   type GridVAlign,
   arrangeInGrid,
+  isBoundArrow,
   gridShape,
 } from '@/core/edits/grid';
 import { formatLength, fromUnit } from '@/core/units';
@@ -26,7 +27,7 @@ const clampInt = (v: number, max: number): number =>
 export function GridDialog({ onClose }: { onClose: () => void }) {
   const s = useAppState();
   const page = currentPage(s);
-  const sel = selectedObjects(s).filter((o) => o.locked !== true);
+  const sel = selectedObjects(s).filter((o) => o.locked !== true && !isBoundArrow(o));
   const n = sel.length;
   const u = s.units;
   const [shape, setShape] = useState(() => gridShape(n));

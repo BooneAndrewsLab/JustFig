@@ -161,7 +161,14 @@ function placeDrawn(o: Obj, from: Box, to: Box, boxOf: (o: Obj) => Box): Obj {
 }
 
 /**
- * One named edit: each selected object (top-level or on a panel) goes into
+ * An arrow attached at both ends follows its targets (note 06): it is never a cell
+ * of its own, `reconcileBindings` re-routes it once they have moved.
+ */
+export const isBoundArrow = (o: Obj): boolean =>
+  o.type === 'arrow' && o.bind?.start !== undefined && o.bind.end !== undefined;
+
+/**
+ * One named edit: each selected object (top-level or on a panel, except arrows bound at both ends) goes into
  * its own new auto-lettered panel; a selected panel becomes a cell itself,
  * its contents moved (and scaled) with it. Objects are taken in reading
  * order of where they are now, so the letters follow the rough arrangement
@@ -204,9 +211,10 @@ function arrangePage(
     if (layer.locked) continue;
     for (const o of layer.children) {
       if (set.has(o.id)) {
-        if (o.locked !== true) found.push(o);
+        if (o.locked !== true && !isBoundArrow(o)) found.push(o);
       } else if (o.type === 'panel')
-        for (const c of o.children) if (set.has(c.id) && c.locked !== true) found.push(c);
+        for (const c of o.children)
+          if (set.has(c.id) && c.locked !== true && !isBoundArrow(c)) found.push(c);
     }
   }
   if (found.length === 0) throw new EditError('Select the objects to arrange (unlocked ones).');

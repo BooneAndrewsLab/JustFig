@@ -102,6 +102,8 @@ To turn plots, micrographs and drawings already on the page into a multi-panel f
 
 Press **Arrange** (or Enter). Each object goes into its own panel, the panels are lettered A, B, C… in reading order, and the whole change is one undo step. The order follows where the objects are on the page now, row by row from the top, left to right, so drag them roughly into place first if you want a particular order. A panel you selected becomes a cell itself, its contents moving (and scaling) with it. Locked objects are left where they are.
 
+Arrows attached to an object at both ends don't get a cell: they stay attached and follow their objects to the new positions.
+
 Lines, paths and arrows scale like the resize handles do (their points move, line widths stay); text keeps its size and re-wraps to the new width. Imported plots keep their text and line sizes too while **Keep plot text and line sizes** is on in the Inspector, so plots fitted into a grid all keep the label sizes you gave them.
 
 Set the look of all panel labels in the Inspector's Figure section (click an empty part of the page to see it): **Panel labels** chooses the style (A, a, (a), (A) or a)), **Label size** the size and **Bold labels** the weight.
