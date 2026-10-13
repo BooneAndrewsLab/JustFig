@@ -65,6 +65,10 @@ A closed path has a fill; an open path is just a line. Both are edited in the St
 
 ## Editing points
 
+**Straight lines, arrows and polylines** need no mode: select one and every point shows a round handle in place of the box and rotate handles. **Drag a handle** to move that point; hold **Shift** to snap its angle to 45° from the neighbouring point. Dragging the line itself moves all of it, and a drag is one step in Undo. To rotate or scale a line or arrow, use the Inspector's fields. Drag an arrow's end over an object to outline it and attach on release; release on empty canvas and it stays detached (see [Arrows](03-arrows.md)).
+
+For anything else, and for curves, use the point-editing mode below.
+
 You can reshape a path, line or arrow after drawing it, and the path that a membrane, a DNA helix or a row of receptors follows. **Double-click** it, select it and press **Enter**, or choose **Edit points** in the Inspector. Its points appear as squares (round for a smooth point), with the curve handles of smooth points as dots on thin lines. The point you work on is filled in, and a line at the bottom of the canvas says which point it is and where.
 
 - **Drag a point** to move it. Its handles move with it.

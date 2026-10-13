@@ -14,6 +14,15 @@ import {
   rotateObjects,
 } from '@/core/edits/edits';
 import {
+  arrowEndAt,
+  attachArrowEnd,
+  neighbourOf,
+  pagePoints,
+  pointDragTarget,
+  snap45,
+  usesPointHandles,
+} from '@/core/edits/arrowEnds';
+import {
   type NodeRef,
   editableNodes,
   insertNode,
@@ -98,7 +107,17 @@ type Gesture =
   | { kind: 'rotate'; c: Vec2; a0: number; fig: Figure; ids: Id[]; key: string }
   | { kind: 'marquee'; start: Vec2; add: boolean }
   | { kind: 'create'; start: Vec2; bindStart?: Id }
-  | { kind: 'node'; id: Id; ref: NodeRef; start: Vec2; fig: Figure; key: string; moved: boolean };
+  | {
+      kind: 'node';
+      id: Id;
+      ref: NodeRef;
+      start: Vec2;
+      fig: Figure;
+      key: string;
+      moved: boolean;
+      /** Set when a point handle of a selected line or arrow is dragged (issue 97, note 28). */
+      pt?: { origin: Vec2; neighbour: Vec2 | undefined; end: 'start' | 'end' | undefined };
+    };
 
 interface Overlay {
   readonly marquee?: Box;
@@ -463,6 +482,27 @@ export function Canvas() {
     }
     if (s.tool === 'select') {
       const sel = selectedObjects(s);
+      const pi = target.getAttribute('data-point-handle');
+      const only = sel.length === 1 ? sel[0] : undefined;
+      if (pi !== null && only && usesPointHandles(only)) {
+        // A point of a selected line or arrow drags directly, without point editing.
+        const index = Number(pi);
+        const pts = pagePoints(only);
+        const origin = pts[index];
+        if (origin) {
+          gesture.current = {
+            kind: 'node',
+            id: only.id,
+            ref: { index, part: 'node' },
+            start: p,
+            fig,
+            key: `g${String(++gestureSeq)}`,
+            moved: false,
+            pt: { origin, neighbour: neighbourOf(pts, index), end: arrowEndAt(only, index) },
+          };
+          return;
+        }
+      }
       if (handle && sel.length > 0) {
         const box = boundsOf(sel);
         const key = `g${String(++gestureSeq)}`;
@@ -649,6 +689,23 @@ export function Canvas() {
         const dy = p.y - g.start.y;
         if (!g.moved && Math.hypot(dx, dy) * v.zoom < 2) return;
         gesture.current = { ...g, moved: true };
+        if (g.pt) {
+          const t = pointDragTarget(
+            g.pt.origin,
+            { x: dx, y: dy },
+            g.pt.neighbour,
+            e.shiftKey,
+            s.snap ? (q) => snapP(q, new Set([g.id])).p : undefined,
+          );
+          store.edit(moveNodePart(page.id, g.id, g.ref, t.x - g.pt.origin.x, t.y - g.pt.origin.y), {
+            coalesce: g.key,
+            from: g.fig,
+            keepSelection: true,
+          });
+          const over = g.pt.end ? bindTargetAt(e.clientX, e.clientY, page) : undefined;
+          setOverlay(over ? { bindBox: objBounds(over) } : {});
+          return;
+        }
         store.edit(moveNodePart(page.id, g.id, g.ref, dx, dy), {
           coalesce: g.key,
           from: g.fig,
@@ -702,6 +759,18 @@ export function Canvas() {
         from: g.fig,
         keepSelection: true,
       });
+    if (g.kind === 'node' && g.pt?.end && g.moved) {
+      // An arrow end released on an object attaches to it; in empty space it stays detached (note 06).
+      const arrow = findObj(page, g.id);
+      const t = bindTargetAt(e.clientX, e.clientY, page);
+      const otherEnd = g.pt.end === 'start' ? 'end' : 'start';
+      if (arrow?.type === 'arrow' && t && t.id !== arrow.bind?.[otherEnd])
+        store.edit(attachArrowEnd(page.id, g.id, g.pt.end, t.id, t), {
+          coalesce: g.key,
+          from: g.fig,
+          keepSelection: true,
+        });
+    }
     if (g.kind === 'move' || g.kind === 'resize' || g.kind === 'rotate' || g.kind === 'node')
       store.seal();
     // A click on a selected group (no drag) selects the part of it under the pointer.
@@ -911,6 +980,7 @@ export function Canvas() {
   const scr = (p: Vec2) => ({ x: p.x * v.zoom + v.x, y: p.y * v.zoom + v.y });
   const editing = s.editingText !== null ? findObj(page, s.editingText) : undefined;
   const nodeObj = s.nodeEdit !== null ? findObj(page, s.nodeEdit.id) : undefined;
+  const pointObj = sel.length === 1 && sel[0] && usesPointHandles(sel[0]) ? sel[0] : undefined;
   const panning = space;
 
   return (
@@ -1084,7 +1154,26 @@ export function Canvas() {
             />
           )}
           {nodeObj && s.nodeEdit && <NodeOverlay obj={nodeObj} view={v} edit={s.nodeEdit} />}
-          {selBox && s.tool === 'select' && s.editingText === null && !nodeObj && (
+          {pointObj && s.tool === 'select' && s.editingText === null && !nodeObj && (
+            <g data-testid="point-handles">
+              {pagePoints(pointObj).map((q, i) => {
+                const a = scr(q);
+                return (
+                  <circle
+                    key={i}
+                    data-point-handle={i}
+                    cx={a.x}
+                    cy={a.y}
+                    r={HANDLE / 2 + 1}
+                    style={{ fill: OVERLAY.handle, stroke: OVERLAY.select, cursor: 'move' }}
+                  >
+                    <title>Drag to move this point</title>
+                  </circle>
+                );
+              })}
+            </g>
+          )}
+          {selBox && !pointObj && s.tool === 'select' && s.editingText === null && !nodeObj && (
             <g>
               {drawnBox && (
                 <rect
@@ -1178,10 +1267,4 @@ function square(a: Vec2, b: Vec2): Box {
     x: a.x + Math.sign(b.x - a.x || 1) * d,
     y: a.y + Math.sign(b.y - a.y || 1) * d,
   });
-}
-
-function snap45(a: Vec2, b: Vec2): Vec2 {
-  const ang = Math.round(Math.atan2(b.y - a.y, b.x - a.x) / (Math.PI / 4)) * (Math.PI / 4);
-  const len = Math.hypot(b.x - a.x, b.y - a.y);
-  return { x: a.x + Math.cos(ang) * len, y: a.y + Math.sin(ang) * len };
 }

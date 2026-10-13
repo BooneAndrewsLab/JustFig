@@ -229,7 +229,11 @@ function reconcilePage(before: Page | undefined, page: Page): Page {
       const t = now.get(id);
       if (!t || !bindable(t, o.id)) continue;
       const tWas = was.get(id);
+      // An end newly attached by this edit (released on an object) is placed on it.
+      const fresh = oldArrow !== undefined && oldArrow !== o && oldArrow.bind?.[end] !== id;
+      if (fresh) resolve = true;
       if (
+        !fresh &&
         oldArrow &&
         oldArrow !== o &&
         tWas === t &&

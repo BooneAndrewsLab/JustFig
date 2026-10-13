@@ -98,6 +98,16 @@ and smooth.
 A live region in the canvas's bottom corner says which point is current and where ("Point 2 of 5, smooth,
 X 12.0 mm, Y 4.5 mm"), after every move, and lists the keys.
 
+## Direct point handles (issue 97)
+
+A single selected open path or arrow whose nodes all lack curve handles (`usesPointHandles`,
+`src/core/edits/arrowEnds.ts`) shows a round handle per point instead of the box and rotate
+handles; rotate and scale stay in the Inspector. A drag is the same `node` gesture and
+`moveNodePart` edit as point editing (coalesced, one undo step) but does not enter the mode.
+The target is the point's page position plus the pointer delta; Shift snaps it to 45 degrees off
+the previous point (the next for the first), otherwise the usual snap guides apply. Paths with
+handles keep point editing. Keyboard: unchanged, Enter enters the mode.
+
 ## Tests
 
 `src/core/edits/nodes.test.ts`: moving a node and a handle (smooth partner follows, cusp does
@@ -109,4 +119,4 @@ and a bilayer's guide path edited with its params untouched. `src/ui/state/store
 coalesced drag is one undo step, and the current point survives delete and undo and is dropped on
 another selection or tool. `e2e/path-nodes.spec.ts`: double-click, drag a node, add on a segment,
 undo; Edit points, Tab, arrow keys, I, S, Delete, Escape and Enter from the keyboard, read from
-the live region; a bilayer's path dragged and undone. `a11y.spec.ts` audits the mode.
+the live region; a bilayer's path dragged and undone. `a11y.spec.ts` audits the mode. `arrowEnds.test.ts`: which objects show handles, drag target and Shift snap, end attach.

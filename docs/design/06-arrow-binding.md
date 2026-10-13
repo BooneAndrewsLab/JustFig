@@ -78,6 +78,12 @@ direction anyway; if aim and centre coincide, the end is left where it is.
   duplicate node is dropped), Esc or a tool change finishes with the placed points or cancels
   with one. The arrow has N nodes; only the first and last point can bind, each to the object
   under the pointer when it was clicked.
+- **Dragging an end point** (issue 97): a selected arrow shows a handle per point. Dragging the
+  first or last one moves it by the existing rule (the end detaches); the object under the
+  pointer is outlined, and on release over one (not the arrow's other end's target)
+  `attachArrowEnd` binds the end in the same undo step (same `coalesce` key). A binding newly
+  added by an edit is "fresh": `reconcileBindings` skips the moved-away check and places the end
+  on the outline. Release in empty space leaves it detached. Middle points never bind.
 - **Inspector:** the Arrow section shows "Start: attached to ‹name›" / "End: …" with a
   **Detach** button for each.
 - **Copy, duplicate, paste:** `cloneObjects` remaps a binding to the copy of its target when

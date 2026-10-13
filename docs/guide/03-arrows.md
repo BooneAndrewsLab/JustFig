@@ -39,6 +39,8 @@ While you drag, the object under the pointer is outlined to show where the end w
 
 To see or remove an attachment, select the arrow. The Arrow section shows "Start attached to …" and "End attached to …" with a **Detach** button for each end. After detaching, the arrow stays where it is but no longer follows.
 
+**Dragging an end point** of a selected arrow moves just that end. While you drag, the object under the pointer is outlined; release on it to attach the end there, release in empty space and the end stays detached.
+
 **Dragging the arrow itself** detaches any end that you move away. Moving the arrow together with the objects it is attached to (select them all and drag) keeps it attached.
 
 Other things to know:
