@@ -4,7 +4,7 @@ Arrows are made for pathway diagrams: choose the head at each end, bend them, an
 
 ## Drawing an arrow
 
-Choose the Arrow tool (key A) and drag from the tail to the head. A plain click makes a 60 pt arrow pointing right. Hold Shift to snap the angle to 45°. An arrow has a triangle head at its end by default.
+Choose the Arrow tool (key A) and drag from the tail to the head, or click to place the tail and then each further point (double-click or Enter finishes, Esc finishes with the points so far, or cancels if only the tail is placed). The head goes on the last point. Hold Shift to snap the angle to 45°. An arrow has a triangle head at its end by default.
 
 An arrow made with the Pen or Line tool is a plain path, not an arrow. Use the Arrow tool for anything that needs a head.
 

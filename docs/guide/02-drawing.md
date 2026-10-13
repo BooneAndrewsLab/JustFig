@@ -10,7 +10,7 @@ The tool palette lists the tools. Hover over a tool to see its name and key. Aft
 | Pan         | Drag to move the view. Holding Space does the same with any tool.                                              |
 | Rectangle   | Drag to draw. A plain click makes a 60 × 40 pt rectangle.                                                      |
 | Ellipse     | Drag to draw. A plain click makes a 50 × 50 pt circle.                                                         |
-| Line        | Drag from one end to the other. A plain click makes a 60 pt line.                                              |
+| Line        | Drag from one end to the other, or click to place points (see below).                                          |
 | Pen         | Click corners, or press and drag to pull out a smooth curve. See below.                                        |
 | Arrow       | Drag from the tail to the head. See [Arrows](03-arrows.md).                                                    |
 | Text        | Click to type, or drag to set a width. See [Text](04-text.md).                                                 |
@@ -24,6 +24,7 @@ New shapes get a fill and an outline in the default colours. Change them in the 
 ## Modifier keys while drawing
 
 - **Shift** with Rectangle or Ellipse makes a square or a circle.
+- **Click to place points.** With Line or Arrow, a click without dragging places the first point; each further click adds a point, with a preview segment following the pointer. **Double-click** or press **Enter** to finish; **Esc** (or choosing another tool) finishes with the points placed so far, or cancels if only one is placed. A drag still draws a single segment.
 - **Shift** with Line or Arrow snaps the angle to multiples of 45°.
 
 ## Selecting and moving

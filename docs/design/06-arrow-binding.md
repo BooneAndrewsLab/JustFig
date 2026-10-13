@@ -73,6 +73,11 @@ direction anyway; if aim and centre coincide, the end is left where it is.
 - **Arrow tool:** pressing on an object starts the arrow bound to it; releasing on an object
   binds the end. While dragging, the object under the pointer is outlined. A drag that starts
   and ends on the same object binds only the start.
+  Click-to-place (issue 96): a click without a drag places a point; more clicks add points
+  (Shift snaps 45° off the previous one), double-click or Enter finishes (the double click's
+  duplicate node is dropped), Esc or a tool change finishes with the placed points or cancels
+  with one. The arrow has N nodes; only the first and last point can bind, each to the object
+  under the pointer when it was clicked.
 - **Inspector:** the Arrow section shows "Start: attached to ‹name›" / "End: …" with a
   **Detach** button for each.
 - **Copy, duplicate, paste:** `cloneObjects` remaps a binding to the copy of its target when

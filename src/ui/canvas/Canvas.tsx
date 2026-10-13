@@ -266,6 +266,17 @@ export function Canvas() {
   const [overlay, setOverlay] = useState<Overlay>({});
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [pen, setPen] = useState<PathNode[]>([]);
+  /** Line/Arrow click-to-place points (issue 96); `ids` is the object bound at each point. */
+  const [poly, setPolyState] = useState<{ nodes: PathNode[]; ids: (Id | undefined)[] }>({
+    nodes: [],
+    ids: [],
+  });
+  const polyRef = useRef(poly);
+  const polyTool = useRef<'line' | 'arrow'>('line');
+  const setPoly = (next: { nodes: PathNode[]; ids: (Id | undefined)[] }) => {
+    polyRef.current = next;
+    setPolyState(next);
+  };
   const [space, setSpace] = useState(false);
 
   // A resize step that kept plot text took this long to reach the screen: redrawing a large
@@ -360,6 +371,38 @@ export function Canvas() {
     }
     setPen([]);
     setOverlay({});
+  };
+
+  const finishPoly = (keep: boolean, count = polyRef.current.nodes.length) => {
+    const { nodes, ids } = polyRef.current;
+    const kept = nodes.slice(0, count);
+    const tool = polyTool.current;
+    setPoly({ nodes: [], ids: [] });
+    setOverlay({});
+    if (!keep || kept.length < 2) return;
+    let obj: Obj = tool === 'line' ? createPath(kept, false) : createArrow(kept);
+    const start = ids[0];
+    const end = ids[kept.length - 1];
+    if (obj.type === 'arrow' && (start ?? end) !== undefined)
+      obj = {
+        ...obj,
+        bind: { ...(start ? { start } : {}), ...(end && end !== start ? { end } : {}) },
+      };
+    if (store.edit(addObjects(page.id, [obj])) && store.getState().tool === tool)
+      store.setTool('select');
+  };
+  // A tool change acts like Esc on a click-placed line or arrow.
+  useEffect(() => {
+    if (s.tool !== polyTool.current && poly.nodes.length > 0) finishPoly(poly.nodes.length >= 2);
+  });
+
+  /** The next click-placed point: snapped, and 45 degrees off the previous point with Shift. */
+  const polyPoint = (e: { clientX: number; clientY: number; shiftKey: boolean }, p: Vec2) => {
+    const q = snapP(p);
+    const last = polyRef.current.nodes[polyRef.current.nodes.length - 1];
+    const end = e.shiftKey && last ? snap45(last, q.p) : q.p;
+    const over = s.tool === 'arrow' ? bindTargetAt(e.clientX, e.clientY, page) : undefined;
+    return { end, guides: q.guides, over };
   };
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -502,6 +545,17 @@ export function Canvas() {
       gesture.current = { kind: 'create', start: q };
       return;
     }
+    if (s.tool === 'line' || s.tool === 'arrow') {
+      polyTool.current = s.tool;
+      if (poly.nodes.length > 0) {
+        const { end, over } = polyPoint(e, p);
+        setPoly({
+          nodes: [...poly.nodes, { x: end.x, y: end.y }],
+          ids: [...poly.ids, over?.id],
+        });
+        return;
+      }
+    }
     const start = snapP(p).p;
     const bindStart = s.tool === 'arrow' ? bindTargetAt(e.clientX, e.clientY, page) : undefined;
     gesture.current = { kind: 'create', start, ...(bindStart ? { bindStart: bindStart.id } : {}) };
@@ -514,6 +568,14 @@ export function Canvas() {
       if (s.tool === 'pen' && pen.length > 0) {
         const last = pen[pen.length - 1];
         if (last) setOverlay({ preview: { d: pathData([...pen, { x: p.x, y: p.y }], false) } });
+      }
+      if ((s.tool === 'line' || s.tool === 'arrow') && poly.nodes.length > 0) {
+        const { end, guides, over } = polyPoint(e, p);
+        setOverlay({
+          preview: { d: pathData([...poly.nodes, { x: end.x, y: end.y }], false) },
+          guides,
+          ...(over ? { bindBox: objBounds(over) } : {}),
+        });
       }
       return;
     }
@@ -649,6 +711,16 @@ export function Canvas() {
       const hits = objectsInBox(page, box, drawnBoundsIn(palette)).map((o) => o.id);
       store.select(g.add ? [...new Set([...s.selection, ...hits])] : hits);
     }
+    if (g.kind === 'create' && (s.tool === 'line' || s.tool === 'arrow')) {
+      const end0 = snapP(p).p;
+      const end = e.shiftKey ? snap45(g.start, end0) : end0;
+      if (Math.hypot(end.x - g.start.x, end.y - g.start.y) * v.zoom <= 4) {
+        // A click, not a drag: it places the first point; the next clicks add more.
+        polyTool.current = s.tool;
+        setPoly({ nodes: [{ x: g.start.x, y: g.start.y }], ids: [g.bindStart] });
+        return;
+      }
+    }
     if (g.kind === 'create' && s.tool !== 'pen') {
       const bindEnd = s.tool === 'arrow' ? bindTargetAt(e.clientX, e.clientY, page) : undefined;
       create(g.start, snapP(p).p, e.shiftKey, {
@@ -710,6 +782,11 @@ export function Canvas() {
   };
 
   const onDoubleClick = (e: React.MouseEvent) => {
+    if ((s.tool === 'line' || s.tool === 'arrow') && polyRef.current.nodes.length > 0) {
+      // The double click's two clicks each added a point; drop the duplicate.
+      finishPoly(true, polyRef.current.nodes.length - 1);
+      return;
+    }
     if (s.tool === 'pen') {
       // The double click's two clicks each added a node; drop the duplicate.
       finishPen(false, pen.slice(0, -1));
@@ -762,6 +839,17 @@ export function Canvas() {
       el.removeEventListener('wheel', stop);
     };
   }, []);
+
+  useEffect(() => {
+    if (s.tool !== 'line' && s.tool !== 'arrow') return;
+    const key = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && polyRef.current.nodes.length > 0) finishPoly(true);
+    };
+    window.addEventListener('keydown', key);
+    return () => {
+      window.removeEventListener('keydown', key);
+    };
+  });
 
   useEffect(() => {
     if (s.tool !== 'pen') return;
@@ -972,7 +1060,7 @@ export function Canvas() {
                   style={{ stroke: OVERLAY.select }}
                 />
               ))}
-            {pen.map((n, i) => {
+            {[...pen, ...poly.nodes].map((n, i) => {
               const a = scr(n);
               return (
                 <rect
