@@ -115,6 +115,16 @@ export function createArrow(
   return { ...base(f), type: 'arrow', nodes: local, start, end, style };
 }
 
+/**
+ * What the Line tool draws (issue 100): an arrow with no heads, so a line binds, snaps to
+ * connection sites and follows objects exactly as an arrow does (note 06).
+ */
+export const createLine = (nodes: readonly PathNode[]): Arrow =>
+  createArrow(nodes, NO_HEAD, NO_HEAD);
+
+/** An arrow with no heads: what the app calls a line. */
+export const isLine = (a: Arrow): boolean => a.start.kind === 'none' && a.end.kind === 'none';
+
 export const defaultRun = (text: string, over: Partial<Run> = {}): Run => ({
   text,
   font: 'arimo',

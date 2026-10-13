@@ -23,7 +23,7 @@ async function drag(page: Page, a: { x: number; y: number }, b: { x: number; y: 
 async function line(page: Page, x0: number, x1: number, y: number) {
   await page.keyboard.press('l');
   await drag(page, await at(page, x0, y), await at(page, x1, y));
-  await expect(page.locator('.layers .item .name', { hasText: 'Path' })).toHaveCount(1);
+  await expect(page.locator('.layers .item .name', { hasText: 'Line' })).toHaveCount(1);
 }
 
 const nodes = (page: Page) => page.locator('[data-node-part="node"]');

@@ -10,7 +10,7 @@ The tool palette lists the tools. Hover over a tool to see its name and key. Aft
 | Pan         | Drag to move the view. Holding Space does the same with any tool.                                              |
 | Rectangle   | Drag to draw. A plain click makes a 60 × 40 pt rectangle.                                                      |
 | Ellipse     | Drag to draw. A plain click makes a 50 × 50 pt circle.                                                         |
-| Line        | Drag from one end to the other, or click to place points (see below).                                          |
+| Line        | Drag from one end to the other, or click to place points. Attaches to objects like an arrow.                   |
 | Pen         | Click corners, or press and drag to pull out a smooth curve. See below.                                        |
 | Arrow       | Drag from the tail to the head. See [Arrows](03-arrows.md).                                                    |
 | Text        | Click to type, or drag to set a width. See [Text](04-text.md).                                                 |
@@ -65,7 +65,7 @@ A closed path has a fill; an open path is just a line. Both are edited in the St
 
 ## Editing points
 
-**Straight lines, arrows and polylines** need no mode: select one and every point shows a round handle in place of the box and rotate handles. **Drag a handle** to move that point; hold **Shift** to snap its angle to 45° from the neighbouring point. Dragging the line itself moves all of it, and a drag is one step in Undo. To rotate or scale a line or arrow, use the Inspector's fields. Drag an arrow's end over an object to outline it and attach on release; release on empty canvas and it stays detached (see [Arrows](03-arrows.md)).
+**Straight lines, arrows and polylines** need no mode: select one and every point shows a round handle in place of the box and rotate handles. **Drag a handle** to move that point; hold **Shift** to snap its angle to 45° from the neighbouring point. Dragging the line itself moves all of it, and a drag is one step in Undo. To rotate or scale a line or arrow, use the Inspector's fields. Drag a line's or an arrow's end over an object to attach it on release (a tag by the pointer says where: a side, the centre or the outline; hold **Alt** for the outline); release on empty canvas and it stays detached. A click without dragging on an attached end's handle lists where it can attach instead (see [Arrows](03-arrows.md)).
 
 For anything else, and for curves, use the point-editing mode below.
 
@@ -82,7 +82,7 @@ Each drag is one step in Undo. A point moves exactly under the pointer even when
 
 From the keyboard: **Tab** and **Shift+Tab** go to the next or previous point, including handles. The **arrow keys** move the current point by 1 pt, and with **Shift** by 10 pt. **I** adds a point halfway to the next one. You can change I and S on the guide's Change shortcuts page. **Edit points** in the Inspector moves the focus to the canvas, so these keys work from there.
 
-An arrow attached to a closed path follows its outline when you move the path's points. Dragging the attached end point of an arrow detaches it, as dragging the whole arrow does.
+An arrow or line attached to a closed path follows its outline when you move the path's points. Dragging the attached end point of an arrow detaches it, as dragging the whole arrow does.
 
 ## Style
 

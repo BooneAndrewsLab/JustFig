@@ -350,6 +350,14 @@ describe('connection sites (issue 98, note 06)', () => {
     expect(nearestSite(r, { x: 120, y: 97 }, 6)).toBeUndefined();
   });
 
+  it('may give the centre a smaller snap radius than the edge sites (issue 100)', () => {
+    const r = box();
+    expect(nearestSite(r, { x: 144, y: 120 }, 6)).toBe('center');
+    expect(nearestSite(r, { x: 144, y: 120 }, 6, 3)).toBeUndefined();
+    expect(nearestSite(r, { x: 141, y: 120 }, 6, 3)).toBe('center');
+    expect(nearestSite(r, { x: 143, y: 97 }, 6, 3)).toBe('top');
+  });
+
   it('places a site-bound end on its site and keeps it there as the target moves, resizes and turns', () => {
     const a = box();
     const b = createRect(frame(400, 300, 40, 40));

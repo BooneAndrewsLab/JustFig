@@ -29,7 +29,7 @@ JustFig is designed so that most of it works without a mouse, and so that a scre
 
 - Edit a selected text with **Edit text** in the Inspector. Inside the editor, Ctrl+B, Ctrl+I, Ctrl+= and Ctrl+Shift+= set bold, italic, subscript and superscript, and Escape finishes.
 - Align, distribute, group, ungroup, flip and change order with the Inspector's buttons and the keys Ctrl+G, Ctrl+Shift+G, `]` and `[`.
-- Arrows are attached or detached with the arrow's section in the Inspector; the **Detach** buttons are ordinary buttons. Creating a new attachment needs the pointer.
+- Arrows and lines are attached or detached with their section in the Inspector (**Arrow** or **Line**): the list of where each end attaches and the **Detach** buttons are ordinary controls. The list that a click on an attached end's handle opens works from the keyboard too (arrow keys, Enter, Escape). Creating a new attachment needs the pointer.
 - A path, line or arrow can be reshaped point by point: select it, then **Edit points** in the Inspector (or Enter on the canvas). Tab moves between points, the arrow keys move the current one, and a line at the bottom of the canvas, read out by screen readers, says which point it is and where. See [Editing points](02-drawing.md#editing-points). The round point handles on a selected line or arrow are for the pointer; from the keyboard, Enter on the selected line gives the same points to Tab and the arrow keys.
 - Ctrl+Z and Ctrl+Y undo and redo. The tooltip of each button names the change.
 

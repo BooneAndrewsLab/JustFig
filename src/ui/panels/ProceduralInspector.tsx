@@ -7,7 +7,7 @@ import { useState } from 'react';
 
 import { updateObjects } from '@/core/edits/edits';
 import type { Id } from '@/core/model/ids';
-import type { Obj, Paint, PathObj, Procedural, Swatch } from '@/core/model/types';
+import type { Arrow, Obj, Paint, PathObj, Procedural, Swatch } from '@/core/model/types';
 import {
   applyStyle,
   convertObjects,
@@ -506,7 +506,7 @@ export function ApplyStyleRow({ s, sel }: { s: AppState; sel: readonly Obj[] }) 
   );
 }
 
-export function PathKindsSection({ s, path }: { s: AppState; path: PathObj }) {
+export function PathKindsSection({ s, path }: { s: AppState; path: PathObj | Arrow }) {
   const kinds = allKinds().filter((k) => k.usesPath);
   if (kinds.length === 0) return null;
   return (

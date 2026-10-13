@@ -8,6 +8,7 @@ import { frame } from '@/core/model/factory';
 import { type Id, newId } from '@/core/model/ids';
 import { mapPageObjs, pageObjects, walk } from '@/core/model/tree';
 import type {
+  Arrow,
   Assets,
   Figure,
   Image,
@@ -70,8 +71,10 @@ export function createProcedural(
 }
 
 /** A drawn path turned into a path-following kind: the frame grows by the kind's reach. */
-export function procFromPath(k: ProceduralKind, src: PathObj): Procedural {
-  const params = fixed(k, { ...defaultParams(k.fields), closed: src.closed });
+export function procFromPath(k: ProceduralKind, src: PathObj | Arrow): Procedural {
+  // A line (an arrow with no heads, issue 100) is an open path.
+  const closed = src.type === 'path' && src.closed;
+  const params = fixed(k, { ...defaultParams(k.fields), closed });
   const pad = k.overhang ? k.overhang(params) : 0;
   const shift = (p: Vec2): Vec2 => ({ x: p.x + pad, y: p.y + pad });
   const path: PathNode[] = src.nodes.map((n) => ({
@@ -151,7 +154,7 @@ export function applyStyle(pageId: Id, objs: readonly Obj[], style: StyleId): Ed
   });
 }
 
-export function makeFromPath(pageId: Id, src: PathObj, kind: string): Edit {
+export function makeFromPath(pageId: Id, src: PathObj | Arrow, kind: string): Edit {
   const k = getKind(kind);
   if (!k?.usesPath) throw new EditError('That kind does not follow a path.');
   const made = procFromPath(k, src);

@@ -6,7 +6,7 @@ Arrows are made for pathway diagrams: choose the head at each end, bend them, an
 
 Choose the Arrow tool (key A) and drag from the tail to the head, or click to place the tail and then each further point (double-click or Enter finishes, Esc finishes with the points so far, or cancels if only the tail is placed). The head goes on the last point. Hold Shift to snap the angle to 45°. An arrow has a triangle head at its end by default.
 
-An arrow made with the Pen or Line tool is a plain path, not an arrow. Use the Arrow tool for anything that needs a head.
+The **Line** tool (key L) draws the same kind of object with no heads: a line attaches to objects, snaps to their connection points and follows them exactly as an arrow does, and its Inspector section is called **Line**. Give it a head in that section and it becomes an arrow; set both heads to **None** and an arrow becomes a line. (Lines in figures saved before this, and lines drawn with the Pen tool, are plain paths: they do not attach.)
 
 ## Heads
 
@@ -46,16 +46,18 @@ An arrow can be attached at either end to a shape, icon, text, image or any othe
 
 To attach:
 
-- **Press** the Arrow tool on an object to attach the tail to it.
+- **Press** the Arrow or Line tool on an object to attach the tail to it: on a connection point's dot to fix it there, elsewhere on the object to slide on its outline.
 - **Release** on an object to attach the head to it.
 
-While you drag, the object under the pointer is outlined to show where the end will attach, and its **connection points** appear as small dots: the middle of each side (top, right, bottom, left) and the centre. Bring the pointer within a few pixels of a dot and it fills in; the end snaps to it and stays fixed there. Anywhere else on the object, the end slides: it sits just outside the object's outline, on the line towards the other end, and moves round the outline as things move.
+With the Arrow or Line tool chosen, hovering over an object already shows its connection points, before you press.
+
+While you drag, the object under the pointer is outlined to show where the end will attach, and its **connection points** appear as small dots: the middle of each side (top, right, bottom, left) and the centre. Bring the pointer within a few pixels of a dot and it fills in; the end snaps to it and stays fixed there. The centre dot needs the pointer closer than the side dots, so starting an arrow in the middle of a box does not pin it inside the box by accident. Anywhere else on the object the outline is drawn round it and the end slides: it sits just outside the object's outline, on the line towards the other end, and moves round the outline as things move. A small tag by the pointer names what releasing gives: **Top**, **Right**, **Bottom**, **Left**, **Centre** or **Outline**. Hold **Alt** while dragging to skip the connection points and slide on the outline even near a dot.
 
 An end on a connection point keeps to that point when you move, resize, rotate or flip the object: the "right" point turns with the object, so a rotated box still has the arrow leaving the same side. A connection point is a little outside its side (or exactly at the centre).
 
 To see or remove an attachment, select the arrow. The Arrow section shows "Start attached to …" and "End attached to …", a list of where on the object that end attaches (**outline** for a sliding end, or **top**, **right**, **bottom**, **left**, **centre**) and a **Detach** button for each end. Choosing another entry in the list moves the end there. After detaching, the arrow stays where it is but no longer follows.
 
-**Dragging an end point** of a selected arrow moves just that end. While you drag, the object under the pointer is outlined with its connection points; release on a point to attach the end there, elsewhere on the object to attach it sliding, and in empty space the end stays detached.
+**Dragging an end point** of a selected arrow moves just that end. While you drag, the object under the pointer is outlined with its connection points; release on a point to attach the end there, elsewhere on the object to attach it sliding, and in empty space the end stays detached. **Clicking** an attached end's handle without dragging opens a small list of the same places as the Inspector (**Outline**, **Top**, **Right**, **Bottom**, **Left**, **Centre**); choose one to move the end there. The list takes the keyboard focus: the arrow keys move through it, Enter chooses, Escape closes it.
 
 **Dragging the arrow itself** detaches any end that you move away. Moving the arrow together with the objects it is attached to (select them all and drag) keeps it attached.
 

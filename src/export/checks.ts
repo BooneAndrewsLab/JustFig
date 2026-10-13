@@ -12,6 +12,7 @@ import { resolvePaint } from '@/core/color/color';
 import { type Box, apply, boxOfPoints, frameMatrix } from '@/core/geometry/matrix';
 import type { Id } from '@/core/model/ids';
 import { sameLevels } from '@/core/edits/levels';
+import { isLine } from '@/core/model/factory';
 import { ownObjects, panelLabels } from '@/core/model/panels';
 import type { Doc, Figure, Image, Obj, Page, Paint, Text } from '@/core/model/types';
 import { journalColumns, journalMaxHeightMm } from '@/core/presets/pages';
@@ -566,7 +567,7 @@ function describe(o: Obj | undefined): string {
     case 'ellipse':
       return 'An ellipse';
     case 'arrow':
-      return 'An arrow';
+      return isLine(o) ? 'A line' : 'An arrow';
     case 'icon':
       return 'An icon';
     case 'group':

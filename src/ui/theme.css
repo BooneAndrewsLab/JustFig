@@ -2005,6 +2005,40 @@ button.history__item--current {
   gap: 8px;
 }
 
+/* Connector ends (issue 100): the live label by the pointer, and the end-handle site list. */
+.bind-label {
+  position: absolute;
+  padding: 1px 6px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.end-sites {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--ink);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.15);
+}
+
+.end-sites button {
+  text-align: left;
+}
+
+.end-sites button[aria-pressed='true'] {
+  font-weight: 600;
+}
+
 /* Point editing (note 28): which point is current, and the keys. */
 .node-status {
   position: absolute;

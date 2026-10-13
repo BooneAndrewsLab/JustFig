@@ -173,13 +173,22 @@ export function sitesOf(o: Obj): { site: BindSite; at: Vec2 }[] {
   return BIND_SITES.map((site: BindSite) => ({ site, at: sitePoint(o, site) }));
 }
 
-/** The site whose point is within `radius` of `p` (the nearest), if any. */
-export function nearestSite(o: Obj, p: Vec2, radius: number): BindSite | undefined {
+/**
+ * The site whose point is within `radius` of `p` (the nearest), if any. The centre may take
+ * a smaller `centreRadius` (issue 100): pressing in the middle of an object then starts a
+ * sliding end rather than pinning it inside the object by accident.
+ */
+export function nearestSite(
+  o: Obj,
+  p: Vec2,
+  radius: number,
+  centreRadius = radius,
+): BindSite | undefined {
   let best: BindSite | undefined;
-  let bestD = radius;
+  let bestD = Infinity;
   for (const { site, at } of sitesOf(o)) {
     const d = Math.hypot(at.x - p.x, at.y - p.y);
-    if (d <= bestD) {
+    if (d <= (site === 'center' ? centreRadius : radius) && d <= bestD) {
       best = site;
       bestD = d;
     }

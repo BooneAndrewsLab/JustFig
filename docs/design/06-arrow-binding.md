@@ -155,11 +155,16 @@ ordinary polyline to edit by hand.
 
 ## Making and breaking a binding
 
-- **Arrow tool:** pressing on an object starts the arrow bound to it; releasing on an object
-  binds the end. While dragging, the object under the pointer is outlined and its sites drawn
-  as dots (canvas overlay only). Within `SITE_SNAP_PX` = 8 screen pixels of a site the end
-  snaps to it (the dot fills) and binds with that `site`; elsewhere on the object it binds
-  sliding. Because edge sites sit a gap outside the outline, an object whose site is within
+- **Arrow and Line tools:** pressing on an object starts the connector bound to it; releasing
+  on an object binds the end. While hovering (before pressing, issue 100) and dragging, the
+  object under the pointer shows its sites as dots (canvas overlay only). Within
+  `SITE_SNAP_PX` = 8 screen pixels of an edge site, or `CENTRE_SNAP_PX` = 4 of the centre (smaller,
+  so pressing in the middle of a box does not pin the end inside it by accident), the end snaps
+  to it (the dot fills) and binds with that `site`; elsewhere on the object it binds sliding and
+  the object's outline is drawn as a ring. A tag by the pointer names what releasing gives
+  ("Top", "Right", "Bottom", "Left", "Centre", "Outline"). **Alt** skips site snapping: the end
+  slides. The choice is pure, in `src/ui/canvas/connector.ts` (`bindHit`, `bindOverlay`,
+  `siteName`); the canvas only finds the bindable object under the pointer. Because edge sites sit a gap outside the outline, an object whose site is within
   the radius counts as under the pointer even when the pointer is just off it. A drag that starts
   and ends on the same object binds only the start.
   Click-to-place (issue 96): a click without a drag places a point; more clicks add points
@@ -169,14 +174,22 @@ ordinary polyline to edit by hand.
   under the pointer when it was clicked.
 - **Dragging an end point** (issue 97): a selected arrow shows a handle per point. Dragging the
   first or last one moves it by the existing rule (the end detaches); the object under the
-  pointer is outlined with its sites, and on release over one (not the arrow's other end's
-  target) `attachArrowEnd(page, arrow, end, target, obj, site?)` binds the end, at the snapped
-  site if any, in the same undo step (same `coalesce` key). A binding newly
+  pointer is shown as above (the other end's target is never offered), and on release over one
+  `attachArrowEnd(page, arrow, end, target, obj, site?)` binds the end, at the snapped
+  site if any, in the same undo step (same `coalesce` key). A **click** without a drag on a
+  bound end's handle opens a popover (`EndSitePopover`) listing Outline, Top, Right, Bottom,
+  Left, Centre: the Inspector's list and edit. It takes focus (arrow keys, Enter, Esc returns
+  focus to the canvas) and closes when the selection changes or the end is detached. A binding newly
   added by an edit is "fresh": `reconcileBindings` skips the moved-away check and places the end
   on the outline. Release in empty space leaves it detached. Middle points never bind.
 - **Inspector:** the Arrow section shows "Start: attached to ‹name›" / "End: …", a site list
   (outline, top, right, bottom, left, centre; choosing one is `attachArrowEnd` again, so a fresh
   binding that re-solves) and a **Detach** button for each.
+- **Lines** (issue 100): the Line tool makes an `Arrow` with both heads `none` (`createLine`), so
+  there is one connector concept: lines bind, snap, route and follow exactly as arrows do, and
+  a head can be added later. The UI calls such an arrow a "Line" (`isLine`, `typeName`), and
+  "Follow this path" accepts it as an open path. Export is unchanged: no heads means one plain
+  stroked path. No schema change: open paths drawn before (and Pen paths) stay paths, unbound.
 - **Copy, duplicate, paste:** `cloneObjects` remaps a binding (keeping its site) to the copy of
   its target when the target is copied too, and drops it otherwise, so a duplicated arrow never jumps back onto
   the original.
@@ -200,5 +213,9 @@ same-way (U, its reach handle) exits, clearing a target box, free ends (inferred
 toggle), a property test (any ends and directions: orthogonal, ends kept, deterministic); curves;
 through `reconcileBindings`: following a target, re-solving is a no-op (`solveArrow` returns the
 same arrow), `mid` surviving moves and resizes, sliding ends taking the facing side, back to
-straight keeping the nodes. E2E: draw two rectangles, draw an arrow
-between them, move one, the arrow follows; drag the arrow away, it detaches.
+straight keeping the nodes. `connector.test.ts` (issue 100): edge
+and smaller centre snap radii, Alt sliding, finding a target by a site just off its outline,
+the excluded other-end target, the label names and the ring only when sliding; lines are
+headless arrows named "Line", export as one plain path, bind and follow, and follow-this-path.
+E2E: draw two rectangles, draw an arrow between them, move one, the arrow follows; drag the
+arrow away, it detaches.

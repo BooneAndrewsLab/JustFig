@@ -52,6 +52,7 @@ import type { Id } from '@/core/model/ids';
 import { type StepBadge, isStep, stepNumbers } from '@/core/model/steps';
 import { BIND_SITES, SITE_LABEL, elbowRoute } from '@/core/model/binding';
 import { findObj } from '@/core/model/tree';
+import { isLine } from '@/core/model/factory';
 import {
   attachArrowEnd,
   setArrowFirstLeg,
@@ -85,7 +86,7 @@ import { addScaleBar, insetSourcePixelSize, labelGelImage } from '@/procedural/e
 import { fromUnit, toUnit } from '@/core/units';
 
 import { analytics } from '../analytics';
-import { objName } from './objName';
+import { objName, typeName } from './objName';
 import { type AppState, currentPage, figure, selectedObjects, store } from '../state/store';
 import {
   copySpacing,
@@ -473,7 +474,7 @@ function SelectionInspector({
 
   return (
     <>
-      <Section title={one ? (one.name ?? cap(one.type)) : `${String(sel.length)} objects`}>
+      <Section title={one ? (one.name ?? typeName(one)) : `${String(sel.length)} objects`}>
         <div className="geo">
           <Num
             label="X"
@@ -886,7 +887,7 @@ function SelectionInspector({
       {one?.type === 'image' && <InsetSection s={s} image={one} onInset={onInset} />}
       {one?.type === 'embedded' && <EmbeddedSection obj={one} />}
       {one?.type === 'procedural' && <ProceduralSection s={s} obj={one} />}
-      {one?.type === 'path' && <PathKindsSection s={s} path={one} />}
+      {(one?.type === 'path' || one?.type === 'arrow') && <PathKindsSection s={s} path={one} />}
     </>
   );
 }
@@ -1085,8 +1086,10 @@ function ArrowSection({ s, arrow }: { s: AppState; arrow: Extract<Obj, { type: '
       o.type === 'arrow' ? { ...o, [end]: { ...o[end], ...patch } } : o,
     );
   };
+  // An arrow with no heads is a line (issue 100): one connector, named for what it looks like.
+  const noun = isLine(arrow) ? 'line' : 'arrow';
   return (
-    <Section title="Arrow">
+    <Section title={isLine(arrow) ? 'Line' : 'Arrow'}>
       {(['start', 'end'] as const).map((end) => (
         <div className="row" key={end}>
           <label htmlFor={`head-${end}`}>{end === 'start' ? 'Start' : 'End'}</label>
@@ -1118,7 +1121,7 @@ function ArrowSection({ s, arrow }: { s: AppState; arrow: Extract<Obj, { type: '
             </span>
             {t && (
               <select
-                aria-label={`Where the ${which} of the arrow attaches`}
+                aria-label={`Where the ${which} of the ${noun} attaches`}
                 data-testid={`bound-${end}-site`}
                 value={b.site ?? ''}
                 onChange={(e) => {
@@ -1146,7 +1149,7 @@ function ArrowSection({ s, arrow }: { s: AppState; arrow: Extract<Obj, { type: '
             )}
             <button
               type="button"
-              aria-label={`Detach the ${end === 'start' ? 'start' : 'end'} of the arrow`}
+              aria-label={`Detach the ${end === 'start' ? 'start' : 'end'} of the ${noun}`}
               onClick={() => {
                 store.edit(
                   updateObjects(currentPage(s).id, ids, 'Detach arrow', (o) => {
