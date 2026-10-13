@@ -762,9 +762,13 @@ export const petriDish = defineKind<PetriParams>({
         subs = keep;
       }
       // Thousands of colonies get fewer wrinkles or filaments each, keeping the render bounded.
+      // By construction: colonies plus their lines never push the whole render past 45 000 units
+      // (the property-test bound is 50 000), however many colonies, plaques or discs there are.
+      const nCol = Math.max(1, subs.length + markerSubs.length);
+      const used = out.reduce((n, o) => n + (o.kind === 'path' ? o.subs.length : 1), 0);
       const lineBudget = Math.max(
-        1,
-        Math.floor(30_000 / Math.max(1, subs.length + markerSubs.length)),
+        0,
+        Math.min(Math.floor(30_000 / nCol), Math.floor((45_000 - used - nCol) / nCol)),
       );
       // Shape: reshape each colony and add wrinkles, filaments or a marker wedge.
       const shape = (s: Sub, sector: boolean): Sub => {
